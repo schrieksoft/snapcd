@@ -24,6 +24,7 @@ public class SendProbeStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
     SnapCdDbContext dbContext,
     IMaintenanceModeService maintenanceMode,
     ProbeInputsBuilderFactory inputsFactory,
+    ProbeSignalRecorderFactory recorderFactory,
     ILogger<SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>> logger)
     : SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(dbContext, maintenanceMode, logger)
     where TSaga : JobSagaBase
@@ -36,11 +37,16 @@ public class SendProbeStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
 
         using var inputs = inputsFactory.Create();
 
-        var probeWaveId = await inputs.FindWaveToProbeFor(saga.ModuleId, saga.OrganizationId);
-        if (probeWaveId == null) return;
+        var waves = await inputs.FindWavesToProbeFor(saga.ModuleId, saga.OrganizationId, saga.CorrelationId);
+        var probeWaveId = waves.FirstOrDefault();
+        if (probeWaveId == Guid.Empty) return;
 
-        probe.ProbeWaveId = probeWaveId.Value;
+        probe.ProbeWaveId = probeWaveId;
         probe.InputsJson = await inputs.BuildInputsJson(
-            probeWaveId.Value, saga.ModuleId, saga.OrganizationId) ?? string.Empty;
+            probeWaveId, saga.ModuleId, saga.OrganizationId) ?? string.Empty;
+
+        // Recorded before the probe runs rather than after, so a probe in flight is visible.
+        using var recorder = recorderFactory.Create();
+        await recorder.RecordAttempt(probeWaveId, saga.ModuleId, saga.OrganizationId, saga.CorrelationId);
     }
 }

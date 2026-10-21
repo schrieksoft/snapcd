@@ -14,6 +14,7 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.RippleProbes;
 using SnapCd.Server.Core.Services.MaintenanceMode;
 
 namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
@@ -37,6 +38,9 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
 
     // Resolved lazily: the maintenance-gated path runs without the job-service dependency graph.
     private JobService ExecutionService => _serviceProvider.GetRequiredService<JobService>();
+
+    private ProbeWaveReadiness ProbeReadiness =>
+        _serviceProvider.GetRequiredService<ProbeWaveReadinessFactory>().Create();
 
     public async Task Execute(
         BehaviorContext<ModuleSaga, TGatekeepingJobRequested> context,
@@ -115,10 +119,15 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 .Where(j => j.ModuleId == context.Message.ModuleId && j.OrganizationId == context.Message.OrganizationId && j.IsCurrent == true)
                 .FirstOrDefaultAsync();
 
-            var canExecute = await ExecutionService.CheckDependenciesAsync(
-                context.Saga.CorrelationId,
-                context.Message.OrganizationId,
-                context.Message.DesiredStateHeadline);
+            // A probe is gated on its wave rather than on its dependencies. Those dependencies are
+            // mid-job by definition while a wave is open, which is the situation a probe is for.
+            var canExecute = context.Message.ProbeWaveId is { } probeWaveId
+                ? await ProbeReadiness.IsReady(
+                    probeWaveId, context.Saga.CorrelationId, context.Message.OrganizationId)
+                : await ExecutionService.CheckDependenciesAsync(
+                    context.Saga.CorrelationId,
+                    context.Message.OrganizationId,
+                    context.Message.DesiredStateHeadline);
 
             _logger.LogDebug(
                 "Gate for module {ModuleId}: currentJob {CurrentJob}, canExecute {CanExecute}",

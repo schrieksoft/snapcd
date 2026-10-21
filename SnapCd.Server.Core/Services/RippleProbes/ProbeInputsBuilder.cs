@@ -60,18 +60,28 @@ public class ProbeInputsBuilder : IDisposable
     }
 
     /// <summary>
-    /// The wave this Module still owes a probe to, or null when it owes none.
+    /// Every wave this Module still owes a probe to.
     ///
     /// A wave it has already reported in is not its business any more, which is what stops a
-    /// Module probing again on every later apply.
+    /// Module probing again on every later apply. Several waves can be open on one Module at
+    /// once, from different origins, and each predicts different values for its inputs, so each
+    /// is owed its own probe rather than one answer shared between them.
+    ///
+    /// <paramref name="exceptAttemptedByJob"/> also drops the waves that job has already tried,
+    /// answered or not: a faulted probe records no signals, so the wave it tried stays owed on
+    /// the signal test alone.
     /// </summary>
-    public async Task<Guid?> FindWaveToProbeFor(Guid moduleId, Guid organizationId)
+    public async Task<List<Guid>> FindWavesToProbeFor(
+        Guid moduleId,
+        Guid organizationId,
+        Guid? exceptAttemptedByJob = null)
     {
-        var reported = await _dbContext.ModuleProbeAttempts
+        var settled = await _dbContext.ModuleProbeAttempts
             .AsNoTracking()
             .Where(a => a.ModuleId == moduleId &&
                         a.OrganizationId == organizationId &&
-                        a.SignalOutputSetId != null)
+                        (a.SignalOutputSetId != null ||
+                         (exceptAttemptedByJob != null && a.ProbeModuleJobId == exceptAttemptedByJob)))
             .Select(a => a.ProbeWaveId)
             .ToListAsync();
 
@@ -81,9 +91,10 @@ public class ProbeInputsBuilder : IDisposable
                 e.ConsumerModuleId == moduleId &&
                 e.OrganizationId == organizationId &&
                 e.Status == SignalEdgeStatus.Confirmed &&
-                !reported.Contains(e.ProbeWaveId))
-            .Select(e => (Guid?)e.ProbeWaveId)
-            .FirstOrDefaultAsync();
+                !settled.Contains(e.ProbeWaveId))
+            .Select(e => e.ProbeWaveId)
+            .Distinct()
+            .ToListAsync();
     }
 
     /// <summary>

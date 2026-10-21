@@ -11,6 +11,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SnapCd.Contracts;
+using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
@@ -195,15 +197,19 @@ public class SignalEdgeResolver : IDisposable
 
         await NotifyWave(probeWaveId, organizationId);
 
-        // Whoever waited on this Module may now be waiting on nothing. Each is asked to look
-        // again rather than being told it is ready, because only the consumer's own edges say
-        // whether its last upstream has answered.
+        // Whoever waited on this Module may now be waiting on nothing. Each is asked for an Apply
+        // rather than being told it is ready: the gate serialises per Module and re-checks the
+        // wave itself, because only the consumer's own edges say whether its last upstream has
+        // answered. SetNewDesiredState is false, so a probe cannot move a Module towards Applied
+        // when its desired state is Destroyed.
         foreach (var edge in pending)
-            await _bus.Publish(new ProbeReadinessCheckRequested
+            await _bus.Publish(new GatekeepingJobRequested
             {
-                ProbeWaveId = probeWaveId,
                 ModuleId = edge.ConsumerModuleId,
-                OrganizationId = organizationId
+                OrganizationId = organizationId,
+                ProbeWaveId = probeWaveId,
+                DesiredStateHeadline = DesiredStateHeadline.Applied,
+                SetNewDesiredState = false
             });
     }
 

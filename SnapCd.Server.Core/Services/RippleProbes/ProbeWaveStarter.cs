@@ -9,6 +9,8 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SnapCd.Contracts;
+using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Enums;
@@ -77,18 +79,6 @@ public class ProbeWaveStarter : IDisposable
     {
         if (changedOutputNames.Count == 0) return null;
 
-        // A probe's Apply is an ordinary Apply, so its plan reports changed outputs and would
-        // start a wave of its own. It exists to answer a wave rather than to begin one, and a
-        // wave per probe would nest without bound: each one counts itself as depth zero.
-        if (await IsProbingForAWave(originModuleJobId, organizationId))
-        {
-            _logger.LogDebug(
-                "Job {ModuleJobId} is itself a probe, so it answers its wave rather than starting one",
-                originModuleJobId);
-
-            return null;
-        }
-
         var consumers = await _lookup.ListConsumers(originModuleId, organizationId, changedOutputNames);
         if (consumers.Count == 0) return null;
 
@@ -144,29 +134,19 @@ public class ProbeWaveStarter : IDisposable
         });
 
         // The origin's edges are written Confirmed, so its consumers are ready the moment the
-        // wave exists. Nothing else would ask them.
+        // wave exists. Nothing else asks them. The gate re-checks the wave per Module and
+        // serialises on the Module's own saga, so two asks cannot both start an Apply.
         foreach (var consumer in consumers)
-            await _bus.Publish(new ProbeReadinessCheckRequested
+            await _bus.Publish(new GatekeepingJobRequested
             {
-                ProbeWaveId = wave.Id,
                 ModuleId = consumer.ModuleId,
-                OrganizationId = organizationId
+                OrganizationId = organizationId,
+                ProbeWaveId = wave.Id,
+                DesiredStateHeadline = DesiredStateHeadline.Applied,
+                SetNewDesiredState = false
             });
 
         return wave.Id;
-    }
-
-    /// <summary>
-    /// Whether this job was started to probe for a wave. The readiness check records the job
-    /// against the Module before starting it, so the row exists by the time a plan completes.
-    /// </summary>
-    private async Task<bool> IsProbingForAWave(Guid moduleJobId, Guid organizationId)
-    {
-        return await _dbContext.ModuleProbeAttempts
-            .AsNoTracking()
-            .AnyAsync(a =>
-                a.ProbeModuleJobId == moduleJobId &&
-                a.OrganizationId == organizationId);
     }
 
     public void Dispose()

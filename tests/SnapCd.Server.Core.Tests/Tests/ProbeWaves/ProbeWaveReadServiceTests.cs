@@ -491,6 +491,33 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// A probe that failed and was then run again by a later Apply reports what the second
+    /// attempt found. The wave keeps both rows, and the newest one is the Module's answer.
+    /// </summary>
+    [Fact]
+    public async Task A_Reprobed_Module_Reports_Its_Latest_Attempt()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+
+        var failedJob = await AddJob(_consumerModuleId, ExecutionStatus.Failed);
+        await AddAttempt(wave, _consumerModuleId, probeModuleJobId: failedJob, timestamp: 1);
+
+        var secondJob = await AddJob(_consumerModuleId, ExecutionStatus.Completed);
+        var set = await AddSignalSet(wave, _consumerModuleId);
+        await AddAttempt(wave, _consumerModuleId, signalOutputSetId: set, probeModuleJobId: secondJob, timestamp: 2);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Cleared, view!.Impact);
+
+        var module = view.Modules.Single();
+        Assert.True(module.HasProbed);
+        Assert.Equal(secondJob, module.ProbeModuleJobId);
+    }
+
+    /// <summary>
     /// A failure outranks work still in flight. Waiting for the rest would leave the reader
     /// watching a wave that can no longer answer in full.
     /// </summary>
@@ -552,12 +579,15 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
 
     private async Task<Guid> AddJob(Guid moduleId, ExecutionStatus status)
     {
+        // ModuleJobs is unique on (ModuleId, TimestampStart, OrganizationId), so a Module probed
+        // twice needs two distinct start times.
         var job = new ModuleJob
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             Status = status,
+            TimestampStart = DateTimeOffset.UtcNow.AddTicks(_jobs.Count),
             JobType = "ApplyJobSaga"
         };
 
@@ -591,7 +621,8 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         Guid waveId,
         Guid moduleId,
         Guid? signalOutputSetId = null,
-        Guid? probeModuleJobId = null)
+        Guid? probeModuleJobId = null,
+        long timestamp = 1)
     {
         await using var db = _fixture.CreateDbContext();
         db.ModuleProbeAttempts.Add(new ModuleProbeAttempt
@@ -601,7 +632,8 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
             ProbeWaveId = waveId,
             ModuleId = moduleId,
             SignalOutputSetId = signalOutputSetId,
-            ProbeModuleJobId = probeModuleJobId
+            ProbeModuleJobId = probeModuleJobId,
+            Timestamp = timestamp
         });
         await db.SaveChangesAsync();
     }

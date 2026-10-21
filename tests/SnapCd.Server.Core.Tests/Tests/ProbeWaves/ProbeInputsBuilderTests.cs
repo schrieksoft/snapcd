@@ -73,7 +73,7 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     {
         using var builder = Builder();
 
-        Assert.Null(await builder.FindWaveToProbeFor(_consumerId, _organizationId));
+        Assert.Empty(await builder.FindWavesToProbeFor(_consumerId, _organizationId));
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
 
         using var builder = Builder();
 
-        Assert.Null(await builder.FindWaveToProbeFor(_consumerId, _organizationId));
+        Assert.Empty(await builder.FindWavesToProbeFor(_consumerId, _organizationId));
     }
 
     [Fact]
@@ -99,7 +99,54 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
 
         using var builder = Builder();
 
-        Assert.Equal(wave, await builder.FindWaveToProbeFor(_consumerId, _organizationId));
+        Assert.Equal(wave, Assert.Single(await builder.FindWavesToProbeFor(_consumerId, _organizationId)));
+    }
+
+    /// <summary>
+    /// Two waves from different origins can be open on one Module at once. Each predicts
+    /// different values for its inputs, so each is owed a probe of its own: one answer shared
+    /// between them would describe a future that does not exist for either.
+    /// </summary>
+    [Fact]
+    public async Task A_Module_In_Two_Waves_Owes_A_Probe_To_Each()
+    {
+        var first = await AddWave();
+        await AddAttempt(first, _upstreamAId);
+        await AddEdge(first, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
+
+        var second = await AddWave();
+        await AddAttempt(second, _upstreamBId);
+        await AddEdge(second, _consumerId, _upstreamBId, SignalEdgeStatus.Confirmed);
+
+        using var builder = Builder();
+
+        var waves = await builder.FindWavesToProbeFor(_consumerId, _organizationId);
+
+        Assert.Equal(2, waves.Count);
+        Assert.Contains(first, waves);
+        Assert.Contains(second, waves);
+    }
+
+    /// <summary>
+    /// Having answered one of them leaves the other still owed, which is what makes the probe
+    /// step loop terminate.
+    /// </summary>
+    [Fact]
+    public async Task Answering_One_Wave_Leaves_The_Other_Owed()
+    {
+        var first = await AddWave();
+        var set = await AddSignalSet(first, _consumerId, ("done", VpcSignal, false));
+        await AddAttempt(first, _upstreamAId);
+        await AddAttempt(first, _consumerId, set);
+        await AddEdge(first, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
+
+        var second = await AddWave();
+        await AddAttempt(second, _upstreamBId);
+        await AddEdge(second, _consumerId, _upstreamBId, SignalEdgeStatus.Confirmed);
+
+        using var builder = Builder();
+
+        Assert.Equal(second, Assert.Single(await builder.FindWavesToProbeFor(_consumerId, _organizationId)));
     }
 
     [Fact]
@@ -115,7 +162,7 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
 
         // Its signal set is the record that it has answered, so a later apply of the same Module
         // is not this wave's business.
-        Assert.Null(await builder.FindWaveToProbeFor(_consumerId, _organizationId));
+        Assert.Empty(await builder.FindWavesToProbeFor(_consumerId, _organizationId));
     }
 
     [Fact]

@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.Diagnostics;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
@@ -24,6 +25,16 @@ using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 using SnapCd.Server.Core.Events.Jobs.Module;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs;
+
+/// <summary>
+/// State names a reader outside the state machine has to match on. JobStateMachine is generic
+/// over its whole message set, so its State members cannot be reached by nameof from elsewhere.
+/// </summary>
+public static class JobStateNames
+{
+    /// <summary>Where a job decides whether it owes a wave a probe.</summary>
+    public const string WaitingForProbeSignals = "WaitingForProbeSignals";
+}
 
 public partial class JobStateMachine<
     TSaga,
@@ -134,6 +145,11 @@ public partial class JobStateMachine<
 
     private void Configure_Probe()
     {
+        // The readiness check matches a running job's persisted state against this name.
+        Debug.Assert(
+            nameof(WaitingForProbeSignals) == JobStateNames.WaitingForProbeSignals,
+            "JobStateNames.WaitingForProbeSignals no longer matches the state it names.");
+
         Event(() => ProbeRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ProbeCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ProbeCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
@@ -221,18 +237,32 @@ public partial class JobStateMachine<
         During(ProbePending,
             // The apply has already happened, so a probe that does not answer cannot make the job
             // wrong. Every arm below continues to Output rather than failing or cancelling the job.
+            // Several waves can be open on one Module at once, each predicting different values
+            // for its inputs, so each is owed a probe of its own rather than one answer shared
+            // between them. The signals just recorded close this wave's question; if another is
+            // still owed, probe again before reading the outputs.
             When(ProbeCompleted)
-                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, TProbeCompleted, TOutputRequested>>())
-                .TransitionTo(OutputPending),
+                .IfElseAsync(
+                    AnotherWaveIsOwed,
+                    again => DealWithProbeReadiness(again),
+                    done => done
+                        .Activity(x => x.OfType<SendToRunnerActivity<TSaga, TProbeCompleted, TOutputRequested>>())
+                        .TransitionTo(OutputPending)),
+            // A faulted probe is as finished as a completed one, so any wave still owed is probed
+            // next. The faulted wave itself drops out: its attempt row belongs to this job.
             When(ProbeFaulted)
                 .Then(context =>
                 {
                     _logger.LogWarning(
-                        "Probe: faulted for job {CorrelationId}, continuing to Output. The apply itself succeeded.",
+                        "Probe: faulted for job {CorrelationId}. The apply itself succeeded.",
                         context.Saga.CorrelationId);
                 })
-                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, TProbeFaulted, TOutputRequested>>())
-                .TransitionTo(OutputPending),
+                .IfElseAsync(
+                    AnotherWaveIsOwed,
+                    again => DealWithProbeReadiness(again),
+                    done => done
+                        .Activity(x => x.OfType<SendToRunnerActivity<TSaga, TProbeFaulted, TOutputRequested>>())
+                        .TransitionTo(OutputPending)),
             When(ProbeCancelled)
                 .ThenCancelled<TSaga, TResponseCancelled, TProbeCancelled>(Cancelled),
             When(HeartbeatScheduled.Received)
@@ -308,6 +338,21 @@ public partial class JobStateMachine<
     /// Module with no wave, an upstream that has not answered, and a resolved wave carrying
     /// nothing this Module reads all mean the outputs are read and the job finishes.
     /// </summary>
+    /// <summary>
+    /// Whether this Module still owes a probe to a wave it has not reported in. Recomputed rather
+    /// than counted down, so a wave that opened or ended mid-apply is picked up as it stands.
+    /// </summary>
+    private static async Task<bool> AnotherWaveIsOwed<TMessage>(BehaviorContext<TSaga, TMessage> context)
+        where TMessage : class
+    {
+        var provider = PipeExtensions.GetPayload<IServiceProvider>(context);
+        using var inputs = provider.GetRequiredService<ProbeInputsBuilderFactory>().Create();
+
+        var waves = await inputs.FindWavesToProbeFor(
+            context.Saga.ModuleId, context.Saga.OrganizationId, context.Saga.CorrelationId);
+        return waves.Count > 0;
+    }
+
     private static async Task<bool> IsReadyToProbe<TMessage>(BehaviorContext<TSaga, TMessage> context)
         where TMessage : class
     {

@@ -163,11 +163,16 @@ public class ProbeWaveReadService : IDisposable
             })
             .ToListAsync();
 
-        var attempts = await _dbContext.ModuleProbeAttempts
-            .AsNoTracking()
-            .Where(a => a.ProbeWaveId == waveId && a.OrganizationId == organizationId)
-            .Select(a => new { a.ModuleId, a.SignalOutputSetId, a.ProbeModuleJobId })
-            .ToListAsync();
+        // A Module can be probed more than once in a wave, and what it currently reports is its
+        // most recent attempt.
+        var attempts = (await _dbContext.ModuleProbeAttempts
+                .AsNoTracking()
+                .Where(a => a.ProbeWaveId == waveId && a.OrganizationId == organizationId)
+                .Select(a => new { a.ModuleId, a.SignalOutputSetId, a.ProbeModuleJobId, a.Timestamp })
+                .ToListAsync())
+            .GroupBy(a => a.ModuleId)
+            .Select(g => g.OrderByDescending(a => a.Timestamp).First())
+            .ToList();
 
         // The attempt row keeps no status, so how a probe ended is the probe job's own status.
         var probeJobIds = attempts

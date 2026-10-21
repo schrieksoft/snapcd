@@ -18,8 +18,8 @@ namespace SnapCd.Server.Core.Tests.Tests.ProbeWaves;
 
 /// <summary>
 /// What the schema promises, asserted against the database rather than read off the class maps:
-/// a Module probes once per wave, an edge exists once per consumer and upstream pair, the signal
-/// hierarchy round-trips through one table, and the contribution status persists as text.
+/// a Module can probe more than once in a wave, an edge exists once per consumer and upstream
+/// pair, the signal hierarchy round-trips through one table, and the status persists as text.
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
 public class ProbeWaveSchemaTests : IAsyncLifetime
@@ -52,14 +52,20 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_Module_Probes_In_A_Wave_Once()
+    public async Task A_Module_Probes_In_A_Wave_More_Than_Once()
     {
         var waveId = await SeedWave();
+
+        // A probe is repeatable: a Module that failed is probed again by a later Apply, and each
+        // attempt keeps its own row.
+        await SeedAttempt(waveId, _consumerModuleId);
         await SeedAttempt(waveId, _consumerModuleId);
 
-        // Claiming this row is what stops two readiness checks starting two Applies.
-        await Assert.ThrowsAnyAsync<DbUpdateException>(
-            () => SeedAttempt(waveId, _consumerModuleId));
+        await using var db = _fixture.CreateDbContext();
+        var attempts = await db.ModuleProbeAttempts
+            .CountAsync(a => a.ProbeWaveId == waveId && a.ModuleId == _consumerModuleId);
+
+        Assert.Equal(2, attempts);
     }
 
     [Fact]

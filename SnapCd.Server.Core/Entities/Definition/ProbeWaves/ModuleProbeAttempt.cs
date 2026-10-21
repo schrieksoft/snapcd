@@ -32,13 +32,13 @@ public class ModuleProbeAttempt : AuditBase, IEntity, IModuleChild
     public Guid ProbeWaveId { get; set; }
     public Guid ModuleId { get; set; }
 
+    /// <summary>Unix milliseconds, which is what orders a Module's attempts within a wave.</summary>
+    public long Timestamp { get; set; }
+
     /// <summary>What this Module reported, once its probe has run.</summary>
     public Guid? SignalOutputSetId { get; set; }
 
-    /// <summary>
-    /// The job carrying the probe, written before it starts. Claiming this row is what stops two
-    /// readiness checks starting a second Apply for the same Module in the same wave.
-    /// </summary>
+    /// <summary>The job carrying the probe, written before it starts.</summary>
     public Guid? ProbeModuleJobId { get; set; }
 
     [JsonIgnore] public ProbeWave ProbeWave { get; set; } = null!;

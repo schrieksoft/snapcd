@@ -209,21 +209,6 @@ public class ProbeWaveStarterTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// A probe's Apply is an ordinary Apply, so its plan reports changed outputs. Starting a wave
-    /// for it would nest a wave per probe, each counting itself as depth zero, without bound.
-    /// </summary>
-    [Fact]
-    public async Task A_Job_That_Is_Itself_A_Probe_Starts_No_Wave()
-    {
-        await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
-
-        var probeJobId = Guid.NewGuid();
-        await AddParticipantClaiming(probeJobId);
-
-        Assert.Null(await Start(["vpc_id"], probeJobId));
-    }
-
-    /// <summary>
     /// The origin answers from its own plan rather than by being probed, so the plan's signals are
     /// stored when the wave is created. Without them a consumer's inputs document comes out empty,
     /// because building one requires every confirmed upstream to have reported.
@@ -280,29 +265,6 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         Assert.Equal(jobId, wave.OriginModuleJobId);
     }
 
-    /// <summary>A participant of some other wave, already claiming this job as its probe.</summary>
-    private async Task AddParticipantClaiming(Guid probeJobId)
-    {
-        var wave = new ProbeWave
-        {
-            Id = Guid.NewGuid(),
-            OrganizationId = _organizationId,
-            OriginModuleId = _consumerModuleId,
-            OriginModuleJobId = Guid.NewGuid()
-        };
-
-        await using var db = _fixture.CreateDbContext();
-        db.ProbeWaves.Add(wave);
-        db.ModuleProbeAttempts.Add(new ModuleProbeAttempt
-        {
-            Id = Guid.NewGuid(),
-            OrganizationId = _organizationId,
-            ProbeWaveId = wave.Id,
-            ModuleId = _originModuleId,
-            ProbeModuleJobId = probeJobId
-        });
-        await db.SaveChangesAsync();
-    }
 
     private async Task<Guid?> Start(
         string[] changedOutputNames,

@@ -46,10 +46,12 @@ public class ModuleProbeAttemptClassMap : IEntityTypeConfiguration<ModuleProbeAt
             .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
             .OnDelete(DeleteBehavior.Restrict);
 
-        // A Module probes once per wave, and claiming this row is what enforces it.
+        // One row per probe, not per Module: a probe is repeatable, so a Module can hold several
+        // attempts in one wave. At most one job per Module can be current, which is enforced by a
+        // filtered unique index on ModuleJobs. Timestamp is in the key because every read of an
+        // attempt wants the Module's most recent one.
         entity
-            .HasIndex(p => new { p.ProbeWaveId, p.ModuleId, p.OrganizationId })
-            .IsUnique();
+            .HasIndex(p => new { p.ProbeWaveId, p.ModuleId, p.OrganizationId, p.Timestamp });
 
         entity
             .HasOne(e => e.SignalOutputSet)

@@ -129,6 +129,7 @@ public static class MiscService
         // is the output-to-variable map the inputs document is keyed by.
         services.AddScoped<Services.RippleProbes.RippleProbeConsumerLookupFactory>();
         services.AddScoped<Services.RippleProbes.ProbeInputsBuilderFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeWaveReadinessFactory>();
         services.AddScoped<Services.RippleProbes.ProbeReadinessReaderFactory>();
         services.AddScoped<Services.RippleProbes.ProbeWaveProgressReaderFactory>();
         services.AddScoped<Services.RippleProbes.ProbeWaveReadServiceFactory>();

@@ -359,7 +359,6 @@ public static class MassTransit
         typeof(ModuleJobApprovalModifiedCompetingConsumer),
         typeof(SecretModifiedCompetingConsumer),
         typeof(ModuleStateChangedToAppliedCompetingConsumer),
-        typeof(ProbeReadinessCheckCompetingConsumer),
         typeof(ModuleStateChangedToDestroyedCompetingConsumer),
 
         // Handler consumers (offloaded from SignalR handlers)
