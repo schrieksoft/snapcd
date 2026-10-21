@@ -91,7 +91,7 @@ public partial class Tasks
 
             var command =
                 $"{ProbeEngine} planwalk -signals-in=\"{inputsPath}\" -signals-out=\"{signalsPath}\"" +
-                $"{varFileArg} -quiet -no-color";
+                $"{varFileArg} -no-color";
             await engine.RunProcess(command, killCts.Token);
 
             var signalsJson = File.Exists(signalsPath)
