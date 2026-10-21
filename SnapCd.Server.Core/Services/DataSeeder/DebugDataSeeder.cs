@@ -658,7 +658,10 @@ public class DebugDataSeeder : ProductionDataSeeder
         await AddDiamondEdge(dbContext, DiamondEModuleId, DiamondAModuleId, "a_other", "from_a_other");
         await AddDiamondEdge(dbContext, DiamondFModuleId, DiamondBModuleId, "b_other", "from_b_other");
 
-        // A consumer's Plan resolves its variables from its upstreams' recorded outputs.
+        // Every diamond Module is seeded as one that has already applied, so each has the output
+        // set its committed state holds. That is what lets any of them be applied on its own at
+        // any time: a probe is an ordinary apply plus a signals file, and the variables a wave is
+        // not predicting resolve from these.
         await AddDiamondOutputs(dbContext, DiamondAModuleId,
             ("a_id", "trusting-lab"),
             ("a_other", "honest-meerkat"));
@@ -672,6 +675,15 @@ public class DebugDataSeeder : ProductionDataSeeder
 
         await AddDiamondOutputs(dbContext, DiamondGModuleId,
             ("g_id", "fleet-owl"));
+
+        await AddDiamondOutputs(dbContext, DiamondDModuleId,
+            ("d_id", "trusting-lab-fleet-owl-tidy-unicorn-trusting-lab-fine-gibbon-promoted-horse"));
+
+        await AddDiamondOutputs(dbContext, DiamondEModuleId,
+            ("e_id", "honest-meerkat-suitable-pug"));
+
+        await AddDiamondOutputs(dbContext, DiamondFModuleId,
+            ("f_id", "causal-burro-flowing-chamois"));
     }
 
     /// <summary>
