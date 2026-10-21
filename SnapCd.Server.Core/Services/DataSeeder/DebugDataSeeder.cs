@@ -55,6 +55,9 @@ public class DebugDataSeeder : ProductionDataSeeder
     private static readonly Guid DiamondEModuleId = new("99999999-9999-9999-9999-999999999944");
     private static readonly Guid DiamondFModuleId = new("99999999-9999-9999-9999-999999999945");
 
+    /// <summary>A second origin, which b also reads, so b can be owed a probe by two waves at once.</summary>
+    private static readonly Guid DiamondGModuleId = new("99999999-9999-9999-9999-999999999946");
+
     private static readonly Guid DebugUserId = new("99999999-9999-9999-9999-999999999990");
     private static readonly Guid DebugStackReaderUserId = new("99999999-9999-9999-9999-999999999996");
     private static readonly Guid DebugStackMetadataReaderUserId = new("99999999-9999-9999-9999-999999999997");
@@ -588,7 +591,8 @@ public class DebugDataSeeder : ProductionDataSeeder
             [DiamondCModuleId] = "probe-diamond-c",
             [DiamondDModuleId] = "probe-diamond-d",
             [DiamondEModuleId] = "probe-diamond-e",
-            [DiamondFModuleId] = "probe-diamond-f"
+            [DiamondFModuleId] = "probe-diamond-f",
+            [DiamondGModuleId] = "probe-diamond-g"
         };
 
         var existing = await dbContext.Modules
@@ -614,7 +618,8 @@ public class DebugDataSeeder : ProductionDataSeeder
                 SourceRevisionType = SourceRevisionType.Default,
                 // The origin needs a threshold: a wave informs an approval decision, so an
                 // auto-approved apply creates none.
-                ApplyApprovalThreshold = moduleId == DiamondAModuleId ? 1 : null,
+                ApplyApprovalThreshold =
+                    moduleId == DiamondAModuleId || moduleId == DiamondGModuleId ? 1 : null,
                 CreatedDateTime = DateTime.UtcNow
             };
 
@@ -644,6 +649,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         // The edges, named as the fixture's roots name them: each consumer renames the producer's
         // output to its own variable, which is what makes the rename path real rather than assumed.
         await AddDiamondEdge(dbContext, DiamondBModuleId, DiamondAModuleId, "a_id", "from_a");
+        await AddDiamondEdge(dbContext, DiamondBModuleId, DiamondGModuleId, "g_id", "from_g");
         await AddDiamondEdge(dbContext, DiamondCModuleId, DiamondAModuleId, "a_id", "from_a");
         await AddDiamondEdge(dbContext, DiamondDModuleId, DiamondBModuleId, "b_id", "from_b");
         await AddDiamondEdge(dbContext, DiamondDModuleId, DiamondCModuleId, "c_id", "from_c");
@@ -658,11 +664,14 @@ public class DebugDataSeeder : ProductionDataSeeder
             ("a_other", "honest-meerkat"));
 
         await AddDiamondOutputs(dbContext, DiamondBModuleId,
-            ("b_id", "trusting-lab-willing-grub"),
+            ("b_id", "trusting-lab-fleet-owl-tidy-unicorn"),
             ("b_other", "causal-burro"));
 
         await AddDiamondOutputs(dbContext, DiamondCModuleId,
             ("c_id", "trusting-lab-fine-gibbon"));
+
+        await AddDiamondOutputs(dbContext, DiamondGModuleId,
+            ("g_id", "fleet-owl"));
     }
 
     /// <summary>

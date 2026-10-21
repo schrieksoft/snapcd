@@ -11,15 +11,21 @@ variable "from_a" {
   type = string
 }
 
+# b reads a second origin as well, so two waves can be open on it at once, each predicting a
+# different value for one of these. Each wave is owed its own probe.
+variable "from_g" {
+  type = string
+}
+
 resource "random_pet" "b" {
-  prefix = var.from_a
+  prefix = "${var.from_a}-${var.from_g}"
 }
 
 output "b_id" {
   value = random_pet.b.id
 }
 
-# Not derived from var.from_a, so it is unaffected when a's value becomes unknown. f reads this.
+# Derived from neither variable, so it is unaffected when an upstream's value becomes unknown. f reads this.
 resource "random_pet" "b_stable" {
   keepers = {
     fixed = "constant"

@@ -146,8 +146,20 @@ public static class Run
                 Console.WriteLine($"  !! no job row after 20s; re-requested as {jobId} (attempt {attempt + 1})");
             }
 
+            // A second origin, applied before watching starts, so both waves are open while the
+            // consumer they share decides. Its own job is not watched: what it exists to do is
+            // give that consumer a second wave to answer.
+            var secondJobId = Guid.Empty;
+            if (options.SecondModuleId != Guid.Empty)
+            {
+                secondJobId = Guid.NewGuid();
+                using var jobs = jobFactory.Create(principal);
+                await jobs.Apply(options.SecondModuleId, options.OrganizationId, secondJobId);
+                Console.WriteLine($"Started job {secondJobId} on second origin {options.SecondModuleId}");
+            }
+
             var status = await Watch(dbFactory, approvalFactory, principal, jobId, options,
-                services.GetRequiredService<FakeRunner>(), services);
+                services.GetRequiredService<FakeRunner>(), services, secondJobId);
 
             await Report(dbFactory, services, jobId, options, status);
             return status == ExecutionStatus.Completed ? 0 : 1;
@@ -219,8 +231,14 @@ public static class Run
         Guid jobId,
         RunOptions options,
         FakeRunner runner,
-        IServiceProvider services)
+        IServiceProvider services,
+        Guid secondOriginJobId)
     {
+        // Every origin whose wave this run is waiting on, which is one unless --two-origins.
+        var originJobIds = secondOriginJobId == Guid.Empty
+            ? new[] { jobId }
+            : [jobId, secondOriginJobId];
+
         var deadline = DateTime.UtcNow + options.Timeout;
         var approved = false;
         ExecutionStatus? last = null;
@@ -276,7 +294,7 @@ public static class Run
 
             if (job.Status != ExecutionStatus.Running)
             {
-                await WaitForWave(dbFactory, services, jobId, options.OrganizationId, runner, deadline);
+                await WaitForWave(dbFactory, services, originJobIds, options.OrganizationId, runner, deadline);
                 return job.Status;
             }
 
@@ -285,7 +303,7 @@ public static class Run
                 // The wave ends when the decision is made, so a run that wants every hop to probe
                 // has to let it settle first.
                 if (options.ApproveAfterWave)
-                    await WaitForWave(dbFactory, services, jobId, options.OrganizationId, runner, deadline);
+                    await WaitForWave(dbFactory, services, originJobIds, options.OrganizationId, runner, deadline);
 
                 Console.WriteLine("  approving");
                 using (var approvals = approvalFactory.Create(principal))
@@ -319,7 +337,7 @@ public static class Run
     private static async Task WaitForWave(
         IDbContextFactory<SnapCdDbContext> dbFactory,
         IServiceProvider services,
-        Guid originJobId,
+        Guid[] originJobIds,
         Guid organizationId,
         FakeRunner runner,
         DateTime deadline)
@@ -328,7 +346,7 @@ public static class Run
 
         var waveIds = await db.ProbeWaves
             .AsNoTracking()
-            .Where(w => w.OriginModuleJobId == originJobId)
+            .Where(w => originJobIds.Contains(w.OriginModuleJobId))
             .Select(w => w.Id)
             .ToListAsync();
 
@@ -354,7 +372,12 @@ public static class Run
             var running = probes.Count(p => p.Status == ExecutionStatus.Running);
 
             using var progress = services.GetRequiredService<ProbeWaveProgressReaderFactory>().Create();
-            var settlement = await progress.ReadForOriginJob(originJobId, organizationId);
+
+            // Every origin has to have settled: one wave finishing says nothing about the other.
+            var settlement = ProbeWaveSettlement.Settled;
+            foreach (var originJobId in originJobIds)
+                if (await progress.ReadForOriginJob(originJobId, organizationId) == ProbeWaveSettlement.Waiting)
+                    settlement = ProbeWaveSettlement.Waiting;
 
             if (runner.Dispatched.Count != dispatched)
             {
@@ -385,19 +408,30 @@ public static class Run
 
         await using var final = await dbFactory.CreateDbContextAsync();
 
+        // One row per probe rather than per Module: a Module read by two waves is probed by each,
+        // in the one job, so the wave is what tells those rows apart.
         var report = await final.ModuleProbeAttempts
             .AsNoTracking()
             .Where(a => waveIds.Contains(a.ProbeWaveId))
             .Join(final.ModuleJobs, a => a.ProbeModuleJobId, j => j.Id,
-                (a, j) => new { Name = a.Module.Name, a.SignalOutputSetId, j.Status })
+                (a, j) => new
+                {
+                    Name = a.Module.Name,
+                    a.SignalOutputSetId,
+                    j.Status,
+                    a.ProbeWaveId,
+                    OriginName = a.ProbeWave.OriginModule.Name
+                })
             .OrderBy(x => x.Name)
+            .ThenBy(x => x.OriginName)
             .ToListAsync();
 
         Console.WriteLine($"Probes      {report.Count}");
         foreach (var probe in report)
             Console.WriteLine(
-                $"  {probe.Name,-22} {probe.Status}" +
-                (probe.SignalOutputSetId == null ? "  (reported nothing)" : "  reported"));
+                $"  {probe.Name,-22} {probe.Status,-10}" +
+                (probe.SignalOutputSetId == null ? "reported nothing" : "reported") +
+                $"  (wave from {probe.OriginName})");
     }
 
     /// <summary>

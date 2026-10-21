@@ -58,6 +58,9 @@ public class RunOptions
     public static readonly Guid DiamondEModuleId = new("99999999-9999-9999-9999-999999999944");
     public static readonly Guid DiamondFModuleId = new("99999999-9999-9999-9999-999999999945");
 
+    /// <summary>A second origin, which b also reads, so b is owed a probe by two waves at once.</summary>
+    public static readonly Guid DiamondGModuleId = new("99999999-9999-9999-9999-999999999946");
+
     public required string MasterConnectionString { get; init; }
     public required string DatabaseName { get; init; }
     public Guid OrganizationId { get; init; } = SeededOrganizationId;
@@ -122,6 +125,12 @@ public class RunOptions
     /// made, so approving as soon as the job asks stops it after one hop.
     /// </summary>
     public bool ApproveAfterWave { get; init; }
+
+    /// <summary>
+    /// A second Module to apply alongside the first, so two waves are open at once. With
+    /// --real-runner this defaults to the diamond's second origin.
+    /// </summary>
+    public Guid SecondModuleId { get; init; }
 
     /// <summary>Where a real run checks out its Modules and keeps its engine state.</summary>
     public string WorkingDirectory { get; init; } = string.Empty;
@@ -256,6 +265,8 @@ public class RunOptions
                   --keep                    leave the database behind to inspect
                   --approve-after-wave      hold the approval until the wave settles, so every
                                             hop probes before the decision ends it
+                  --two-origins             apply a second Module too, so one consumer is owed a
+                                            probe by two waves at once
                   --real-runner             run the runner's own code, so the engine really
                                             plans; needs tofu on PATH and is minutes slower
                   --working-dir   <path>    where a real run checks out Modules
@@ -297,6 +308,7 @@ public class RunOptions
             Keep = args.Contains("--keep"),
             RealRunner = args.Contains("--real-runner"),
             ApproveAfterWave = args.Contains("--approve-after-wave"),
+            SecondModuleId = args.Contains("--two-origins") ? DiamondGModuleId : Guid.Empty,
             WorkingDirectory = Get("working-dir")
                 ?? Path.Combine(Path.GetTempPath(), "snapcd-jobrun", DateTime.Now.ToString("yyyyMMdd_HHmmss")),
             TransportTrace = !args.Contains("--quiet-transport"),
