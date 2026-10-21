@@ -121,6 +121,12 @@ public interface IEngine
     IParsedPlan ParseApplyPlan();
     IParsedPlan ParseDestroyPlan();
 
+    /// <summary>
+    /// What the saved apply plan predicts for this Module's own outputs, in the form a downstream
+    /// Module is probed with, or null when this engine cannot say.
+    /// </summary>
+    Task<string?> ReadApplyPlanSignals(CancellationToken cancellationToken = default);
+
     Task<OutputSetCreateDto?> ParseJsonToModuleOutputSet(
         string json, Dictionary<string, bool>? outputSources = null);
 }

@@ -437,6 +437,13 @@ public abstract class BaseEngine
         return moduleOutputSet;
     }
 
+    /// <summary>
+    /// Snap CD's own build of the OpenTofu lineage, which carries the signals reading a probe
+    /// needs. Installed beside the engine rather than as it: a Module applies with whatever engine
+    /// it is configured for, and only the probe runs on this.
+    /// </summary>
+    public const string ProbeEngine = "snapcd-tofu";
+
     protected void SaveEnvVarsToFile()
     {
         var exportLines = EnvVars

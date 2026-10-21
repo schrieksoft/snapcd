@@ -9,19 +9,13 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts;
 using SnapCd.Runner.Logging;
+using SnapCd.Runner.Services;
 using SnapCd.Contracts.RunnerRequests;
 
 namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    /// <summary>
-    /// The binary that answers a probe. Built from Snap CD's OpenTofu fork, whose plan takes the
-    /// values an upstream predicts, and installed beside the engine rather than as it: a probe
-    /// runs on the fork whatever engine the Module itself applies with.
-    /// </summary>
-    private const string ProbeEngine = "snapcd-tofu";
-
     /// <summary>
     /// Plans the Module with an upstream's changed outputs supplied as the values they will become,
     /// and reports what that does to each of its own outputs. Runs planwalker rather than the
@@ -92,7 +86,7 @@ public partial class Tasks
             // An ordinary plan, not refreshed, with the wave's predictions supplied and this
             // Module's own predicted outputs written out for whoever reads them.
             var command =
-                $"{ProbeEngine} plan -refresh=false " +
+                $"{BaseEngine.ProbeEngine} plan -refresh=false " +
                 $"-signals-in=\"{inputsPath}\" -signals-out=\"{signalsPath}\"" +
                 varFileArg;
             await engine.RunProcess(command, killCts.Token);

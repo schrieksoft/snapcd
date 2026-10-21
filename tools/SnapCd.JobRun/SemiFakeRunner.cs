@@ -23,7 +23,7 @@ namespace SnapCd.JobRun;
 /// Only GetModule is faked, by copying an uninitialised fixture Module into the working directory
 /// rather than cloning it. Everything after that - init, validate, plan, apply, probe, output - is
 /// the engine doing the work, so a run says whether the inputs document the server built is one
-/// planwalker accepts, which a canned reply cannot.
+/// the probe accepts, which a canned reply cannot.
 ///
 /// Slower than the fully fake runner by minutes, and that is the trade: the fake one stays the
 /// fast path for every job family that has nothing to do with propagation.

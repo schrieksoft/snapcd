@@ -477,7 +477,7 @@ public class FakeRunner(
 
     /// <summary>
     /// What a probe of this Module reports. The diamond's Modules answer with the signals a real
-    /// planwalker produced for the matching root; anything else answers with one changed output,
+    /// a real plan produced for the matching root; anything else answers with one changed output,
     /// which is enough for a Module whose consumers are not the point of the run.
     /// </summary>
     private static string ProbeSignalsFor(object payload)

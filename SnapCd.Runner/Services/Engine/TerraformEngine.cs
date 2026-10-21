@@ -48,6 +48,27 @@ public class TerraformEngine : BaseEngine, IEngine
         return ParsePlan(GetPlanApplyPath());
     }
 
+    /// <summary>
+    /// Read by Snap CD's own build rather than the engine: it reports a plan's output values in
+    /// the form a probe consumes, including the ones a plan cannot predict. It reads the saved
+    /// plan's output changes alone, which is why the engine's version need not match its own.
+    /// </summary>
+    public async Task<string?> ReadApplyPlanSignals(CancellationToken cancellationToken = default)
+    {
+        var planPath = GetPlanApplyPath();
+        if (!File.Exists(planPath)) return null;
+
+        var signalsPath = $"{SnapCdDir}/plan-signals.json";
+
+        await RunProcess(
+            $"{ProbeEngine} signals -plan=\"{planPath}\" -out=\"{signalsPath}\"",
+            cancellationToken);
+
+        return File.Exists(signalsPath)
+            ? await File.ReadAllTextAsync(signalsPath, cancellationToken)
+            : null;
+    }
+
     private TerraformParsedPlan ParsePlan(string planPath)
     {
         using var archive = ZipFile.OpenRead(planPath);

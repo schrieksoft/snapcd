@@ -143,9 +143,9 @@ public partial class Tasks
                 OutputsModifyList = plan.GetOutputChange(PlanAction.Update).Select(o => o.Name).ToList(),
                 OutputsDestroyList = plan.GetOutputChange(PlanAction.Delete).Select(o => o.Name).ToList(),
                 OutputsRecreateList = plan.GetOutputChange(PlanAction.Replace).Select(o => o.Name).ToList(),
-                // Every changed output, with its value, so a consumer can be planned against what
-                // this one will become rather than what it is now.
-                OutputSignalsJson = PlanSignalsDocument.Build(ChangedOutputs(plan))
+                // Every output with its value, so a consumer can be planned against what this one
+                // will become rather than what it is now.
+                OutputSignalsJson = await engine.ReadApplyPlanSignals(killCts.Token)
             };
 
             await InvokeWithRetryAsync(

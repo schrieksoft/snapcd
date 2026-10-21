@@ -67,10 +67,7 @@ public class TerraformParsedPlan : IParsedPlan
             .ToList();
     }
 
-    /// <summary>
-    /// One output change with its encoded values kept. Change.Values holds the before and after
-    /// in that order, each a msgpack [type-as-ctyjson, value] pair, and a creation has no before.
-    /// </summary>
+    /// <summary>One output change: its name, its action and whether it is sensitive.</summary>
     private static PlanOutputChange ToOutputChange(Tfplan.OutputChange change, PlanAction action)
     {
         var result = new PlanOutputChange
@@ -79,26 +76,6 @@ public class TerraformParsedPlan : IParsedPlan
             Action = action,
             Sensitive = change.Sensitive
         };
-
-        // Which values a change carries follows its action: a creation has only the new value, a
-        // deletion only the old one, and anything else carries both in that order. Reading by
-        // position alone puts a creation's new value in the before slot.
-        var values = change.Change.Values;
-
-        var (before, after) = change.Change.Action switch
-        {
-            Tfplan.Action.Create when values.Count > 0 =>
-                (null, PlanOutputSignalReader.Split(values[0].Msgpack.Span)),
-            Tfplan.Action.Delete when values.Count > 0 =>
-                (PlanOutputSignalReader.Split(values[0].Msgpack.Span), null),
-            _ => (
-                values.Count > 0 ? PlanOutputSignalReader.Split(values[0].Msgpack.Span) : null,
-                values.Count > 1 ? PlanOutputSignalReader.Split(values[1].Msgpack.Span) : null)
-        };
-
-        result.EncodedType = after?.Type ?? before?.Type;
-        result.EncodedBefore = before?.Value;
-        result.EncodedAfter = after?.Value;
 
         return result;
     }
