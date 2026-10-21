@@ -16,9 +16,9 @@ namespace SnapCd.Runner.Tasks;
 public partial class Tasks
 {
     /// <summary>
-    /// The binary that answers a probe. Built from Snap CD's OpenTofu fork, which carries the
-    /// planwalk subcommand, and installed beside the engine rather than as it: a probe runs on the
-    /// fork whatever engine the Module itself applies with.
+    /// The binary that answers a probe. Built from Snap CD's OpenTofu fork, whose plan takes the
+    /// values an upstream predicts, and installed beside the engine rather than as it: a probe
+    /// runs on the fork whatever engine the Module itself applies with.
     /// </summary>
     private const string ProbeEngine = "snapcd-tofu";
 
@@ -89,9 +89,12 @@ public partial class Tasks
             // has none; the remaining sources still resolve.
             var varFileArg = File.Exists(varsPath) ? $" -var-file=\"{varsPath}\"" : string.Empty;
 
+            // An ordinary plan, not refreshed, with the wave's predictions supplied and this
+            // Module's own predicted outputs written out for whoever reads them.
             var command =
-                $"{ProbeEngine} planwalk -signals-in=\"{inputsPath}\" -signals-out=\"{signalsPath}\"" +
-                $"{varFileArg} -no-color";
+                $"{ProbeEngine} plan -refresh=false " +
+                $"-signals-in=\"{inputsPath}\" -signals-out=\"{signalsPath}\"" +
+                varFileArg;
             await engine.RunProcess(command, killCts.Token);
 
             var signalsJson = File.Exists(signalsPath)
