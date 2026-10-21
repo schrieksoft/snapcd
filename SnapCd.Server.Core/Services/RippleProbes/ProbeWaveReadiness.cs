@@ -8,6 +8,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
@@ -17,6 +18,7 @@ namespace SnapCd.Server.Core.Services.RippleProbes;
 public class ProbeWaveReadinessFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     ProbeWaveProgressReaderFactory progressFactory,
+    SignalEdgeResolverFactory resolverFactory,
     ILoggerFactory loggerFactory)
 {
     public ProbeWaveReadiness Create()
@@ -24,6 +26,7 @@ public class ProbeWaveReadinessFactory(
         return new ProbeWaveReadiness(
             dbFactory,
             progressFactory,
+            resolverFactory,
             loggerFactory.CreateLogger<ProbeWaveReadiness>());
     }
 }
@@ -37,6 +40,7 @@ public class ProbeWaveReadinessFactory(
 public class ProbeWaveReadiness(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
     ProbeWaveProgressReaderFactory progressFactory,
+    SignalEdgeResolverFactory resolverFactory,
     ILogger<ProbeWaveReadiness> logger)
 {
     public async Task<bool> IsReady(Guid probeWaveId, Guid moduleId, Guid organizationId)
@@ -58,6 +62,16 @@ public class ProbeWaveReadiness(
             return false;
         }
 
+        // An engine that cannot answer the question releases whatever waited on it, rather than
+        // leaving the wave to wait for a report that will never come. The approver sees the gap.
+        if (!await EngineSupportsProbes(moduleId, organizationId))
+        {
+            using var resolver = resolverFactory.Create();
+            await resolver.ResolveAsUnanswerable(
+                probeWaveId, moduleId, organizationId, "its engine cannot be probed");
+            return false;
+        }
+
         if (await AnUpstreamMayStillReport(probeWaveId, moduleId, organizationId))
         {
             logger.LogDebug(
@@ -75,6 +89,27 @@ public class ProbeWaveReadiness(
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Whether this Module's engine can answer a probe. A probe plans with values that are not yet
+    /// known, which only the OpenTofu lineage's planner carries through as unknowns.
+    /// </summary>
+    private async Task<bool> EngineSupportsProbes(Guid moduleId, Guid organizationId)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+
+        // Resolved as the rest of the system resolves it: the Module's own engine, else its
+        // Namespace's default, else OpenTofu.
+        var engines = await dbContext.Modules
+            .AsNoTracking()
+            .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
+            .Select(m => new { m.Engine, NamespaceDefault = m.Namespace.DefaultEngine })
+            .FirstOrDefaultAsync();
+
+        var engine = engines?.Engine ?? engines?.NamespaceDefault ?? StateManagementEngine.OpenTofu;
+
+        return engine.SupportsProbes();
     }
 
     /// <summary>

@@ -16,6 +16,13 @@ namespace SnapCd.Runner.Tasks;
 public partial class Tasks
 {
     /// <summary>
+    /// The binary that answers a probe. Built from Snap CD's OpenTofu fork, which carries the
+    /// planwalk subcommand, and installed beside the engine rather than as it: a probe runs on the
+    /// fork whatever engine the Module itself applies with.
+    /// </summary>
+    private const string ProbeEngine = "snapcd-tofu";
+
+    /// <summary>
     /// Plans the Module with an upstream's changed outputs supplied as the values they will become,
     /// and reports what that does to each of its own outputs. Runs planwalker rather than the
     /// engine: tfvars is HCL and cannot express an unknown, so only a caller supplying cty values
@@ -69,11 +76,22 @@ public partial class Tasks
             var inputsPath = Path.Combine(engine.GetSnapCdDir(), "inputs.json");
             var signalsPath = Path.Combine(engine.GetSnapCdDir(), "signals.json");
 
+            // The variables file this job's own plan was given, so the probe resolves everything
+            // the plan did and differs only in the values the wave predicts.
+            var varsPath = Path.Combine(engine.GetSnapCdDir(), "inputs.tfvars");
+
             await File.WriteAllTextAsync(inputsPath, request.InputsJson, killCts.Token);
 
-            // planwalker reads the inited directory and writes the signals, and never touches
-            // state: it refreshes a state manager and reads the snapshot.
-            var command = $"planwalker --dir \"{initDir}\" --inputs \"{inputsPath}\" --out \"{signalsPath}\" --no-color";
+            // Variables resolve as they do for a plan - environment, variables files, then the
+            // command line - and the signals are overlaid above all of them, because they are the
+            // change being asked about. The process already runs in the inited directory.
+            // The variables file is written by Plan, so a job that reached here without planning
+            // has none; the remaining sources still resolve.
+            var varFileArg = File.Exists(varsPath) ? $" -var-file=\"{varsPath}\"" : string.Empty;
+
+            var command =
+                $"{ProbeEngine} planwalk -signals-in=\"{inputsPath}\" -signals-out=\"{signalsPath}\"" +
+                $"{varFileArg} -quiet -no-color";
             await engine.RunProcess(command, killCts.Token);
 
             var signalsJson = File.Exists(signalsPath)
