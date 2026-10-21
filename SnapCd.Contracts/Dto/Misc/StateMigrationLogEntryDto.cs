@@ -44,4 +44,9 @@ public class StateMigrationLogEntryDto : IJobLogEntry
     public Dictionary<string, string>? Tags { get; set; }
 
     public LogSource Source { get; set; } = LogSource.Runner;
+
+    /// <summary>Set when one step runs several times in a job, so its runs can be told apart.</summary>
+    public Guid? LogCorrelationId { get; set; }
+
+    public LogCorrelationDiscriminator? LogCorrelationDiscriminator { get; set; }
 }

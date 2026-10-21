@@ -43,12 +43,16 @@ public partial class Tasks
             reportingCts.Token);
 
         var logger = _loggerFactory.CreateLogger<Tasks>();
+        // One job can probe for several waves, each its own run of this task. The correlation
+        // pair is what keeps their logs apart, since the task name is the same for all of them.
         var taskContext = new RunnerTaskContext(
             request.JobId,
             nameof(Probe),
             logger,
             logStream,
-            request.Metadata
+            request.Metadata,
+            request.ProbeWaveId,
+            LogCorrelationDiscriminator.ProbeWave
         );
 
         try

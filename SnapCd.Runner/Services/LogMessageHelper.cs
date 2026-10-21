@@ -27,6 +27,24 @@ public class LogMessageHelper
             : Guid.Empty;
     }
 
+    /// <summary>Absent and unparseable both read as null, for a property that is optional.</summary>
+    public static Guid? GetNullableGuidProperty(LogEvent logEvent, string propertyName)
+    {
+        return logEvent.Properties.TryGetValue(propertyName, out var value) &&
+               Guid.TryParse(value.ToString().Trim('"'), out var guid)
+            ? guid
+            : null;
+    }
+
+    public static TEnum? GetNullableEnumProperty<TEnum>(LogEvent logEvent, string propertyName)
+        where TEnum : struct, Enum
+    {
+        return logEvent.Properties.TryGetValue(propertyName, out var value) &&
+               Enum.TryParse<TEnum>(value.ToString().Trim('"'), out var parsed)
+            ? parsed
+            : null;
+    }
+
     public static string TrimQuotes(string? value)
     {
         if (string.IsNullOrEmpty(value))

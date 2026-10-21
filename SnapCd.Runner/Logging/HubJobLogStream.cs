@@ -69,6 +69,8 @@ public sealed class HubJobLogStream<TLogEntry> : IJobLogStream, IAsyncDisposable
             .ForContext(nameof(IJobLogEntry.NamespaceName), envelope.NamespaceName)
             .ForContext(nameof(IJobLogEntry.ModuleName), envelope.ModuleName)
             .ForContext(nameof(IJobLogEntry.TaskName), envelope.TaskName)
+            .ForContext(nameof(IJobLogEntry.LogCorrelationId), envelope.LogCorrelationId)
+            .ForContext(nameof(IJobLogEntry.LogCorrelationDiscriminator), envelope.LogCorrelationDiscriminator)
             .ForContext(nameof(IJobLogEntry.Message), message)
             .Write(MapLevel(envelope.Level), message);
         return Task.CompletedTask;

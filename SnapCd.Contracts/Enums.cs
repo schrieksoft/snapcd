@@ -530,6 +530,15 @@ public enum PlanAction
     Replace
 }
 
+/// <summary>
+/// What a log entry's LogCorrelationId holds. A step that runs more than once in one job sets
+/// the pair so its runs can be told apart; ProbeWave means the id is a ProbeWave's.
+/// </summary>
+public enum LogCorrelationDiscriminator
+{
+    ProbeWave
+}
+
 public enum LogSource
 {
     // 0 is deliberate: pre-existing persisted log entries have no "source" field,

@@ -76,7 +76,11 @@ public class SignalRLogSink<TLogEntry> : IBatchedLogEventSink
 
                 Message = message,
                 BatchTimeStamp = batchTimeStamp,
-                Source = LogSource.Runner
+                Source = LogSource.Runner,
+                LogCorrelationId = LogMessageHelper.GetNullableGuidProperty(
+                    logEvent, nameof(IJobLogEntry.LogCorrelationId)),
+                LogCorrelationDiscriminator = LogMessageHelper.GetNullableEnumProperty<LogCorrelationDiscriminator>(
+                    logEvent, nameof(IJobLogEntry.LogCorrelationDiscriminator))
             };
 
             logEntries.Add(logEntry);

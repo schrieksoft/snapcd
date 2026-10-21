@@ -125,6 +125,10 @@ public class JobLogService<TJob, TLogEntry>
     /// <summary>
     /// One job's logs, by task. <paramref name="moduleId"/> narrows them to one Module, which a
     /// transfer needs: two Modules run under one job, so their logs share a job id.
+    ///
+    /// A task that runs more than once in a job sets a log correlation, and each of its runs is
+    /// keyed separately: a probe is dispatched once per wave the Module owes, under the one task
+    /// name, so grouping on the name alone would merge answers to different questions.
     /// </summary>
     public async Task<Dictionary<string, string>> GetLogStrings(Guid correlationId, Guid? moduleId = null)
     {
@@ -134,10 +138,23 @@ public class JobLogService<TJob, TLogEntry>
             logEntries = logEntries.Where(l => l.ModuleId == module).ToList();
 
         return logEntries
-            .GroupBy(l => l.TaskName ?? "Default")
+            .GroupBy(LogKey)
             .ToDictionary(
                 group => group.Key,
                 group => string.Join(Environment.NewLine, group.Select(l => l.Message)));
+    }
+
+    /// <summary>
+    /// The task name, qualified by a log correlation where one is set. The discriminator says
+    /// what the id is, so a reader can tell a wave from whatever is correlated on next.
+    /// </summary>
+    private static string LogKey(TLogEntry entry)
+    {
+        var taskName = entry.TaskName ?? "Default";
+
+        return entry is { LogCorrelationId: { } id, LogCorrelationDiscriminator: { } kind }
+            ? $"{taskName} ({kind} {id})"
+            : taskName;
     }
 
     /// <summary>Malformed stored logs start fresh rather than failing the append.</summary>

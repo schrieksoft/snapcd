@@ -33,4 +33,8 @@ public interface IJobLogEntry
     string? ModuleName { get; set; }
     LogEventLevel Level { get; set; }
     LogSource Source { get; set; }
+
+    // A step that runs more than once in one job sets these so its runs can be told apart.
+    Guid? LogCorrelationId { get; set; }
+    LogCorrelationDiscriminator? LogCorrelationDiscriminator { get; set; }
 }

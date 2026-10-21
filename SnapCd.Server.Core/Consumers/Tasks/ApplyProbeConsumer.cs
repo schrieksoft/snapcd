@@ -75,7 +75,8 @@ public class ApplyProbeConsumer : IConsumer<ApplyProbeRequested>
                         SourceSubdirectory = msg.Declared.SourceSubdirectory
                     },
                     Engine = msg.Declared.Engine,
-                    InputsJson = msg.InputsJson
+                    InputsJson = msg.InputsJson,
+                    ProbeWaveId = msg.ProbeWaveId
                 }
             );
 

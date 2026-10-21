@@ -8,6 +8,8 @@
 
 using Microsoft.Extensions.Logging;
 
+using SnapCd.Contracts;
+
 namespace SnapCd.Runner.Logging;
 
 /// <summary>
@@ -33,4 +35,6 @@ public sealed record JobLogEnvelope(
     string StackName,
     string NamespaceName,
     string ModuleName,
-    LogLevel Level);
+    LogLevel Level,
+    Guid? LogCorrelationId = null,
+    LogCorrelationDiscriminator? LogCorrelationDiscriminator = null);

@@ -19,4 +19,10 @@ public class ProbeRequestBase : EngineJobRequestBase
     /// the whole way: an unknown has no JSON representation, so only planwalker decodes it.
     /// </summary>
     public string InputsJson { get; set; } = null!;
+
+    /// <summary>
+    /// The wave being probed for. One job can probe for several waves, so this is what keeps
+    /// their log lines apart: the task name is the same for every one of them.
+    /// </summary>
+    public Guid ProbeWaveId { get; set; }
 }

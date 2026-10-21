@@ -230,6 +230,38 @@ public class LogServiceTests : IAsyncLifetime
         Assert.Equal(expected, result);
     }
 
+    /// <summary>
+    /// A task that runs twice in one job keeps its runs apart. A probe is dispatched once per
+    /// wave the Module owes, all under the task name "Probe", so grouping on the name alone
+    /// would merge answers to different questions into one log.
+    /// </summary>
+    [Fact]
+    public async Task GetLogStrings_WithALogCorrelation_KeepsEachRunSeparate()
+    {
+        var firstWave = Guid.NewGuid();
+        var secondWave = Guid.NewGuid();
+
+        await _logService.AddLogEntries(new List<ModuleJobLogEntryDto>
+        {
+            CreateLogEntry(_testJob1.Id, "first wave line", "Probe",
+                logCorrelationId: firstWave,
+                logCorrelationDiscriminator: LogCorrelationDiscriminator.ProbeWave),
+            CreateLogEntry(_testJob1.Id, "second wave line", "Probe",
+                logCorrelationId: secondWave,
+                logCorrelationDiscriminator: LogCorrelationDiscriminator.ProbeWave),
+            CreateLogEntry(_testJob1.Id, "plain line", "Plan")
+        });
+
+        var result = await _logService.GetLogStrings(_testJob1.Id);
+
+        Assert.Equal(3, result.Count);
+        Assert.Contains("first wave line", result[$"Probe (ProbeWave {firstWave})"]);
+        Assert.Contains("second wave line", result[$"Probe (ProbeWave {secondWave})"]);
+
+        // A step with no correlation is still keyed by its task name alone.
+        Assert.Contains("plain line", result["Plan"]);
+    }
+
     [Fact]
     public async Task GetLogStrings_WithMultipleContexts_ShouldGroupCorrectly()
     {
@@ -710,7 +742,9 @@ public class LogServiceTests : IAsyncLifetime
         string logContext,
         LogEventLevel level = LogEventLevel.Information,
         DateTimeOffset? timestamp = null,
-        DateTimeOffset? batchTimestamp = null)
+        DateTimeOffset? batchTimestamp = null,
+        Guid? logCorrelationId = null,
+        LogCorrelationDiscriminator? logCorrelationDiscriminator = null)
     {
         var now = DateTimeOffset.UtcNow;
         return new ModuleJobLogEntryDto
@@ -723,7 +757,9 @@ public class LogServiceTests : IAsyncLifetime
             TaskName = logContext,
             ModuleId = Guid.NewGuid(),
             StackName = "TestStack",
-            NamespaceName = "TestNamespace"
+            NamespaceName = "TestNamespace",
+            LogCorrelationId = logCorrelationId,
+            LogCorrelationDiscriminator = logCorrelationDiscriminator
         };
     }
 
