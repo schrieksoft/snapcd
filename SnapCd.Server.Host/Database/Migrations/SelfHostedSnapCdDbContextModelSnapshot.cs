@@ -8252,6 +8252,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("ProbeSignalWaitScheduleTokenId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ProbingForWaveId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("RequestId")
                         .HasColumnType("uniqueidentifier");
 

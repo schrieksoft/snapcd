@@ -71,12 +71,12 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
                 }
                 else
                 {
-                    // The wave comes from the attempt row that claimed this job, which is written
-                    // before the probe is dispatched.
-                    var probeWaveId = await dbContext.ModuleProbeAttempts
+                    // The wave the saga recorded when it dispatched this probe. A job probes once
+                    // per wave it owes, so its attempt rows alone cannot say which one replied.
+                    var probeWaveId = await dbContext.ApplyJobSagas
                         .AsNoTracking()
-                        .Where(a => a.ProbeModuleJobId == jobId && a.OrganizationId == jobView.OrganizationId)
-                        .Select(a => (Guid?)a.ProbeWaveId)
+                        .Where(s => s.CorrelationId == jobId)
+                        .Select(s => s.ProbingForWaveId)
                         .FirstOrDefaultAsync();
 
                     if (probeWaveId == null)

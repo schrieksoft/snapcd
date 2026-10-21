@@ -10,4 +10,15 @@ using SnapCd.Server.Core.Entities.Sagas.Base;
 
 namespace SnapCd.Server.Core.Entities.Sagas;
 
-public class ApplyJobSaga : JobSagaBase;
+/// <summary>
+/// Only an apply probes, so the wave a probe is answering lives here rather than on the shared
+/// base: the other families would carry a column they never write.
+/// </summary>
+public class ApplyJobSaga : JobSagaBase
+{
+    /// <summary>
+    /// The wave the probe now in flight is answering. A job probes once per wave it owes, so the
+    /// attempt rows alone cannot say which of them the next reply belongs to.
+    /// </summary>
+    public Guid? ProbingForWaveId { get; set; }
+}

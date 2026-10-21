@@ -8,6 +8,7 @@
 
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas.Base;
+using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Services.MaintenanceMode;
@@ -44,6 +45,10 @@ public class SendProbeStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
         probe.ProbeWaveId = probeWaveId;
         probe.InputsJson = await inputs.BuildInputsJson(
             probeWaveId, saga.ModuleId, saga.OrganizationId) ?? string.Empty;
+
+        // Remembered so the reply can be attributed to the wave it answered. Only an apply
+        // probes, so only that saga carries it.
+        if (saga is ApplyJobSaga applySaga) applySaga.ProbingForWaveId = probeWaveId;
 
         // Recorded before the probe runs rather than after, so a probe in flight is visible.
         using var recorder = recorderFactory.Create();
