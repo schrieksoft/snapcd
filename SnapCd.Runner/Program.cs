@@ -71,6 +71,7 @@ builder.Services.AddSingleton<ProcessRegistry>();
 // the DI cycle: Tasks -> IJobLogStream -> HubJobLogStream -> RunnerHubConnection -> Tasks.
 // The hub only dereferences Tasks inside .On<>() handlers fired after StartAsync, by which
 // time the graph is fully built.
+builder.Services.AddSingleton<IRunningTaskReporter, RunningTaskReporter>();
 builder.Services.AddSingleton<Tasks>();
 builder.Services.AddSingleton<Lazy<Tasks>>(sp => new Lazy<Tasks>(() => sp.GetRequiredService<Tasks>()));
 

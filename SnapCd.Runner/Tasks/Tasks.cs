@@ -35,6 +35,7 @@ public partial class Tasks
     private readonly SnapCdInspect _snapCdInspect;
     private readonly PolicyEvaluationService _policyEvaluationService;
     private readonly PolicyEvaluationSettings _policyEvaluationSettings;
+    private readonly IRunningTaskReporter _runningTaskReporter;
 
     /// <summary>
     /// Classifies a plan-step failure as a policy outcome when CrossGuard policies were in scope.
@@ -67,9 +68,11 @@ public partial class Tasks
         BareCloneCache bareCloneCache,
         SnapCdInspect snapCdInspect,
         PolicyEvaluationService policyEvaluationService,
-        IOptions<PolicyEvaluationSettings> policyEvaluationSettings)
+        IOptions<PolicyEvaluationSettings> policyEvaluationSettings,
+        IRunningTaskReporter runningTaskReporter)
     {
         _processRegistry = processRegistry;
+        _runningTaskReporter = runningTaskReporter;
         _loggerFactory = loggerFactory;
         _jobLogStreams = jobLogStreams;
         _settings = settings.Value;
@@ -157,7 +160,8 @@ public partial class Tasks
                 // the client threw, so the reply is worth repeating rather than discarding.
                 isTransportDown: () => connection.State != HubConnectionState.Connected);
         }
-        catch (Exception ex) when (HubInvocationRetry.IsRetryable(ex))
+        catch (Exception ex) when (HubInvocationRetry.IsRetryable(ex)
+                                   || connection.State != HubConnectionState.Connected)
         {
             logger.LogError(
                 ex,
@@ -189,7 +193,6 @@ public partial class Tasks
         return Task.Run(async () =>
         {
             var logger = _loggerFactory.CreateLogger<Tasks>();
-            var runnerHubClient = new RunnerHubClient(connection);
 
             try
             {
@@ -199,12 +202,8 @@ public partial class Tasks
                     jobId, taskName);
 
                 await InvokeWithRetryAsync(
-                    () => runnerHubClient.InvokeReportRunningTask(
-                        jobId,
-                        taskName,
-                        _settings.Id,
-                        _settings.Instance),
-                    nameof(runnerHubClient.InvokeReportRunningTask),
+                    () => _runningTaskReporter.Report(jobId, taskName, connection),
+                    nameof(IRunningTaskReporter.Report),
                     jobId,
                     connection);
 
@@ -220,12 +219,8 @@ public partial class Tasks
                             jobId, taskName);
 
                         await InvokeWithRetryAsync(
-                            () => runnerHubClient.InvokeReportRunningTask(
-                                jobId,
-                                taskName,
-                                _settings.Id,
-                                _settings.Instance),
-                            nameof(runnerHubClient.InvokeReportRunningTask),
+                            () => _runningTaskReporter.Report(jobId, taskName, connection),
+                            nameof(IRunningTaskReporter.Report),
                             jobId,
                             connection);
                     }

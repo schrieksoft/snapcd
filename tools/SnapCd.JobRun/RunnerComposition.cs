@@ -70,6 +70,9 @@ public static class RunnerComposition
         // go to the console instead, where the rest of the run's output already is.
         services.AddSingleton<IJobLogStreams, ConsoleJobLogStreams>();
 
+        // Same reason: the heartbeat has no connection to report over.
+        services.AddSingleton<IRunningTaskReporter, SilentTaskReporter>();
+
         services.AddSingleton<Tasks>();
     }
 }
