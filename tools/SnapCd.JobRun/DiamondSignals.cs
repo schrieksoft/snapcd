@@ -35,7 +35,7 @@ public static class DiamondSignals
           "format_version": "1",
           "outputs": {
             "a_id": {
-              "action": "unknown",
+              "action": [ "update" ],
               "type": "string",
               "before": "trusting-lab",
               "after": {
@@ -43,7 +43,7 @@ public static class DiamondSignals
               }
             },
             "a_other": {
-              "action": "no-op",
+              "action": [ "no-op" ],
               "type": "string",
               "before": "honest-meerkat",
               "after": "honest-meerkat"
@@ -62,7 +62,7 @@ public static class DiamondSignals
           "format_version": "1",
           "outputs": {
             "b_id": {
-              "action": "unknown",
+              "action": [ "update" ],
               "type": "string",
               "before": "trusting-lab-fleet-owl-tidy-unicorn",
               "after": {
@@ -70,7 +70,7 @@ public static class DiamondSignals
               }
             },
             "b_other": {
-              "action": "no-op",
+              "action": [ "no-op" ],
               "type": "string",
               "before": "causal-burro",
               "after": "causal-burro"
@@ -84,7 +84,7 @@ public static class DiamondSignals
           "format_version": "1",
           "outputs": {
             "c_id": {
-              "action": "unknown",
+              "action": [ "update" ],
               "type": "string",
               "before": "trusting-lab-fine-gibbon",
               "after": {
@@ -105,7 +105,7 @@ public static class DiamondSignals
           "format_version": "1",
           "outputs": {
             "d_id": {
-              "action": "unknown",
+              "action": [ "update" ],
               "type": "string",
               "before": "trusting-lab-fleet-owl-tidy-unicorn-trusting-lab-fine-gibbon-promoted-horse",
               "after": {

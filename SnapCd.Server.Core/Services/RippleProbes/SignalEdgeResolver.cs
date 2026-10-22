@@ -251,22 +251,27 @@ public class SignalEdgeResolver : IDisposable
                 continue;
             }
 
-            if (ActionOf(output.Json) != "no-op") changed.Add(output.Name);
+            if (!IsNoOp(output.Json)) changed.Add(output.Name);
         }
 
         return changed;
     }
 
-    private static string? ActionOf(string signalJson)
+    /// <summary>
+    /// Whether the plan says it does nothing to this output. The action is the plan's own, in the
+    /// form "tofu show -json" writes it: one element for a simple action, two for a replace.
+    /// </summary>
+    private static bool IsNoOp(string signalJson)
     {
         try
         {
-            return JsonNode.Parse(signalJson)?["action"]?.GetValue<string>();
+            var action = JsonNode.Parse(signalJson)?["action"]?.AsArray();
+            return action is { Count: 1 } && action[0]?.GetValue<string>() == "no-op";
         }
-        catch (JsonException)
+        catch (Exception e) when (e is JsonException or InvalidOperationException)
         {
             // An unreadable value is not evidence that nothing changed.
-            return null;
+            return false;
         }
     }
 

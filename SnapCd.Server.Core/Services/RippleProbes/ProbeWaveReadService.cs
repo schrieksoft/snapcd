@@ -278,11 +278,11 @@ public class ProbeWaveReadService : IDisposable
             var value = JsonNode.Parse(literal.SignalJson)?.AsObject();
             if (value == null) return view;
 
-            view.Action = value["action"]?.GetValue<string>();
-            view.AfterIsUnknown = view.Action == "unknown";
+            view.Actions = ActionList(value["action"]);
+            view.AfterIsUnknown = IsUnknown(value["after"]);
             view.HasBefore = value["before"] != null;
         }
-        catch (JsonException)
+        catch (Exception e) when (e is JsonException or InvalidOperationException)
         {
             // A signal that will not parse is reported as a signal with no detail rather than
             // failing the whole wave's view.
@@ -290,6 +290,25 @@ public class ProbeWaveReadService : IDisposable
 
         return view;
     }
+
+    /// <summary>
+    /// The plan's actions, in the form "tofu show -json" writes them: one element for a simple
+    /// action, two for a replace.
+    /// </summary>
+    private static List<string> ActionList(JsonNode? action)
+    {
+        var parts = action?.AsArray();
+        if (parts == null) return [];
+
+        return parts.Select(p => p?.GetValue<string>()).OfType<string>().ToList();
+    }
+
+    /// <summary>
+    /// Whether the plan could not predict the new value. Unknown-ness is a property of the value
+    /// rather than of the action: an output can be updated to a value the plan knows.
+    /// </summary>
+    private static bool IsUnknown(JsonNode? after) =>
+        after is JsonObject o && o["$unknown"]?.GetValue<bool>() == true;
 
     public void Dispose()
     {

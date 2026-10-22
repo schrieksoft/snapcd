@@ -77,7 +77,7 @@
                                         <tr>
                                             <td style="font-family: var(--snap-font-mono);">@signal.Name</td>
                                             <td>
-                                                <MudText Typo="Typo.body2" Color="@ActionColor(signal.Action)">@(signal.Action ?? "unknown")</MudText>
+                                                <MudText Typo="Typo.body2" Color="@ActionColor(signal)">@(signal.Action ?? "unknown")</MudText>
                                             </td>
                                             <td>
                                                 @if (signal.Sensitive)
@@ -246,13 +246,13 @@
             .Select(c => $"{c.UpstreamModuleName} ({c.Status.ToString().ToLowerInvariant()})"));
     }
 
-    private static Color ActionColor(string? action) => action switch
+    private static Color ActionColor(SignalOutputView signal)
     {
-        "delete" or "replace" => Color.Error,
-        "update" => Color.Warning,
-        "create" => Color.Success,
-        _ => Color.Default
-    };
+        if (signal.Actions.Contains("delete")) return Color.Error;
+        if (signal.Actions.Contains("update")) return Color.Warning;
+        if (signal.Actions.Contains("create")) return Color.Success;
+        return Color.Default;
+    }
 
     /// <summary>
     /// A destroy or replace downstream is the finding worth colouring red, since it is the one a

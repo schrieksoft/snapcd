@@ -139,7 +139,7 @@ public class ProbeWaveModuleView
     /// someone for, as opposed to one that only creates or updates.
     /// </summary>
     public bool HasDisruptiveSignal =>
-        Signals.Any(s => s.Action is "delete" or "replace");
+        Signals.Any(s => s.Actions.Contains("delete"));
 
     public bool HasUnknownSignal => Signals.Any(s => s.AfterIsUnknown);
 }
@@ -182,8 +182,17 @@ public class SignalOutputView
     public string Name { get; set; } = null!;
     public bool Sensitive { get; set; }
 
-    /// <summary>What the plan says happens to this output: create, update, delete, no-op or unknown.</summary>
-    public string? Action { get; set; }
+    /// <summary>
+    /// The plan's own actions for this output, as "tofu show -json" writes them: one element for a
+    /// simple action, two for a replace.
+    /// </summary>
+    public List<string> Actions { get; set; } = [];
+
+    /// <summary>The actions as one phrase, for display: "update", or "delete then create".</summary>
+    public string? Action => Actions.Count == 0 ? null : string.Join(" then ", Actions);
+
+    /// <summary>True where the output goes away entirely, rather than being replaced.</summary>
+    public bool IsDelete => Actions is ["delete"];
 
     /// <summary>True when the plan cannot know the new value yet, which is a finding rather than a gap.</summary>
     public bool AfterIsUnknown { get; set; }

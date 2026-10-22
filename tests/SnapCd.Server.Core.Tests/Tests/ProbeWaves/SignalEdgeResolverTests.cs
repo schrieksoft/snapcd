@@ -220,7 +220,7 @@ public class SignalEdgeResolverTests : IAsyncLifetime
                 SignalOutputSetId = set.Id,
                 Name = name,
                 Sensitive = false,
-                SignalJson = $"{{\"action\":\"{action}\",\"type\":\"InN0cmluZyI=\"}}"
+                SignalJson = $"{{\"action\":[\"{action}\"],\"type\":\"string\"}}"
             });
 
         var attempt = await db.ModuleProbeAttempts

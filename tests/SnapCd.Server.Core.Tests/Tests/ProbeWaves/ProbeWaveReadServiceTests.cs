@@ -26,16 +26,16 @@ namespace SnapCd.Server.Core.Tests.Tests.ProbeWaves;
 public class ProbeWaveReadServiceTests : IAsyncLifetime
 {
     private const string UnknownAfter =
-        """{"action":"unknown","type":"InN0cmluZyI=","before":"sGNoYW1waW9uLWhlcnJpbmc=","after":"1AAA"}""";
+        """{"action":["update"],"type":"string","before":"champion-herring","after":{"$unknown":true}}""";
 
     private const string KnownUpdate =
-        """{"action":"update","type":"InN0cmluZyI=","before":"pGxpdmU=","after":"pGRlYWQ="}""";
+        """{"action":["update"],"type":"string","before":"live","after":"dead"}""";
 
     private const string Created =
-        """{"action":"create","type":"InN0cmluZyI=","after":"pGxpdmU="}""";
+        """{"action":["create"],"type":"string","after":"live"}""";
 
     private const string Replaced =
-        """{"action":"replace","type":"InN0cmluZyI=","before":"pGxpdmU=","after":"1AAA"}""";
+        """{"action":["delete","create"],"type":"string","before":"live","after":{"$unknown":true}}""";
 
     private readonly Fixture _fixture;
     private Guid _organizationId;
@@ -133,7 +133,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         var signals = view!.Modules.Single().Signals;
 
         var unknown = signals.Single(s => s.Name == "pet_id");
-        Assert.Equal("unknown", unknown.Action);
+        Assert.Equal("update", unknown.Action);
         Assert.True(unknown.AfterIsUnknown);
         Assert.True(unknown.HasBefore);
 
