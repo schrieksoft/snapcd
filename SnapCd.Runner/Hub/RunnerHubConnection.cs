@@ -972,7 +972,12 @@ public class RunnerHubConnection :
         _tasks.Value.DestroyCancelKill(request, _connection!);
 
     public Task DestroyFromPlan(DestroyFromPlanRequestBase request) =>
-        _tasks.Value.DestroyFromPlan(request, _connection!, _jobLogStreams.Value.ModuleJobs);
+        _tasks.Value.DestroyFromPlan(
+            request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
+            Client.InvokeDestroyFromPlanCompleted,
+            Client.InvokeDestroyFromPlanCancelled,
+            Client.InvokeDestroyFromPlanFaulted);
 
     public Task DestroyGetDefinitiveRevision(GetDefinitiveRevisionRequest request) =>
         _tasks.Value.GetDefinitiveRevision(
@@ -1007,7 +1012,12 @@ public class RunnerHubConnection :
             Client.InvokeDestroyOutputFaulted);
 
     public Task DestroyPlan(PlanDestroyRequestBase request) =>
-        _tasks.Value.PlanDestroy(request, _connection!, _jobLogStreams.Value.ModuleJobs);
+        _tasks.Value.PlanDestroy(
+            request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
+            Client.InvokeDestroyPlanCompleted,
+            Client.InvokeDestroyPlanCancelled,
+            Client.InvokeDestroyPlanFaulted);
 
     public Task DestroyPolicyValidate(PolicyValidateRequestBase request) =>
         _tasks.Value.PolicyValidate(
