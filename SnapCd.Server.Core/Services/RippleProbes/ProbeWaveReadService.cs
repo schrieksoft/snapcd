@@ -163,15 +163,14 @@ public class ProbeWaveReadService : IDisposable
             })
             .ToListAsync();
 
-        // A Module can be probed more than once in a wave, and what it currently reports is its
-        // most recent attempt.
+        // Every attempt, newest first. A probe is repeatable, so a Module owing a wave across
+        // several Applies has one row per run and a reader wants all of them.
         var attempts = (await _dbContext.ModuleProbeAttempts
                 .AsNoTracking()
                 .Where(a => a.ProbeWaveId == waveId && a.OrganizationId == organizationId)
                 .Select(a => new { a.ModuleId, a.SignalOutputSetId, a.ProbeModuleJobId, a.Timestamp })
                 .ToListAsync())
-            .GroupBy(a => a.ModuleId)
-            .Select(g => g.OrderByDescending(a => a.Timestamp).First())
+            .OrderByDescending(a => a.Timestamp)
             .ToList();
 
         // The attempt row keeps no status, so how a probe ended is the probe job's own status.
@@ -206,6 +205,7 @@ public class ProbeWaveReadService : IDisposable
         var setIds = attempts
             .Where(a => a.SignalOutputSetId != null && visibleIds.Contains(a.ModuleId))
             .Select(a => a.SignalOutputSetId!.Value)
+            .Distinct()
             .ToList();
 
         var signals = await _dbContext.SignalOutputs
@@ -221,19 +221,30 @@ public class ProbeWaveReadService : IDisposable
 
         foreach (var module in ordered)
         {
-            var attempt = attempts.FirstOrDefault(a => a.ModuleId == module.ConsumerModuleId);
-
             view.Modules.Add(new ProbeWaveModuleView
             {
                 ModuleId = module.ConsumerModuleId,
                 ModuleName = module.ConsumerModuleName,
                 NamespaceName = module.ConsumerNamespaceName,
-                ProbeModuleJobId = attempt?.ProbeModuleJobId,
-                HasProbed = attempt?.SignalOutputSetId != null,
-                ProbeJobStatus = attempt?.ProbeModuleJobId is { } probeJobId &&
-                                 probeJobStatuses.TryGetValue(probeJobId, out var probeStatus)
-                    ? probeStatus
-                    : null,
+                Attempts = attempts
+                    .Where(a => a.ModuleId == module.ConsumerModuleId)
+                    .Select(a => new ProbeAttemptView
+                    {
+                        ProbeModuleJobId = a.ProbeModuleJobId,
+                        Timestamp = a.Timestamp,
+                        HasProbed = a.SignalOutputSetId != null,
+                        ProbeJobStatus = a.ProbeModuleJobId is { } probeJobId &&
+                                         probeJobStatuses.TryGetValue(probeJobId, out var probeStatus)
+                            ? probeStatus
+                            : null,
+                        Signals = a.SignalOutputSetId == null
+                            ? []
+                            : signals
+                                .Where(x => x.SignalOutputSetId == a.SignalOutputSetId!.Value)
+                                .Select(Describe)
+                                .ToList()
+                    })
+                    .ToList(),
                 Edges = edges
                     .Where(e => e.ConsumerModuleId == module.ConsumerModuleId)
                     .OrderBy(e => e.UpstreamModuleName)
@@ -243,13 +254,7 @@ public class ProbeWaveReadService : IDisposable
                         UpstreamModuleName = e.UpstreamModuleName,
                         Status = e.Status
                     })
-                    .ToList(),
-                Signals = attempt?.SignalOutputSetId == null
-                    ? []
-                    : signals
-                        .Where(s => s.SignalOutputSetId == attempt.SignalOutputSetId!.Value)
-                        .Select(Describe)
-                        .ToList()
+                    .ToList()
             });
         }
 

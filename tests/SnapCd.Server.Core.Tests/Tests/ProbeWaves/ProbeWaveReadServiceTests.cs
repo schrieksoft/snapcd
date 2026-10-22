@@ -145,6 +145,40 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Every_Probe_A_Module_Ran_Is_Reported_Newest_First()
+    {
+        var wave = await AddWave();
+
+        var first = await AddSignalSet(wave, _consumerModuleId, ("pet_id", KnownUpdate, false));
+        var firstJob = Guid.NewGuid();
+        await AddAttempt(wave, _consumerModuleId, first, firstJob, timestamp: 100);
+
+        var second = await AddSignalSet(wave, _consumerModuleId, ("pet_id", UnknownAfter, false));
+        var secondJob = Guid.NewGuid();
+        await AddAttempt(wave, _consumerModuleId, second, secondJob, timestamp: 200);
+
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        var module = view!.Modules.Single();
+
+        Assert.Equal(2, module.Attempts.Count);
+        Assert.Equal(secondJob, module.Attempts[0].ProbeModuleJobId);
+        Assert.Equal(firstJob, module.Attempts[1].ProbeModuleJobId);
+
+        // Each attempt keeps its own prediction, so a re-probe does not rewrite what the earlier
+        // one said.
+        Assert.True(module.Attempts[0].Signals.Single().AfterIsUnknown);
+        Assert.False(module.Attempts[1].Signals.Single().AfterIsUnknown);
+
+        // The approval decision reads the newest, which is what the badge shows.
+        Assert.Equal(secondJob, module.ProbeModuleJobId);
+        Assert.True(module.Signals.Single().AfterIsUnknown);
+    }
+
+    [Fact]
     public async Task A_Created_Output_Has_No_Before()
     {
         var wave = await AddWave();

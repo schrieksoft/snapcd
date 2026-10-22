@@ -50,7 +50,7 @@ else
     <MudExpansionPanels>
 
 
-        @foreach (var kvp in _htmlLogs.Where(kvp => TaskFilter == null || TaskFilter.Contains(kvp.Key)))
+        @foreach (var kvp in _htmlLogs.Where(kvp => Matches(kvp.Key)))
         {
             var taskName = kvp.Key;
             <MudExpansionPanel @key="kvp.Key"
@@ -87,6 +87,12 @@ else
     [Parameter] public Guid JobId { get; set; }
     [Parameter] public string? InitialTask { get; set; }
     [Parameter] public string[]? TaskFilter { get; set; }
+
+    /// <summary>
+    /// Also keep a group whose name starts with a filtered task's, which is how a log key
+    /// qualified by a correlation reads: "Probe (ProbeWave 4f2...)" for the bare task "Probe".
+    /// </summary>
+    [Parameter] public bool IncludeCorrelated { get; set; }
 
     /// <summary>Narrows the logs to one Module, for a job that two Modules share.</summary>
     [Parameter] public Guid? ModuleId { get; set; }
@@ -208,9 +214,18 @@ else
             return entries.Where(e => (e.TaskName ?? "Default") == taskName).ToList();
 
         if (TaskFilter is not null)
-            return entries.Where(e => TaskFilter.Contains(e.TaskName ?? "Default")).ToList();
+            return entries.Where(e => Matches(e.TaskName ?? "Default")).ToList();
 
         return entries;
+    }
+
+    /// <summary>Whether a task name, or a log key built from one, is in scope for this list.</summary>
+    private bool Matches(string name)
+    {
+        if (TaskFilter is null) return true;
+        if (TaskFilter.Contains(name)) return true;
+
+        return IncludeCorrelated && TaskFilter.Any(t => name.StartsWith($"{t} (", StringComparison.Ordinal));
     }
 
     private string FileNameFor(string? taskName, string extension)

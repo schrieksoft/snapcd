@@ -78,22 +78,33 @@ public class ProbeWaveModuleView
     public string NamespaceName { get; set; } = null!;
 
     /// <summary>
+    /// Every probe this Module has run for the wave, newest first. A probe is repeatable, so a
+    /// Module owing a wave across several Applies has one attempt per run.
+    /// </summary>
+    public List<ProbeAttemptView> Attempts { get; set; } = [];
+
+    /// <summary>
+    /// The attempt the approval decision turns on, which is the most recent one.
+    /// </summary>
+    public ProbeAttemptView? Latest => Attempts.Count == 0 ? null : Attempts[0];
+
+    /// <summary>
     /// The Apply job carrying the probe, so its logs can be read. Null until one is started.
     /// </summary>
-    public Guid? ProbeModuleJobId { get; set; }
+    public Guid? ProbeModuleJobId => Latest?.ProbeModuleJobId;
 
     public List<SignalEdgeView> Edges { get; set; } = [];
 
     /// <summary>What this Module predicted, once it has probed.</summary>
-    public List<SignalOutputView> Signals { get; set; } = [];
+    public List<SignalOutputView> Signals => Latest?.Signals ?? [];
 
-    public bool HasProbed { get; set; }
+    public bool HasProbed => Latest?.HasProbed == true;
 
     /// <summary>
     /// How the probe job ended, where one was started. The attempt row keeps no status of its own,
     /// because the job carrying the probe already has one.
     /// </summary>
-    public ExecutionStatus? ProbeJobStatus { get; set; }
+    public ExecutionStatus? ProbeJobStatus => Latest?.ProbeJobStatus;
 
     /// <summary>Still waiting while any upstream might yet signal something it reads.</summary>
     public bool IsWaiting => Edges.Any(e => e.Status == SignalEdgeStatus.Potential);
@@ -164,6 +175,25 @@ public enum ProbeProgress
 
     /// <summary>Its probe ended without reporting, so its prediction will not arrive.</summary>
     Faulted
+}
+
+/// <summary>One probe a Module ran for a wave, with what it predicted and where its logs are.</summary>
+public class ProbeAttemptView
+{
+    /// <summary>The Apply job that carried this probe, which is where its logs live.</summary>
+    public Guid? ProbeModuleJobId { get; set; }
+
+    /// <summary>When the probe was recorded, as the attempt row stores it.</summary>
+    public long Timestamp { get; set; }
+
+    /// <summary>True once the probe reported a prediction, as opposed to ending without one.</summary>
+    public bool HasProbed { get; set; }
+
+    /// <summary>How the probe job ended, where one was started.</summary>
+    public ExecutionStatus? ProbeJobStatus { get; set; }
+
+    /// <summary>What this probe predicted.</summary>
+    public List<SignalOutputView> Signals { get; set; } = [];
 }
 
 public class SignalEdgeView

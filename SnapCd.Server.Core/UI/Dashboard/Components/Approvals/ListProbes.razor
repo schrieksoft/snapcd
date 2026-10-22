@@ -67,49 +67,71 @@
                             <MudText Typo="Typo.overline" Class="mud-text-secondary">Waiting on</MudText>
                             <MudText Typo="Typo.body2" Class="mb-3">@Upstreams(module)</MudText>
 
-                            @if (module.Signals.Count > 0)
+                            @if (module.Attempts.Count == 0)
                             {
-                                <MudText Typo="Typo.overline" Class="mud-text-secondary">Predicted output changes</MudText>
-                                <MudSimpleTable Dense="true" Class="mb-3">
-                                    <tbody>
-                                    @foreach (var signal in module.Signals)
-                                    {
-                                        <tr>
-                                            <td style="font-family: var(--snap-font-mono);">@signal.Name</td>
-                                            <td>
-                                                <MudText Typo="Typo.body2" Color="@ActionColor(signal)">@(signal.Action ?? "unknown")</MudText>
-                                            </td>
-                                            <td>
-                                                @if (signal.Sensitive)
-                                                {
-                                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">sensitive</MudText>
-                                                }
-                                                else if (signal.AfterIsUnknown)
-                                                {
-                                                    <MudText Typo="Typo.body2" Color="Color.Warning">value not knowable until applied</MudText>
-                                                }
-                                                else if (!signal.HasBefore)
-                                                {
-                                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">new</MudText>
-                                                }
-                                            </td>
-                                        </tr>
-                                    }
-                                    </tbody>
-                                </MudSimpleTable>
-                            }
-
-                            @if (module.ProbeModuleJobId != null)
-                            {
-                                <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
-                                <ListLogs TJob="ModuleJob" TLogEntry="ModuleJobLogEntryDto"
-                                          JobId="@module.ProbeModuleJobId.Value"
-                                          ModuleId="@module.ModuleId"
-                                          TaskFilter="@(new[] { "Probe" })"/>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">No probe has run yet, so there are no logs.</MudText>
                             }
                             else
                             {
-                                <MudText Typo="Typo.body2" Class="mud-text-secondary">No probe has run yet, so there are no logs.</MudText>
+                                @foreach (var (attempt, index) in module.Attempts.Select((a, i) => (a, i)))
+                                {
+                                    @* A Module probed once reads as it always did; only a repeat gets a heading. *@
+                                    @if (module.Attempts.Count > 1)
+                                    {
+                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3 mb-1">
+                                            <MudText Typo="Typo.overline" Class="mud-text-secondary">
+                                                @(index == 0 ? "Latest probe" : $"Probe {module.Attempts.Count - index}")
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@Probed(attempt)</MudText>
+                                        </MudStack>
+                                    }
+
+                                    @if (attempt.Signals.Count > 0)
+                                    {
+                                        <MudText Typo="Typo.overline" Class="mud-text-secondary">Predicted output changes</MudText>
+                                        <MudSimpleTable Dense="true" Class="mb-3">
+                                            <tbody>
+                                            @foreach (var signal in attempt.Signals)
+                                            {
+                                                <tr>
+                                                    <td style="font-family: var(--snap-font-mono);">@signal.Name</td>
+                                                    <td>
+                                                        <MudText Typo="Typo.body2" Color="@ActionColor(signal)">@(signal.Action ?? "unknown")</MudText>
+                                                    </td>
+                                                    <td>
+                                                        @if (signal.Sensitive)
+                                                        {
+                                                            <MudText Typo="Typo.body2" Class="mud-text-secondary">sensitive</MudText>
+                                                        }
+                                                        else if (signal.AfterIsUnknown)
+                                                        {
+                                                            <MudText Typo="Typo.body2" Color="Color.Warning">value not knowable until applied</MudText>
+                                                        }
+                                                        else if (!signal.HasBefore)
+                                                        {
+                                                            <MudText Typo="Typo.body2" Class="mud-text-secondary">new</MudText>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                            </tbody>
+                                        </MudSimpleTable>
+                                    }
+                                    else if (!attempt.HasProbed)
+                                    {
+                                        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">This probe ended without reporting a prediction. Its log says why.</MudText>
+                                    }
+
+                                    @if (attempt.ProbeModuleJobId != null)
+                                    {
+                                        <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
+                                        <ListLogs TJob="ModuleJob" TLogEntry="ModuleJobLogEntryDto"
+                                                  JobId="@attempt.ProbeModuleJobId.Value"
+                                                  ModuleId="@module.ModuleId"
+                                                  TaskFilter="@(new[] { "Probe" })"
+                                                  IncludeCorrelated="true"/>
+                                    }
+                                }
                             }
                         </ChildContent>
                     </MudExpansionPanel>
@@ -245,6 +267,9 @@
             .OrderBy(c => c.UpstreamModuleName)
             .Select(c => $"{c.UpstreamModuleName} ({c.Status.ToString().ToLowerInvariant()})"));
     }
+
+    private static string Probed(ProbeAttemptView attempt) =>
+        DateTimeOffset.FromUnixTimeMilliseconds(attempt.Timestamp).DateTime.ToString("yyyy-MM-dd HH:mm:ss");
 
     private static Color ActionColor(SignalOutputView signal)
     {
