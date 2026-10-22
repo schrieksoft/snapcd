@@ -61,7 +61,7 @@ public class TerraformEngine : BaseEngine, IEngine
         var signalsPath = $"{SnapCdDir}/plan-signals.json";
 
         await RunProcess(
-            $"{ProbeEngine} signals -plan=\"{planPath}\" -out=\"{signalsPath}\"",
+            $"{ProbeEngine} show -plan=\"{planPath}\" -signals-out=\"{signalsPath}\"",
             cancellationToken);
 
         return File.Exists(signalsPath)
