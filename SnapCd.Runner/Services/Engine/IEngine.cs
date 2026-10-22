@@ -127,6 +127,11 @@ public interface IEngine
     /// </summary>
     Task<string?> ReadApplyPlanSignals(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The same for the saved destroy plan, whose outputs go to nothing.
+    /// </summary>
+    Task<string?> ReadDestroyPlanSignals(CancellationToken cancellationToken = default);
+
     Task<OutputSetCreateDto?> ParseJsonToModuleOutputSet(
         string json, Dictionary<string, bool>? outputSources = null);
 }

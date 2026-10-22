@@ -53,12 +53,24 @@ public class TerraformEngine : BaseEngine, IEngine
     /// the form a probe consumes, including the ones a plan cannot predict. It reads the saved
     /// plan's output changes alone, which is why the engine's version need not match its own.
     /// </summary>
-    public async Task<string?> ReadApplyPlanSignals(CancellationToken cancellationToken = default)
+    public Task<string?> ReadApplyPlanSignals(CancellationToken cancellationToken = default) =>
+        ReadPlanSignals(GetPlanApplyPath(), "plan-signals.json", cancellationToken);
+
+    /// <summary>
+    /// The same for a destroy, whose outputs go to nothing. A Module reading one of them has its
+    /// input taken away, which is a finding a reader wants before approving the destroy.
+    /// </summary>
+    public Task<string?> ReadDestroyPlanSignals(CancellationToken cancellationToken = default) =>
+        ReadPlanSignals(GetPlanDestroyPath(), "destroy-plan-signals.json", cancellationToken);
+
+    private async Task<string?> ReadPlanSignals(
+        string planPath,
+        string signalsFileName,
+        CancellationToken cancellationToken)
     {
-        var planPath = GetPlanApplyPath();
         if (!File.Exists(planPath)) return null;
 
-        var signalsPath = $"{SnapCdDir}/plan-signals.json";
+        var signalsPath = $"{SnapCdDir}/{signalsFileName}";
 
         await RunProcess(
             $"{ProbeEngine} show -plan=\"{planPath}\" -signals-out=\"{signalsPath}\"",

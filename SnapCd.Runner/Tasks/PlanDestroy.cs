@@ -162,7 +162,10 @@ public partial class Tasks
                 OutputsCreateList = planDestroy.GetOutputChange(PlanAction.Create).Select(o => o.Name).ToList(),
                 OutputsModifyList = planDestroy.GetOutputChange(PlanAction.Update).Select(o => o.Name).ToList(),
                 OutputsDestroyList = planDestroy.GetOutputChange(PlanAction.Delete).Select(o => o.Name).ToList(),
-                OutputsRecreateList = planDestroy.GetOutputChange(PlanAction.Replace).Select(o => o.Name).ToList()
+                OutputsRecreateList = planDestroy.GetOutputChange(PlanAction.Replace).Select(o => o.Name).ToList(),
+                // Every output with its value, so a consumer can be planned against the inputs it
+                // is about to lose rather than the ones it has now.
+                OutputSignalsJson = await engine.ReadDestroyPlanSignals(killCts.Token)
             };
 
             await InvokeWithRetryAsync(

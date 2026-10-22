@@ -74,6 +74,12 @@ public class PulumiEngine : BaseEngine, IEngine
         return Task.FromResult<string?>(null);
     }
 
+    /// <inheritdoc cref="ReadApplyPlanSignals"/>
+    public Task<string?> ReadDestroyPlanSignals(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<string?>(null);
+    }
+
     public IParsedPlan ParseDestroyPlan()
     {
         return ParsePlanFile(GetDestroyPreviewPath());
