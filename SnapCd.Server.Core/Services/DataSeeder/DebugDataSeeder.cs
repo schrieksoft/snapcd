@@ -620,6 +620,14 @@ public class DebugDataSeeder : ProductionDataSeeder
                 // auto-approved apply creates none.
                 ApplyApprovalThreshold =
                     moduleId == DiamondAModuleId || moduleId == DiamondGModuleId ? 1 : null,
+                DestroyApprovalThreshold =
+                    moduleId == DiamondAModuleId || moduleId == DiamondGModuleId ? 1 : null,
+                // Destroying the origin is what a destroy wave reports on, and the gate otherwise
+                // refuses it while the Modules reading it still exist.
+                WaitForDestroyDependencies =
+                    moduleId == DiamondAModuleId || moduleId == DiamondGModuleId
+                        ? WaitForDestroyDependencies.Never
+                        : WaitForDestroyDependencies.Always,
                 CreatedDateTime = DateTime.UtcNow
             };
 

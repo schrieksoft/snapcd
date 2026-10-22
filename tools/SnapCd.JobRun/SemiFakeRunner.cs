@@ -119,6 +119,62 @@ public class SemiFakeRunner(
                     (id, error, stack) => hub.ApplyOutputFaulted(id, error, stack));
                 break;
 
+            // The destroy family, the same real work as the apply family's.
+            case nameof(IDestroyEndpoints.DestroyGetModule):
+                PlaceFixtureModule((GetModuleRequestBase)payload);
+                await hub.DestroyGetModuleCompleted(jobId);
+                break;
+
+            case nameof(IDestroyEndpoints.DestroyInit):
+                await tasks.Init(
+                    (InitRequestBase)payload, _unconnected, logStream,
+                    id => hub.DestroyInitCompleted(id),
+                    id => hub.DestroyInitCancelled(id),
+                    (id, error, stack) => hub.DestroyInitFaulted(id, error, stack));
+                break;
+
+            case nameof(IDestroyEndpoints.DestroyValidate):
+                await tasks.Validate(
+                    (ValidateRequestBase)payload, _unconnected, logStream,
+                    id => hub.DestroyValidateCompleted(id),
+                    id => hub.DestroyValidateCancelled(id),
+                    (id, error, stack) => hub.DestroyValidateFaulted(id, error, stack));
+                break;
+
+            case nameof(IDestroyEndpoints.DestroyVariables):
+                await tasks.Variables(
+                    (VariablesRequestBase)payload, _unconnected, logStream,
+                    (id, set) => hub.DestroyVariablesCompleted(id, set),
+                    id => hub.DestroyVariablesCancelled(id),
+                    (id, error, stack) => hub.DestroyVariablesFaulted(id, error, stack));
+                break;
+
+            case nameof(IDestroyEndpoints.DestroyOutput):
+                await tasks.Output(
+                    (OutputRequestBase)payload, _unconnected, logStream,
+                    (id, outputs) => hub.DestroyOutputCompleted(id, outputs),
+                    id => hub.DestroyOutputCancelled(id),
+                    (id, error, stack) => hub.DestroyOutputFaulted(id, error, stack));
+                break;
+
+            // Real: this is what reports the outputs going to null, which is what a destroy
+            // propagates.
+            case nameof(IDestroyEndpoints.DestroyPlan):
+                await tasks.PlanDestroy(
+                    (PlanDestroyRequestBase)payload, _unconnected, logStream,
+                    (id, data) => hub.DestroyPlanCompleted(id, data),
+                    id => hub.DestroyPlanCancelled(id),
+                    (id, error, stack, outcome) => hub.DestroyPlanFaulted(id, error, stack, outcome));
+                break;
+
+            case nameof(IDestroyEndpoints.DestroyFromPlan):
+                await tasks.DestroyFromPlan(
+                    (DestroyFromPlanRequestBase)payload, _unconnected, logStream,
+                    (id, count) => hub.DestroyFromPlanCompleted(id, count),
+                    id => hub.DestroyFromPlanCancelled(id),
+                    (id, error, stack, count) => hub.DestroyFromPlanFaulted(id, error, stack, count));
+                break;
+
             // Everything else keeps its canned reply: a run exercises one job family's real work,
             // not every family's.
             default:
