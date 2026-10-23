@@ -16,6 +16,8 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Hubs;
+using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 
@@ -65,6 +67,7 @@ public static class Run
         var dbFactory = services.GetRequiredService<IDbContextFactory<SnapCdDbContext>>();
 
         var runnerId = await SeedRunnerConnection(dbFactory, options);
+        services.GetRequiredService<OpenConnections<RunnerHub>>().Add(options.ConnectionId);
         if (runnerId is null)
         {
             Console.Error.WriteLine(

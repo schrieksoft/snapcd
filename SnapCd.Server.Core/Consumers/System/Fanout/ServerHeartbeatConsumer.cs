@@ -7,6 +7,8 @@
 // for terms covering either use.
 
 using MassTransit;
+using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Hubs;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Events.Server;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
@@ -31,15 +33,18 @@ public class ServerHeartbeatConsumer : IConsumer<ServerHeartbeatRequest>
     private readonly ServerSettings _serverSettings;
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly ILogger<ServerHeartbeatConsumer> _logger;
+    private readonly OpenConnections<RunnerHub> _openConnections;
 
     public ServerHeartbeatConsumer(
         IOptions<ServerSettings> serverSettings,
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
-        ILogger<ServerHeartbeatConsumer> logger)
+        ILogger<ServerHeartbeatConsumer> logger,
+        OpenConnections<RunnerHub> openConnections)
     {
         _serverSettings = serverSettings.Value;
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _logger = logger;
+        _openConnections = openConnections;
     }
 
     public async Task Consume(ConsumeContext<ServerHeartbeatRequest> context)
@@ -63,14 +68,15 @@ public class ServerHeartbeatConsumer : IConsumer<ServerHeartbeatRequest>
             request.RunnerId,
             request.ServerInstanceId);
 
-        // Check if this server still has the connection in the database
         using var connectionRepository = _connectionRepositoryFactory.Create();
         var connection = await connectionRepository.GetActiveConnection(
             request.OrganizationId,
             request.RunnerId,
             request.InstanceName);
 
-        var isConnected = connection != null && connection.ServerInstanceId == _serverSettings.InstanceId;
+        var isConnected = connection != null
+                          && connection.ServerInstanceId == _serverSettings.InstanceId
+                          && _openConnections.Contains(connection.SignalRConnectionId);
 
         _logger.LogDebug(
             "Heartbeat check result for runner {RunnerInstanceName}: IsConnected={IsConnected}",

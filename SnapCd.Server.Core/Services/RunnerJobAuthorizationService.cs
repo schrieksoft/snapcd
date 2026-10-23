@@ -72,6 +72,19 @@ public class RunnerJobAuthorizationService
         return new Guid(organizationId);
     }
 
+    /// <summary>
+    /// A connection with no registration can never be authorized, so it is closed: the runner reconnects,
+    /// registers again and repeats the call.
+    /// </summary>
+    private HubException ConnectionNotRegistered(HubCallerContext hubCallerContext)
+    {
+        _logger.LogWarning(
+            "No connection record for connection {ConnectionId}; closing it so the runner reconnects and registers",
+            hubCallerContext.ConnectionId);
+        hubCallerContext.Abort();
+        return new HubException($"{HubErrorCodes.ConnectionNotRegistered}: Runner connection not found");
+    }
+
     public async Task<Guid> ValidateIsForCurrentConnection(HubCallerContext hubCallerContext, Guid jobId)
     {
         var organizationId = GetValidatedOrganizationId(hubCallerContext);
@@ -81,10 +94,7 @@ public class RunnerJobAuthorizationService
         var connection = await connectionRepository.GetBySignalRConnectionIdAsync(hubCallerContext.ConnectionId, organizationId);
         if (connection == null)
         {
-            _logger.LogWarning(
-                "Authorization failed: No connection found for connection {ConnectionId}",
-                hubCallerContext.ConnectionId);
-            throw new HubException("Unauthorized: Runner connection not found");
+            throw ConnectionNotRegistered(hubCallerContext);
         }
 
         return organizationId;
@@ -185,10 +195,7 @@ public class RunnerJobAuthorizationService
 
         if (connection == null)
         {
-            _logger.LogWarning(
-                "Authorization failed: No connection found for connection {ConnectionId}",
-                hubCallerContext.ConnectionId);
-            throw new HubException("Unauthorized: Runner connection not found");
+            throw ConnectionNotRegistered(hubCallerContext);
         }
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();

@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Contracts.AgentResults;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Agents;
 using SnapCd.Server.Core.Events.Missions;
@@ -41,6 +42,7 @@ public class AgentHub : Hub
     private readonly ILogger<AgentHub> _logger;
     private readonly ServerSettings _serverSettings;
     private readonly AgentConnectionRepositoryFactory _connectionRepositoryFactory;
+    private readonly OpenConnections<AgentHub> _openConnections;
     private readonly Services.AgentConnectionValidator.AgentConnectionValidator _connectionValidator;
     private readonly ILicenseInfoProvider _licenseInfoProvider;
     private readonly ModuleJobMissionRunMilestoneRepositoryFactory _milestoneRepositoryFactory;
@@ -50,6 +52,7 @@ public class AgentHub : Hub
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IBus bus,
         ILogger<AgentHub> logger,
+        OpenConnections<AgentHub> openConnections,
         IOptions<ServerSettings> serverSettings,
         AgentConnectionRepositoryFactory connectionRepositoryFactory,
         Services.AgentConnectionValidator.AgentConnectionValidator connectionValidator,
@@ -60,6 +63,7 @@ public class AgentHub : Hub
         _dbContextFactory = dbContextFactory;
         _bus = bus;
         _logger = logger;
+        _openConnections = openConnections;
         _serverSettings = serverSettings.Value;
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _connectionValidator = connectionValidator;
@@ -245,6 +249,9 @@ public class AgentHub : Hub
                 throw new HubException(validationResult.RejectionReason ?? "Connection validation failed");
             }
 
+            // Before the row exists, so dispatch never finds a row whose connection it does not know is open.
+            _openConnections.Add(Context.ConnectionId);
+
             var connectionRecord = new AgentConnection
             {
                 Id = Guid.NewGuid(),
@@ -297,16 +304,6 @@ public class AgentHub : Hub
 
     /// <summary>Grace after a disconnect for the orchestrator to reconnect and resume the run.</summary>
     private static readonly TimeSpan ReconnectGrace = TimeSpan.FromMinutes(2);
-
-    /// <summary>
-    /// Acknowledge a liveness ping. Invoking this proves the agent can still service hub calls,
-    /// which an open connection alone does not.
-    /// </summary>
-    public Task Pong(Guid pingId)
-    {
-        Services.AgentLivenessProbe.Acknowledge(pingId);
-        return Task.CompletedTask;
-    }
 
     public async Task MissionStarted(Guid invocationId) =>
         await UpdateRunAsync(invocationId, run =>
@@ -535,6 +532,8 @@ public class AgentHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        _openConnections.Remove(Context.ConnectionId);
+
         try
         {
             using var connectionRepository = _connectionRepositoryFactory.Create();

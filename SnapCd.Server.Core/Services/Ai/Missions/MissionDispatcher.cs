@@ -17,6 +17,10 @@ using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
+using SnapCd.Server.Core.Hubs;
+using SnapCd.Server.Core.Settings;
+using Microsoft.Extensions.Options;
+
 namespace SnapCd.Server.Core.Services.Ai.Missions;
 
 public enum MissionDispatchOutcome
@@ -45,18 +49,20 @@ public class MissionDispatcher
     private readonly ILogger<MissionDispatcher> _logger;
     private readonly ILicenseInfoProvider _licenseInfoProvider;
     private readonly AgentSupplyResolver _agentSupply;
-    private readonly AgentLivenessProbe _livenessProbe;
+    private readonly OpenConnections<AgentHub> _openConnections;
+    private readonly ServerSettings _serverSettings;
     private readonly AgentConnectionRepositoryFactory _agentConnectionRepositoryFactory;
     private readonly ModuleJobMissionRunRepositoryFactory _runRepositoryFactory;
 
-    public MissionDispatcher(IBus bus, IMessageScheduler scheduler, ILogger<MissionDispatcher> logger, ILicenseInfoProvider licenseInfoProvider, AgentSupplyResolver agentSupply, ModuleJobMissionRunRepositoryFactory runRepositoryFactory, AgentLivenessProbe livenessProbe, AgentConnectionRepositoryFactory agentConnectionRepositoryFactory)
+    public MissionDispatcher(IBus bus, IMessageScheduler scheduler, ILogger<MissionDispatcher> logger, ILicenseInfoProvider licenseInfoProvider, AgentSupplyResolver agentSupply, ModuleJobMissionRunRepositoryFactory runRepositoryFactory, OpenConnections<AgentHub> openConnections, AgentConnectionRepositoryFactory agentConnectionRepositoryFactory, IOptions<ServerSettings> serverSettings)
     {
         _bus = bus;
         _scheduler = scheduler;
         _logger = logger;
         _licenseInfoProvider = licenseInfoProvider;
         _agentSupply = agentSupply;
-        _livenessProbe = livenessProbe;
+        _openConnections = openConnections;
+        _serverSettings = serverSettings.Value;
         _agentConnectionRepositoryFactory = agentConnectionRepositoryFactory;
         _runRepositoryFactory = runRepositoryFactory;
     }
@@ -90,19 +96,18 @@ public class MissionDispatcher
             return MissionDispatchOutcome.NoLiveConnection;
         }
 
-        // The row records that the agent once connected. Ping it, so a connection that is open but
-        // no longer serviceable is treated as absent rather than silently swallowing the mission.
-        if (!await _livenessProbe.IsAlive(connection.SignalRConnectionId))
+        // Only the owning server knows whether the connection is open; a row owned elsewhere is sent to that server.
+        if (connection.ServerInstanceId == _serverSettings.InstanceId
+            && !_openConnections.Contains(connection.SignalRConnectionId))
         {
             _logger.LogWarning(
-                "Mission {MissionType} (job {JobId}): agent {AgentId} did not answer a liveness ping; "
-                + "removing its stale connection record and not dispatching.",
+                "Mission {MissionType} (job {JobId}): agent {AgentId} has a connection record but its connection "
+                + "is closed; removing the record and not dispatching.",
                 mission.MissionType, mission.ModuleJobId, agentId);
 
             using (var agentConnectionRepository = _agentConnectionRepositoryFactory.Create())
             {
-                await agentConnectionRepository.DeleteConnection(
-                    connection.OrganizationId, connection.AgentId, connection.InstanceName);
+                await agentConnectionRepository.DeleteConnectionRecord(connection.Id);
             }
 
             return MissionDispatchOutcome.NoLiveConnection;
