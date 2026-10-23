@@ -6,17 +6,33 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Serilog.Events;
+using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Services.Logs;
 
 namespace SnapCd.Server.Core.Services;
 
+/// <summary>
+/// A summary of one stored part of a job's log, read without decompressing it. Sequence 0 is the log a job
+/// stored before logs were chunked, whose tasks are not known without reading it.
+/// </summary>
+public record LogChunkSummary(long Sequence, Guid? ModuleId, IReadOnlyList<string>? TaskNames, int LineCount, long UncompressedBytes)
+{
+    public bool HasTask(string taskName) => TaskNames is null || TaskNames.Contains(taskName);
+}
+
 public class LogService
 {
+    public const string DefaultTaskName = "Default";
+
+    /// <summary>The sequence the pre-chunk <c>Logs</c> column reads as.</summary>
+    public const long LegacySequence = 0;
+
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly ILogger<LogService> _logger;
 
@@ -33,123 +49,228 @@ public class LogService
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        // Group log entries by correlationId (ModuleJob Id)
-        var groupedLogs = logEntries.GroupBy(l => l.JobId);
-
-        foreach (var group in groupedLogs)
+        foreach (var job in logEntries.GroupBy(l => l.JobId))
         {
-            var correlationId = group.Key;
+            var moduleJobOrganization = await dbContext.ModuleJobs
+                .Where(j => j.Id == job.Key)
+                .Select(j => (Guid?)j.OrganizationId)
+                .SingleOrDefaultAsync();
 
-            // ReadCommitted + the UPDLOCK hint below is what serializes concurrent appenders to the
-            // same job: the second writer blocks on the row's U lock and reads the committed Logs
-            // after the first commits. Serializable adds key-range locking on top of that (the
-            // clustered PK is (Id, OrganizationId), so "WHERE Id = @0" is a prefix-range seek) and
-            // is not needed for this read-modify-write of a single existing row.
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+            var stateMigrationOrganization = moduleJobOrganization is null
+                ? await dbContext.StateMigrationJobs
+                    .Where(j => j.Id == job.Key)
+                    .Select(j => (Guid?)j.OrganizationId)
+                    .SingleOrDefaultAsync()
+                : null;
 
-            try
+            if (moduleJobOrganization is null && stateMigrationOrganization is null)
             {
-                // Set lock timeout to 90 seconds (90000 milliseconds)
-                await dbContext.Database.ExecuteSqlRawAsync("SET LOCK_TIMEOUT 180000");
-
-                // Lock the row using UPDLOCK and ROWLOCK hints. Single, not First: Id is the primary
-                // key, so at most one row can match, and EF cannot see the filter inside raw SQL.
-                // A job id belongs to one family or the other, so the order of the two lookups
-                // cannot change which row is found.
-                var moduleJob = await dbContext.ModuleJobs
-                    .FromSqlRaw("SELECT * FROM ModuleJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
-                    .SingleOrDefaultAsync();
-
-                StateMigrationJob? stateMigration = null;
-                if (moduleJob == null)
-                {
-                    stateMigration = await dbContext.StateMigrationJobs
-                        .FromSqlRaw("SELECT * FROM StateMigrationJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
-                        .SingleOrDefaultAsync();
-                }
-
-                if (moduleJob == null && stateMigration == null)
-                {
-                    // A runner-side failure reaches the operator only through its logs.
-                    _logger.LogWarning(
-                        "Discarding {Count} log entries for job {JobId}: no job with that id exists",
-                        group.Count(), correlationId);
-                    await transaction.RollbackAsync();
-                    continue;
-                }
-
-                var currentLogs = moduleJob != null ? moduleJob.Logs : stateMigration!.Logs;
-
-                // Parse existing logs or create new array
-                List<LogEntryDto> existingLogs = new();
-                if (!string.IsNullOrEmpty(currentLogs))
-                    try
-                    {
-                        existingLogs = JsonSerializer.Deserialize<List<LogEntryDto>>(currentLogs) ?? new List<LogEntryDto>();
-                    }
-                    catch
-                    {
-                        // If deserialization fails, start fresh
-                        existingLogs = new List<LogEntryDto>();
-                    }
-
-                // Append new log entries
-                existingLogs.AddRange(group);
-
-                // Sort by timestamp to maintain proper ordering
-                existingLogs = existingLogs.OrderBy(l => l.Timestamp).ThenBy(l => l.BatchTimeStamp).ToList();
-
-                // Serialize back to JSON
-                var serialized = JsonSerializer.Serialize(existingLogs);
-                if (moduleJob != null)
-                    moduleJob.Logs = serialized;
-                else
-                    stateMigration!.Logs = serialized;
-
-                await dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
+                // A runner-side failure reaches the operator only through its logs.
+                _logger.LogWarning(
+                    "Discarding {Count} log entries for job {JobId}: no job with that id exists",
+                    job.Count(), job.Key);
+                continue;
             }
-            catch
+
+            foreach (var module in job.GroupBy(l => l.ModuleId))
             {
-                await transaction.RollbackAsync();
-                throw;
+                JobLogChunk chunk = moduleJobOrganization is { } organizationId
+                    ? new ModuleJobLogChunk { OrganizationId = organizationId }
+                    : new StateMigrationJobLogChunk { OrganizationId = stateMigrationOrganization!.Value };
+
+                chunk.Id = Guid.NewGuid();
+                chunk.JobId = job.Key;
+                chunk.ModuleId = module.Key;
+                LogChunkCodec.Encode(chunk, module.OrderBy(l => l.Timestamp).ToList());
+
+                dbContext.Add(chunk);
             }
         }
+
+        await dbContext.SaveChangesAsync();
     }
 
-    public async Task<List<LogEntryDto>> GetLogEntries(Guid correlationId)
+    /// <summary>
+    /// The parts of a job's log, in reading order, without their lines. <paramref name="moduleId"/> narrows
+    /// them to one Module, which a transfer needs: two Modules run under one job, so their logs share a job id.
+    /// </summary>
+    public async Task<List<LogChunkSummary>> GetChunkSummaries(Guid jobId, Guid? moduleId = null, long afterSequence = -1)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
+        var summaries = new List<LogChunkSummary>();
+
+        if (afterSequence < LegacySequence)
+        {
+            var legacyBytes = await dbContext.ModuleJobs
+                    .Where(j => j.Id == jobId && j.Logs != null)
+                    .Select(j => (long?)EF.Functions.DataLength(j.Logs))
+                    .FirstOrDefaultAsync()
+                ?? await dbContext.StateMigrationJobs
+                    .Where(j => j.Id == jobId && j.Logs != null)
+                    .Select(j => (long?)EF.Functions.DataLength(j.Logs))
+                    .FirstOrDefaultAsync();
+
+            if (legacyBytes is > 0)
+                summaries.Add(new LogChunkSummary(LegacySequence, null, null, 0, legacyBytes.Value));
+        }
+
+        var chunks = (await Summaries(dbContext.ModuleJobLogChunks, jobId, moduleId, afterSequence).ToListAsync())
+            .Concat(await Summaries(dbContext.StateMigrationJobLogChunks, jobId, moduleId, afterSequence).ToListAsync())
+            .OrderBy(c => c.Sequence);
+
+        summaries.AddRange(chunks.Select(c =>
+            new LogChunkSummary(c.Sequence, c.ModuleId, c.TaskNames.Split('\n'), c.LineCount, c.UncompressedBytes)));
+
+        return summaries;
+    }
+
+    private static IQueryable<ChunkRow> Summaries<T>(DbSet<T> chunks, Guid jobId, Guid? moduleId, long afterSequence)
+        where T : JobLogChunk =>
+        chunks
+            .Where(c => c.JobId == jobId && c.Sequence > afterSequence && (moduleId == null || c.ModuleId == moduleId))
+            .Select(c => new ChunkRow(c.Sequence, c.ModuleId, c.TaskNames, c.LineCount, c.UncompressedBytes));
+
+    private record ChunkRow(long Sequence, Guid ModuleId, string TaskNames, int LineCount, int UncompressedBytes);
+
+    /// <summary>The lines of the given parts of a job's log, ordered by when they were written.</summary>
+    public async Task<List<LogEntryDto>> ReadChunks(Guid jobId, IReadOnlyCollection<long> sequences, Guid? moduleId = null) =>
+        InWrittenOrder(await ReadChunksUnordered(jobId, sequences, moduleId));
+
+    public static List<LogEntryDto> InWrittenOrder(IEnumerable<LogEntryDto> entries) =>
+        entries.OrderBy(e => e.Timestamp).ThenBy(e => e.BatchTimeStamp).ToList();
+
+    private async Task<List<LogEntryDto>> ReadChunksUnordered(Guid jobId, IReadOnlyCollection<long> sequences, Guid? moduleId)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var entries = new List<LogEntryDto>();
+
+        if (sequences.Contains(LegacySequence))
+            entries.AddRange(await ReadLegacy(dbContext, jobId, moduleId));
+
+        var chunkSequences = sequences.Where(s => s != LegacySequence).ToList();
+        if (chunkSequences.Count == 0)
+            return entries;
+
+        var chunks = (await Payloads(dbContext.ModuleJobLogChunks, jobId, chunkSequences, moduleId).ToListAsync())
+            .Concat(await Payloads(dbContext.StateMigrationJobLogChunks, jobId, chunkSequences, moduleId).ToListAsync())
+            .OrderBy(c => c.Sequence)
+            .ToList();
+
+        var contexts = await ModuleContexts(dbContext, chunks.Select(c => c.ModuleId).Distinct().ToList());
+
+        foreach (var chunk in chunks)
+        {
+            var context = contexts.GetValueOrDefault(chunk.ModuleId);
+
+            List<StoredLogLine> lines;
+            try
+            {
+                lines = LogChunkCodec.Decode(chunk.Payload);
+            }
+            catch (Exception ex) when (ex is InvalidDataException or JsonException)
+            {
+                _logger.LogWarning(ex, "Could not read log chunk {Sequence} of job {JobId}", chunk.Sequence, jobId);
+                entries.Add(Unreadable(jobId, chunk.ModuleId, context));
+                continue;
+            }
+
+            entries.AddRange(lines.Select(line => new LogEntryDto
+            {
+                JobId = jobId,
+                ModuleId = chunk.ModuleId,
+                ModuleName = context?.ModuleName,
+                NamespaceId = context?.NamespaceId,
+                NamespaceName = context?.NamespaceName!,
+                StackId = context?.StackId,
+                StackName = context?.StackName!,
+                Timestamp = line.Timestamp,
+                BatchTimeStamp = line.BatchTimeStamp,
+                TaskName = line.TaskName!,
+                Level = line.Level,
+                Message = line.Message!,
+                Tags = line.Tags,
+                Source = line.Source
+            }));
+        }
+
+        return entries;
+    }
+
+    private static IQueryable<ChunkPayload> Payloads<T>(DbSet<T> chunks, Guid jobId, List<long> sequences, Guid? moduleId)
+        where T : JobLogChunk =>
+        chunks
+            .Where(c => c.JobId == jobId && sequences.Contains(c.Sequence) && (moduleId == null || c.ModuleId == moduleId))
+            .Select(c => new ChunkPayload(c.Sequence, c.ModuleId, c.Payload));
+
+    private record ChunkPayload(long Sequence, Guid ModuleId, byte[] Payload);
+
+    private record ModuleContext(string ModuleName, Guid NamespaceId, string NamespaceName, Guid StackId, string StackName);
+
+    private static async Task<Dictionary<Guid, ModuleContext>> ModuleContexts(SnapCdDbContext dbContext, List<Guid> moduleIds) =>
+        await dbContext.Modules
+            .Where(m => moduleIds.Contains(m.Id))
+            .Select(m => new
+            {
+                m.Id,
+                Context = new ModuleContext(m.Name, m.NamespaceId, m.Namespace.Name, m.Namespace.StackId, m.Namespace.Stack.Name)
+            })
+            .ToDictionaryAsync(m => m.Id, m => m.Context);
+
+    private async Task<List<LogEntryDto>> ReadLegacy(SnapCdDbContext dbContext, Guid jobId, Guid? moduleId)
+    {
         // A job id belongs to one family or the other. A row with no logs yet is
         // not a missing row, so the holder distinguishes them.
         var found = await dbContext.ModuleJobs
-            .Where(j => j.Id == correlationId)
-            .Select(j => new { j.Logs })
-            .FirstOrDefaultAsync()
-            ?? await dbContext.StateMigrationJobs
-                .Where(j => j.Id == correlationId)
-                .Select(j => new { j.Logs })
-                .FirstOrDefaultAsync();
+                        .Where(j => j.Id == jobId)
+                        .Select(j => new { j.Logs })
+                        .FirstOrDefaultAsync()
+                    ?? await dbContext.StateMigrationJobs
+                        .Where(j => j.Id == jobId)
+                        .Select(j => new { j.Logs })
+                        .FirstOrDefaultAsync();
 
-        var logs = found?.Logs;
+        if (string.IsNullOrEmpty(found?.Logs))
+            return [];
 
-        if (string.IsNullOrEmpty(logs))
-            return new List<LogEntryDto>();
-
+        List<LogEntryDto> entries;
         try
         {
-            return JsonSerializer.Deserialize<List<LogEntryDto>>(logs) ?? new List<LogEntryDto>();
+            entries = JsonSerializer.Deserialize<List<LogEntryDto>>(found.Logs) ?? [];
         }
-        catch
+        catch (JsonException ex)
         {
-            return new List<LogEntryDto>();
+            _logger.LogWarning(ex, "Could not read the stored log of job {JobId}", jobId);
+            return [Unreadable(jobId, moduleId ?? Guid.Empty, null)];
         }
+
+        return moduleId is { } module ? entries.Where(e => e.ModuleId == module).ToList() : entries;
     }
 
-    public async Task<string> GetLogString(Guid correlationId)
+    private static LogEntryDto Unreadable(Guid jobId, Guid moduleId, ModuleContext? context) => new()
     {
-        var logEntries = await GetLogEntries(correlationId);
+        JobId = jobId,
+        ModuleId = moduleId,
+        ModuleName = context?.ModuleName,
+        NamespaceName = context?.NamespaceName!,
+        StackName = context?.StackName!,
+        TaskName = DefaultTaskName,
+        Level = LogEventLevel.Error,
+        Message = "Part of this log could not be read.",
+        Source = LogSource.Server
+    };
+
+    /// <summary>A job's whole log, ordered by when its lines were written.</summary>
+    public async Task<List<LogEntryDto>> GetLogEntries(Guid jobId, Guid? moduleId = null)
+    {
+        var summaries = await GetChunkSummaries(jobId, moduleId);
+        return await ReadChunks(jobId, summaries.Select(s => s.Sequence).ToList(), moduleId);
+    }
+
+    public async Task<string> GetLogString(Guid jobId)
+    {
+        var logEntries = await GetLogEntries(jobId);
 
         if (logEntries.Count == 0)
             return string.Empty;
@@ -157,29 +278,12 @@ public class LogService
         return string.Join(Environment.NewLine, logEntries.Select(l => l.Message));
     }
 
-    /// <summary>
-    /// One job's logs, by task. <paramref name="moduleId"/> narrows them to one Module, which a
-    /// transfer needs: two Modules run under one job, so their logs share a job id.
-    /// </summary>
-    public async Task<Dictionary<string, string>> GetLogStrings(Guid correlationId, Guid? moduleId = null)
-    {
-        var logEntries = await GetLogEntries(correlationId);
+    /// <summary>One job's logs, by task, narrowed to one Module when <paramref name="moduleId"/> is given.</summary>
+    public async Task<Dictionary<string, string>> GetLogStrings(Guid jobId, Guid? moduleId = null) =>
+        GroupByTask(await GetLogEntries(jobId, moduleId));
 
-        if (moduleId is { } module)
-            logEntries = logEntries.Where(l => l.ModuleId == module).ToList();
-
-        var result = new Dictionary<string, string>();
-
-        // Group by LogContext (e.g., "Init", "Plan", "Apply", etc.)
-        var groupedByContext = logEntries.GroupBy(l => l.TaskName ?? "Default");
-
-        foreach (var group in groupedByContext)
-        {
-            var contextName = group.Key;
-            var contextLogs = string.Join(Environment.NewLine, group.Select(l => l.Message));
-            result[contextName] = contextLogs;
-        }
-
-        return result;
-    }
+    public static Dictionary<string, string> GroupByTask(IEnumerable<LogEntryDto> entries) =>
+        entries
+            .GroupBy(l => l.TaskName ?? DefaultTaskName)
+            .ToDictionary(g => g.Key, g => string.Join(Environment.NewLine, g.Select(l => l.Message)));
 }

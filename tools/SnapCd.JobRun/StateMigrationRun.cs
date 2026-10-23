@@ -14,6 +14,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Repositories.Custom.Secured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 
@@ -198,10 +199,8 @@ public static class StateMigrationRun
         if (notifications.LogArrivals == 0)
             Console.WriteLine("  !! no logs reached the page, so a running job shows nothing");
 
-        // Logs live as a JSON array on the job's own row rather than as rows of their own.
-        var logged = string.IsNullOrWhiteSpace(job?.Logs)
-            ? 0
-            : System.Text.Json.JsonDocument.Parse(job.Logs).RootElement.GetArrayLength();
+        using var scope = services.CreateScope();
+        var logged = (await scope.ServiceProvider.GetRequiredService<LogService>().GetLogEntries(jobId)).Count;
 
         Console.WriteLine($"Log entries {logged}");
 

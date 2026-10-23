@@ -341,12 +341,14 @@ public static class Run
         foreach (var step in runner.Dispatched)
             Console.WriteLine($"  {step}");
 
-        if (!string.IsNullOrWhiteSpace(job?.Logs))
+        using var scope = services.CreateScope();
+        var logs = await scope.ServiceProvider.GetRequiredService<LogService>().GetLogEntries(jobId);
+        if (logs.Count > 0)
         {
             Console.WriteLine();
             Console.WriteLine("Logs");
-            foreach (var line in job.Logs.Split('\n').TakeLast(20))
-                Console.WriteLine($"  {line.TrimEnd()}");
+            foreach (var entry in logs.TakeLast(20))
+                Console.WriteLine($"  {entry.Message?.TrimEnd()}");
         }
     }
 
