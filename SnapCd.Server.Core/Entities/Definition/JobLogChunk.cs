@@ -12,7 +12,7 @@ using System.Text.Json.Serialization;
 namespace SnapCd.Server.Core.Entities.Definition;
 
 /// <summary>
-/// One batch of a job's log lines as the runner sent it, compressed. Written once and never updated, so
+/// One Module's lines from one batch the runner sent, compressed. Written once and never updated, so
 /// adding to a log costs the same however long the log already is.
 /// </summary>
 public abstract class JobLogChunk
@@ -28,6 +28,9 @@ public abstract class JobLogChunk
 
     /// <summary>The Module the lines came from. A transfer runs two Modules under one job.</summary>
     public Guid ModuleId { get; set; }
+
+    /// <summary>When the runner built the batch. One batch is one chunk, so a resent batch is recognised by it.</summary>
+    public DateTimeOffset BatchTimeStamp { get; set; }
 
     public DateTimeOffset FirstTimestamp { get; set; }
 

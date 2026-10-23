@@ -29,6 +29,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     Sequence = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    BatchTimeStamp = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     FirstTimestamp = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     LastTimestamp = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     TaskNames = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
@@ -57,6 +58,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     Sequence = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    BatchTimeStamp = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     FirstTimestamp = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     LastTimestamp = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     TaskNames = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
@@ -82,6 +84,12 @@ namespace SnapCd.Server.Host.Database.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_ModuleJobLogChunks_JobId_ModuleId_BatchTimeStamp",
+                table: "ModuleJobLogChunks",
+                columns: new[] { "JobId", "ModuleId", "BatchTimeStamp" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ModuleJobLogChunks_JobId_OrganizationId",
                 table: "ModuleJobLogChunks",
                 columns: new[] { "JobId", "OrganizationId" });
@@ -97,6 +105,12 @@ namespace SnapCd.Server.Host.Database.Migrations
                 name: "IX_StateMigrationJobLogChunks_Id",
                 table: "StateMigrationJobLogChunks",
                 column: "Id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StateMigrationJobLogChunks_JobId_ModuleId_BatchTimeStamp",
+                table: "StateMigrationJobLogChunks",
+                columns: new[] { "JobId", "ModuleId", "BatchTimeStamp" },
                 unique: true);
 
             migrationBuilder.CreateIndex(

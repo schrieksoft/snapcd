@@ -72,16 +72,27 @@ public class LogService
                 continue;
             }
 
-            foreach (var module in job.GroupBy(l => l.ModuleId))
+            var stamps = job.Select(l => l.BatchTimeStamp).Distinct().ToList();
+            var stored = moduleJobOrganization is not null
+                ? await StoredBatches(dbContext.ModuleJobLogChunks, job.Key, stamps)
+                : await StoredBatches(dbContext.StateMigrationJobLogChunks, job.Key, stamps);
+
+            foreach (var batch in job.GroupBy(l => (l.ModuleId, l.BatchTimeStamp)))
             {
+                if (stored.Contains(batch.Key))
+                {
+                    _logger.LogDebug("Ignoring a resent log batch for job {JobId}", job.Key);
+                    continue;
+                }
+
                 JobLogChunk chunk = moduleJobOrganization is { } organizationId
                     ? new ModuleJobLogChunk { OrganizationId = organizationId }
                     : new StateMigrationJobLogChunk { OrganizationId = stateMigrationOrganization!.Value };
 
                 chunk.Id = Guid.NewGuid();
                 chunk.JobId = job.Key;
-                chunk.ModuleId = module.Key;
-                LogChunkCodec.Encode(chunk, module.OrderBy(l => l.Timestamp).ToList());
+                chunk.ModuleId = batch.Key.ModuleId;
+                LogChunkCodec.Encode(chunk, batch.OrderBy(l => l.Timestamp).ToList());
 
                 dbContext.Add(chunk);
             }
@@ -89,6 +100,15 @@ public class LogService
 
         await dbContext.SaveChangesAsync();
     }
+
+    private static async Task<HashSet<(Guid ModuleId, DateTimeOffset BatchTimeStamp)>> StoredBatches<T>(
+        DbSet<T> chunks, Guid jobId, List<DateTimeOffset> stamps) where T : JobLogChunk =>
+        (await chunks
+            .Where(c => c.JobId == jobId && stamps.Contains(c.BatchTimeStamp))
+            .Select(c => new { c.ModuleId, c.BatchTimeStamp })
+            .ToListAsync())
+        .Select(c => (c.ModuleId, c.BatchTimeStamp))
+        .ToHashSet();
 
     /// <summary>
     /// The parts of a job's log, in reading order, without their lines. <paramref name="moduleId"/> narrows
@@ -186,7 +206,7 @@ public class LogService
                 StackId = context?.StackId,
                 StackName = context?.StackName!,
                 Timestamp = line.Timestamp,
-                BatchTimeStamp = line.BatchTimeStamp,
+                BatchTimeStamp = chunk.BatchTimeStamp,
                 TaskName = line.TaskName!,
                 Level = line.Level,
                 Message = line.Message!,
@@ -202,9 +222,9 @@ public class LogService
         where T : JobLogChunk =>
         chunks
             .Where(c => c.JobId == jobId && sequences.Contains(c.Sequence) && (moduleId == null || c.ModuleId == moduleId))
-            .Select(c => new ChunkPayload(c.Sequence, c.ModuleId, c.Payload));
+            .Select(c => new ChunkPayload(c.Sequence, c.ModuleId, c.BatchTimeStamp, c.Payload));
 
-    private record ChunkPayload(long Sequence, Guid ModuleId, byte[] Payload);
+    private record ChunkPayload(long Sequence, Guid ModuleId, DateTimeOffset BatchTimeStamp, byte[] Payload);
 
     private record ModuleContext(string ModuleName, Guid NamespaceId, string NamespaceName, Guid StackId, string StackName);
 

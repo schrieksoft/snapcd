@@ -687,15 +687,41 @@ public class LogServiceTests : IAsyncLifetime
     public async Task A_chunk_is_stored_compressed()
     {
         var now = DateTimeOffset.UtcNow;
-        await _logService.AddLogEntries(Enumerable.Range(0, 200)
+        var batch = Enumerable.Range(0, 200)
             .Select(i => ModuleEntry($"      + resource \"kubernetes_manifest\" \"item_{i}\" {{", "Plan", now.AddMilliseconds(i)))
-            .ToList());
+            .ToList();
+        batch.ForEach(e => e.BatchTimeStamp = now);
+        await _logService.AddLogEntries(batch);
 
         await using var verify = _fixture.CreateDbContext();
         var chunk = await verify.ModuleJobLogChunks.SingleAsync(c => c.JobId == _testJob1.Id);
         Assert.Equal(200, chunk.LineCount);
         Assert.True(chunk.Payload.Length * 5 < chunk.UncompressedBytes,
             $"payload {chunk.Payload.Length} bytes for {chunk.UncompressedBytes} uncompressed");
+    }
+
+    [Fact]
+    public async Task A_resent_batch_is_stored_once()
+    {
+        var batch = new List<LogEntryDto> { ModuleEntry("once", "Plan", DateTimeOffset.UtcNow) };
+
+        await _logService.AddLogEntries(batch);
+        await _logService.AddLogEntries(batch);
+
+        Assert.Equal(["once"], (await _logService.GetLogEntries(_testJob1.Id)).Select(e => e.Message));
+    }
+
+    [Fact]
+    public async Task Each_batch_in_one_call_is_its_own_chunk_and_keeps_its_batch_timestamp()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var later = ModuleEntry("later batch", "Plan", now.AddSeconds(1));
+        await _logService.AddLogEntries([ModuleEntry("earlier batch", "Plan", now), later]);
+
+        Assert.Equal(2, (await _logService.GetChunkSummaries(_testJob1.Id)).Count);
+        var entries = await _logService.GetLogEntries(_testJob1.Id);
+        Assert.Equal(["earlier batch", "later batch"], entries.Select(e => e.Message));
+        Assert.Equal(later.BatchTimeStamp, entries[1].BatchTimeStamp);
     }
 
     private static byte[] Decompress(byte[] payload)

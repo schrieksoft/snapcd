@@ -57,7 +57,7 @@ public class RunnerHubConnection :
     private bool _isDisposing;
     private int _restarting;
 
-    private readonly LogBuffer _logBuffer = new(capacity: 10000, batchSize: 100);
+    private readonly LogBuffer _logBuffer = new(capacity: 10000);
 
     private readonly ProcessRegistry _processRegistry;
 

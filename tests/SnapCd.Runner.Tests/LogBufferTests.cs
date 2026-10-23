@@ -13,59 +13,68 @@ namespace SnapCd.Runner.Tests;
 
 public class LogBufferTests
 {
-    private static List<LogEntryDto> Entries(int count, int from = 0) =>
+    private static List<LogEntryDto> Batch(int count, int from = 0) =>
         Enumerable.Range(from, count).Select(i => new LogEntryDto { Message = $"line {i}" }).ToList();
 
+    private static List<string> Messages(IEnumerable<LogEntryDto> entries) => entries.Select(e => e.Message).ToList();
+
     [Fact]
-    public async Task Flush_sends_everything_in_order_across_batches()
+    public async Task Flush_sends_each_batch_whole_and_in_order()
     {
-        var buffer = new LogBuffer(capacity: 1000, batchSize: 100);
-        buffer.Add(Entries(250));
-        var batches = new List<List<LogEntryDto>>();
+        var buffer = new LogBuffer(capacity: 1000);
+        buffer.Add(Batch(150));
+        buffer.Add(Batch(30, from: 150));
+        var sentBatches = new List<List<LogEntryDto>>();
 
         var sent = await buffer.FlushAsync(batch =>
         {
-            batches.Add(batch);
+            sentBatches.Add(batch);
             return Task.CompletedTask;
         });
 
-        Assert.Equal(250, sent);
-        Assert.Equal([100, 100, 50], batches.Select(b => b.Count));
-        Assert.Equal(Entries(250).Select(e => e.Message), batches.SelectMany(b => b).Select(e => e.Message));
+        Assert.Equal(180, sent);
+        Assert.Equal([150, 30], sentBatches.Select(b => b.Count));
+        Assert.Equal(Messages(Batch(180)), Messages(sentBatches.SelectMany(b => b)));
         Assert.True(buffer.IsEmpty);
     }
 
     [Fact]
-    public async Task A_failed_batch_is_kept_at_the_front()
+    public async Task A_failed_batch_is_kept_whole_at_the_front()
     {
-        var buffer = new LogBuffer(capacity: 1000, batchSize: 100);
-        buffer.Add(Entries(250));
+        var buffer = new LogBuffer(capacity: 1000);
+        var first = Batch(10);
+        var second = Batch(10, from: 10);
+        buffer.Add(first);
+        buffer.Add(second);
+        buffer.Add(Batch(10, from: 20));
         var calls = 0;
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => buffer.FlushAsync(_ =>
             ++calls == 2 ? throw new InvalidOperationException("connection lost") : Task.CompletedTask));
 
-        Assert.Equal(150, buffer.Count);
+        Assert.Equal(20, buffer.Count);
 
-        var resent = new List<LogEntryDto>();
+        var resent = new List<List<LogEntryDto>>();
         await buffer.FlushAsync(batch =>
         {
-            resent.AddRange(batch);
+            resent.Add(batch);
             return Task.CompletedTask;
         });
 
-        Assert.Equal(Entries(150, from: 100).Select(e => e.Message), resent.Select(e => e.Message));
+        Assert.Same(second, resent[0]);
+        Assert.Equal(Messages(Batch(20, from: 10)), Messages(resent.SelectMany(b => b)));
     }
 
     [Fact]
-    public void A_full_buffer_drops_the_oldest_and_counts_them()
+    public void A_full_buffer_drops_the_oldest_batches_and_counts_their_entries()
     {
-        var buffer = new LogBuffer(capacity: 10, batchSize: 100);
+        var buffer = new LogBuffer(capacity: 10);
 
-        buffer.Add(Entries(15));
+        buffer.Add(Batch(6));
+        buffer.Add(Batch(6, from: 6));
 
-        Assert.Equal(10, buffer.Count);
-        Assert.Equal(5, buffer.TakeDroppedCount());
+        Assert.Equal(6, buffer.Count);
+        Assert.Equal(6, buffer.TakeDroppedCount());
         Assert.Equal(0, buffer.TakeDroppedCount());
     }
 }

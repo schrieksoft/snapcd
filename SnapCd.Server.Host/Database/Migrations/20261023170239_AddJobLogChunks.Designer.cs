@@ -12,7 +12,7 @@ using SnapCd.Server.Host.Database;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     [DbContext(typeof(SelfHostedSnapCdDbContext))]
-    [Migration("20261023162215_AddJobLogChunks")]
+    [Migration("20261023170239_AddJobLogChunks")]
     partial class AddJobLogChunks
     {
         /// <inheritdoc />
@@ -2536,6 +2536,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset>("BatchTimeStamp")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset>("FirstTimestamp")
                         .HasColumnType("datetimeoffset");
 
@@ -2580,6 +2583,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsUnique();
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("JobId", "Sequence"), new[] { "ModuleId", "TaskNames", "LineCount", "UncompressedBytes" });
+
+                    b.HasIndex("JobId", "ModuleId", "BatchTimeStamp")
+                        .IsUnique();
 
                     b.ToTable("ModuleJobLogChunks", (string)null);
 
@@ -7065,6 +7071,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset>("BatchTimeStamp")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset>("FirstTimestamp")
                         .HasColumnType("datetimeoffset");
 
@@ -7109,6 +7118,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsUnique();
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("JobId", "Sequence"), new[] { "ModuleId", "TaskNames", "LineCount", "UncompressedBytes" });
+
+                    b.HasIndex("JobId", "ModuleId", "BatchTimeStamp")
+                        .IsUnique();
 
                     b.ToTable("StateMigrationJobLogChunks", (string)null);
 

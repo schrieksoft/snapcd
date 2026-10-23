@@ -13,14 +13,12 @@ using SnapCd.Contracts;
 namespace SnapCd.Server.Core.Services.Logs;
 
 /// <summary>
-/// What a stored log line keeps: only what varies per line. The job, Module, Namespace and Stack are known
-/// from the chunk and its job.
+/// What a stored log line keeps: only what varies per line. The job, Module, Namespace, Stack and batch are
+/// known from the chunk and its job.
 /// </summary>
 public class StoredLogLine
 {
     [JsonPropertyName("t")] public DateTimeOffset Timestamp { get; set; }
-
-    [JsonPropertyName("b")] public DateTimeOffset BatchTimeStamp { get; set; }
 
     [JsonPropertyName("k")] public string? TaskName { get; set; }
 

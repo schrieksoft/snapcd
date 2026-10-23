@@ -6,33 +6,49 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System.Collections.Concurrent;
 using SnapCd.Contracts.Dto.Misc;
 
 namespace SnapCd.Runner.Hub;
 
 /// <summary>
-/// Holds log entries that could not be sent, and sends them in order once the connection is back.
+/// Holds log batches that could not be sent, and sends them in order once the connection is back. Batches are
+/// kept whole: the server recognises a resent batch by its batch timestamp.
 /// </summary>
-public class LogBuffer(int capacity, int batchSize)
+public class LogBuffer(int capacity)
 {
-    private readonly ConcurrentQueue<LogEntryDto> _queue = new();
+    private readonly LinkedList<List<LogEntryDto>> _batches = new();
     private readonly SemaphoreSlim _flushLock = new(1, 1);
+    private readonly object _gate = new();
+    private int _count;
     private int _droppedCount;
 
-    public bool IsEmpty => _queue.IsEmpty;
-
-    public int Count => _queue.Count;
-
-    /// <summary>Adds entries, dropping the oldest once the buffer is full.</summary>
-    public void Add(IEnumerable<LogEntryDto> entries)
+    public bool IsEmpty
     {
-        foreach (var entry in entries)
+        get
         {
-            while (_queue.Count >= capacity && _queue.TryDequeue(out _))
-                Interlocked.Increment(ref _droppedCount);
+            lock (_gate)
+                return _batches.Count == 0;
+        }
+    }
 
-            _queue.Enqueue(entry);
+    /// <summary>How many entries are buffered.</summary>
+    public int Count
+    {
+        get
+        {
+            lock (_gate)
+                return _count;
+        }
+    }
+
+    /// <summary>Adds a batch, dropping the oldest batches once the buffer holds more than its capacity in entries.</summary>
+    public void Add(List<LogEntryDto> batch)
+    {
+        lock (_gate)
+        {
+            _batches.AddLast(batch);
+            _count += batch.Count;
+            DropOldestOverCapacity();
         }
     }
 
@@ -40,8 +56,8 @@ public class LogBuffer(int capacity, int batchSize)
     public int TakeDroppedCount() => Interlocked.Exchange(ref _droppedCount, 0);
 
     /// <summary>
-    /// Sends everything buffered, in batches, until the buffer is empty. A batch that fails to send is put
-    /// back at the front and the exception is rethrown, so nothing is lost and the order is kept.
+    /// Sends every buffered batch, oldest first, one per call. A batch that fails to send is put back at the
+    /// front and the exception is rethrown, so nothing is lost and the order is kept.
     /// </summary>
     public async Task<int> FlushAsync(Func<List<LogEntryDto>, Task> send)
     {
@@ -49,15 +65,8 @@ public class LogBuffer(int capacity, int batchSize)
         try
         {
             var sent = 0;
-            while (true)
+            while (TakeOldest() is { } batch)
             {
-                var batch = new List<LogEntryDto>(batchSize);
-                while (batch.Count < batchSize && _queue.TryDequeue(out var entry))
-                    batch.Add(entry);
-
-                if (batch.Count == 0)
-                    return sent;
-
                 try
                 {
                     await send(batch);
@@ -70,6 +79,8 @@ public class LogBuffer(int capacity, int batchSize)
 
                 sent += batch.Count;
             }
+
+            return sent;
         }
         finally
         {
@@ -77,13 +88,37 @@ public class LogBuffer(int capacity, int batchSize)
         }
     }
 
+    private List<LogEntryDto>? TakeOldest()
+    {
+        lock (_gate)
+        {
+            if (_batches.First is not { } first)
+                return null;
+
+            _batches.RemoveFirst();
+            _count -= first.Value.Count;
+            return first.Value;
+        }
+    }
+
     private void PutBackAtFront(List<LogEntryDto> batch)
     {
-        var rest = new List<LogEntryDto>();
-        while (_queue.TryDequeue(out var entry))
-            rest.Add(entry);
+        lock (_gate)
+        {
+            _batches.AddFirst(batch);
+            _count += batch.Count;
+            DropOldestOverCapacity();
+        }
+    }
 
-        Add(batch);
-        Add(rest);
+    private void DropOldestOverCapacity()
+    {
+        while (_count > capacity && _batches.Count > 1)
+        {
+            var oldest = _batches.First!.Value;
+            _batches.RemoveFirst();
+            _count -= oldest.Count;
+            Interlocked.Add(ref _droppedCount, oldest.Count);
+        }
     }
 }

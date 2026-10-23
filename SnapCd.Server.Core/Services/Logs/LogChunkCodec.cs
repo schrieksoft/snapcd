@@ -28,7 +28,6 @@ public static class LogChunkCodec
         var lines = entries.Select(e => new StoredLogLine
         {
             Timestamp = e.Timestamp,
-            BatchTimeStamp = e.BatchTimeStamp,
             TaskName = e.TaskName,
             Level = e.Level,
             Message = e.Message,
@@ -43,6 +42,7 @@ public static class LogChunkCodec
             gzip.Write(json);
 
         chunk.Payload = buffer.ToArray();
+        chunk.BatchTimeStamp = entries[0].BatchTimeStamp;
         chunk.UncompressedBytes = json.Length;
         chunk.LineCount = lines.Count;
         chunk.FirstTimestamp = lines.Min(l => l.Timestamp);

@@ -2541,6 +2541,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset>("BatchTimeStamp")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset>("FirstTimestamp")
                         .HasColumnType("datetimeoffset");
 
@@ -2585,6 +2588,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsUnique();
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("JobId", "Sequence"), new[] { "ModuleId", "TaskNames", "LineCount", "UncompressedBytes" });
+
+                    b.HasIndex("JobId", "ModuleId", "BatchTimeStamp")
+                        .IsUnique();
 
                     b.ToTable("ModuleJobLogChunks", (string)null);
 
@@ -7070,6 +7076,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset>("BatchTimeStamp")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset>("FirstTimestamp")
                         .HasColumnType("datetimeoffset");
 
@@ -7114,6 +7123,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsUnique();
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("JobId", "Sequence"), new[] { "ModuleId", "TaskNames", "LineCount", "UncompressedBytes" });
+
+                    b.HasIndex("JobId", "ModuleId", "BatchTimeStamp")
+                        .IsUnique();
 
                     b.ToTable("StateMigrationJobLogChunks", (string)null);
 

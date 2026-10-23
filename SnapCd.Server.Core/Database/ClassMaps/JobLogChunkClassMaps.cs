@@ -60,5 +60,9 @@ internal static class JobLogChunkMapping
             .HasIndex(e => new { e.JobId, e.Sequence })
             .IsUnique()
             .IncludeProperties(e => new { e.ModuleId, e.TaskNames, e.LineCount, e.UncompressedBytes });
+
+        entity
+            .HasIndex(e => new { e.JobId, e.ModuleId, e.BatchTimeStamp })
+            .IsUnique();
     }
 }
