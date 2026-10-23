@@ -64,6 +64,7 @@ using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyFromPlanFaulted,
     SnapCd.Server.Core.Events.Steps.ApplyCancelKillRequested,
     SnapCd.Server.Core.Events.Steps.DummyApplyCancelKillCompleted,
     SnapCd.Server.Core.Events.Steps.ApplyCancelKillCompleted>;

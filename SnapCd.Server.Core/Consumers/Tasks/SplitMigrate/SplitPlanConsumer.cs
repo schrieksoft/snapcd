@@ -70,7 +70,7 @@ public class SplitPlanConsumer : IConsumer<SplitPlanRequested>
                 CorrelationId = jobId,
                 OrganizationId = orgId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }

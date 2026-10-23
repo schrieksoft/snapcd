@@ -211,13 +211,9 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         if (actualStateHeadline != null)
             job.ActualStateHeadline = actualStateHeadline;
 
-        // Set server-side error fields
-        if (failedStep.HasValue)
-        {
-            job.FailedOnServerSideStep = failedStep;
-            job.ServerSideErrorHeader = Truncate(errorHeader, 255);
-            job.ServerSideError = Truncate(errorMessage, 16000);
-        }
+        job.FailedOnServerSideStep = failedStep;
+        job.ServerSideErrorHeader = Truncate(errorHeader, 255);
+        job.ServerSideError = Truncate(errorMessage, 16000);
 
         await ExecuteUpdate(job); // Called from MassTransit state machine, transaction already running
     }
@@ -231,9 +227,9 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
     public async Task SetServerSideError(
         Guid id,
         Guid organizationId,
-        ServerSideStep failedStep,
+        ServerSideStep? failedStep,
         string errorHeader,
-        string errorMessage)
+        string? errorMessage)
     {
         var job = await Get(id, organizationId);
         job.FailedOnServerSideStep = failedStep;

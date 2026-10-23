@@ -10,6 +10,7 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
@@ -37,13 +38,13 @@ public class FailStateMigrationJobActivity<TSaga, TMessage> : IStateMachineActiv
         BehaviorContext<TSaga, TMessage> context,
         IBehavior<TSaga, TMessage> next)
     {
-        if (context.Message is StepFaultedBase { IsServerSideError: true } faulted)
+        if (context.Message is IStepFault { IsServerSideError: true } faulted)
         {
             var fullMessage = !string.IsNullOrEmpty(faulted.StackTrace)
                 ? $"{faulted.ErrorMessage}\n\nStack Trace:\n{faulted.StackTrace}"
                 : faulted.ErrorMessage;
 
-            var failedStep = StepMapper.DetermineStepFromEventType(typeof(TMessage));
+            var failedStep = faulted.Step;
 
             await _repository.ExecuteFinalizeWithServerError(
                 context.Saga.CorrelationId,
@@ -52,6 +53,26 @@ public class FailStateMigrationJobActivity<TSaga, TMessage> : IStateMachineActiv
                 failedStep,
                 $"Server error during {failedStep}",
                 fullMessage);
+        }
+        else if (context.Message is Fault fault)
+        {
+            await _repository.ExecuteFinalizeWithServerError(
+                context.Saga.CorrelationId,
+                context.Saga.OrganizationId,
+                DateTimeOffset.UtcNow,
+                StepMapper.DetermineStepFromState(context.Saga.CurrentState),
+                $"Server error while handling {FaultText.MessageName(typeof(TMessage))}",
+                FaultText.Describe(fault.Exceptions));
+        }
+        else if (context.Message is HeartbeatFailed lost)
+        {
+            await _repository.ExecuteFinalizeWithServerError(
+                context.Saga.CorrelationId,
+                context.Saga.OrganizationId,
+                DateTimeOffset.UtcNow,
+                StepMapper.DetermineStepFromState(context.Saga.CurrentState),
+                LostRunnerError.Header,
+                LostRunnerError.Message(context.Saga, lost.Reason));
         }
         else
         {

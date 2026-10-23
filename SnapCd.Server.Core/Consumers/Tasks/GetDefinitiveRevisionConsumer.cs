@@ -106,7 +106,7 @@ public abstract class GetDefinitiveRevisionConsumer<TRequested, TFaulted> : ICon
                 CorrelationId = jobId,
                 OrganizationId = orgId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }

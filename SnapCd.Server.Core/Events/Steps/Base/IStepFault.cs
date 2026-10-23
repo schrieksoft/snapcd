@@ -6,13 +6,17 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Server.Core.Events.Steps;
+namespace SnapCd.Server.Core.Events.Steps.Base;
 
 /// <summary>
-/// Event indicating that getting the module definitive revision has faulted with an error.
+/// A step's fault, whichever job family it belongs to: what failed, where, and whether the server or the runner failed it.
 /// </summary>
-public class GetDefinitiveRevisionFaulted : StepFaultedBase
+public interface IStepFault
 {
+    ServerSideStep Step { get; }
+    string? ErrorMessage { get; }
+    string? StackTrace { get; }
+    bool IsServerSideError { get; }
 }

@@ -517,6 +517,7 @@ public static class MassTransit
                 ApplyFromPlanRequested,
                 ApplyFromPlanCompleted,
                 ApplyFromPlanCancelled,
+                ApplyFromPlanFaulted,
                 ApplyCancelKillRequested,
                 DummyApplyCancelKillCompleted,
                 ApplyCancelKillCompleted
@@ -565,6 +566,7 @@ public static class MassTransit
                 DestroyFromPlanRequested,
                 DestroyFromPlanCompleted,
                 DestroyFromPlanCancelled,
+                DestroyFromPlanFaulted,
                 DestroyCancelKillRequested,
                 DummyDestroyCancelKillCompleted,
                 DestroyCancelKillCompleted

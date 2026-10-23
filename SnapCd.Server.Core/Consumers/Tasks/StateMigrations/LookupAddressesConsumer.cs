@@ -78,7 +78,7 @@ public class LookupAddressesConsumer : IConsumer<LookupAddressesRequested>
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }

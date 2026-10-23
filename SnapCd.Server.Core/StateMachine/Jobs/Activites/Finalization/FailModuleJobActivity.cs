@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using MassTransit;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Steps.Base;
@@ -43,10 +44,12 @@ public class FailModuleJobActivity<TSaga, TFailedMessage> :
         var isServerSideError = false;
         string? errorMessage = null;
         string? stackTrace = null;
+        ServerSideStep? failedStep = null;
 
-        if (context.Message is StepFaultedBase faultedMessage)
+        if (context.Message is IStepFault faultedMessage)
         {
             isServerSideError = faultedMessage.IsServerSideError;
+            failedStep = faultedMessage.Step;
             errorMessage = faultedMessage.ErrorMessage;
             stackTrace = faultedMessage.StackTrace;
         }
@@ -54,7 +57,6 @@ public class FailModuleJobActivity<TSaga, TFailedMessage> :
         if (isServerSideError)
         {
             // Server-side error: save error details to the job
-            var failedStep = StepMapper.DetermineStepFromEventType(typeof(TFailedMessage));
             var errorHeader = $"Server error during {failedStep}";
             var fullErrorMessage = !string.IsNullOrEmpty(stackTrace)
                 ? $"{errorMessage}\n\nStack Trace:\n{stackTrace}"

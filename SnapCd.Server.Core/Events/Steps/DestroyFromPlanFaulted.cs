@@ -7,13 +7,14 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Events.Steps;
 
 /// <summary>
 /// Event indicating that destroy from plan has faulted with an error.
 /// </summary>
-public class DestroyFromPlanFaulted : StepFaultedBase
+public class DestroyFromPlanFaulted : FromPlanFaultedBase
 {
-    public int? ActualResourceCount { get; set; }
+    public override ServerSideStep Step => ServerSideStep.DestroyFromPlan;
 }

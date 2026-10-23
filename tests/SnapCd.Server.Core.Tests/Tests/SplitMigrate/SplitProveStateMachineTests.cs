@@ -390,7 +390,50 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         _ => _harness.Bus.Publish(new SplitMigrateProveCancelled { CorrelationId = jobId, OrganizationId = _organizationId })
     };
 
-    private async Task<Guid> Seed(bool stopAfterProve, string state = "SplitMigrateProvePending", DateTime? waitingSince = null)
+    [Fact]
+    public async Task Lost_Runner_Fails_The_Job_As_Server_Side_Error_With_The_Reason()
+    {
+        var heartbeatRequestId = Guid.NewGuid();
+        var jobId = await Seed(stopAfterProve: true, heartbeatRequestId: heartbeatRequestId);
+
+        await _harness.Bus.Publish(
+            new HeartbeatFailed { CorrelationId = jobId, OrganizationId = _organizationId, Reason = "Runner instance 'prove-test' is not connected." },
+            c => c.RequestId = heartbeatRequestId);
+
+        Assert.True(await WaitUntil(() =>
+        {
+            using var db = _fixture.CreateDbContext();
+            return db.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Failed;
+        }));
+
+        await using var check = _fixture.CreateDbContext();
+        var job = check.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId);
+        Assert.Equal("Runner stopped responding", job.ServerSideErrorHeader);
+        Assert.Contains("Runner instance 'prove-test' is not connected.", job.ServerSideError);
+        Assert.Contains("SplitMigrateProvePending", job.ServerSideError);
+    }
+
+    [Fact]
+    public async Task Server_Side_Fault_Records_The_Step_The_Fault_Type_Declares()
+    {
+        var jobId = await Seed(stopAfterProve: true, state: "SplitPlanPending");
+
+        await _harness.Bus.Publish(new SplitPlanFaulted { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "plan dispatch failed", IsServerSideError = true });
+
+        Assert.True(await WaitUntil(() =>
+        {
+            using var db = _fixture.CreateDbContext();
+            return db.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Failed;
+        }));
+
+        await using var check = _fixture.CreateDbContext();
+        var job = check.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId);
+        Assert.Equal(ServerSideStep.SplitPlan, job.FailedOnServerSideStep);
+        Assert.Equal("Server error during SplitPlan", job.ServerSideErrorHeader);
+        Assert.Contains("plan dispatch failed", job.ServerSideError);
+    }
+
+    private async Task<Guid> Seed(bool stopAfterProve, string state = "SplitMigrateProvePending", DateTime? waitingSince = null, Guid? heartbeatRequestId = null)
     {
         var jobId = Guid.NewGuid();
         _seeded.Add(jobId);
@@ -417,6 +460,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
             StopAfterProve = stopAfterProve,
             WaitingSince = waitingSince,
             ApprovalTimeoutMinutes = 0,
+            HeartbeatRequestId = heartbeatRequestId,
             RowVersion = []
         });
         await db.SaveChangesAsync();

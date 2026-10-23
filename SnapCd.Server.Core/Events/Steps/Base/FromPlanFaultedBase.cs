@@ -6,13 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Events.Steps.Base;
+namespace SnapCd.Server.Core.Events.Steps.Base;
 
-namespace SnapCd.Server.Core.Events.Steps;
-
-/// <summary>
-/// Event indicating that getting the module has faulted with an error.
-/// </summary>
-public class GetModuleFaulted : StepFaultedBase
+public abstract class FromPlanFaultedBase : StepFaultedBase
 {
+    public int? ActualResourceCount { get; set; }
 }

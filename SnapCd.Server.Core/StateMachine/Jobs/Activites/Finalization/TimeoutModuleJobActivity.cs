@@ -40,25 +40,15 @@ public class TimeoutModuleJobActivity<TSaga, TMessage> :
             _ => (ActualStateHeadline?)null
         };
 
-        var runner = string.IsNullOrEmpty(context.Saga.RunnerInstanceName)
-            ? context.Saga.RunnerName
-            : $"{context.Saga.RunnerName} ({context.Saga.RunnerInstanceName})";
-
-        var errorMessage =
-            $"The job was assigned to runner '{runner}' but stopped sending heartbeats, so the server ended it. "
-            + $"The job was in state '{context.Saga.CurrentState}' at the time. "
-            + "The runner may have lost its connection to the server, been stopped, or failed before it could report an error. "
-            + "Check the runner's logs for the period leading up to this job's end time.";
-
         await _repository.FinalizeWithServerError(
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
             typeof(TMessage).Name,
             DateTimeOffset.UtcNow,
             actualStateHeadline,
-            StepMapper.DetermineStepFromEventType(typeof(TMessage)),
-            "Runner stopped responding",
-            errorMessage);
+            StepMapper.DetermineStepFromState(context.Saga.CurrentState),
+            LostRunnerError.Header,
+            LostRunnerError.Message(context.Saga, context.Message.Reason));
 
 
         // Proceed to the next activity

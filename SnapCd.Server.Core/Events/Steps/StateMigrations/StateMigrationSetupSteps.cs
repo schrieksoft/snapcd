@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Events.Steps.StateMigrations;
 
@@ -54,40 +55,76 @@ public abstract class StateMigrationGetModuleCompletedBase : StateMigrationStepR
 
 public class LookupAddressesSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
 public class LookupAddressesSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;
-public class LookupAddressesSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase;
+public class LookupAddressesSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.SelectRunnerInstance;
+}
 public class LookupAddressesGetModuleCompleted : StateMigrationGetModuleCompletedBase;
 public class LookupAddressesGetModuleCancelled : StateMigrationStepResponseBase;
-public class LookupAddressesGetModuleFaulted : StateMigrationStepFaultedBase;
+public class LookupAddressesGetModuleFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.GetModule;
+}
 public class LookupAddressesInitCompleted : StateMigrationStepResponseBase;
 public class LookupAddressesInitCancelled : StateMigrationStepResponseBase;
-public class LookupAddressesInitFaulted : StateMigrationStepFaultedBase;
+public class LookupAddressesInitFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Init;
+}
 
 public class MoveSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
 public class MoveSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;
-public class MoveSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase;
+public class MoveSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.SelectRunnerInstance;
+}
 public class MoveGetModuleCompleted : StateMigrationGetModuleCompletedBase;
 public class MoveGetModuleCancelled : StateMigrationStepResponseBase;
-public class MoveGetModuleFaulted : StateMigrationStepFaultedBase;
+public class MoveGetModuleFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.GetModule;
+}
 public class MoveInitCompleted : StateMigrationStepResponseBase;
 public class MoveInitCancelled : StateMigrationStepResponseBase;
-public class MoveInitFaulted : StateMigrationStepFaultedBase;
+public class MoveInitFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Init;
+}
 
 public class ImportSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
 public class ImportSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;
-public class ImportSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase;
+public class ImportSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.SelectRunnerInstance;
+}
 public class ImportGetModuleCompleted : StateMigrationGetModuleCompletedBase;
 public class ImportGetModuleCancelled : StateMigrationStepResponseBase;
-public class ImportGetModuleFaulted : StateMigrationStepFaultedBase;
+public class ImportGetModuleFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.GetModule;
+}
 public class ImportInitCompleted : StateMigrationStepResponseBase;
 public class ImportInitCancelled : StateMigrationStepResponseBase;
-public class ImportInitFaulted : StateMigrationStepFaultedBase;
+public class ImportInitFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Init;
+}
 
 public class RemoveSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
 public class RemoveSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;
-public class RemoveSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase;
+public class RemoveSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.SelectRunnerInstance;
+}
 public class RemoveGetModuleCompleted : StateMigrationGetModuleCompletedBase;
 public class RemoveGetModuleCancelled : StateMigrationStepResponseBase;
-public class RemoveGetModuleFaulted : StateMigrationStepFaultedBase;
+public class RemoveGetModuleFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.GetModule;
+}
 public class RemoveInitCompleted : StateMigrationStepResponseBase;
 public class RemoveInitCancelled : StateMigrationStepResponseBase;
-public class RemoveInitFaulted : StateMigrationStepFaultedBase;
+public class RemoveInitFaulted : StateMigrationStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Init;
+}

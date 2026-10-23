@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Contracts;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps;
@@ -35,29 +36,47 @@ public abstract class OutputRequestedBase : StepRequestBase;
 public class ApplyGetDefinitiveRevisionRequested : GetDefinitiveRevisionRequestedBase;
 public class ApplyGetDefinitiveRevisionCompleted : GetDefinitiveRevisionCompletedBase;
 public class ApplyGetDefinitiveRevisionCancelled : StepResponseBase;
-public class ApplyGetDefinitiveRevisionFaulted : StepFaultedBase;
+public class ApplyGetDefinitiveRevisionFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.GetDefinitiveRevision;
+}
 
 public class ApplyPolicyValidateRequested : PolicyValidateRequestedBase;
 public class ApplyPolicyValidateCompleted : PolicyValidateCompletedBase;
 public class ApplyPolicyValidateCancelled : StepResponseBase;
-public class ApplyPolicyValidateFaulted : StepFaultedBase;
+public class ApplyPolicyValidateFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.PolicyValidate;
+}
 
 public class ApplyOutputRequested : OutputRequestedBase;
 public class ApplyOutputCompleted : StepResponseBase;
 public class ApplyOutputCancelled : StepResponseBase;
-public class ApplyOutputFaulted : StepFaultedBase;
+public class ApplyOutputFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Output;
+}
 
 public class DestroyGetDefinitiveRevisionRequested : GetDefinitiveRevisionRequestedBase;
 public class DestroyGetDefinitiveRevisionCompleted : GetDefinitiveRevisionCompletedBase;
 public class DestroyGetDefinitiveRevisionCancelled : StepResponseBase;
-public class DestroyGetDefinitiveRevisionFaulted : StepFaultedBase;
+public class DestroyGetDefinitiveRevisionFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.GetDefinitiveRevision;
+}
 
 public class DestroyPolicyValidateRequested : PolicyValidateRequestedBase;
 public class DestroyPolicyValidateCompleted : PolicyValidateCompletedBase;
 public class DestroyPolicyValidateCancelled : StepResponseBase;
-public class DestroyPolicyValidateFaulted : StepFaultedBase;
+public class DestroyPolicyValidateFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.PolicyValidate;
+}
 
 public class DestroyOutputRequested : OutputRequestedBase;
 public class DestroyOutputCompleted : StepResponseBase;
 public class DestroyOutputCancelled : StepResponseBase;
-public class DestroyOutputFaulted : StepFaultedBase;
+public class DestroyOutputFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Output;
+}

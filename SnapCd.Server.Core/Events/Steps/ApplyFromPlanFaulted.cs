@@ -7,13 +7,14 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Events.Steps;
 
 /// <summary>
 /// Event indicating that apply from plan has faulted with an error.
 /// </summary>
-public class ApplyFromPlanFaulted : StepFaultedBase
+public class ApplyFromPlanFaulted : FromPlanFaultedBase
 {
-    public int? ActualResourceCount { get; set; }
+    public override ServerSideStep Step => ServerSideStep.ApplyFromPlan;
 }

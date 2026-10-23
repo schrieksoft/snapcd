@@ -112,7 +112,7 @@ public class ApplyFromPlanConsumer : IConsumer<ApplyFromPlanRequested>
                 CorrelationId = jobId,
                 OrganizationId = orgId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }

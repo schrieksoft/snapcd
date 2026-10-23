@@ -8,6 +8,7 @@
 
 
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps.StateMigrations;
@@ -26,7 +27,10 @@ public class LookupAddressesCompleted : StepResponseBase
 
 public class LookupAddressesCancelled : StepResponseBase;
 
-public class LookupAddressesFaulted : StepFaultedBase;
+public class LookupAddressesFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.LookupAddresses;
+}
 
 /// <summary>One address and what became of it.</summary>
 public class AddressResult
