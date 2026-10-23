@@ -194,8 +194,8 @@ public abstract class GenericSystemRepository<TEntity, TDto, TMetadata, TCreateE
         if (existingEntity == null)
             throw new EntityNotFoundException($"{typeof(TEntity).Name} with ID {entity.Id} not found.");
 
-        // Capture the previous state before updating
-        var previousEntity = CloneEntity(existingEntity);
+        // The caller may already have changed this tracked instance, so the previous state is what was loaded.
+        var previousEntity = OriginalOf(existingEntity);
 
         var principalId = PrincipalProvider.GetSystemSubjectOrDefault();
         var principalDiscriminator = PrincipalProvider.GetPrincipalDiscriminatorOrDefault();
@@ -402,9 +402,15 @@ public abstract class GenericSystemRepository<TEntity, TDto, TMetadata, TCreateE
         };
     }
 
+    /// <summary>
+    /// The entity as it was loaded from the database, before any change made to the tracked instance since.
+    /// Only its own columns are set; navigation properties are left empty.
+    /// </summary>
+    protected TEntity OriginalOf(TEntity entity) => (TEntity)DbContext.Entry(entity).OriginalValues.ToObject();
+
     private TEntity CloneEntity(TEntity entity)
     {
-        // Create a shallow copy by cloning the entry's original values
+        // A shallow copy of the entry's current values
         var clone = (TEntity)Activator.CreateInstance(typeof(TEntity))!;
         var entry = DbContext.Entry(entity);
 
