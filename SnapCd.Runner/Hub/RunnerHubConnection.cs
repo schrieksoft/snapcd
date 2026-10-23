@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using SnapCd.Contracts.RunnerRequests.StateMigrations;
-using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -58,10 +57,7 @@ public class RunnerHubConnection :
     private bool _isDisposing;
     private int _restarting;
 
-    // Log buffering
-    private readonly ConcurrentQueue<LogEntryDto> _logBuffer = new();
-    private const int MaxLogBufferSize = 10000;
-    private int _droppedLogCount = 0;
+    private readonly LogBuffer _logBuffer = new(capacity: 10000, batchSize: 100);
 
     private readonly ProcessRegistry _processRegistry;
 
@@ -723,23 +719,18 @@ public class RunnerHubConnection :
         if (logEntries == null || logEntries.Count == 0)
             return;
 
-        // If not connected, buffer the logs
         if (_connection?.State != HubConnectionState.Connected)
         {
-            foreach (var log in logEntries)
-            {
-                if (_logBuffer.Count >= MaxLogBufferSize)
-                {
-                    // Drop oldest log
-                    _logBuffer.TryDequeue(out _);
-                    _droppedLogCount++;
-                }
+            _logBuffer.Add(logEntries);
+            ReportDroppedLogs();
+            return;
+        }
 
-                _logBuffer.Enqueue(log);
-            }
-
-            if (_droppedLogCount > 0) _logger.LogWarning("Dropped {Count} log entries due to buffer overflow", _droppedLogCount);
-
+        // Buffered entries go first so the server receives them in order.
+        if (!_logBuffer.IsEmpty)
+        {
+            _logBuffer.Add(logEntries);
+            await FlushLogBufferAsync();
             return;
         }
 
@@ -751,11 +742,8 @@ public class RunnerHubConnection :
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending logs to server, buffering for retry");
-
-            // Buffer the logs for retry
-            foreach (var log in logEntries)
-                if (_logBuffer.Count < MaxLogBufferSize)
-                    _logBuffer.Enqueue(log);
+            _logBuffer.Add(logEntries);
+            ReportDroppedLogs();
         }
     }
 
@@ -764,29 +752,24 @@ public class RunnerHubConnection :
         if (_logBuffer.IsEmpty || _connection?.State != HubConnectionState.Connected)
             return;
 
-        var logsToSend = new List<LogEntryDto>();
-        while (_logBuffer.TryDequeue(out var log) && logsToSend.Count < 100) logsToSend.Add(log);
-
-        if (logsToSend.Count > 0)
+        try
         {
-            _logger.LogDebug("Flushing {Count} buffered log entries", logsToSend.Count);
-            try
-            {
-                await _connection.InvokeAsync("SendLogs", logsToSend);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error flushing buffered logs, will retry later");
-                // Re-queue the logs
-                foreach (var log in logsToSend) _logBuffer.Enqueue(log);
-            }
+            var sent = await _logBuffer.FlushAsync(batch => _connection.InvokeAsync(ServerEndpoints.AddLogs, batch));
+            _logger.LogDebug("Flushed {Count} buffered log entries", sent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error flushing buffered logs; {Count} entries kept for the next attempt", _logBuffer.Count);
         }
 
-        if (_droppedLogCount > 0)
-        {
-            _logger.LogWarning("Total of {Count} log entries were dropped due to buffer overflow", _droppedLogCount);
-            _droppedLogCount = 0;
-        }
+        ReportDroppedLogs();
+    }
+
+    private void ReportDroppedLogs()
+    {
+        var dropped = _logBuffer.TakeDroppedCount();
+        if (dropped > 0)
+            _logger.LogWarning("Dropped {Count} log entries because the log buffer was full", dropped);
     }
 
     /// <summary>
