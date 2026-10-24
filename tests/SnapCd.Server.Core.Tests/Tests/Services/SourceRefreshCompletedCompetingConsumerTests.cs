@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using MassTransit;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Server.Core.Consumers.System.Competing;
@@ -73,15 +74,16 @@ public class SourceRefreshCompletedCompetingConsumerTests : IAsyncLifetime
         await dbContext.SaveChangesAsync();
     }
 
-    private Module CreateModule(string name, bool filterEnabled, string subdirectory)
+    private Module CreateModule(string name, bool filterEnabled, string subdirectory, Namespace? ns = null, Runner? runner = null)
     {
+        ns ??= _namespace;
         var module = new Module
         {
             Id = Guid.NewGuid(),
             Name = $"{name}-{Guid.NewGuid():N}"[..40],
-            NamespaceId = _namespace.Id,
-            RunnerId = _runner.Id,
-            OrganizationId = _namespace.OrganizationId,
+            NamespaceId = ns.Id,
+            RunnerId = (runner ?? _runner).Id,
+            OrganizationId = ns.OrganizationId,
             SourceUrl = _sourceUrl,
             SourceRevision = "main",
             SourceSubdirectory = subdirectory,
@@ -106,13 +108,14 @@ public class SourceRefreshCompletedCompetingConsumerTests : IAsyncLifetime
         return module;
     }
 
-    private async Task<List<GatekeepingJobRequested>> Consume(string definitiveRevision, List<PathHash>? pathHashes, List<ModuleClosure>? moduleClosures = null, bool triggeredByNotification = false)
+    private async Task<List<GatekeepingJobRequested>> Consume(string definitiveRevision, List<PathHash>? pathHashes, List<ModuleClosure>? moduleClosures = null, bool triggeredByNotification = false, Guid? organizationId = null)
     {
         var published = new List<GatekeepingJobRequested>();
 
         var contextMock = new Mock<ConsumeContext<SourceRefreshCompleted>>();
         contextMock.SetupGet(c => c.Message).Returns(new SourceRefreshCompleted
         {
+            OrganizationId = organizationId ?? _namespace.OrganizationId,
             SourceUrl = _sourceUrl,
             SourceRevision = "main",
             DefinitiveRevision = definitiveRevision,
@@ -126,7 +129,7 @@ public class SourceRefreshCompletedCompetingConsumerTests : IAsyncLifetime
             .Returns(Task.CompletedTask);
 
         await using var dbContext = _fixture.CreateDbContext();
-        var consumer = new SourceRefreshCompletedCompetingConsumer(dbContext);
+        var consumer = new SourceRefreshCompletedCompetingConsumer(dbContext, NullLogger<SourceRefreshCompletedCompetingConsumer>.Instance);
         await consumer.Consume(contextMock.Object);
 
         return published;
@@ -198,15 +201,79 @@ public class SourceRefreshCompletedCompetingConsumerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Legacy_Refresh_Without_PathHashes_Uses_Revision_Comparison()
+    public async Task Commit_Only_Refresh_Triggers_Only_Unfiltered_Modules()
     {
         await SetSagaState(_filterOnModule, null, "old-sha");
         await SetSagaState(_filterOffModule, null, "old-sha");
 
         var published = await Consume("new-sha", pathHashes: null);
 
-        Assert.Equal(2, published.Count);
-        Assert.All(published, p => Assert.Null(p.DesiredClosureHash));
+        var trigger = Assert.Single(published);
+        Assert.Equal(_filterOffModule.Id, trigger.ModuleId);
+        Assert.Null(trigger.DesiredClosureHash);
+    }
+
+    [Fact]
+    public async Task A_report_without_a_filtered_modules_paths_leaves_it_alone()
+    {
+        // Another runner's report for the same repository: it hashed only that runner's paths.
+        await SetSagaState(_filterOnModule, "stored-hash", "old-sha");
+
+        var published = await Consume("new-sha", Report(("modules/other-runner", "hash-x")));
+
+        Assert.DoesNotContain(published, p => p.ModuleId == _filterOnModule.Id);
+    }
+
+    [Fact]
+    public async Task A_report_with_only_some_of_a_filtered_modules_paths_leaves_it_alone()
+    {
+        await SetSagaState(_filterOnModule, "stored-hash", "old-sha");
+
+        var published = await Consume("new-sha", Report(("modules/app-a", "hash-a")));
+
+        Assert.DoesNotContain(published, p => p.ModuleId == _filterOnModule.Id);
+    }
+
+    [Fact]
+    public async Task A_watched_directory_deleted_at_the_commit_still_triggers()
+    {
+        var before = Report(("modules/app-a", "hash-a"), ("shared/scripts", "hash-s"));
+        await SetSagaState(_filterOnModule,
+            TriggerPathClosure.Compose(new[] { "modules/app-a", "shared/scripts" }, before.ToDictionary(p => p.Path, p => p.TreeHash)),
+            "old-sha");
+
+        var published = await Consume("new-sha", Report(("modules/app-a", "hash-a"), ("shared/scripts", "")));
+
+        Assert.Single(published, p => p.ModuleId == _filterOnModule.Id);
+    }
+
+    [Fact]
+    public async Task Another_organizations_refresh_does_not_touch_these_modules()
+    {
+        await SetSagaState(_filterOnModule, null, "old-sha");
+        await SetSagaState(_filterOffModule, null, "old-sha");
+
+        var published = await Consume("new-sha",
+            Report(("modules/app-a", "hash-a"), ("shared/scripts", "hash-s")),
+            organizationId: _fixture.Organizations["1"].Id);
+
+        Assert.Empty(published);
+    }
+
+    [Fact]
+    public async Task A_module_tracking_a_version_range_is_not_judged_by_a_branch_refresh()
+    {
+        await using (var db = _fixture.CreateDbContext())
+        {
+            var module = db.Modules.Single(m => m.Id == _filterOffModule.Id);
+            module.SourceRevisionType = SnapCd.Contracts.SourceRevisionType.SemanticVersionRange;
+            await db.SaveChangesAsync();
+        }
+        await SetSagaState(_filterOffModule, null, "old-sha");
+
+        var published = await Consume("new-sha", pathHashes: null);
+
+        Assert.DoesNotContain(published, p => p.ModuleId == _filterOffModule.Id);
     }
 
     [Fact]

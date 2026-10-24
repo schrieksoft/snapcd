@@ -30,7 +30,7 @@ public class SourceRefreshHandler
         _bus = bus;
     }
 
-    public async Task Complete(string sourceUrl, string sourceRevision, SourceType sourceType, SourceRevisionType sourceRevisionType, string definitiveRevision)
+    public async Task Complete(Guid organizationId, string sourceUrl, string sourceRevision, SourceType sourceType, SourceRevisionType sourceRevisionType, string definitiveRevision)
     {
         try
         {
@@ -40,6 +40,7 @@ public class SourceRefreshHandler
             // SourceRefreshCompletedCompetingConsumer will match by source parameters
             await _bus.Publish(new SourceRefreshCompleted
             {
+                OrganizationId = organizationId,
                 SourceUrl = sourceUrl,
                 SourceRevision = sourceRevision,
                 SourceType = sourceType,
@@ -58,7 +59,7 @@ public class SourceRefreshHandler
         }
     }
 
-    public async Task CompleteV2(string sourceUrl, string sourceRevision, SourceType sourceType, SourceRevisionType sourceRevisionType, SourceRefreshResult result)
+    public async Task CompleteV2(Guid organizationId, string sourceUrl, string sourceRevision, SourceType sourceType, SourceRevisionType sourceRevisionType, SourceRefreshResult result)
     {
         try
         {
@@ -67,6 +68,7 @@ public class SourceRefreshHandler
 
             await _bus.Publish(new SourceRefreshCompleted
             {
+                OrganizationId = organizationId,
                 SourceUrl = sourceUrl,
                 SourceRevision = sourceRevision,
                 SourceType = sourceType,
