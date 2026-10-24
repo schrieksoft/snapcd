@@ -171,10 +171,9 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
     {
         NameValidator.EnsureValid(entity.Name, "Namespace");
 
-        // First get the existing namespace to check for namespace changes
-        var existingNamespace = await Get(entity.Id, entity.OrganizationId);
+        var existingNamespace = OriginalOf(await Get(entity.Id, entity.OrganizationId));
 
-        // Check if the namespace is changing
+        // Check if the stack is changing
         if (existingNamespace.StackId != entity.StackId) await ValidateStackChange(existingNamespace, entity.StackId);
 
         // Proceed with the base update
@@ -182,16 +181,17 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
 
         // Publish approval threshold event if changed. Modules that don't override the
         // threshold inherit this default, so lowering it can make an already-waiting job
-        // approved — NamespaceApprovalThresholdModifiedCompetingConsumer fans this out to
+        // approved - NamespaceApprovalThresholdModifiedCompetingConsumer fans this out to
         // every module in the namespace, which re-evaluates their waiting jobs. Mirrors
         // ModuleRepository.ExecuteUpdate.
         if (updated.DefaultApplyApprovalThreshold != existingNamespace.DefaultApplyApprovalThreshold ||
             updated.DefaultDestroyApprovalThreshold != existingNamespace.DefaultDestroyApprovalThreshold ||
             updated.DefaultStateMigrationApprovalThreshold != existingNamespace.DefaultStateMigrationApprovalThreshold)
+            // No time to live: a dropped message leaves waiting jobs on a threshold that no longer applies.
             await EnqueueOrPublish(() => Bus.Publish(new NamespaceApprovalThresholdModifiedEvent
             {
                 NamespaceId = updated.Id
-            }, context => { context.TimeToLive = TimeSpan.FromSeconds(60); }));
+            }));
 
         return updated;
     }
