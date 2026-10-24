@@ -49,7 +49,7 @@ public class StackMissionController : GenericCrudController<
         => base.Create(organizationId, dto);
 
     [EndpointSummary("List StackMissions assigned to a specific Agent")]
-    [HttpGet("ByAgent/{agentId}")]
+    [HttpGet("ByAgent/{agentId:guid}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<StackMissionReadDto>>> ListByAgent(Guid organizationId, Guid agentId)
     {
@@ -69,7 +69,7 @@ public class StackMissionController : GenericCrudController<
     }
 
     [EndpointSummary("List StackMissions targeting a specific Stack")]
-    [HttpGet("ByStack/{stackId}")]
+    [HttpGet("ByStack/{stackId:guid}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<StackMissionReadDto>>> ListByStack(Guid organizationId, Guid stackId)
     {

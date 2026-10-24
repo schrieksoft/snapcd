@@ -37,7 +37,7 @@ public class JobController : ControllerBase
 
     [EndpointSummary("Start an Apply job for a Module")]
     [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.RunJob)]
-    [HttpPost("apply/{moduleId}")]
+    [HttpPost("apply/{moduleId:guid}")]
     [ExposeAsMcpTool(Instructions = "Returns the Job ID. If correlationId is provided, that ID is used; otherwise a new GUID is generated.")]
     public async Task<ActionResult<Guid>> Apply(Guid organizationId, Guid moduleId, [FromQuery] Guid? correlationId)
     {
@@ -57,7 +57,7 @@ public class JobController : ControllerBase
 
     [EndpointSummary("Start a Destroy job for a Module")]
     [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.RunJob)]
-    [HttpPost("destroy/{moduleId}")]
+    [HttpPost("destroy/{moduleId:guid}")]
     [ExposeAsMcpTool(Instructions = "Returns the Job ID. If correlationId is provided, that ID is used; otherwise a new GUID is generated.")]
     public async Task<ActionResult<Guid>> Destroy(Guid organizationId, Guid moduleId, [FromQuery] Guid? correlationId)
     {
@@ -77,7 +77,7 @@ public class JobController : ControllerBase
 
     [EndpointSummary("Record an approval decision on a Job")]
     [PermissionSource(Repository = typeof(ModuleJobApprovalSecuredRepository), Verb = PermissionVerb.Create)]
-    [HttpPost("{id}/approve")]
+    [HttpPost("{id:guid}/approve")]
     [ExposeAsMcpTool(Instructions = "The Job must be pending approval. The calling principal is recorded as the approver.")]
     public async Task<IActionResult> Approve(Guid organizationId, Guid id, [FromBody] ApproveJobDto? dto = null)
     {
@@ -102,7 +102,7 @@ public class JobController : ControllerBase
 
     [EndpointSummary("Record a decline decision on a Job")]
     [PermissionSource(Repository = typeof(ModuleJobApprovalSecuredRepository), Verb = PermissionVerb.Create)]
-    [HttpPost("{id}/decline")]
+    [HttpPost("{id:guid}/decline")]
     [ExposeAsMcpTool(Instructions = "The Job must be pending approval. The calling principal is recorded as the decliner. A reason is required.")]
     public async Task<IActionResult> Decline(Guid organizationId, Guid id, [FromBody] DeclineJobDto dto)
     {
@@ -130,7 +130,7 @@ public class JobController : ControllerBase
 
     [EndpointSummary("Get redacted log entries of a Job")]
     [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.Read)]
-    [HttpGet("{jobId}/logs")]
+    [HttpGet("{jobId:guid}/logs")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/jobs/{jobId}/logs",
         Name = "module_job_logs",
@@ -157,7 +157,7 @@ public class JobController : ControllerBase
 
     [EndpointSummary("Get status metadata for a Job")]
     [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.Read)]
-    [HttpGet("{jobId}/status")]
+    [HttpGet("{jobId:guid}/status")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/jobs/{jobId}/status",
         Name = "module_job_status",
@@ -184,7 +184,7 @@ public class JobController : ControllerBase
 
     [EndpointSummary("Get approval history for a Job")]
     [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.Read)]
-    [HttpGet("{jobId}/approvals")]
+    [HttpGet("{jobId:guid}/approvals")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/jobs/{jobId}/approvals",
         Name = "module_job_approvals",
@@ -211,7 +211,7 @@ public class JobController : ControllerBase
 
     [EndpointSummary("Cancel a running Job")]
     [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.RunJob)]
-    [HttpPost("{id}/cancel")]
+    [HttpPost("{id:guid}/cancel")]
     [ExposeAsMcpTool(Instructions = "CancellationType: AfterCurrent (let current step finish), ImmediateKill (force terminate).")]
     public async Task<IActionResult> Cancel(
         Guid organizationId,

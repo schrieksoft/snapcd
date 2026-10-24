@@ -117,7 +117,7 @@ public class GroupController : GenericCrudController<
         }
     }
 
-    [HttpGet("Metadata/{id}")]
+    [HttpGet("Metadata/{id:guid}")]
     [PermissionSource(Repository = typeof(GroupSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
     public override async Task<ActionResult<GroupMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)
     {

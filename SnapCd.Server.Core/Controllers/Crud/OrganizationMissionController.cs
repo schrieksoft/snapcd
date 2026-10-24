@@ -49,7 +49,7 @@ public class OrganizationMissionController : GenericCrudController<
         => base.Create(organizationId, dto);
 
     [EndpointSummary("List OrganizationMissions assigned to a specific Agent")]
-    [HttpGet("ByAgent/{agentId}")]
+    [HttpGet("ByAgent/{agentId:guid}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<OrganizationMissionReadDto>>> ListByAgent(Guid organizationId, Guid agentId)
     {

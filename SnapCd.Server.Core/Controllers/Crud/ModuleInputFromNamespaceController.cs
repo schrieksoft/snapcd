@@ -54,7 +54,7 @@ public class ModuleInputFromNamespaceController : BaseController
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<ModuleInputFromNamespaceReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -103,7 +103,7 @@ public class ModuleInputFromNamespaceController : BaseController
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public async Task<ActionResult<ModuleInputFromNamespaceReadDto>> Update(Guid organizationId, Guid id, [FromBody] ModuleInputFromNamespaceUpdateDto dto)
     {
         try
@@ -130,7 +130,7 @@ public class ModuleInputFromNamespaceController : BaseController
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid organizationId, Guid id)
     {
         try

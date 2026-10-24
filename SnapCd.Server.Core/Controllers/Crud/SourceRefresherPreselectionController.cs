@@ -27,6 +27,13 @@ namespace SnapCd.Server.Core.Controllers.Crud;
 public static class SourceRefresherPreselectionCustomEndpointNames
 {
     public const string GetBySourceUrl = "BySourceUrl";
+
+    /// <summary>
+    /// The source URL as sent. Routing leaves an escaped slash escaped in a route value, so a client that escapes
+    /// the URL into one path segment arrives with %2F in place of each slash.
+    /// </summary>
+    public static string SourceUrlFromRoute(string routeValue) =>
+        routeValue.Replace("%2F", "/", StringComparison.OrdinalIgnoreCase);
 }
 
 [Route(ControllerEndpoints.SourceRefresherPreselection)]
@@ -48,12 +55,14 @@ public class SourceRefresherPreselectionController : GenericCrudController<
     {
     }
 
-    [HttpGet($"{SourceRefresherPreselectionCustomEndpointNames.GetBySourceUrl}/{{name}}")]
-    public async Task<ActionResult<SourceRefresherPreselectionReadDto>> GetByName(Guid organizationId, string name)
+    // Catch-all: a source URL carries slashes, which a single segment cannot hold.
+    [HttpGet($"{SourceRefresherPreselectionCustomEndpointNames.GetBySourceUrl}/{{**sourceUrl}}")]
+    public async Task<ActionResult<SourceRefresherPreselectionReadDto>> GetByName(Guid organizationId, string sourceUrl)
     {
         try
         {
-            var sourceRefresherPreselectionDto = await Service.GetBySourceUrl(name, organizationId);
+            var sourceRefresherPreselectionDto = await Service.GetBySourceUrl(
+                SourceRefresherPreselectionCustomEndpointNames.SourceUrlFromRoute(sourceUrl), organizationId);
             return Ok(sourceRefresherPreselectionDto);
         }
 
@@ -71,13 +80,14 @@ public class SourceRefresherPreselectionController : GenericCrudController<
         }
     }
 
-    [HttpGet($"Metadata/{SourceRefresherPreselectionCustomEndpointNames.GetBySourceUrl}/{{name}}")]
+    [HttpGet($"Metadata/{SourceRefresherPreselectionCustomEndpointNames.GetBySourceUrl}/{{**sourceUrl}}")]
     [PermissionSource(Repository = typeof(SourceRefresherPreselectionSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<SourceRefresherPreselectionMetadataReadDto>> GetMetadataBySourceUrl(Guid organizationId, string name)
+    public async Task<ActionResult<SourceRefresherPreselectionMetadataReadDto>> GetMetadataBySourceUrl(Guid organizationId, string sourceUrl)
     {
         try
         {
-            return Ok(await Service.GetMetadataBySourceUrl(name, organizationId));
+            return Ok(await Service.GetMetadataBySourceUrl(
+                SourceRefresherPreselectionCustomEndpointNames.SourceUrlFromRoute(sourceUrl), organizationId));
         }
         catch (EntityNotFoundException e)
         {

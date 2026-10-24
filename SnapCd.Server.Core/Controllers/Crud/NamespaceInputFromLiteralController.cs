@@ -54,7 +54,7 @@ public class NamespaceInputFromLiteralController : BaseController
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<NamespaceInputFromLiteralReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -103,7 +103,7 @@ public class NamespaceInputFromLiteralController : BaseController
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public async Task<ActionResult<NamespaceInputFromLiteralReadDto>> Update(Guid organizationId, Guid id, [FromBody] NamespaceInputFromLiteralUpdateDto dto)
     {
         try
@@ -130,7 +130,7 @@ public class NamespaceInputFromLiteralController : BaseController
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid organizationId, Guid id)
     {
         try

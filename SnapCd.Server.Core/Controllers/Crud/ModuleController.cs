@@ -69,7 +69,7 @@ public class ModuleController : GenericCrudController<
 
     [EndpointSummary("Pause a Module, holding it out of the automated lifecycle")]
     [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Pause)]
-    [HttpPost("{moduleId}/pause")]
+    [HttpPost("{moduleId:guid}/pause")]
     public async Task<ActionResult<ModulePauseDto>> Pause(
         Guid organizationId,
         Guid moduleId,
@@ -95,7 +95,7 @@ public class ModuleController : GenericCrudController<
 
     [EndpointSummary("Unpause a Module, returning it to the automated lifecycle")]
     [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Pause)]
-    [HttpPost("{moduleId}/unpause")]
+    [HttpPost("{moduleId:guid}/unpause")]
     public async Task<ActionResult<ModulePauseDto>> Unpause(Guid organizationId, Guid moduleId)
     {
         try
@@ -117,7 +117,7 @@ public class ModuleController : GenericCrudController<
     }
 
     [EndpointSummary("Get source-repo coordinates for a Module")]
-    [HttpGet("{moduleId}/source")]
+    [HttpGet("{moduleId:guid}/source")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/modules/{moduleId}/source",
         Name = "module_source",
@@ -143,7 +143,7 @@ public class ModuleController : GenericCrudController<
     }
 
     [EndpointSummary("Get the state-status summary for a Module")]
-    [HttpGet("{moduleId}/state")]
+    [HttpGet("{moduleId:guid}/state")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/modules/{moduleId}/state",
         Name = "module_state",
@@ -169,7 +169,7 @@ public class ModuleController : GenericCrudController<
     }
 
     [EndpointSummary("Get recent mission history for a Module")]
-    [HttpGet("{moduleId}/history")]
+    [HttpGet("{moduleId:guid}/history")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/modules/{moduleId}/history",
         Name = "module_history",
@@ -216,7 +216,7 @@ public class ModuleController : GenericCrudController<
         }
     }
 
-    [HttpGet("Metadata/{namespaceId}/{name}")]
+    [HttpGet("Metadata/{namespaceId:guid}/{name}")]
     [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
     public async Task<ActionResult<ModuleMetadataReadDto>> GetMetadata(Guid organizationId, Guid namespaceId, string name)
     {

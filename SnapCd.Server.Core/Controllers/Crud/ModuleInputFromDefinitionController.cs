@@ -55,7 +55,7 @@ public class ModuleInputFromDefinitionController : BaseController
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<ModuleInputFromDefinitionReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -104,7 +104,7 @@ public class ModuleInputFromDefinitionController : BaseController
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public async Task<ActionResult<ModuleInputFromDefinitionReadDto>> Update(Guid organizationId, Guid id, [FromBody] ModuleInputFromDefinitionUpdateDto dto)
     {
         try
@@ -131,7 +131,7 @@ public class ModuleInputFromDefinitionController : BaseController
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid organizationId, Guid id)
     {
         try

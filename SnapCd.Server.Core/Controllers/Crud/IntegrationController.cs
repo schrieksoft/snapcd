@@ -85,7 +85,7 @@ public class IntegrationController : ControllerBase
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<IntegrationReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -136,7 +136,7 @@ public class IntegrationController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public async Task<ActionResult<IntegrationReadDto>> Update(Guid organizationId, Guid id, [FromBody] IntegrationUpdateDto dto)
     {
         try
@@ -170,7 +170,7 @@ public class IntegrationController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid organizationId, Guid id)
     {
         try
@@ -192,7 +192,7 @@ public class IntegrationController : ControllerBase
         }
     }
 
-    [HttpPost("{id}/test")]
+    [HttpPost("{id:guid}/test")]
     [PermissionSource(Skip = true)]
     public async Task<ActionResult<IntegrationTestResult>> Test(Guid organizationId, Guid id)
     {
@@ -216,7 +216,7 @@ public class IntegrationController : ControllerBase
 
     // ---- Supplies ----
 
-    [HttpGet("{id}/supplies")]
+    [HttpGet("{id:guid}/supplies")]
     public async Task<ActionResult<List<IntegrationSupplyDto>>> ListSupplies(Guid organizationId, Guid id)
     {
         try
@@ -229,7 +229,7 @@ public class IntegrationController : ControllerBase
         }
     }
 
-    [HttpGet("{id}/supplies/{scope}/{supplyId}")]
+    [HttpGet("{id:guid}/supplies/{scope}/{supplyId:guid}")]
     public async Task<ActionResult<IntegrationSupplyDto>> GetSupply(Guid organizationId, Guid id, IntegrationSupplyScope scope, Guid supplyId)
     {
         try
@@ -242,7 +242,7 @@ public class IntegrationController : ControllerBase
         }
     }
 
-    [HttpPost("{id}/supplies")]
+    [HttpPost("{id:guid}/supplies")]
     public async Task<ActionResult<IntegrationSupplyDto>> AddSupply(Guid organizationId, Guid id, [FromBody] IntegrationSupplyCreateDto dto)
     {
         try
@@ -268,7 +268,7 @@ public class IntegrationController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}/supplies/{scope}/{supplyId}")]
+    [HttpDelete("{id:guid}/supplies/{scope}/{supplyId:guid}")]
     public async Task<IActionResult> RemoveSupply(Guid organizationId, Guid id, IntegrationSupplyScope scope, Guid supplyId)
     {
         try
