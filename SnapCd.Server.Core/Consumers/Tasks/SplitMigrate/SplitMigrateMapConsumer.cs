@@ -86,7 +86,7 @@ public class SplitMigrateMapConsumer : IConsumer<SplitMigrateMapRequested>
                 CorrelationId = jobId,
                 OrganizationId = orgId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }

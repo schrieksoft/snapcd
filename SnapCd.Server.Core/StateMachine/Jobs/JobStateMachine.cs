@@ -75,6 +75,7 @@ public partial class JobStateMachine<
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
     TApplyFromPlanCancelled,
+    TApplyFromPlanFaulted,
     TCancelKillRequested,
     TDummyCancelKillCompleted,
     TCancelKillCompleted>
@@ -119,6 +120,7 @@ public partial class JobStateMachine<
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TApplyFromPlanFaulted : FromPlanFaultedBase
     where TCancelKillRequested : CancelKillRequestedBase, new()
     where TDummyCancelKillCompleted : class
     where TCancelKillCompleted : StepResponseBase
@@ -164,6 +166,7 @@ public partial class JobStateMachine<
         TApplyFromPlanRequested,
         TApplyFromPlanCompleted,
         TApplyFromPlanCancelled,
+        TApplyFromPlanFaulted,
         TCancelKillRequested,
         TDummyCancelKillCompleted,
         TCancelKillCompleted
@@ -221,6 +224,7 @@ public partial class JobStateMachine<
             TApplyFromPlanRequested,
             TApplyFromPlanCompleted,
             TApplyFromPlanCancelled,
+            TApplyFromPlanFaulted,
             TCancelKillRequested,
             TDummyCancelKillCompleted,
             TCancelKillCompleted
@@ -283,6 +287,7 @@ public partial class JobStateMachine<
         Configure_ApplyFromPlan();
         Configure_Output();
         Configure_Approval();
+        Configure_Faults();
 
         // Terminal states - ignore runner reconnection events
         // A cancel that arrives after the job ended has nothing to do, but must not fault: an

@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Events.Steps.SplitMigrate;
 
@@ -19,7 +20,10 @@ public class SplitGetModuleRequested : SplitStepRequestBase;
 
 public class SplitGetModuleCompleted : StepResponseBase;
 
-public class SplitGetModuleFaulted : StepFaultedBase;
+public class SplitGetModuleFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.GetModule;
+}
 
 public class SplitGetModuleCancelled : StepResponseBase;
 
@@ -27,7 +31,10 @@ public class SplitInitRequested : SplitStepRequestBase;
 
 public class SplitInitCompleted : StepResponseBase;
 
-public class SplitInitFaulted : StepFaultedBase;
+public class SplitInitFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Init;
+}
 
 public class SplitInitCancelled : StepResponseBase;
 
@@ -35,7 +42,10 @@ public class SplitValidateRequested : SplitStepRequestBase;
 
 public class SplitValidateCompleted : StepResponseBase;
 
-public class SplitValidateFaulted : StepFaultedBase;
+public class SplitValidateFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Validate;
+}
 
 public class SplitValidateCancelled : StepResponseBase;
 
@@ -47,6 +57,9 @@ public class SplitPlanCompleted : StepResponseBase
     public int TotalChangedCount { get; set; }
 }
 
-public class SplitPlanFaulted : StepFaultedBase;
+public class SplitPlanFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.SplitPlan;
+}
 
 public class SplitPlanCancelled : StepResponseBase;

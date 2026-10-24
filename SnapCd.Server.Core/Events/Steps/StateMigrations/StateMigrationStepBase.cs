@@ -8,6 +8,8 @@
 
 using SnapCd.Server.Core.Events.Steps.Base;
 
+using SnapCd.Server.Core.Entities.Definition;
+
 namespace SnapCd.Server.Core.Events.Steps.StateMigrations;
 
 /// <summary>Parameters every manual job step needs, beyond those an ordinary job step carries.</summary>
@@ -28,8 +30,11 @@ public class StateMigrationStepResponseBase : StepResponseBase
 }
 
 /// <summary>A manual job step that failed, and what broke.</summary>
-public class StateMigrationStepFaultedBase : StateMigrationStepResponseBase
+public abstract class StateMigrationStepFaultedBase : StateMigrationStepResponseBase, IStepFault
 {
+    /// <summary>The step this fault belongs to, declared by each fault type.</summary>
+    public abstract ServerSideStep Step { get; }
+
     public string? ErrorMessage { get; set; }
     public string? StackTrace { get; set; }
 

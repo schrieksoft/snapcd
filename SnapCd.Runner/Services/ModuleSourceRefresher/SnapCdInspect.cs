@@ -21,10 +21,11 @@ namespace SnapCd.Runner.Services.ModuleSourceRefresher;
 /// locally-referenced terraform directories at a commit. Discovery is exact for module topology because
 /// terraform requires module source arguments to be literal strings.
 ///
-/// The binary is carried as an embedded resource inside the Runner itself (added at publish time by CI) and
-/// extracted to the working directory on first use, so no separate install is needed on any distribution
-/// channel. When no resource is embedded (local dev builds) or the platform cannot run it, resolution falls
-/// back to <see cref="SourceCacheSettings.InspectBinaryPath"/> — a non-default value there always wins.
+/// The binary is carried as an embedded resource inside the Runner itself, built from tools/snapcd-inspect by
+/// the Runner's project whenever its Go source changes, and extracted to the working directory on first use,
+/// so no separate install is needed on any distribution channel. When no resource is embedded (a build machine
+/// without Go) or the platform cannot run it, resolution falls back to
+/// <see cref="SourceCacheSettings.InspectBinaryPath"/>; a non-default value there always wins.
 /// </summary>
 public class SnapCdInspect
 {

@@ -6,55 +6,44 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-//using MassTransit;
-
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
-using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 
-public class FailModuleJobRequestActivity<TSaga, TMessage> :
-    IStateMachineActivity<TSaga, Fault<TMessage>>
+/// <summary>
+/// Records a lost runner on the job without finalizing it, for a path that ends the job some other way.
+/// </summary>
+public class RecordLostRunnerActivity<TSaga> : IStateMachineActivity<TSaga, HeartbeatFailed>
     where TSaga : JobSagaBase
-    where TMessage : class
 {
     private readonly ModuleJobRepository _repository;
 
-    public FailModuleJobRequestActivity(ModuleJobRepository repository)
+    public RecordLostRunnerActivity(ModuleJobRepository repository)
     {
         _repository = repository;
     }
 
     public async Task Execute(
-        BehaviorContext<TSaga, Fault<TMessage>> context,
-        IBehavior<TSaga, Fault<TMessage>> next)
+        BehaviorContext<TSaga, HeartbeatFailed> context,
+        IBehavior<TSaga, HeartbeatFailed> next)
     {
-        // Determine ActualStateHeadline based on job type for failed jobs
-        var actualStateHeadline = typeof(TSaga).Name switch
-        {
-            "ApplyJobSaga" => ActualStateHeadline.ApplyFailed,
-            "DestroyJobSaga" => ActualStateHeadline.DestroyFailed,
-            _ => (ActualStateHeadline?)null
-        };
-
-        await _repository.Finalize(
+        await _repository.SetServerSideError(
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
-            ExecutionStatus.Failed,
-            typeof(TMessage).Name,
-            DateTimeOffset.UtcNow,
-            null,
-            actualStateHeadline);
+            StepMapper.DetermineStepFromState(context.Saga.CurrentState),
+            LostRunnerError.Header,
+            LostRunnerError.Message(context.Saga, context.Message.Reason));
 
-        // Proceed to the next activity
         await next.Execute(context).ConfigureAwait(false);
     }
 
     public Task Faulted<TException>(
-        BehaviorExceptionContext<TSaga, Fault<TMessage>, TException> context,
-        IBehavior<TSaga, Fault<TMessage>> next)
+        BehaviorExceptionContext<TSaga, HeartbeatFailed, TException> context,
+        IBehavior<TSaga, HeartbeatFailed> next)
         where TException : Exception
     {
         return next.Faulted(context);
@@ -62,7 +51,7 @@ public class FailModuleJobRequestActivity<TSaga, TMessage> :
 
     public void Probe(ProbeContext context)
     {
-        context.CreateScope("fail-module-job-request");
+        context.CreateScope("record-lost-runner");
     }
 
     public void Accept(StateMachineVisitor visitor)

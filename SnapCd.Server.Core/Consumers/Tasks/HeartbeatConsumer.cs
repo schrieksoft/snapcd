@@ -19,6 +19,8 @@ namespace SnapCd.Server.Core.Consumers.Tasks;
 /// </summary>
 public class HeartbeatConsumer : IConsumer<HeartbeatRequested>
 {
+    private const int ThresholdSeconds = 90;
+
     private readonly ILogger<HeartbeatConsumer> _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
@@ -54,24 +56,43 @@ public class HeartbeatConsumer : IConsumer<HeartbeatRequested>
 
             if (lastReportedAt == null)
             {
-                _logger.LogWarning("No runner connection record found for job {CorrelationId}", correlationId);
+                // A reconnect deletes the connection's job rows; the runner's next report recreates them.
+                var reconnectedAt = await dbContext.RunnerConnections
+                    .Where(rc => rc.OrganizationId == orgId && rc.RunnerId == msg.RunnerId && rc.InstanceName == msg.RunnerInstanceName)
+                    .Select(rc => (DateTime?)rc.CreatedDateTime)
+                    .FirstOrDefaultAsync();
+
+                if (reconnectedAt != null && (DateTime.UtcNow - reconnectedAt.Value).TotalSeconds <= ThresholdSeconds)
+                {
+                    _logger.LogDebug("Job {CorrelationId} has no runner connection record, but runner instance {Instance} reconnected {Age:F1} seconds ago",
+                        correlationId, msg.RunnerInstanceName, (DateTime.UtcNow - reconnectedAt.Value).TotalSeconds);
+                    await context.RespondAsync(new HeartbeatCompleted());
+                    return;
+                }
+
+                var reason = reconnectedAt == null
+                    ? $"Runner instance '{msg.RunnerInstanceName}' is not connected."
+                    : $"Runner instance '{msg.RunnerInstanceName}' reconnected at {reconnectedAt.Value:u} but has not reported on this job since.";
+
+                _logger.LogWarning("No runner connection record found for job {CorrelationId}. {Reason}", correlationId, reason);
                 await context.RespondAsync(new HeartbeatFailed
                 {
-                    CorrelationId = correlationId
+                    CorrelationId = correlationId,
+                    Reason = reason
                 });
                 return;
             }
 
-            // Check if ModifiedDateTime is more than 90 seconds old
             var age = DateTime.UtcNow - lastReportedAt.Value;
 
-            if (age.TotalSeconds > 90)
+            if (age.TotalSeconds > ThresholdSeconds)
             {
-                _logger.LogWarning("Job {CorrelationId} heartbeat failed - last update was {Age:F1} seconds ago (threshold: 90s)",
-                    correlationId, age.TotalSeconds);
+                _logger.LogWarning("Job {CorrelationId} heartbeat failed - last update was {Age:F1} seconds ago (threshold: {Threshold}s)",
+                    correlationId, age.TotalSeconds, ThresholdSeconds);
                 await context.RespondAsync(new HeartbeatFailed
                 {
-                    CorrelationId = correlationId
+                    CorrelationId = correlationId,
+                    Reason = $"The runner last reported on this job at {lastReportedAt.Value:u}, {age.TotalSeconds:F0} seconds before the check."
                 });
             }
             else
@@ -86,7 +107,8 @@ public class HeartbeatConsumer : IConsumer<HeartbeatRequested>
             _logger.LogError(ex, "Error checking heartbeat for job {CorrelationId}", correlationId);
             await context.RespondAsync(new HeartbeatFailed
             {
-                CorrelationId = correlationId
+                CorrelationId = correlationId,
+                Reason = $"The server could not check the runner's liveness: {ex.Message}"
             });
         }
     }

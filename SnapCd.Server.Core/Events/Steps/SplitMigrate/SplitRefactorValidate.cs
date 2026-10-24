@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Events.Steps.SplitMigrate;
 
@@ -19,6 +20,9 @@ public class SplitRefactorValidateRequested : SplitStepRequestBase;
 
 public class SplitRefactorValidateCompleted : StepResponseBase;
 
-public class SplitRefactorValidateFaulted : StepFaultedBase;
+public class SplitRefactorValidateFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.SplitRefactorValidate;
+}
 
 public class SplitRefactorValidateCancelled : StepResponseBase;

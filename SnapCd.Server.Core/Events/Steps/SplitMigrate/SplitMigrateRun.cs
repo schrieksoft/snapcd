@@ -8,6 +8,7 @@
 
 
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Events.Steps.SplitMigrate;
 
@@ -25,6 +26,9 @@ public class SplitMigrateRunCompleted : StepResponseBase
 {
 }
 
-public class SplitMigrateRunFaulted : StepFaultedBase;
+public class SplitMigrateRunFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.SplitMigrateRun;
+}
 
 public class SplitMigrateRunCancelled : StepResponseBase;

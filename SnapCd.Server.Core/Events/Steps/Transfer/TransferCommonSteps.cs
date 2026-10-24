@@ -7,6 +7,8 @@
 // for terms covering either use.
 
 
+using SnapCd.Server.Core.Entities.Definition;
+
 namespace SnapCd.Server.Core.Events.Steps.Transfer;
 
 // The four steps a participant runs before its half of the transfer: the same work a deployment does,
@@ -23,7 +25,10 @@ public class TransferSelectRunnerInstanceCompleted : TransferStepResponseBase
 
 public class TransferSelectRunnerInstanceCancelled : TransferStepCancelledBase;
 
-public class TransferSelectRunnerInstanceFaulted : TransferStepFaultedBase;
+public class TransferSelectRunnerInstanceFaulted : TransferStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.SelectRunnerInstance;
+}
 
 /// <summary>Checks the participant's source out at the ref it consented to prove.</summary>
 public class TransferGetModuleRequested : TransferStepRequestBase
@@ -40,7 +45,10 @@ public class TransferGetModuleCompleted : TransferStepResponseBase
 
 public class TransferGetModuleCancelled : TransferStepCancelledBase;
 
-public class TransferGetModuleFaulted : TransferStepFaultedBase;
+public class TransferGetModuleFaulted : TransferStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.GetModule;
+}
 
 public class TransferInitRequested : TransferStepRequestBase;
 
@@ -48,7 +56,10 @@ public class TransferInitCompleted : TransferStepResponseBase;
 
 public class TransferInitCancelled : TransferStepCancelledBase;
 
-public class TransferInitFaulted : TransferStepFaultedBase;
+public class TransferInitFaulted : TransferStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Init;
+}
 
 public class TransferValidateRequested : TransferStepRequestBase;
 
@@ -56,4 +67,7 @@ public class TransferValidateCompleted : TransferStepResponseBase;
 
 public class TransferValidateCancelled : TransferStepCancelledBase;
 
-public class TransferValidateFaulted : TransferStepFaultedBase;
+public class TransferValidateFaulted : TransferStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Validate;
+}

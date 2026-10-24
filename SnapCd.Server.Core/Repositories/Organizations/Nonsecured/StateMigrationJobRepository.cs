@@ -158,6 +158,23 @@ public class StateMigrationJobRepository : IDisposable
         await _dbContext.SaveChangesAsync();
     }
 
+    /// <summary>Records a server-side error on the job without changing its status, for a path that ends the job some other way.</summary>
+    public async Task ExecuteRecordServerSideError(
+        Guid id,
+        Guid organizationId,
+        ServerSideStep? failedStep,
+        string? errorHeader,
+        string? errorMessage)
+    {
+        var job = await Get(id, organizationId);
+
+        job.FailedOnServerSideStep = failedStep;
+        job.ServerSideErrorHeader = ErrorText.FitHeader(errorHeader);
+        job.ServerSideError = ErrorText.Body(errorMessage);
+
+        await _dbContext.SaveChangesAsync();
+    }
+
     public Task WaitingForApproval(Guid id, Guid organizationId, bool waitingForApproval) =>
         InTransaction(() => ExecuteWaitingForApproval(id, organizationId, waitingForApproval));
 

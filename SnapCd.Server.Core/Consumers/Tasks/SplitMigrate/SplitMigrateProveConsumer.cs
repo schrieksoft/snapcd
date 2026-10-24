@@ -86,7 +86,7 @@ public class SplitMigrateProveConsumer : IConsumer<SplitMigrateProveRequested>
                 CorrelationId = jobId,
                 OrganizationId = orgId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }

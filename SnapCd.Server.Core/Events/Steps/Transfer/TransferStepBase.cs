@@ -21,4 +21,4 @@ public class TransferStepResponseBase : StateMigrationStepResponseBase;
 public class TransferStepCancelledBase : TransferStepResponseBase;
 
 /// <summary>A transfer step that failed, and what broke.</summary>
-public class TransferStepFaultedBase : StateMigrationStepFaultedBase;
+public abstract class TransferStepFaultedBase : StateMigrationStepFaultedBase;

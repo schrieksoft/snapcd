@@ -31,7 +31,7 @@ public static class SplitMigrateExtensionMethods
 {
     public static EventActivityBinder<SplitMigrateSaga, TFaulted> ThenSplitFaulted<TFaulted>(this
         EventActivityBinder<SplitMigrateSaga, TFaulted> binder, State failed, ILogger logger)
-        where TFaulted : StepResponseBase
+        where TFaulted : class
     {
         return binder
             .Then(x => logger.LogInformation(
@@ -45,6 +45,18 @@ public static class SplitMigrateExtensionMethods
             .Activity(x => x.OfType<FailStateMigrationJobActivity<SplitMigrateSaga, TFaulted>>())
             .TransitionTo(failed)
             .Finalize();
+    }
+
+    /// <summary>
+    /// A step that faults while the job is being cancelled: the cancel completes, and a server-side fault is kept on the job.
+    /// </summary>
+    public static EventActivityBinder<SplitMigrateSaga, TFaulted> ThenSplitCancelledAfterFault<TFaulted>(this
+        EventActivityBinder<SplitMigrateSaga, TFaulted> binder, State cancelled)
+        where TFaulted : StepFaultedBase
+    {
+        return binder
+            .Activity(x => x.OfType<RecordStateMigrationServerSideFaultActivity<SplitMigrateSaga, TFaulted>>())
+            .ThenSplitCancelled(cancelled);
     }
 
     public static EventActivityBinder<SplitMigrateSaga, TCancelled> ThenSplitCancelled<TCancelled>(this

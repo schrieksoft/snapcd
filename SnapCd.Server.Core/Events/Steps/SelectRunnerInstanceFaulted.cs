@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Events.Steps;
 
@@ -15,4 +16,5 @@ namespace SnapCd.Server.Core.Events.Steps;
 /// </summary>
 public class SelectRunnerInstanceFaulted : StepFaultedBase
 {
+    public override ServerSideStep Step => ServerSideStep.SelectRunnerInstance;
 }
