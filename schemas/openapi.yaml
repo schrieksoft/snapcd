@@ -498,59 +498,6 @@ paths:
         - Namespace.Contributor
         - Namespace.Owner
         - Module.Owner
-  /api/{organizationId}/ModuleHold/release:
-    post:
-      tags:
-      - ModuleHold
-      summary: Release the listed Modules the caller holds
-      description: |-
-        ##### Required permissions
-
-        ---
-
-        Any of:
-        - `Organization.Contributor`
-        - `Organization.Owner`
-        - `Organization.StackContributor`
-        - `Stack.Contributor`
-        - `Stack.Owner`
-        - `Namespace.Contributor`
-        - `Namespace.Owner`
-        - `Module.Owner`
-      parameters:
-      - name: organizationId
-        in: path
-        description: Organization ID
-        required: true
-        schema:
-          type: string
-          format: uuid
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ModuleHoldReleaseRequestDto'
-          text/json:
-            schema:
-              $ref: '#/components/schemas/ModuleHoldReleaseRequestDto'
-          application/*+json:
-            schema:
-              $ref: '#/components/schemas/ModuleHoldReleaseRequestDto'
-        required: true
-      responses:
-        '200':
-          description: OK
-      x-snapcd-permissions:
-        verb: Update
-        anyOf:
-        - Organization.Contributor
-        - Organization.Owner
-        - Organization.StackContributor
-        - Stack.Contributor
-        - Stack.Owner
-        - Namespace.Contributor
-        - Namespace.Owner
-        - Module.Owner
   /api/{organizationId}/SourceChangedNotification:
     post:
       tags:
@@ -39205,42 +39152,20 @@ components:
           items:
             type: string
             format: uuid
-          description: 'Modules that could not be held: the caller may not update them, or another principal holds them.'
+          description: 'Modules that could not be held: the caller may not update them.'
         notHeldNamespaceIds:
           type: array
           items:
             type: string
             format: uuid
-          description: 'Namespaces that could not be held: the caller may not update them, or another principal holds them.'
+          description: 'Namespaces that could not be held: the caller may not update them.'
         notHeldStackIds:
           type: array
           items:
             type: string
             format: uuid
-          description: 'Stacks that could not be held: the caller may not update them, or another principal holds them.'
+          description: 'Stacks that could not be held: the caller may not update them.'
       description: The holds as the server applied them.
-    ModuleHoldReleaseRequestDto:
-      type: object
-      properties:
-        moduleIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-          description: The Modules to release.
-        namespaceIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-          description: The Namespaces to release.
-        stackIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-          description: The Stacks to release.
-      description: Releases the listed holds at once; holds belonging to another principal are left alone.
     ModuleHoldTimingDto:
       type: object
       properties:
@@ -45352,8 +45277,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 608
+  documented: 607
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1435
+  documented: 1431
   missing: 0

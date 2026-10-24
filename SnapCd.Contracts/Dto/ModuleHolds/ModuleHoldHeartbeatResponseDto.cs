@@ -20,12 +20,12 @@ public class ModuleHoldHeartbeatResponseDto
     /// <summary>Set when the server's limits changed the requested heartbeat interval or buffer, saying what was applied and why.</summary>
     public string? Warning { get; set; }
 
-    /// <summary>Modules that could not be held: the caller may not update them, or another principal holds them.</summary>
+    /// <summary>Modules that could not be held: the caller may not update them.</summary>
     public List<Guid> NotHeldModuleIds { get; set; } = [];
 
-    /// <summary>Namespaces that could not be held: the caller may not update them, or another principal holds them.</summary>
+    /// <summary>Namespaces that could not be held: the caller may not update them.</summary>
     public List<Guid> NotHeldNamespaceIds { get; set; } = [];
 
-    /// <summary>Stacks that could not be held: the caller may not update them, or another principal holds them.</summary>
+    /// <summary>Stacks that could not be held: the caller may not update them.</summary>
     public List<Guid> NotHeldStackIds { get; set; } = [];
 }

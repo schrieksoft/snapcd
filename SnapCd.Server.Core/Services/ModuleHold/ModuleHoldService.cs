@@ -71,12 +71,11 @@ public class ModuleHoldService
     }
 
     /// <summary>
-    /// Holds each listed module that is not yet held, provided the caller may update it, and keeps holding the ones the
-    /// caller already holds. A module held by another principal is left alone.
+    /// Holds each listed module, namespace and stack the caller may update until at least one expiry from now. Holds are
+    /// not owned, so parallel callers keep one hold alive together and it lapses after the last of their heartbeats.
     /// </summary>
     public async Task<ModuleHoldHeartbeatResponseDto> Heartbeat(Guid organizationId, ModuleHoldHeartbeatRequestDto request)
     {
-        var principalId = _principalProvider.GetSubject(organizationId);
         var timing = Timing(_store.Settings, request.HeartbeatIntervalSeconds, request.HeartbeatBufferSeconds);
 
         using var modules = _moduleRepositoryFactory.Create(_principalProvider);
@@ -89,27 +88,22 @@ public class ModuleHoldService
             EffectiveExpirySeconds = timing.ExpirySeconds,
             Warning = timing.Warning,
             NotHeldModuleIds = await HoldEach(request.ModuleIds, id => ModuleHoldKey.Module(organizationId, id),
-                id => modules.CanUpdate(id, organizationId), principalId, timing.ExpirySeconds),
+                id => modules.CanUpdate(id, organizationId), timing.ExpirySeconds),
             NotHeldNamespaceIds = await HoldEach(request.NamespaceIds, id => ModuleHoldKey.Namespace(organizationId, id),
-                id => namespaces.CanUpdate(id, organizationId), principalId, timing.ExpirySeconds),
+                id => namespaces.CanUpdate(id, organizationId), timing.ExpirySeconds),
             NotHeldStackIds = await HoldEach(request.StackIds, id => ModuleHoldKey.Stack(organizationId, id),
-                id => stacks.CanUpdate(id, organizationId), principalId, timing.ExpirySeconds)
+                id => stacks.CanUpdate(id, organizationId), timing.ExpirySeconds)
         };
     }
 
-    /// <summary>Holds each id not yet held that the caller may update, refreshes the caller's own, and returns the rest.</summary>
-    private async Task<List<Guid>> HoldEach(List<Guid> ids, Func<Guid, ModuleHoldKey> key, Func<Guid, bool> canUpdate, Guid principalId, int expirySeconds)
+    /// <summary>Holds each id the caller may update and returns the rest.</summary>
+    private async Task<List<Guid>> HoldEach(List<Guid> ids, Func<Guid, ModuleHoldKey> key, Func<Guid, bool> canUpdate, int expirySeconds)
     {
         var notHeld = new List<Guid>();
         foreach (var id in ids.Distinct())
         {
-            var existing = await _store.Get(key(id));
-            var mayHold = existing != null && _store.Now < existing.ExpiresAt
-                ? existing.PrincipalId == principalId
-                : canUpdate(id);
-
-            if (mayHold)
-                await _store.Hold(key(id), principalId, expirySeconds);
+            if (canUpdate(id))
+                await _store.Hold(key(id), expirySeconds);
             else
                 notHeld.Add(id);
         }
@@ -119,24 +113,8 @@ public class ModuleHoldService
 
     /// <summary>Holds a module that is about to be created; the caller's right to create it is checked by the create itself.</summary>
     public Task HoldNewModule(Guid organizationId, Guid moduleId, int? heartbeatIntervalSeconds, int? heartbeatBufferSeconds) =>
-        _store.Hold(ModuleHoldKey.Module(organizationId, moduleId), _principalProvider.GetSubject(organizationId),
+        _store.Hold(ModuleHoldKey.Module(organizationId, moduleId),
             Timing(_store.Settings, heartbeatIntervalSeconds, heartbeatBufferSeconds).ExpirySeconds);
-
-    /// <summary>Releases the listed holds the caller owns.</summary>
-    public async Task Release(Guid organizationId, ModuleHoldReleaseRequestDto request)
-    {
-        var principalId = _principalProvider.GetSubject(organizationId);
-        var keys = request.ModuleIds.Distinct().Select(id => ModuleHoldKey.Module(organizationId, id))
-            .Concat(request.NamespaceIds.Distinct().Select(id => ModuleHoldKey.Namespace(organizationId, id)))
-            .Concat(request.StackIds.Distinct().Select(id => ModuleHoldKey.Stack(organizationId, id)));
-
-        foreach (var key in keys)
-        {
-            var existing = await _store.Get(key);
-            if (existing?.PrincipalId == principalId)
-                await _store.Remove(key);
-        }
-    }
 }
 
 /// <summary>The heartbeat interval and expiry applied to a hold, and why they differ from the request, if they do.</summary>

@@ -53,7 +53,6 @@ public class ModuleHoldGateTests : IAsyncLifetime
     private ITestHarness _harness = null!;
     private Guid _moduleId;
     private Guid _organizationId;
-    private Guid _holderId;
 
     public ModuleHoldGateTests(Fixture fixture) => _fixture = fixture;
 
@@ -61,7 +60,6 @@ public class ModuleHoldGateTests : IAsyncLifetime
     {
         _moduleId = _fixture.Modules["0000"].Id;
         _organizationId = _fixture.Organizations["0"].Id;
-        _holderId = Guid.NewGuid();
 
         var scheduler = new Mock<IMessageScheduler>();
         scheduler
@@ -139,12 +137,9 @@ public class ModuleHoldGateTests : IAsyncLifetime
     private Task<DateTime> Hold(Guid? moduleId = null) =>
         WithStore(async s =>
         {
-            await s.Hold(ModuleHoldKey.Module(_organizationId, moduleId ?? _moduleId), _holderId, 20);
+            await s.Hold(ModuleHoldKey.Module(_organizationId, moduleId ?? _moduleId), 20);
             return (await s.GetHoldState(_organizationId, moduleId ?? _moduleId)).ExpiresAt!.Value;
         });
-
-    private Task<bool> ReleaseHold() =>
-        WithStore(async s => { await s.Remove(ModuleHoldKey.Module(_organizationId, _moduleId)); return true; });
 
     private async Task SetSaga(DesiredStateHeadline? queued = null, QueuedReason? reason = null)
     {
@@ -264,7 +259,7 @@ public class ModuleHoldGateTests : IAsyncLifetime
     public async Task A_Trigger_For_A_Module_In_A_Held_Namespace_Is_Parked_And_Released_When_It_Lapses()
     {
         await SetSaga();
-        await WithStore(async s => { await s.Hold(ModuleHoldKey.Namespace(_organizationId, _fixture.Namespaces["000"].Id), _holderId, 20); return true; });
+        await WithStore(async s => { await s.Hold(ModuleHoldKey.Namespace(_organizationId, _fixture.Namespaces["000"].Id), 20); return true; });
 
         await Trigger();
 
@@ -285,7 +280,7 @@ public class ModuleHoldGateTests : IAsyncLifetime
     public async Task A_Trigger_For_A_Module_In_A_Held_Stack_Is_Parked()
     {
         await SetSaga();
-        await WithStore(async s => { await s.Hold(ModuleHoldKey.Stack(_organizationId, _fixture.Stacks["00"].Id), _holderId, 20); return true; });
+        await WithStore(async s => { await s.Hold(ModuleHoldKey.Stack(_organizationId, _fixture.Stacks["00"].Id), 20); return true; });
 
         await Trigger();
 
@@ -377,21 +372,6 @@ public class ModuleHoldGateTests : IAsyncLifetime
         await Check();
         Assert.Single(_applied);
         Assert.Single(ScheduledChecks());
-    }
-
-    [Fact]
-    public async Task A_Check_After_The_Hold_Is_Released_Releases_The_Queue()
-    {
-        await SetSaga();
-        await Hold();
-        await Trigger();
-
-        await ReleaseHold();
-        await Check();
-
-        var saga = await WaitForSaga(s => s.QueuedDesiredStateHeadline == null);
-        Assert.Null(saga.QueuedReason);
-        Assert.Contains(_moduleId, _applied);
     }
 
     [Fact]

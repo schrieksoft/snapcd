@@ -15,6 +15,7 @@ using Moq;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.ModuleHolds;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.ModuleHold;
 using SnapCd.Server.Core.Settings;
@@ -176,22 +177,11 @@ public class ModuleHoldServiceTests
     {
         var service = Service(OrganizationRole.Owner);
         await service.Heartbeat(_organizationId, Heartbeat());
-        await Store.Remove(ModuleHoldKey.Module(_organizationId, _moduleId));
+        await _cache.RemoveAsync(ModuleHoldKey.Module(_organizationId, _moduleId).Value);
 
         await service.Heartbeat(_organizationId, Heartbeat());
 
         Assert.True(await Held());
-    }
-
-    [Fact]
-    public async Task Release_ends_the_hold_at_once()
-    {
-        var service = Service(OrganizationRole.Owner);
-        await service.Heartbeat(_organizationId, Heartbeat());
-
-        await service.Release(_organizationId, new ModuleHoldReleaseRequestDto { ModuleIds = [_moduleId] });
-
-        Assert.False(await Held());
     }
 
     [Fact]
@@ -205,21 +195,6 @@ public class ModuleHoldServiceTests
 
         Assert.Equal([_moduleId], response.NotHeldModuleIds);
         Assert.False(await Held());
-    }
-
-    [Fact]
-    public async Task Another_principals_hold_is_neither_refreshed_nor_released()
-    {
-        await Service(OrganizationRole.Owner).Heartbeat(_organizationId, Heartbeat());
-        var before = (await Store.GetHoldState(_organizationId, _moduleId)).ExpiresAt;
-        var other = Service(OrganizationRole.Contributor);
-
-        _clock.Advance(TimeSpan.FromSeconds(5));
-        var response = await other.Heartbeat(_organizationId, Heartbeat());
-        await other.Release(_organizationId, new ModuleHoldReleaseRequestDto { ModuleIds = [_moduleId] });
-
-        Assert.Equal([_moduleId], response.NotHeldModuleIds);
-        Assert.Equal(before, (await Store.GetHoldState(_organizationId, _moduleId)).ExpiresAt);
     }
 
     [Fact]
@@ -294,18 +269,27 @@ public class ModuleHoldServiceTests
     }
 
     [Fact]
-    public async Task Release_ends_a_namespace_and_a_stack_hold_at_once()
+    public async Task Another_principals_heartbeat_keeps_the_same_hold_alive()
+    {
+        await Service(OrganizationRole.Owner).Heartbeat(_organizationId, Heartbeat());
+        _clock.Advance(TimeSpan.FromSeconds(15));
+
+        var response = await Service(OrganizationRole.Contributor).Heartbeat(_organizationId, Heartbeat());
+        _clock.Advance(TimeSpan.FromSeconds(15));
+
+        Assert.Empty(response.NotHeldModuleIds);
+        Assert.True(await Held());
+    }
+
+    [Fact]
+    public async Task A_heartbeat_never_shortens_a_hold()
     {
         var service = Service(OrganizationRole.Owner);
-        await service.Heartbeat(_organizationId, NamespaceHeartbeat(_fixture.Namespaces["000"].Id));
-        await service.Heartbeat(_organizationId, StackHeartbeat(_fixture.Stacks["00"].Id));
+        await service.Heartbeat(_organizationId, Heartbeat(30, 30));
+        var before = (await Store.GetHoldState(_organizationId, _moduleId)).ExpiresAt;
 
-        await service.Release(_organizationId, new ModuleHoldReleaseRequestDto
-        {
-            NamespaceIds = [_fixture.Namespaces["000"].Id],
-            StackIds = [_fixture.Stacks["00"].Id]
-        });
+        await service.Heartbeat(_organizationId, Heartbeat(5, 1));
 
-        Assert.False(await Held());
+        Assert.Equal(before, (await Store.GetHoldState(_organizationId, _moduleId)).ExpiresAt);
     }
 }

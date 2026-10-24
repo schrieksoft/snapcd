@@ -25,8 +25,8 @@ public readonly record struct ModuleHoldKey(string Value)
     public static ModuleHoldKey Stack(Guid organizationId, Guid stackId) => new($"modulehold:{organizationId:N}:stack:{stackId:N}");
 }
 
-/// <summary>A hold owned by a principal until <see cref="ExpiresAt"/>, which each heartbeat moves on.</summary>
-public sealed record ModuleHoldEntry(Guid PrincipalId, int ExpirySeconds, DateTime ExpiresAt);
+/// <summary>A hold until <see cref="ExpiresAt"/>, which each heartbeat moves on and never back.</summary>
+public sealed record ModuleHoldEntry(DateTime ExpiresAt);
 
 /// <summary>Whether a module is held right now, and if so until when it is worth checking again.</summary>
 public sealed record ModuleHoldState(bool Held, DateTime? ExpiresAt)
@@ -63,15 +63,20 @@ public class ModuleHoldStore
         return json == null ? null : JsonSerializer.Deserialize<ModuleHoldEntry>(json);
     }
 
-    /// <summary>Holds for <paramref name="expirySeconds"/> from now, owned by <paramref name="principalId"/>.</summary>
-    // Kept for twice its expiry, so a check landing just after ExpiresAt can still read it.
-    public Task Hold(ModuleHoldKey key, Guid principalId, int expirySeconds) =>
-        _cache.SetStringAsync(
-            key.Value,
-            JsonSerializer.Serialize(new ModuleHoldEntry(principalId, expirySeconds, Now.AddSeconds(expirySeconds))),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(2 * expirySeconds) });
+    /// <summary>Holds until at least <paramref name="expirySeconds"/> from now, keeping a later expiry already set.</summary>
+    // Kept one expiry past ExpiresAt, so a check landing just after it can still read it.
+    public async Task Hold(ModuleHoldKey key, int expirySeconds)
+    {
+        var expiresAt = Now.AddSeconds(expirySeconds);
+        var existing = await Get(key);
+        if (existing != null && existing.ExpiresAt > expiresAt)
+            expiresAt = existing.ExpiresAt;
 
-    public Task Remove(ModuleHoldKey key) => _cache.RemoveAsync(key.Value);
+        await _cache.SetStringAsync(
+            key.Value,
+            JsonSerializer.Serialize(new ModuleHoldEntry(expiresAt)),
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expiresAt - Now + TimeSpan.FromSeconds(expirySeconds) });
+    }
 
     /// <summary>Held while a hold on the module, its namespace or its stack is live; until the latest of those.</summary>
     public async Task<ModuleHoldState> GetHoldState(Guid organizationId, Guid moduleId)

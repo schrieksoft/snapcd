@@ -48,20 +48,4 @@ public class ModuleHoldController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
         }
     }
-
-    [EndpointSummary("Release the listed Modules the caller holds")]
-    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Update)]
-    [HttpPost("release")]
-    public async Task<ActionResult> Release(Guid organizationId, [FromBody] ModuleHoldReleaseRequestDto request)
-    {
-        try
-        {
-            await _service.Release(organizationId, request);
-            return NoContent();
-        }
-        catch (Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
-    }
 }
