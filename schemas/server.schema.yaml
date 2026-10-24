@@ -637,7 +637,7 @@ properties:
         default: 30
       DefaultHeartbeatBufferSeconds:
         type: integer
-        default: 10
+        default: 5
       MinHeartbeatBufferSeconds:
         type: integer
         description: At least 1 second applies whatever is set, so a heartbeat always arrives before the hold lapses.

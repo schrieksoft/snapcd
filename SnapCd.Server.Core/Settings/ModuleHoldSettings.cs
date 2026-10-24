@@ -20,7 +20,7 @@ public class ModuleHoldSettings
 
     public int MaxHeartbeatIntervalSeconds { get; set; } = 30;
 
-    public int DefaultHeartbeatBufferSeconds { get; set; } = 10;
+    public int DefaultHeartbeatBufferSeconds { get; set; } = 5;
 
     /// <summary>At least 1 second applies whatever is set, so a heartbeat always arrives before the hold lapses.</summary>
     public int MinHeartbeatBufferSeconds { get; set; } = 1;
