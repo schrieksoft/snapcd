@@ -1283,7 +1283,7 @@ public class RunnerHub : Hub
         SourceRevisionType sourceRevisionType,
         string definitiveRevision)
     {
-        await _sourceRefreshHandler.Complete(sourceUrl, sourceRevision, sourceType, sourceRevisionType, definitiveRevision);
+        await _sourceRefreshHandler.Complete(_authorizationService.GetValidatedOrganizationId(Context), sourceUrl, sourceRevision, sourceType, sourceRevisionType, definitiveRevision);
     }
 
 
@@ -1295,7 +1295,7 @@ public class RunnerHub : Hub
         SourceRevisionType sourceRevisionType,
         SourceRefreshResult result)
     {
-        await _sourceRefreshHandler.CompleteV2(sourceUrl, sourceRevision, sourceType, sourceRevisionType, result);
+        await _sourceRefreshHandler.CompleteV2(_authorizationService.GetValidatedOrganizationId(Context), sourceUrl, sourceRevision, sourceType, sourceRevisionType, result);
     }
 
     public async Task SourceRefreshFaulted(

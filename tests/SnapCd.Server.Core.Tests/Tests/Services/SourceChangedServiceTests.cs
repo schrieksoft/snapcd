@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using MassTransit;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SnapCd.Contracts;
 using SnapCd.Contracts.RunnerRequests;
@@ -207,6 +208,7 @@ public class SourceChangedServiceTests : IAsyncLifetime
         var contextMock = new Mock<ConsumeContext<SourceRefreshCompleted>>();
         contextMock.SetupGet(c => c.Message).Returns(new SourceRefreshCompleted
         {
+            OrganizationId = _filterOnModule.OrganizationId,
             SourceUrl = _sourceUrl,
             SourceRevision = "main",
             DefinitiveRevision = "head-sha",
@@ -220,7 +222,7 @@ public class SourceChangedServiceTests : IAsyncLifetime
 
         await using (var consumerDbContext = _fixture.CreateDbContext())
         {
-            await new SourceRefreshCompletedCompetingConsumer(consumerDbContext).Consume(contextMock.Object);
+            await new SourceRefreshCompletedCompetingConsumer(consumerDbContext, NullLogger<SourceRefreshCompletedCompetingConsumer>.Instance).Consume(contextMock.Object);
         }
 
         Assert.DoesNotContain(published, p => p.ModuleId == _scheduledRefreshOnlyModule.Id);

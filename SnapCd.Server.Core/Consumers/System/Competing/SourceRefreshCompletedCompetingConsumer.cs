@@ -19,12 +19,15 @@ namespace SnapCd.Server.Core.Consumers.System.Competing;
 public class SourceRefreshCompletedCompetingConsumer : IConsumer<SourceRefreshCompleted>
 {
     private readonly SnapCdDbContext _dbContext;
+    private readonly ILogger<SourceRefreshCompletedCompetingConsumer> _logger;
 
     public SourceRefreshCompletedCompetingConsumer(
-        SnapCdDbContext dbContext
+        SnapCdDbContext dbContext,
+        ILogger<SourceRefreshCompletedCompetingConsumer> logger
     )
     {
         _dbContext = dbContext;
+        _logger = logger;
     }
 
     public async Task Consume(ConsumeContext<SourceRefreshCompleted> context)
@@ -36,9 +39,11 @@ public class SourceRefreshCompletedCompetingConsumer : IConsumer<SourceRefreshCo
             .Include(x => x.ModuleSaga)
             .Include(x => x.AdditionalTriggerPaths)
             .Include(x => x.Namespace).ThenInclude(n => n.AdditionalTriggerPaths)
-            .Where(x => x.SourceUrl == message.SourceUrl &&
+            .Where(x => x.OrganizationId == message.OrganizationId &&
+                        x.SourceUrl == message.SourceUrl &&
                         x.SourceRevision == message.SourceRevision &&
                         x.SourceType == message.SourceType &&
+                        x.SourceRevisionType == message.SourceRevisionType &&
                         (x.TriggerOnSourceChanged || (message.TriggeredByNotification && x.TriggerOnSourceChangedNotification))
             )
             .ToList()
@@ -56,14 +61,20 @@ public class SourceRefreshCompletedCompetingConsumer : IConsumer<SourceRefreshCo
             string? desiredClosureHash = null;
             bool shouldTrigger;
 
-            if (reportedTreeHashes != null && TriggerPathClosure.FilterEnabled(module))
+            if (TriggerPathClosure.FilterEnabled(module))
             {
-                // Path-scoped decision: trigger iff the composed closure hash moved. Fail-open falls out
-                // naturally — a null stored hash never equals a composition, and a watched path missing from
-                // the report composes with an empty hash.
+                // The runner returns an entry for every path it was asked about, so an absent one means this report is not about the module.
+                if (reportedTreeHashes == null || !TriggerPathClosure.WatchedPaths(module).All(reportedTreeHashes.ContainsKey))
+                    continue;
+
                 var watchedPaths = TriggerPathClosure.ExpandWithClosures(TriggerPathClosure.WatchedPaths(module), closuresByRoot);
                 desiredClosureHash = TriggerPathClosure.Compose(watchedPaths, reportedTreeHashes);
                 shouldTrigger = module.ModuleSaga == null || module.ModuleSaga.DesiredClosureHash != desiredClosureHash;
+
+                if (shouldTrigger)
+                    _logger.LogDebug(
+                        "Module {ModuleId} closure hash moved from {StoredHash} to {ComposedHash} at {DefinitiveRevision}",
+                        module.Id, module.ModuleSaga?.DesiredClosureHash, desiredClosureHash, message.DefinitiveRevision);
             }
             else
             {
