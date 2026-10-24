@@ -78,7 +78,6 @@ public class ModuleModifiedStateMachine :
                 {
                     ModuleId = context.Saga.CorrelationId,
                     OrganizationId = context.Saga.OrganizationId,
-                    DesiredStateHeadline = DesiredStateHeadline.Applied
                 }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); })
                 .Then(RemoveLastUpdated)
                 .TransitionTo(Idle)

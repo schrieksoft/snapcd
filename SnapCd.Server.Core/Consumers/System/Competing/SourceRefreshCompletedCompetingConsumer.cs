@@ -87,7 +87,6 @@ public class SourceRefreshCompletedCompetingConsumer : IConsumer<SourceRefreshCo
             {
                 ModuleId = module.Id,
                 OrganizationId = module.OrganizationId,
-                DesiredStateHeadline = DesiredStateHeadline.Applied,
                 SetNewDesiredState = false,
                 DefinitiveRevision = message.DefinitiveRevision,
                 DesiredClosureHash = desiredClosureHash

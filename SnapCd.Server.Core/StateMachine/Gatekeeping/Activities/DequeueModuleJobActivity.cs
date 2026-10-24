@@ -68,6 +68,16 @@ public class DequeueModuleJobActivity<TSaga, TMessage> :
                 .Where(j => j.ModuleId == context.Saga.CorrelationId && j.OrganizationId == context.Saga.OrganizationId && j.IsCurrent == true)
                 .AnyAsync();
 
+            if (context.Saga.QueuedDesiredStateHeadline == DesiredStateHeadline.Destroyed &&
+                await ModuleDestroyedCheck.IsDestroyedAsync(dbContext, context.Saga.CorrelationId, context.Saga.OrganizationId))
+            {
+                context.Saga.QueuedDesiredStateHeadline = null;
+                context.Saga.QueuedReason = null;
+                _logger.LogInformation("Module {ModuleId} already destroyed, dropping the queued destroy", context.Saga.CorrelationId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
+
             if (!hasCurrentJob && context.Saga.QueuedDesiredStateHeadline.HasValue)
             {
                 context.Saga.DesiredStateHeadline = context.Saga.QueuedDesiredStateHeadline.Value;

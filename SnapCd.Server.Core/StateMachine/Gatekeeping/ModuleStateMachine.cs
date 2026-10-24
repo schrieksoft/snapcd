@@ -177,7 +177,6 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                         {
                             ModuleId = x.Saga.CorrelationId,
                             OrganizationId = x.Saga.OrganizationId,
-                            DesiredStateHeadline = DesiredStateHeadline.Applied,
                             SetNewDesiredState = false
                         }))
         );
