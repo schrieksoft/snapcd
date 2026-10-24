@@ -54,7 +54,7 @@ public class ModuleInputFromOutputSetController : BaseController
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<ModuleInputFromOutputSetReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -103,7 +103,7 @@ public class ModuleInputFromOutputSetController : BaseController
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public async Task<ActionResult<ModuleInputFromOutputSetReadDto>> Update(Guid organizationId, Guid id, [FromBody] ModuleInputFromOutputSetUpdateDto dto)
     {
         try
@@ -130,7 +130,7 @@ public class ModuleInputFromOutputSetController : BaseController
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid organizationId, Guid id)
     {
         try

@@ -23,8 +23,8 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Controllers;
 
-[Route("api/{organizationId:guid}/state/{stateStoreId}/{stateFileName}")]
-[Route("api/state/{stateStoreId}/{stateFileName}")]
+[Route("api/{organizationId:guid}/state/{stateStoreId:guid}/{stateFileName}")]
+[Route("api/state/{stateStoreId:guid}/{stateFileName}")]
 [ApiController]
 [AllowAnonymous]
 [PermissionSource(Skip = true,

@@ -55,7 +55,7 @@ public class AgentController : GenericCrudController<
     public override Task<ActionResult<AgentReadDto>> Create(Guid organizationId, AgentCreateDto dto)
         => base.Create(organizationId, dto);
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     [ExposeAsMcpTool(Instructions = "The Agent's bound ServicePrincipal is not deleted.")]
     public override Task<IActionResult> Delete(Guid organizationId, Guid id)
         => base.Delete(organizationId, id);

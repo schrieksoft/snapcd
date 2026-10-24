@@ -123,7 +123,7 @@ public class OrganizationUserController : ControllerBase
         }
     }
 
-    [HttpGet("Metadata/{id}")]
+    [HttpGet("Metadata/{id:guid}")]
     [PermissionSource(Repository = typeof(OrganizationUserSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
     public async Task<ActionResult<UserMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)
     {

@@ -73,7 +73,7 @@ public class NamespaceRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public virtual async Task<ActionResult<NamespaceRoleAssignmentReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -95,7 +95,7 @@ public class NamespaceRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public virtual async Task<ActionResult<NamespaceRoleAssignmentReadDto>> Update(Guid organizationId, NamespaceRoleAssignmentUpdateDto dto, Guid id)
     {
         try
@@ -129,7 +129,7 @@ public class NamespaceRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public virtual async Task<IActionResult> Delete(Guid organizationId, Guid id)
     {
         try

@@ -76,7 +76,7 @@ public class GroupMemberController : ControllerBase
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public virtual async Task<ActionResult<GroupMemberReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -98,7 +98,7 @@ public class GroupMemberController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public virtual async Task<ActionResult<GroupMemberReadDto>> Update(Guid organizationId, GroupMemberUpdateDto dto, Guid id)
     {
         try
@@ -124,7 +124,7 @@ public class GroupMemberController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public virtual async Task<IActionResult> Delete(Guid organizationId, Guid id)
     {
         try

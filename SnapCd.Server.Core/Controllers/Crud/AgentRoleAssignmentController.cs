@@ -77,7 +77,7 @@ public class AgentRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     [ExposeAsMcpTool]
     public virtual async Task<ActionResult<AgentRoleAssignmentReadDto>> Get(Guid organizationId, Guid id)
     {
@@ -100,7 +100,7 @@ public class AgentRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     [ExposeAsMcpTool(Instructions = "PrincipalDiscriminator cannot be changed; delete and recreate to switch principal type.")]
     public virtual async Task<ActionResult<AgentRoleAssignmentReadDto>> Update(Guid organizationId, AgentRoleAssignmentUpdateDto dto, Guid id)
     {
@@ -135,7 +135,7 @@ public class AgentRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     [ExposeAsMcpTool]
     public virtual async Task<IActionResult> Delete(Guid organizationId, Guid id)
     {

@@ -93,7 +93,7 @@ public abstract class GenericCrudController<TEntity, TMetadata, TCreateDto, TUpd
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     [ExposeAsMcpTool]
     public virtual async Task<ActionResult<TDto>> Get(Guid organizationId, Guid id)
     {
@@ -134,7 +134,7 @@ public abstract class GenericCrudController<TEntity, TMetadata, TCreateDto, TUpd
         }
     }
 
-    [HttpGet("Metadata/{id}")]
+    [HttpGet("Metadata/{id:guid}")]
     public virtual async Task<ActionResult<TMetadataDto>> GetMetadata(Guid organizationId, Guid id)
     {
         try
@@ -156,7 +156,7 @@ public abstract class GenericCrudController<TEntity, TMetadata, TCreateDto, TUpd
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     [ExposeAsMcpTool]
     public virtual async Task<ActionResult<TDto>> Update(Guid organizationId, TUpdateDto dto, Guid id)
     {
@@ -183,7 +183,7 @@ public abstract class GenericCrudController<TEntity, TMetadata, TCreateDto, TUpd
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     [ExposeAsMcpTool]
     public virtual async Task<IActionResult> Delete(Guid organizationId, Guid id)
     {

@@ -63,7 +63,7 @@ public class MissionRunController : ControllerBase
     }
 
     [EndpointSummary("Cancel an in-flight mission run")]
-    [HttpPost("{runId}/cancel")]
+    [HttpPost("{runId:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid organizationId, Guid runId)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync();
@@ -100,7 +100,7 @@ public class MissionRunController : ControllerBase
     }
 
     [EndpointSummary("Rerun a mission")]
-    [HttpPost("rerun/{missionId}")]
+    [HttpPost("rerun/{missionId:guid}")]
     public async Task<IActionResult> Rerun(Guid organizationId, Guid missionId)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync();

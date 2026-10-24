@@ -48,7 +48,7 @@ public class NamespaceIntegrationEventController : GenericCrudController<
     public override Task<ActionResult<NamespaceIntegrationEventReadDto>> Create(Guid organizationId, NamespaceIntegrationEventCreateDto dto)
         => base.Create(organizationId, dto);
 
-    [HttpGet("ByIntegration/{integrationId}")]
+    [HttpGet("ByIntegration/{integrationId:guid}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<NamespaceIntegrationEventReadDto>>> ListByIntegration(Guid organizationId, Guid integrationId)
     {
@@ -67,7 +67,7 @@ public class NamespaceIntegrationEventController : GenericCrudController<
         }
     }
 
-    [HttpGet("ByNamespace/{namespaceId}")]
+    [HttpGet("ByNamespace/{namespaceId:guid}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<NamespaceIntegrationEventReadDto>>> ListByNamespace(Guid organizationId, Guid namespaceId)
     {

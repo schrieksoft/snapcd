@@ -54,7 +54,7 @@ public class NamespaceInputFromDefinitionController : BaseController
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<NamespaceInputFromDefinitionReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -103,7 +103,7 @@ public class NamespaceInputFromDefinitionController : BaseController
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public async Task<ActionResult<NamespaceInputFromDefinitionReadDto>> Update(Guid organizationId, Guid id, [FromBody] NamespaceInputFromDefinitionUpdateDto dto)
     {
         try
@@ -130,7 +130,7 @@ public class NamespaceInputFromDefinitionController : BaseController
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid organizationId, Guid id)
     {
         try

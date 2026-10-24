@@ -49,7 +49,7 @@ public class NamespaceMissionController : GenericCrudController<
         => base.Create(organizationId, dto);
 
     [EndpointSummary("List NamespaceMissions assigned to a specific Agent")]
-    [HttpGet("ByAgent/{agentId}")]
+    [HttpGet("ByAgent/{agentId:guid}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<NamespaceMissionReadDto>>> ListByAgent(Guid organizationId, Guid agentId)
     {
@@ -69,7 +69,7 @@ public class NamespaceMissionController : GenericCrudController<
     }
 
     [EndpointSummary("List NamespaceMissions targeting a specific Namespace")]
-    [HttpGet("ByNamespace/{namespaceId}")]
+    [HttpGet("ByNamespace/{namespaceId:guid}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<NamespaceMissionReadDto>>> ListByNamespace(Guid organizationId, Guid namespaceId)
     {

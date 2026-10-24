@@ -32317,7 +32317,7 @@ paths:
         anyOf:
         - Organization.IdentityAccessManager
         - Organization.Owner
-  /api/{organizationId}/SourceRefresherPreselection/BySourceUrl/{name}:
+  /api/{organizationId}/SourceRefresherPreselection/BySourceUrl/{sourceUrl}:
     get:
       tags:
       - SourceRefresherPreselection
@@ -32341,7 +32341,7 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: name
+      - name: sourceUrl
         in: path
         required: true
         schema:
@@ -32367,7 +32367,7 @@ paths:
         - Organization.Reader
         - Organization.SourceRefresherPreselectionContributor
         - Organization.SourceRefresherPreselectionReader
-  /api/{organizationId}/SourceRefresherPreselection/Metadata/BySourceUrl/{name}:
+  /api/{organizationId}/SourceRefresherPreselection/Metadata/BySourceUrl/{sourceUrl}:
     get:
       tags:
       - SourceRefresherPreselection
@@ -32391,7 +32391,7 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: name
+      - name: sourceUrl
         in: path
         required: true
         schema:

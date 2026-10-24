@@ -86,7 +86,7 @@ public class UserColorController : ControllerBase
         }
     }
 
-    [HttpDelete("{targetType}/{targetId}")]
+    [HttpDelete("{targetType}/{targetId:guid}")]
     public virtual async Task<IActionResult> Delete(Guid organizationId, ColorTargetType targetType, Guid targetId)
     {
         try

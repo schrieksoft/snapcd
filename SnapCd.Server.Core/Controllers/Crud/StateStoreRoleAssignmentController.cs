@@ -73,7 +73,7 @@ public class StateStoreRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public virtual async Task<ActionResult<StateStoreRoleAssignmentDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -95,7 +95,7 @@ public class StateStoreRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public virtual async Task<ActionResult<StateStoreRoleAssignmentDto>> Update(Guid organizationId, StateStoreRoleAssignmentUpdateDto dto, Guid id)
     {
         try
@@ -129,7 +129,7 @@ public class StateStoreRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public virtual async Task<IActionResult> Delete(Guid organizationId, Guid id)
     {
         try

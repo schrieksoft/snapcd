@@ -54,7 +54,7 @@ public class NamespaceInputFromSecretController : BaseController
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<NamespaceInputFromSecretReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -103,7 +103,7 @@ public class NamespaceInputFromSecretController : BaseController
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public async Task<ActionResult<NamespaceInputFromSecretReadDto>> Update(Guid organizationId, Guid id, [FromBody] NamespaceInputFromSecretUpdateDto dto)
     {
         try
@@ -130,7 +130,7 @@ public class NamespaceInputFromSecretController : BaseController
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid organizationId, Guid id)
     {
         try
