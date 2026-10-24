@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Consumers.System.Competing;
+using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
@@ -24,7 +25,7 @@ public class StackModifiedCompetingConsumerTests
 
     public StackModifiedCompetingConsumerTests(Fixture fixture) => _fixture = fixture;
 
-    private async Task<List<ModuleModifiedTriggerRequested>> Consume(StackTriggerBehaviour behaviour)
+    private async Task<List<GatekeepingJobRequested>> Consume(StackTriggerBehaviour behaviour)
     {
         var stack = _fixture.Stacks["00"];
         await using var db = _fixture.CreateDbContext();
@@ -41,10 +42,10 @@ public class StackModifiedCompetingConsumerTests
 
         try
         {
-            var published = new List<ModuleModifiedTriggerRequested>();
+            var published = new List<GatekeepingJobRequested>();
             var bus = new Mock<IBus>();
-            bus.Setup(b => b.Publish(It.IsAny<ModuleModifiedTriggerRequested>(), It.IsAny<CancellationToken>()))
-                .Callback<ModuleModifiedTriggerRequested, CancellationToken>((m, _) => published.Add(m))
+            bus.Setup(b => b.Publish(It.IsAny<GatekeepingJobRequested>(), It.IsAny<IPipe<PublishContext<GatekeepingJobRequested>>>(), It.IsAny<CancellationToken>()))
+                .Callback<GatekeepingJobRequested, IPipe<PublishContext<GatekeepingJobRequested>>, CancellationToken>((m, _, _) => published.Add(m))
                 .Returns(Task.CompletedTask);
             var context = new Mock<ConsumeContext<StackModifiedEvent>>();
             context.Setup(c => c.Message).Returns(new StackModifiedEvent { Id = stack.Id, OrganizationId = stack.OrganizationId });

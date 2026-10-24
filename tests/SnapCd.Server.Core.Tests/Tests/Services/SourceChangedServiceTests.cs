@@ -106,13 +106,6 @@ public class SourceChangedServiceTests : IAsyncLifetime
             RowVersion = [],
             CurrentState = nameof(ModuleStateMachine.Gatekeeping)
         };
-        module.ModuleModifiedSaga = new ModuleModifiedSaga
-        {
-            CorrelationId = module.Id,
-            OrganizationId = module.OrganizationId,
-            RowVersion = [],
-            CurrentState = nameof(ModuleModifiedStateMachine.Idle)
-        };
         return module;
     }
 

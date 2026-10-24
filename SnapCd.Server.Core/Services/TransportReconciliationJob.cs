@@ -62,15 +62,14 @@ public class TransportReconciliationJob
         var heartbeats = await RearmHeartbeats(dbContext);
         var approvals = await RearmApprovalTimeouts(dbContext);
         var driftChecks = await RearmDriftChecks(dbContext);
-        var debounces = await RearmDebounces(dbContext);
         var missions = await RearmMissionDeadlines(dbContext);
         var selects = await RedriveSelectRunnerInstance(dbContext);
         var strandedCancels = await FlagStrandedCancellations(dbContext);
         var holdChecks = await RearmHoldChecks(dbContext);
 
         _logger.LogInformation(
-            "Transport reconciliation complete: {HeartbeatCount} heartbeat ticks republished, {ApprovalCount} approval timeouts rescheduled, {DriftCount} drift checks rescheduled, {DebounceCount} debounces flushed, {MissionCount} mission deadline checks rescheduled, {SelectCount} runner selections re-driven, {StrandedCancelCount} stranded cancellations flagged, {HoldCheckCount} hold checks re-armed",
-            heartbeats, approvals, driftChecks, debounces, missions, selects, strandedCancels, holdChecks);
+            "Transport reconciliation complete: {HeartbeatCount} heartbeat ticks republished, {ApprovalCount} approval timeouts rescheduled, {DriftCount} drift checks rescheduled, {MissionCount} mission deadline checks rescheduled, {SelectCount} runner selections re-driven, {StrandedCancelCount} stranded cancellations flagged, {HoldCheckCount} hold checks re-armed",
+            heartbeats, approvals, driftChecks, missions, selects, strandedCancels, holdChecks);
     }
 
     // A check sent now reschedules itself while the hold is live, so the hold's expiry need not be known here.
@@ -95,29 +94,6 @@ public class TransportReconciliationJob
         return held.Count;
     }
 
-
-    // Republishing the trigger makes a parked debounce re-arm through the machine's own
-    // Schedule call, so the flush tick is built and delivered by the current transport.
-    private async Task<int> RearmDebounces(SnapCdDbContext dbContext)
-    {
-        var waiting = await dbContext.Set<ModuleModifiedSaga>().AsNoTracking()
-            .Where(s => s.CurrentState == "WaitingForMoreEvents")
-            .Select(s => new { s.CorrelationId, s.OrganizationId })
-            .ToListAsync();
-
-        foreach (var saga in waiting)
-        {
-            await _bus.Publish(new ModuleModifiedTriggerRequested
-            {
-                ModuleId = saga.CorrelationId,
-                OrganizationId = saga.OrganizationId
-            });
-
-            _logger.LogDebug("Re-armed modified-debounce for module {ModuleId}", saga.CorrelationId);
-        }
-
-        return waiting.Count;
-    }
 
     // The deadline check re-arms itself from the run's current DeadlineAt when it fires early,
     // so scheduling at a stale deadline is self-correcting once the agent heartbeats again.

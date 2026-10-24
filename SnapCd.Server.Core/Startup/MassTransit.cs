@@ -416,13 +416,6 @@ public static class MassTransit
             // Concurrency limit of 1 for DriftCheckScheduled (partition by ModuleId)
             s.Message<DriftCheckScheduled>(x => x.UsePartitioner(partition, m => m.Message.ModuleId));
         }, endpointNameFormatter);
-
-        // ModuleModifiedSaga with concurrency limit of 1 for ModuleModifiedTriggerRequested
-        AddSagaReceiveEndpoint<ModuleModifiedSaga, TMqFactory>(serviceBusSettings, context, cfg, serviceBusSettings.SagaConcurrencyLimit, s =>
-        {
-            var partition = s.CreatePartitioner(1);
-            s.Message<ModuleModifiedTriggerRequested>(x => x.UsePartitioner(partition, m => m.Message.ModuleId));
-        }, endpointNameFormatter);
     }
 
     /// <summary>
@@ -468,7 +461,6 @@ public static class MassTransit
     private static void AddSagaStateMachines(IBusRegistrationConfigurator x)
     {
         AddSagaStateMachine<ModuleStateMachine, ModuleSaga>(x);
-        AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
         AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
         AddSagaStateMachine<TransferMigrateStateMachine, TransferMigrateSaga>(x);
         AddSagaStateMachine<LookupAddressesStateMachine, LookupAddressesSaga>(x);

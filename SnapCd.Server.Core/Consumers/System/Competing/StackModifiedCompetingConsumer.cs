@@ -10,6 +10,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;
@@ -38,7 +39,13 @@ public class StackModifiedCompetingConsumer : IConsumer<StackModifiedEvent>
                 .Where(x => x.Namespace.StackId == context.Message.Id && x.TriggerOnDefinitionChanged)
                 .Select(x => x.Id).ToList();
 
-            foreach (var moduleId in moduleIds) await _bus.Publish(new ModuleModifiedTriggerRequested { ModuleId = moduleId, OrganizationId = context.Message.OrganizationId });
+            foreach (var moduleId in moduleIds)
+                await _bus.Publish(new GatekeepingJobRequested
+                {
+                    ModuleId = moduleId,
+                    OrganizationId = context.Message.OrganizationId,
+                    DesiredStateHeadline = DesiredStateHeadline.Applied
+                }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
         }
     }
 }

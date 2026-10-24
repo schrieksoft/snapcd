@@ -7,8 +7,10 @@
 // for terms covering either use.
 
 using MassTransit;
+using SnapCd.Contracts;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;
@@ -35,8 +37,13 @@ public class ModuleModifiedCompetingConsumer : IConsumer<ModuleModifiedEvent>
 
         if (triggerOnDefinitionChanged)
         {
-            _logger.LogDebug("Publishing ModuleModifiedTriggerRequested for module {ModuleId}", context.Message.Id);
-            await _bus.Publish(new ModuleModifiedTriggerRequested { ModuleId = context.Message.Id, OrganizationId = context.Message.OrganizationId });
+            _logger.LogDebug("Publishing GatekeepingJobRequested for module {ModuleId}", context.Message.Id);
+            await _bus.Publish(new GatekeepingJobRequested
+            {
+                ModuleId = context.Message.Id,
+                OrganizationId = context.Message.OrganizationId,
+                DesiredStateHeadline = DesiredStateHeadline.Applied
+            }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
         }
     }
 }

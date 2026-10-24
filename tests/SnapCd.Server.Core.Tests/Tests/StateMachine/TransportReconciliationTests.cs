@@ -147,12 +147,6 @@ public class TransportReconciliationTests : IAsyncLifetime
                     r.ConcurrencyMode = ConcurrencyMode.Optimistic;
                     r.ExistingDbContext<SnapCdDbContext>();
                 });
-            x.AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>()
-                .EntityFrameworkRepository(r =>
-                {
-                    r.ConcurrencyMode = ConcurrencyMode.Optimistic;
-                    r.ExistingDbContext<SnapCdDbContext>();
-                });
         });
 
         _provider = services.BuildServiceProvider(true);
@@ -541,85 +535,6 @@ public class TransportReconciliationTests : IAsyncLifetime
         }
 
         throw new TimeoutException("Drift tick was never consumed");
-    }
-
-    private async Task SetModifiedSagaState(string state)
-    {
-        await using var db = _fixture.CreateDbContext();
-        var saga = db.Set<ModuleModifiedSaga>().SingleOrDefault(s => s.CorrelationId == _module.Id);
-        if (saga == null)
-        {
-            saga = new ModuleModifiedSaga
-            {
-                CorrelationId = _module.Id,
-                OrganizationId = _module.OrganizationId,
-                CurrentState = state
-            };
-            db.Set<ModuleModifiedSaga>().Add(saga);
-        }
-        else
-        {
-            saga.CurrentState = state;
-        }
-
-        await db.SaveChangesAsync();
-    }
-
-    private async Task<string?> WaitForModifiedSagaState(Func<string?, bool> predicate, TimeSpan? timeout = null)
-    {
-        var deadline = DateTime.UtcNow.Add(timeout ?? TimeSpan.FromSeconds(10));
-        string? state = null;
-        while (DateTime.UtcNow < deadline)
-        {
-            await using var db = _fixture.CreateDbContext();
-            state = (await db.Set<ModuleModifiedSaga>().AsNoTracking().SingleOrDefaultAsync(s => s.CorrelationId == _module.Id))?.CurrentState;
-            if (predicate(state)) return state;
-            await Task.Delay(100);
-        }
-        return state;
-    }
-
-    [Fact]
-    public async Task Reconciler_Rearms_Parked_Debounce_Which_Then_Flushes()
-    {
-        await SetModifiedSagaState("WaitingForMoreEvents");
-
-        await CreateJob(CapturingScheduler().Mock.Object).ExecuteJob();
-
-        // The republished trigger re-arms the 5s debounce; the machine's own tick then flushes it.
-        Assert.Equal("Idle", await WaitForModifiedSagaState(s => s == "Idle", TimeSpan.FromSeconds(15)));
-        Assert.True(_harness.Published
-            .Select<GatekeepingJobRequested>(x => ((IPublishedMessage<GatekeepingJobRequested>)x).Context.Message.ModuleId == _module.Id)
-            .Any());
-    }
-
-    [Fact]
-    public async Task Late_Debounce_Tick_In_Idle_Is_Ignored()
-    {
-        await SetModifiedSagaState("Idle");
-        await _harness.Bus.Publish(new ModuleModifiedTriggerRequested { ModuleId = _module.Id, OrganizationId = _module.OrganizationId });
-        Assert.Equal("WaitingForMoreEvents", await WaitForModifiedSagaState(s => s == "WaitingForMoreEvents", TimeSpan.FromSeconds(10)));
-
-        // The armed tick now lands in Idle, as it would after a reconciler flush raced it.
-        await SetModifiedSagaState("Idle");
-
-        var deadline = DateTime.UtcNow.AddSeconds(15);
-        while (DateTime.UtcNow < deadline)
-        {
-            var consumed = _harness.Consumed
-                .Select<ModuleModifiedWaitForNextTimeoutScheduled>(x => true)
-                .ToList();
-            if (consumed.Count >= 1)
-            {
-                Assert.All(consumed, c => Assert.Null(c.Exception));
-                Assert.Equal("Idle", await WaitForModifiedSagaState(s => s == "Idle", TimeSpan.FromSeconds(2)));
-                return;
-            }
-
-            await Task.Delay(100);
-        }
-
-        throw new TimeoutException("Debounce tick was never consumed");
     }
 
     private async Task<Guid> SeedMissionRun(MissionStatus status, DateTime deadlineAt)

@@ -67,7 +67,6 @@ public class TransferBlocksDeleteTests : IAsyncLifetime
         // saga deletes that follow are for anything a test left behind without its Module.
         await db.Modules.Where(m => moduleIds.Contains(m.Id)).ExecuteDeleteAsync();
         await db.Set<ModuleSaga>().Where(s => moduleIds.Contains(s.CorrelationId)).ExecuteDeleteAsync();
-        await db.Set<ModuleModifiedSaga>().Where(s => moduleIds.Contains(s.CorrelationId)).ExecuteDeleteAsync();
 
         await db.Namespaces.Where(n => namespaceIds.Contains(n.Id)).ExecuteDeleteAsync();
         await db.Stacks.Where(s => _stacks.Contains(s.Id)).ExecuteDeleteAsync();
@@ -183,11 +182,7 @@ public class TransferBlocksDeleteTests : IAsyncLifetime
         await AssertModuleAndSagasGone(moduleId);
     }
 
-    /// <summary>
-    /// A Module's two sagas are created with it in ModuleRepository.ExecuteCreate and are
-    /// meaningless without it, so a delete has to take all three. ModuleSaga always did;
-    /// ModuleModifiedSaga was mapped the other way round and was left behind.
-    /// </summary>
+    /// <summary>A Module's saga is created with it in ModuleRepository.ExecuteCreate and is meaningless without it.</summary>
     private async Task AssertModuleAndSagasGone(Guid moduleId)
     {
         await using var db = _fixture.CreateDbContext();
@@ -195,8 +190,6 @@ public class TransferBlocksDeleteTests : IAsyncLifetime
         Assert.Null(await db.Modules.AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == moduleId));
         Assert.Null(await db.Set<ModuleSaga>().AsNoTracking()
-            .FirstOrDefaultAsync(sa => sa.CorrelationId == moduleId));
-        Assert.Null(await db.Set<ModuleModifiedSaga>().AsNoTracking()
             .FirstOrDefaultAsync(sa => sa.CorrelationId == moduleId));
     }
 
@@ -255,11 +248,6 @@ public class TransferBlocksDeleteTests : IAsyncLifetime
             CorrelationId = module.Id, OrganizationId = _organizationId, RowVersion = [],
             CurrentState = nameof(ModuleStateMachine.Gatekeeping),
             DesiredStateHeadline = DesiredStateHeadline.Applied
-        };
-        module.ModuleModifiedSaga = new ModuleModifiedSaga
-        {
-            CorrelationId = module.Id, OrganizationId = _organizationId, RowVersion = [],
-            CurrentState = nameof(ModuleModifiedStateMachine.Idle)
         };
         return module;
     }

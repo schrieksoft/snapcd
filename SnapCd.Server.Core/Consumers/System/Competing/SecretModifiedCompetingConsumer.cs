@@ -10,6 +10,7 @@ using MassTransit;
 using Microsoft.Extensions.Logging;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;
@@ -74,8 +75,13 @@ public class SecretModifiedCompetingConsumer : IConsumer<SecretModifiedEvent>
         // Publish events for modules that need triggering
         foreach (var moduleId in modulesToTrigger)
         {
-            _logger.LogDebug("Publishing ModuleModifiedTriggerRequested for module {ModuleId} due to secret change {SecretId}", moduleId, secretId);
-            await _bus.Publish(new ModuleModifiedTriggerRequested { ModuleId = moduleId, OrganizationId = context.Message.OrganizationId });
+            _logger.LogDebug("Publishing GatekeepingJobRequested for module {ModuleId} due to secret change {SecretId}", moduleId, secretId);
+            await _bus.Publish(new GatekeepingJobRequested
+            {
+                ModuleId = moduleId,
+                OrganizationId = context.Message.OrganizationId,
+                DesiredStateHeadline = DesiredStateHeadline.Applied
+            }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
         }
     }
 }
