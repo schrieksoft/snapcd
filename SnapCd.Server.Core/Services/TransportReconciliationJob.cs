@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.Missions;
 using SnapCd.Server.Core.Events.System;
@@ -65,10 +66,33 @@ public class TransportReconciliationJob
         var missions = await RearmMissionDeadlines(dbContext);
         var selects = await RedriveSelectRunnerInstance(dbContext);
         var strandedCancels = await FlagStrandedCancellations(dbContext);
+        var holdChecks = await RearmHoldChecks(dbContext);
 
         _logger.LogInformation(
-            "Transport reconciliation complete: {HeartbeatCount} heartbeat ticks republished, {ApprovalCount} approval timeouts rescheduled, {DriftCount} drift checks rescheduled, {DebounceCount} debounces flushed, {MissionCount} mission deadline checks rescheduled, {SelectCount} runner selections re-driven, {StrandedCancelCount} stranded cancellations flagged",
-            heartbeats, approvals, driftChecks, debounces, missions, selects, strandedCancels);
+            "Transport reconciliation complete: {HeartbeatCount} heartbeat ticks republished, {ApprovalCount} approval timeouts rescheduled, {DriftCount} drift checks rescheduled, {DebounceCount} debounces flushed, {MissionCount} mission deadline checks rescheduled, {SelectCount} runner selections re-driven, {StrandedCancelCount} stranded cancellations flagged, {HoldCheckCount} hold checks re-armed",
+            heartbeats, approvals, driftChecks, debounces, missions, selects, strandedCancels, holdChecks);
+    }
+
+    // A check sent now reschedules itself while the hold is live, so the hold's expiry need not be known here.
+    private async Task<int> RearmHoldChecks(SnapCdDbContext dbContext)
+    {
+        var held = await dbContext.ModuleSagas.AsNoTracking()
+            .Where(s => s.QueuedReason == QueuedReason.HeldBySession)
+            .Select(s => new { s.CorrelationId, s.OrganizationId })
+            .ToListAsync();
+
+        foreach (var saga in held)
+        {
+            await _bus.Publish(new ModuleHoldCheck
+            {
+                ModuleId = saga.CorrelationId,
+                OrganizationId = saga.OrganizationId
+            });
+
+            _logger.LogDebug("Re-armed hold check for module {ModuleId}", saga.CorrelationId);
+        }
+
+        return held.Count;
     }
 
 

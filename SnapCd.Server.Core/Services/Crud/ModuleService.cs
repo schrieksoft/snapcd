@@ -21,6 +21,7 @@ using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Services.ModuleHold;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
@@ -30,14 +31,29 @@ public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCr
 
     private readonly ModuleSagaSecuredRepositoryFactory _sagaSecuredRepositoryFactory;
 
+    private readonly ModuleHoldService _holds;
+
     public ModuleService(
         ModuleSecuredRepository securedRepository,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
-        ModuleSagaSecuredRepositoryFactory sagaSecuredRepositoryFactory
+        ModuleSagaSecuredRepositoryFactory sagaSecuredRepositoryFactory,
+        ModuleHoldService holds
     ) : base(securedRepository)
     {
         _sagaSecuredRepositoryFactory = sagaSecuredRepositoryFactory;
         _dbContextFactory = dbContextFactory;
+        _holds = holds;
+    }
+
+    /// <summary>Holds the new module, when asked, before it is saved and its creation is announced.</summary>
+    public override async Task<ModuleReadDto> Create(ModuleCreateDto dto, Guid organizationId)
+    {
+        var entity = MapToEntity(dto, organizationId);
+        if (dto.Hold is { } hold)
+            await _holds.HoldNewModule(organizationId, entity.Id, hold.HeartbeatIntervalSeconds, hold.HeartbeatBufferSeconds);
+
+        entity = await SecuredRepository.Create(entity);
+        return MapToDto(entity);
     }
 
     protected override Module MapToEntity(ModuleCreateDto dto, Guid organizationId)

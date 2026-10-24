@@ -10,6 +10,7 @@ using SnapCd.Server.Core.StateMachine.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
+using SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
@@ -448,6 +449,7 @@ public static class MassTransit
         services.AddScoped(typeof(SendTransferStepToRunnerActivity<,>));
         services.AddScoped<CheckArtefactPresentActivity>();
         services.AddScoped<CheckConsentDecidedActivity>();
+        services.AddScoped<ModuleHoldCheckActivity>();
     }
 
     /// <summary>

@@ -9,6 +9,7 @@
 using MassTransit;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.System;
@@ -43,6 +44,8 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
 
     public required Event<ModuleQuiescenceRequested> ModuleQuiescenceRequested { get; set; }
 
+    public required Event<ModuleHoldCheck> ModuleHoldCheck { get; set; }
+
     // Drift check schedule
     public Schedule<ModuleSaga, DriftCheckScheduled> DriftCheckScheduled { get; set; } = null!;
 
@@ -70,6 +73,7 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
         Event(() => ResourceCountRefreshedEvent, e => e.CorrelateById(x => x.Message.ModuleId));
         Event(() => ModuleDependencyCheckRequested, e => e.CorrelateById(x => x.Message.ModuleId));
         Event(() => ModuleQuiescenceRequested, e => e.CorrelateById(x => x.Message.ModuleId));
+        Event(() => ModuleHoldCheck, e => e.CorrelateById(x => x.Message.ModuleId));
 
         Schedule(() => DriftCheckScheduled, saga => saga.DriftCheckScheduleTokenId, config =>
         {
@@ -167,6 +171,12 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                 .Activity(y => y.OfType<DequeueIfDependenciesMetJobActivity<ModuleDependencyCheckRequested>>())
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
+            When(ModuleHoldCheck, x => x.Saga.QueuedReason == QueuedReason.HeldBySession)
+                .Activity(x => x.OfType<ModuleHoldCheckActivity>())
+                .If(x => x.Saga.QueuedReason != QueuedReason.HeldBySession, released => released
+                    .Activity(y => y.OfType<DequeueIfDependenciesMetJobActivity<ModuleHoldCheck>>())
+                    .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                    .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })),
             When(DriftCheckScheduled.Received)
                 .IfElse(IsFromSupersededSchedule,
                     stale => stale,

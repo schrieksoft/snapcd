@@ -38,7 +38,10 @@ public enum QueuedReason
     WaitingOnDependencies,
     WaitingOnRunnerCheckin,
     Maintenance,
-    Paused
+    Paused,
+
+    /// <summary>A client configuring the module (the provider, during an apply) is holding it until it has finished.</summary>
+    HeldBySession
 }
 
 public enum SecretScope
