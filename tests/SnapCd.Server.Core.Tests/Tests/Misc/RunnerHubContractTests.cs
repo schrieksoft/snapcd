@@ -56,11 +56,11 @@ public class RunnerHubContractTests
     [Fact]
     public void Every_Hub_Method_Has_A_Client_Wrapper()
     {
-        // Not step replies: SignalR's own connection callbacks, and the two the runner sends
-        // through its own paths rather than a generated wrapper.
+        // Not step replies: SignalR's own connection callbacks, and the logs the runner sends
+        // through its own path rather than a generated wrapper.
         var notCalledByWrapper = new HashSet<string>
         {
-            "OnConnectedAsync", "OnDisconnectedAsync", "AddLogs", "Pong"
+            "OnConnectedAsync", "OnDisconnectedAsync", "AddLogs"
         };
 
         var hubMethods = typeof(RunnerHub)

@@ -97,6 +97,7 @@ public class RunnerHub : Hub
     private readonly RunnerConnectionValidator _connectionValidator;
     private readonly ServerSettings _serverSettings;
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
+    private readonly OpenConnections<RunnerHub> _openConnections;
     private readonly ReportRunningTaskHandler _reportRunningTaskHandler;
     private readonly CancelKillHandler _cancelKillHandler;
 
@@ -106,6 +107,7 @@ public class RunnerHub : Hub
         JobServiceFactory jobServiceFactory,
         IBus bus,
         ILogger<RunnerHub> logger,
+        OpenConnections<RunnerHub> openConnections,
         RunnerJobAuthorizationService authorizationService,
         ApplyGetDefinitiveRevisionHandler applyGetDefinitiveRevisionHandler,
         DestroyGetDefinitiveRevisionHandler destroyGetDefinitiveRevisionHandler,
@@ -157,6 +159,7 @@ public class RunnerHub : Hub
         _jobServiceFactory = jobServiceFactory;
         _bus = bus;
         _logger = logger;
+        _openConnections = openConnections;
         _authorizationService = authorizationService;
         _applyGetDefinitiveRevisionHandler = applyGetDefinitiveRevisionHandler;
         _destroyGetDefinitiveRevisionHandler = destroyGetDefinitiveRevisionHandler;
@@ -350,6 +353,9 @@ public class RunnerHub : Hub
                 throw new HubException(validationResult.RejectionReason ?? "Connection validation failed");
             }
 
+            // Before the row exists, so selection never finds a row whose connection it does not know is open.
+            _openConnections.Add(Context.ConnectionId);
+
             // Create connection record in database
             var connectionRecord = new RunnerConnection
             {
@@ -397,6 +403,8 @@ public class RunnerHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        _openConnections.Remove(Context.ConnectionId);
+
         try
         {
             // Query database to get connection info by ConnectionId
@@ -430,16 +438,6 @@ public class RunnerHub : Hub
         {
             _logger.LogError(ex, "Error during disconnection for {ConnectionId}", Context.ConnectionId);
         }
-    }
-
-    /// <summary>
-    /// Acknowledge a liveness ping. Invoking this proves the runner can still service hub calls,
-    /// which an open connection alone does not.
-    /// </summary>
-    public Task Pong(Guid pingId)
-    {
-        Services.RunnerLivenessProbe.Acknowledge(pingId);
-        return Task.CompletedTask;
     }
 
     /// <summary>
