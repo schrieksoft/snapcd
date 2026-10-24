@@ -79,8 +79,7 @@ public class SecretModifiedCompetingConsumer : IConsumer<SecretModifiedEvent>
             await _bus.Publish(new GatekeepingJobRequested
             {
                 ModuleId = moduleId,
-                OrganizationId = context.Message.OrganizationId,
-                DesiredStateHeadline = DesiredStateHeadline.Applied
+                OrganizationId = context.Message.OrganizationId
             }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
         }
     }

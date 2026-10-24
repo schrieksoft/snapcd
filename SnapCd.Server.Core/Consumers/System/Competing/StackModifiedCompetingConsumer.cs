@@ -43,8 +43,7 @@ public class StackModifiedCompetingConsumer : IConsumer<StackModifiedEvent>
                 await _bus.Publish(new GatekeepingJobRequested
                 {
                     ModuleId = moduleId,
-                    OrganizationId = context.Message.OrganizationId,
-                    DesiredStateHeadline = DesiredStateHeadline.Applied
+                    OrganizationId = context.Message.OrganizationId
                 }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
         }
     }

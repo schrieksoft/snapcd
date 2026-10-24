@@ -111,7 +111,8 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 return;
             }
 
-            if (await HoldGate.ParkIfHeld(context.Saga, effectiveDesiredState, context.Message.SetNewDesiredState))
+            var stateToQueue = MayQueue(explicitRequest, context.Saga, effectiveDesiredState) ? effectiveDesiredState : (DesiredStateHeadline?)null;
+            if (await HoldGate.ParkIfHeld(context.Saga, stateToQueue, replaceQueue: true))
             {
                 await next.Execute(context).ConfigureAwait(false);
                 return;

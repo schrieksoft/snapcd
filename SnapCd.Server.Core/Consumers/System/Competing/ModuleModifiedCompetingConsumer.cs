@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using MassTransit;
-using SnapCd.Contracts;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Gatekeeping;
@@ -41,8 +40,7 @@ public class ModuleModifiedCompetingConsumer : IConsumer<ModuleModifiedEvent>
             await _bus.Publish(new GatekeepingJobRequested
             {
                 ModuleId = context.Message.Id,
-                OrganizationId = context.Message.OrganizationId,
-                DesiredStateHeadline = DesiredStateHeadline.Applied
+                OrganizationId = context.Message.OrganizationId
             }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
         }
     }
