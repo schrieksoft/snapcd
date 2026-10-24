@@ -623,6 +623,30 @@ properties:
         type: integer
         description: A task whose log is larger than this shows a notice, and renders only when asked.
         default: 5242880
+  ModuleHold:
+    type: object
+    properties:
+      DefaultHeartbeatIntervalSeconds:
+        type: integer
+        default: 10
+      MinHeartbeatIntervalSeconds:
+        type: integer
+        default: 5
+      MaxHeartbeatIntervalSeconds:
+        type: integer
+        default: 30
+      DefaultHeartbeatBufferSeconds:
+        type: integer
+        default: 10
+      MinHeartbeatBufferSeconds:
+        type: integer
+        description: At least 1 second applies whatever is set, so a heartbeat always arrives before the hold lapses.
+        default: 1
+      MaxHeartbeatBufferSeconds:
+        type: integer
+        default: 30
+    description: The defaults and limits for a module hold's timing. A client's heartbeat interval and buffer, or the defaults
+      where it sends none, are each clamped to their limits; the hold lasts the interval plus the buffer after each heartbeat.
   License:
     type: object
     properties:
