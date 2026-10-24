@@ -8390,39 +8390,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.ModuleModifiedSaga", b =>
-                {
-                    b.Property<Guid>("CorrelationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CurrentState")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime?>("LastUpdated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid?>("TimeoutTokenId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("CorrelationId", "OrganizationId");
-
-                    b.HasIndex("CorrelationId")
-                        .IsUnique();
-
-                    b.ToTable("ModuleModifiedSaga");
-                });
-
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.ModuleSaga", b =>
                 {
                     b.Property<Guid>("CorrelationId")
@@ -12450,17 +12417,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.ModuleModifiedSaga", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
-                        .WithOne("ModuleModifiedSaga")
-                        .HasForeignKey("SnapCd.Server.Core.Entities.Sagas.ModuleModifiedSaga", "CorrelationId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Module");
-                });
-
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.ModuleSaga", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
@@ -13327,8 +13283,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("ModuleJobs");
 
                     b.Navigation("ModuleMissions");
-
-                    b.Navigation("ModuleModifiedSaga");
 
                     b.Navigation("ModuleParamFromDefinitions");
 

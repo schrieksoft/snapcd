@@ -89,6 +89,7 @@ internal static class SettingsSchemasCommand
             ["InvitationSettings"] = typeof(SnapCd.Server.Core.Settings.InvitationSettings),
             ["OrphanedJobCleanup"] = typeof(SnapCd.Server.Core.Settings.OrphanedJobCleanupSettings),
             ["JobLogs"] = typeof(SnapCd.Server.Core.Settings.JobLogSettings),
+            ["ModuleHold"] = typeof(SnapCd.Server.Core.Settings.ModuleHoldSettings),
             ["License"] = typeof(SnapCd.Server.Core.Settings.LicenseSettings),
             ["Telemetry"] = typeof(SnapCd.Server.Host.Telemetry.TelemetrySettings),
             ["Debugging"] = typeof(SnapCd.Server.Core.Settings.DebuggingOptions),

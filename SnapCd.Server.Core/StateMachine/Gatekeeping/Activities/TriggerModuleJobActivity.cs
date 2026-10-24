@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.MaintenanceMode;
+using SnapCd.Server.Core.Services.ModuleHold;
 
 namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 
@@ -37,6 +38,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
 
     // Resolved lazily: the maintenance-gated path runs without the job-service dependency graph.
     private JobService ExecutionService => _serviceProvider.GetRequiredService<JobService>();
+    private ModuleHoldGate HoldGate => _serviceProvider.GetRequiredService<ModuleHoldGate>();
 
     public async Task Execute(
         BehaviorContext<ModuleSaga, TGatekeepingJobRequested> context,
@@ -105,6 +107,13 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 }
 
                 _logger.LogDebug("Module {ModuleId} is paused: queuing request", context.Message.ModuleId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
+
+            var stateToQueue = MayQueue(explicitRequest, context.Saga, effectiveDesiredState) ? effectiveDesiredState : (DesiredStateHeadline?)null;
+            if (await HoldGate.ParkIfHeld(context.Saga, stateToQueue, replaceQueue: true))
+            {
                 await next.Execute(context).ConfigureAwait(false);
                 return;
             }

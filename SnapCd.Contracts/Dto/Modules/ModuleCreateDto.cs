@@ -6,6 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.Text.Json.Serialization;
+using SnapCd.Contracts.Dto.ModuleHolds;
+
 namespace SnapCd.Contracts.Dto.Modules;
 
 /// <summary>
@@ -15,6 +18,14 @@ public class ModuleCreateDto
 {
     /// <summary>Name of the Module. Must be unique in combination with `namespace_id`.</summary>
     public string Name { get; set; } = null!;
+
+    /// <summary>
+    /// On create only: hold the new Module out of deployment for a client still configuring it (the provider, during an
+    /// apply), which keeps the hold alive with heartbeats. Unset, the Module is not held. Never returned.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ModuleHoldTimingDto? Hold { get; set; }
+
     /// <summary>ID of the Module's parent Namespace.</summary>
     public Guid NamespaceId { get; set; }
 

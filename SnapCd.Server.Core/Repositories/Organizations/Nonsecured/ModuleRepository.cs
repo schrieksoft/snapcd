@@ -162,16 +162,6 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
             QueuedDesiredStateHeadline = null
         };
 
-        entity.ModuleModifiedSaga = new ModuleModifiedSaga
-        {
-            CorrelationId = entity.Id,
-            OrganizationId = entity.OrganizationId,
-            RowVersion = [],
-            CurrentState = nameof(ModuleModifiedStateMachine.Idle),
-            LastUpdated = null,
-            TimeoutTokenId = null
-        };
-
         return await base.ExecuteCreate(entity);
     }
 

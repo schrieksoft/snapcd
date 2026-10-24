@@ -1617,15 +1617,6 @@ public class Fixture : IAsyncLifetime
             DesiredStateHeadline = DesiredStateHeadline.Applied,
             QueuedDesiredStateHeadline = null
         };
-        module.ModuleModifiedSaga = new ModuleModifiedSaga
-        {
-            CorrelationId = module.Id,
-            OrganizationId = organizationId,
-            RowVersion = [],
-            CurrentState = nameof(ModuleModifiedStateMachine.Idle),
-            LastUpdated = null,
-            TimeoutTokenId = null
-        };
         return module;
     }
 

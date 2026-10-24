@@ -29,7 +29,6 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public Guid RunnerId { get; set; }
 
     [JsonIgnore] public ModuleSaga? ModuleSaga { get; set; }
-    [JsonIgnore] public ModuleModifiedSaga? ModuleModifiedSaga { get; set; }
     [MaxLength(255)] public string? RunnerInstanceName { get; set; }
     [MaxLength(255)] public string Name { get; set; } = null!;
     [MaxLength(800)] public string SourceUrl { get; set; } = null!;

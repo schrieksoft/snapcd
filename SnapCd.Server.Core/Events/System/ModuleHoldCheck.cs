@@ -8,16 +8,10 @@
 
 namespace SnapCd.Server.Core.Events.System;
 
-public class ModuleModifiedTriggerRequested
+/// <summary>Asks a held module's saga whether its hold has lapsed.</summary>
+public class ModuleHoldCheck
 {
-    public required Guid ModuleId { get; set; }
+    public Guid ModuleId { get; set; }
 
-    public required Guid OrganizationId { get; set; }
-}
-
-public class ModuleModifiedWaitForNextTimeoutScheduled
-{
-    public required Guid CorrelationId { get; set; }
-
-    public required Guid OrganizationId { get; set; }
+    public Guid OrganizationId { get; set; }
 }

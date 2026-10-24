@@ -10,12 +10,12 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;
 
-public class StackModifiedCompetingConsumer : IConsumer<StackUpdatedEvent>
+public class StackModifiedCompetingConsumer : IConsumer<StackModifiedEvent>
 {
     private readonly SnapCdDbContext _dbContext;
     private readonly IBus _bus;
@@ -26,21 +26,25 @@ public class StackModifiedCompetingConsumer : IConsumer<StackUpdatedEvent>
         _bus = bus;
     }
 
-    public async Task Consume(ConsumeContext<StackUpdatedEvent> context)
+    public async Task Consume(ConsumeContext<StackModifiedEvent> context)
     {
         var triggerBehaviour = _dbContext
-            .Stacks.Where(x => x.Id == context.Message.Data.Id)
+            .Stacks.Where(x => x.Id == context.Message.Id)
             .Select(x => (StackTriggerBehaviour?)x.TriggerBehaviourOnModified)
             .FirstOrDefault();
 
         if (triggerBehaviour == StackTriggerBehaviour.TriggerAllImmediately)
         {
             var moduleIds = _dbContext.Modules
-                .Include(x => x.Namespace)
-                .Where(x => x.Namespace.StackId == context.Message.Data.Id && x.TriggerOnDefinitionChanged)
-                .Select(x => x.Namespace.StackId).ToList();
+                .Where(x => x.Namespace.StackId == context.Message.Id && x.TriggerOnDefinitionChanged)
+                .Select(x => x.Id).ToList();
 
-            foreach (var moduleId in moduleIds) await _bus.Publish(new ModuleModifiedTriggerRequested { ModuleId = moduleId, OrganizationId = context.Message.Data.Id });
+            foreach (var moduleId in moduleIds)
+                await _bus.Publish(new GatekeepingJobRequested
+                {
+                    ModuleId = moduleId,
+                    OrganizationId = context.Message.OrganizationId
+                }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
         }
     }
 }

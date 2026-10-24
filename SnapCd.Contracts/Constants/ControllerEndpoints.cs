@@ -24,6 +24,7 @@ public static class ControllerEndpoints
     public const string ModuleInputFromSecret = "api/{organizationId:guid}/ModuleInputFromSecret";
     public const string Stack = "api/{organizationId:guid}/Stack";
     public const string Module = "api/{organizationId:guid}/Module";
+    public const string ModuleHold = "api/{organizationId:guid}/ModuleHold";
     public const string Transfer = "api/{organizationId:guid}/Transfer";
     public const string Integration = "api/{organizationId:guid}/Integration";
     public const string OrganizationIntegrationEvent = "api/{organizationId:guid}/OrganizationIntegrationEvent";
