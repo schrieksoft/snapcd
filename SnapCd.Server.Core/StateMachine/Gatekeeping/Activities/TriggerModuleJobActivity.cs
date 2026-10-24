@@ -46,10 +46,32 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
         {
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-            // Determine effective desired state early
-            var effectiveDesiredState = context.Message.SetNewDesiredState
-                ? context.Message.DesiredStateHeadline
-                : context.Saga.DesiredStateHeadline;
+            var explicitRequest = context.Message.SetNewDesiredState;
+            if (explicitRequest && context.Message.DesiredStateHeadline == null)
+                throw new InvalidOperationException("A request that sets a new desired state must say which state.");
+
+            // What the module is headed for: a queued request, else the state of its last job.
+            var target = context.Saga.QueuedDesiredStateHeadline ?? context.Saga.DesiredStateHeadline;
+
+            if (!explicitRequest && target == null)
+            {
+                _logger.LogDebug("Module {ModuleId} has never been asked for a state: nothing to do", context.Message.ModuleId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
+
+            // The state this request runs or queues.
+            var effectiveDesiredState = explicitRequest ? context.Message.DesiredStateHeadline!.Value : target!.Value;
+
+            // A request naming a state without setting it only acts while that state is still the target.
+            if (!explicitRequest && context.Message.DesiredStateHeadline is { } namedState && namedState != target)
+            {
+                _logger.LogDebug(
+                    "Module {ModuleId} is headed for {Target}, not {Requested}: nothing to do",
+                    context.Message.ModuleId, target, namedState);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
 
             _logger.LogDebug(
                 "Gate entered for module {ModuleId} job {JobId}: message wants {MessageState} "
@@ -61,7 +83,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
 
             if (await _maintenanceMode.IsActiveAsync())
             {
-                if (context.Message.SetNewDesiredState || context.Saga.QueuedDesiredStateHeadline == null)
+                if (MayQueue(explicitRequest, context.Saga, effectiveDesiredState))
                 {
                     context.Saga.QueuedDesiredStateHeadline = effectiveDesiredState;
                     context.Saga.QueuedReason = QueuedReason.Maintenance;
@@ -76,7 +98,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
 
             if (context.Saga.Paused)
             {
-                if (context.Message.SetNewDesiredState || context.Saga.QueuedDesiredStateHeadline == null)
+                if (MayQueue(explicitRequest, context.Saga, effectiveDesiredState))
                 {
                     context.Saga.QueuedDesiredStateHeadline = effectiveDesiredState;
                     context.Saga.QueuedReason = QueuedReason.Paused;
@@ -87,27 +109,20 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 return;
             }
 
-            // Skip if module is already destroyed and desired state is destroyed
-            // (Unlike Apply, Destroy is idempotent - a destroyed module never needs to be destroyed again)
-            if (effectiveDesiredState == DesiredStateHeadline.Destroyed)
+            if (effectiveDesiredState == DesiredStateHeadline.Destroyed &&
+                await ModuleDestroyedCheck.IsDestroyedAsync(dbContext, context.Saga.CorrelationId, context.Saga.OrganizationId))
             {
-                var actualStateHeadline = await dbContext.ModuleJobs
-                    .Where(j => j.ModuleId == context.Saga.CorrelationId &&
-                                j.OrganizationId == context.Saga.OrganizationId &&
-                                j.ActualStateHeadline != null &&
-                                j.TimestampEnd != null)
-                    .OrderByDescending(j => j.JobNumber)
-                    .Select(j => j.ActualStateHeadline)
-                    .FirstOrDefaultAsync();
-
-                if (actualStateHeadline == ActualStateHeadline.Destroyed)
+                if (context.Saga.QueuedDesiredStateHeadline == DesiredStateHeadline.Destroyed)
                 {
-                    _logger.LogInformation(
-                        "Module {ModuleId} already destroyed, skipping",
-                        context.Saga.CorrelationId);
-                    await next.Execute(context).ConfigureAwait(false);
-                    return;
+                    context.Saga.QueuedDesiredStateHeadline = null;
+                    context.Saga.QueuedReason = null;
                 }
+
+                _logger.LogInformation(
+                    "Module {ModuleId} already destroyed, skipping",
+                    context.Saga.CorrelationId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
             }
 
             // Check if there's already a current ModuleJob for this module
@@ -118,7 +133,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
             var canExecute = await ExecutionService.CheckDependenciesAsync(
                 context.Saga.CorrelationId,
                 context.Message.OrganizationId,
-                context.Message.DesiredStateHeadline);
+                effectiveDesiredState);
 
             _logger.LogDebug(
                 "Gate for module {ModuleId}: currentJob {CurrentJob}, canExecute {CanExecute}",
@@ -126,33 +141,32 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
 
             if (!canExecute)
             {
-                // effectiveDesiredState already calculated at the top of the method
-                if (context.Message.SetNewDesiredState || context.Saga.QueuedDesiredStateHeadline == null)
+                if (MayQueue(explicitRequest, context.Saga, effectiveDesiredState))
                 {
                     context.Saga.QueuedDesiredStateHeadline = effectiveDesiredState;
                     context.Saga.QueuedReason = QueuedReason.WaitingOnDependencies;
                 }
 
                 _logger.LogInformation(
-                    "Module {ModuleId} waiting on dependencies, queuing request",
-                    context.Message.ModuleId);
+                    "Module {ModuleId} waiting on dependencies to {State}, queuing request",
+                    context.Message.ModuleId, effectiveDesiredState);
 
                 // Proceed to the next activity
                 await next.Execute(context).ConfigureAwait(false);
             }
             else if (currentJob == null && !context.Saga.QueuedDesiredStateHeadline.HasValue)
             {
-                if (context.Message.SetNewDesiredState)
-                    context.Saga.DesiredStateHeadline = context.Message.DesiredStateHeadline;
+                if (explicitRequest)
+                    context.Saga.DesiredStateHeadline = effectiveDesiredState;
 
-                if (context.Message.DesiredStateHeadline == context.Saga.DesiredStateHeadline)
+                // A destroy is only ever started by asking for one.
+                if (explicitRequest || effectiveDesiredState != DesiredStateHeadline.Destroyed)
                 {
                     var hasActiveRunner = await ExecutionService.CheckRunnerAvailabilityAsync(context.Message.ModuleId);
                     if (!hasActiveRunner)
                     {
-                        if (context.Message.SetNewDesiredState || context.Saga.QueuedDesiredStateHeadline == null)
+                        if (MayQueue(explicitRequest, context.Saga, effectiveDesiredState))
                         {
-                            // effectiveDesiredState already calculated at the top of the method
                             context.Saga.QueuedDesiredStateHeadline = effectiveDesiredState;
                             context.Saga.QueuedReason = QueuedReason.WaitingOnRunnerCheckin;
                         }
@@ -192,9 +206,9 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 }
                 else
                 {
-                    _logger.LogWarning(
-                        "Skipping: message requested state {RequestedState} but saga is currently set to state {SagaState}",
-                        context.Message.DesiredStateHeadline, context.Saga.DesiredStateHeadline);
+                    _logger.LogDebug(
+                        "Module {ModuleId} is headed for Destroyed and nothing asked for a destroy: nothing to do",
+                        context.Message.ModuleId);
                     await next.Execute(context).ConfigureAwait(false);
                 }
             }
@@ -205,9 +219,9 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                     var hasActiveRunner = await ExecutionService.CheckRunnerAvailabilityAsync(context.Saga.CorrelationId);
                     if (!hasActiveRunner)
                     {
-                        if (context.Message.SetNewDesiredState)
+                        if (explicitRequest)
                         {
-                            context.Saga.QueuedDesiredStateHeadline = context.Message.DesiredStateHeadline;
+                            context.Saga.QueuedDesiredStateHeadline = effectiveDesiredState;
                             context.Saga.QueuedReason = QueuedReason.WaitingOnRunnerCheckin;
                         }
 
@@ -219,9 +233,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                     {
                         // Dequeue and execute. An explicit request (SetNewDesiredState) OVERRIDES
                         // whatever is queued
-                        context.Saga.DesiredStateHeadline = context.Message.SetNewDesiredState
-                            ? context.Message.DesiredStateHeadline
-                            : context.Saga.QueuedDesiredStateHeadline.Value;
+                        context.Saga.DesiredStateHeadline = effectiveDesiredState;
                         context.Saga.QueuedDesiredStateHeadline = null;
                         context.Saga.QueuedReason = null;
 
@@ -245,25 +257,26 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 {
                     // Dependencies still unmet — but an explicit request still replaces what is
                     // queued, so it runs once they are met rather than the stale opposite.
-                    if (context.Message.SetNewDesiredState)
+                    if (explicitRequest)
                     {
-                        context.Saga.QueuedDesiredStateHeadline = context.Message.DesiredStateHeadline;
+                        context.Saga.QueuedDesiredStateHeadline = effectiveDesiredState;
                         context.Saga.QueuedReason = QueuedReason.WaitingOnDependencies;
                     }
 
                     _logger.LogInformation(
-                        "Dependencies not yet met for module {ModuleId}, keeping queued",
-                        context.Saga.CorrelationId);
+                        "Dependencies not yet met for module {ModuleId} to {State}, keeping queued",
+                        context.Saga.CorrelationId, effectiveDesiredState);
                 }
 
                 await next.Execute(context).ConfigureAwait(false);
             }
             else
             {
-                context.Saga.QueuedDesiredStateHeadline = context.Message is { SetNewDesiredState: true }
-                    ? context.Message.DesiredStateHeadline
-                    : context.Saga.DesiredStateHeadline;
-                context.Saga.QueuedReason = QueuedReason.WaitingOnRunningJob;
+                if (MayQueue(explicitRequest, context.Saga, effectiveDesiredState))
+                {
+                    context.Saga.QueuedDesiredStateHeadline = effectiveDesiredState;
+                    context.Saga.QueuedReason = QueuedReason.WaitingOnRunningJob;
+                }
 
                 _logger.LogInformation(
                     "Job already running for module {ModuleId}, queuing request",
@@ -281,6 +294,13 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 context.Message.ModuleId);
         }
     }
+
+    /// <summary>
+    /// An explicit request always replaces the queue. Any other request may only fill an empty queue, and never
+    /// with a destroy: re-running one achieves nothing.
+    /// </summary>
+    private static bool MayQueue(bool explicitRequest, ModuleSaga saga, DesiredStateHeadline state) =>
+        explicitRequest || (saga.QueuedDesiredStateHeadline == null && state != DesiredStateHeadline.Destroyed);
 
     public Task Faulted<TException>(
         BehaviorExceptionContext<ModuleSaga, TGatekeepingJobRequested, TException> context,
