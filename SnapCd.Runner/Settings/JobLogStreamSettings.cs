@@ -17,8 +17,8 @@ namespace SnapCd.Runner.Settings;
 public class JobLogStreamSettings
 {
     /// <summary>
-    /// Maximum number of log events to ship in a single batch. The PeriodicBatchingSink will
-    /// flush early when this size is reached even before <see cref="PeriodSeconds"/> elapses.
+    /// Maximum number of log events to ship in a single batch. A job's queue ships early when
+    /// this size is reached even before <see cref="PeriodSeconds"/> elapses.
     /// </summary>
     public int BatchSizeLimit { get; set; } = 50;
 
@@ -33,4 +33,19 @@ public class JobLogStreamSettings
     /// for the period or size threshold. Keeps initial job output responsive.
     /// </summary>
     public bool EagerlyEmitFirstEvent { get; set; } = true;
+
+    /// <summary>A batch also ships once its messages reach this many characters, so long lines go in fewer calls.</summary>
+    public int BatchBytesLimit { get; set; } = 256 * 1024;
+
+    /// <summary>Most lines one job may have waiting to ship; beyond it lines are dropped and the job's log says how many.</summary>
+    public int QueueLimit { get; set; } = 200_000;
+
+    /// <summary>A job with this many lines waiting to ship is logged as a warning on the runner.</summary>
+    public int QueueWarningThreshold { get; set; } = 20_000;
+
+    /// <summary>How long a step waits for its job's logs to ship before reporting its result.</summary>
+    public int DrainTimeoutSeconds { get; set; } = 30;
+
+    /// <summary>A job's queue is retired after this long with nothing to ship.</summary>
+    public int IdleSeconds { get; set; } = 60;
 }

@@ -100,9 +100,27 @@ public partial class Tasks
     }
 
     /// <summary>
-    /// Invoke hub method with automatic retry on transient failures.
+    /// Report a step's result, with automatic retry on transient failures. The job's logs ship first, so a
+    /// finished step has its logs.
     /// </summary>
     private async Task InvokeWithRetryAsync(
+        Func<Task> invocation,
+        string operationName,
+        Guid jobId,
+        HubConnection connection,
+        int maxRetries = HubInvocationRetry.DefaultMaxRetries,
+        TimeSpan? initialDelay = null)
+    {
+        if (jobId != Guid.Empty)
+            await _jobLogStream.DrainAsync(jobId);
+
+        await RetryHubInvocationAsync(invocation, operationName, jobId, connection, maxRetries, initialDelay);
+    }
+
+    /// <summary>
+    /// Invoke hub method with automatic retry on transient failures.
+    /// </summary>
+    private async Task RetryHubInvocationAsync(
         Func<Task> invocation,
         string operationName,
         Guid jobId,
@@ -198,7 +216,7 @@ public partial class Tasks
                     "Sending initial task report for job {JobId}, task {TaskName}",
                     jobId, taskName);
 
-                await InvokeWithRetryAsync(
+                await RetryHubInvocationAsync(
                     () => runnerHubClient.InvokeReportRunningTask(
                         jobId,
                         taskName,
@@ -219,7 +237,7 @@ public partial class Tasks
                             "Sending periodic task report for job {JobId}, task {TaskName}",
                             jobId, taskName);
 
-                        await InvokeWithRetryAsync(
+                        await RetryHubInvocationAsync(
                             () => runnerHubClient.InvokeReportRunningTask(
                                 jobId,
                                 taskName,

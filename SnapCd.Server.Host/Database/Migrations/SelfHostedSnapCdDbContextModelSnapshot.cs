@@ -2533,6 +2533,70 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.ToTable("ModuleJobApprovals");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleJobLogChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("BatchTimeStamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("FirstTimestamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("LastTimestamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("LineCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Payload")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Sequence"));
+
+                    b.Property<string>("TaskNames")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("UncompressedBytes")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("JobId", "OrganizationId");
+
+                    b.HasIndex("JobId", "Sequence")
+                        .IsUnique();
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("JobId", "Sequence"), new[] { "ModuleId", "TaskNames", "LineCount", "UncompressedBytes" });
+
+                    b.HasIndex("JobId", "ModuleId", "BatchTimeStamp")
+                        .IsUnique();
+
+                    b.ToTable("ModuleJobLogChunks", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleJobMission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7004,6 +7068,70 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobLogChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("BatchTimeStamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("FirstTimestamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("LastTimestamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("LineCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Payload")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Sequence"));
+
+                    b.Property<string>("TaskNames")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("UncompressedBytes")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("JobId", "OrganizationId");
+
+                    b.HasIndex("JobId", "Sequence")
+                        .IsUnique();
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("JobId", "Sequence"), new[] { "ModuleId", "TaskNames", "LineCount", "UncompressedBytes" });
+
+                    b.HasIndex("JobId", "ModuleId", "BatchTimeStamp")
+                        .IsUnique();
+
+                    b.ToTable("StateMigrationJobLogChunks", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobStep", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11009,6 +11137,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleJobLogChunk", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ModuleJob", "Job")
+                        .WithMany()
+                        .HasForeignKey("JobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleJobMission", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
@@ -12099,6 +12238,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Job");
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobLogChunk", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.StateMigrationJob", "Job")
+                        .WithMany()
+                        .HasForeignKey("JobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobStep", b =>

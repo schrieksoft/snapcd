@@ -6,12 +6,11 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Serilog;
-using Serilog.Core;
 using Serilog.Events;
-using Serilog.Sinks.PeriodicBatching;
+using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Runner.Hub;
 using SnapCd.Runner.Settings;
@@ -19,60 +18,73 @@ using SnapCd.Runner.Settings;
 namespace SnapCd.Runner.Logging;
 
 /// <summary>
-/// Default <see cref="IJobLogStream"/>. Owns a private Serilog logger configured with
-/// <see cref="PeriodicBatchingSink"/> wrapping <see cref="SignalRLogSink"/>. Serilog is
-/// scoped to this class only — the rest of the runner is on vanilla MEL, configured via
-/// the standard <c>Logging</c> section of appsettings (level filtering happens upstream at
-/// <see cref="RunnerTaskContext"/> emit sites, not here).
-///
-/// Robustness inherited from Serilog: in-process queueing, period/size-driven batching,
-/// eager first-event emit, per-sink exception isolation, drain-on-dispose. Outage buffering
-/// + reconnect-driven flush + per-retry exception handling live downstream in
-/// <see cref="RunnerHubConnection.SendLogsAsync"/>.
+/// Default <see cref="IJobLogStream"/>. Each job gets its own <see cref="JobLogQueue"/>, so one job's log
+/// cannot hold back another's. Buffering through a disconnect is <see cref="RunnerHubConnection.SendLogsAsync"/>'s.
 /// </summary>
 public sealed class HubJobLogStream : IJobLogStream, IAsyncDisposable
 {
-    private readonly Logger _shipper;
-    private readonly PeriodicBatchingSink _batchSink;
+    private readonly ConcurrentDictionary<Guid, JobLogQueue> _queues = new();
+    private readonly object _gate = new();
+    private readonly RunnerHubConnection _hub;
+    private readonly JobLogStreamSettings _settings;
+    private readonly ILogger<HubJobLogStream> _logger;
 
-    public HubJobLogStream(RunnerHubConnection hub, IOptions<JobLogStreamSettings> settings)
+    public HubJobLogStream(RunnerHubConnection hub, IOptions<JobLogStreamSettings> settings, ILogger<HubJobLogStream> logger)
     {
-        var s = settings.Value;
-        _batchSink = new PeriodicBatchingSink(
-            new SignalRLogSink(hub),
-            new PeriodicBatchingSinkOptions
-            {
-                BatchSizeLimit = s.BatchSizeLimit,
-                Period = TimeSpan.FromSeconds(s.PeriodSeconds),
-                EagerlyEmitFirstEvent = s.EagerlyEmitFirstEvent,
-            });
-
-        _shipper = new LoggerConfiguration()
-            .MinimumLevel.Verbose()
-            .WriteTo.Sink(_batchSink)
-            .CreateLogger();
+        _hub = hub;
+        _settings = settings.Value;
+        _logger = logger;
     }
 
     public Task EmitAsync(JobLogEnvelope envelope, string message, CancellationToken ct = default)
     {
-        // ForContext attaches properties to the next event only (no AsyncLocal). SignalRLogSink
-        // reads these property names off LogEvent.Properties via LogMessageHelper to build the DTO.
-        _shipper
-            .ForContext(nameof(LogEntryDto.JobId), envelope.JobId)
-            .ForContext(nameof(LogEntryDto.ModuleId), envelope.ModuleId)
-            .ForContext(nameof(LogEntryDto.StackName), envelope.StackName)
-            .ForContext(nameof(LogEntryDto.NamespaceName), envelope.NamespaceName)
-            .ForContext(nameof(LogEntryDto.ModuleName), envelope.ModuleName)
-            .ForContext(nameof(LogEntryDto.TaskName), envelope.TaskName)
-            .ForContext(nameof(LogEntryDto.Message), message)
-            .Write(MapLevel(envelope.Level), message);
+        var line = new LogEntryDto
+        {
+            Timestamp = DateTimeOffset.UtcNow,
+            JobId = envelope.JobId,
+            ModuleId = envelope.ModuleId,
+            StackName = envelope.StackName,
+            NamespaceName = envelope.NamespaceName,
+            ModuleName = envelope.ModuleName,
+            TaskName = envelope.TaskName,
+            Level = MapLevel(envelope.Level),
+            Message = message,
+            Source = LogSource.Runner
+        };
+
+        lock (_gate)
+        {
+            while (!QueueFor(envelope.JobId).TryEnqueue(line))
+                _queues.TryRemove(envelope.JobId, out _);
+        }
+
         return Task.CompletedTask;
+    }
+
+    public async Task DrainAsync(Guid jobId)
+    {
+        if (!_queues.TryGetValue(jobId, out var queue))
+            return;
+
+        if (!await queue.DrainAsync(TimeSpan.FromSeconds(_settings.DrainTimeoutSeconds)))
+            _logger.LogWarning(
+                "Job {JobId} still had log lines waiting to ship after {Seconds} seconds; reporting its step anyway",
+                jobId, _settings.DrainTimeoutSeconds);
     }
 
     public async ValueTask DisposeAsync()
     {
-        // Disposing the Serilog logger flushes the PeriodicBatchingSink — final drain on shutdown.
-        await _shipper.DisposeAsync();
+        await Task.WhenAll(_queues.Keys.Select(DrainAsync));
+    }
+
+    private JobLogQueue QueueFor(Guid jobId)
+    {
+        if (_queues.TryGetValue(jobId, out var queue) && !queue.IsCompleted)
+            return queue;
+
+        queue = new JobLogQueue(jobId, _hub.SendLogsAsync, _settings, _logger);
+        _queues[jobId] = queue;
+        return queue;
     }
 
     private static LogEventLevel MapLevel(LogLevel level) => level switch
