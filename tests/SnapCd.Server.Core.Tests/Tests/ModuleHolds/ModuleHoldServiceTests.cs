@@ -81,9 +81,9 @@ public class ModuleHoldServiceTests
     private async Task<bool> Held(Guid? moduleId = null) => (await Store.GetHoldState(_organizationId, moduleId ?? _moduleId)).Held;
 
     [Theory]
-    [InlineData(null, null, 10, 20)]
+    [InlineData(null, null, 10, 15)]
     [InlineData(10, 5, 10, 15)]
-    [InlineData(20, null, 20, 30)]
+    [InlineData(20, null, 20, 25)]
     [InlineData(null, 30, 10, 40)]
     public void Values_within_the_limits_and_unset_values_are_applied_without_a_warning(int? heartbeat, int? buffer, int expectedHeartbeat, int expectedExpiry)
     {
@@ -93,8 +93,8 @@ public class ModuleHoldServiceTests
     }
 
     [Theory]
-    [InlineData(60, null, 30, 40, "hold_modules_heartbeat_interval_seconds")]
-    [InlineData(0, null, 5, 15, "hold_modules_heartbeat_interval_seconds")]
+    [InlineData(60, null, 30, 35, "hold_modules_heartbeat_interval_seconds")]
+    [InlineData(0, null, 5, 10, "hold_modules_heartbeat_interval_seconds")]
     [InlineData(10, 60, 10, 40, "hold_modules_heartbeat_buffer_seconds")]
     [InlineData(10, 0, 10, 11, "hold_modules_heartbeat_buffer_seconds")]
     public void A_value_outside_its_limits_is_clamped_with_a_warning_naming_the_setting(int? heartbeat, int? buffer, int expectedHeartbeat, int expectedExpiry, string setting)
@@ -135,10 +135,10 @@ public class ModuleHoldServiceTests
     {
         var response = await Service(OrganizationRole.Owner).Heartbeat(_organizationId, Heartbeat());
 
-        Assert.Equal(20, response.EffectiveExpirySeconds);
+        Assert.Equal(15, response.EffectiveExpirySeconds);
         Assert.Empty(response.NotHeldModuleIds);
         Assert.True(await Held());
-        _clock.Advance(TimeSpan.FromSeconds(19));
+        _clock.Advance(TimeSpan.FromSeconds(14));
         Assert.True(await Held());
         _clock.Advance(TimeSpan.FromSeconds(1));
         Assert.False(await Held());
@@ -150,9 +150,9 @@ public class ModuleHoldServiceTests
         var service = Service(OrganizationRole.Owner);
         await service.Heartbeat(_organizationId, Heartbeat());
 
-        _clock.Advance(TimeSpan.FromSeconds(15));
+        _clock.Advance(TimeSpan.FromSeconds(10));
         await service.Heartbeat(_organizationId, Heartbeat());
-        _clock.Advance(TimeSpan.FromSeconds(15));
+        _clock.Advance(TimeSpan.FromSeconds(10));
 
         var state = await Store.GetHoldState(_organizationId, _moduleId);
         Assert.True(state.Held);
@@ -251,7 +251,7 @@ public class ModuleHoldServiceTests
 
         var state = await Store.GetHoldState(_organizationId, _moduleId);
 
-        Assert.Equal(_clock.GetUtcNow().UtcDateTime.AddSeconds(20), state.ExpiresAt);
+        Assert.Equal(_clock.GetUtcNow().UtcDateTime.AddSeconds(15), state.ExpiresAt);
     }
 
     [Fact]
@@ -272,10 +272,10 @@ public class ModuleHoldServiceTests
     public async Task Another_principals_heartbeat_keeps_the_same_hold_alive()
     {
         await Service(OrganizationRole.Owner).Heartbeat(_organizationId, Heartbeat());
-        _clock.Advance(TimeSpan.FromSeconds(15));
+        _clock.Advance(TimeSpan.FromSeconds(10));
 
         var response = await Service(OrganizationRole.Contributor).Heartbeat(_organizationId, Heartbeat());
-        _clock.Advance(TimeSpan.FromSeconds(15));
+        _clock.Advance(TimeSpan.FromSeconds(10));
 
         Assert.Empty(response.NotHeldModuleIds);
         Assert.True(await Held());
