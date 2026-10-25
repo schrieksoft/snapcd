@@ -158,14 +158,13 @@ public static class StateManagementEngineCapabilities
     /// <summary>
     /// Whether this engine can be asked what an upstream's predicted outputs would do to it. A
     /// probe plans with values that are not yet known, which needs the planner to carry an unknown
-    /// through: Pulumi's plan model has no equivalent, and planning a Terraform root would mean
-    /// using the OpenTofu lineage to answer for an engine licensed apart from it.
+    /// through; Pulumi's plan model has no equivalent.
     /// </summary>
     public static bool SupportsProbes(this StateManagementEngine engine) =>
         engine switch
         {
             StateManagementEngine.OpenTofu => true,
-            StateManagementEngine.Terraform => false,
+            StateManagementEngine.Terraform => true,
             StateManagementEngine.Pulumi => false,
             _ => false
         };

@@ -93,7 +93,7 @@ public class ProbeWaveReadiness(
 
     /// <summary>
     /// Whether this Module's engine can answer a probe. A probe plans with values that are not yet
-    /// known, which only the OpenTofu lineage's planner carries through as unknowns.
+    /// known, which needs a planner that carries an unknown through.
     /// </summary>
     private async Task<bool> EngineSupportsProbes(Guid moduleId, Guid organizationId)
     {
