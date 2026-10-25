@@ -71,7 +71,6 @@ public class SignalEdgeBlocksDeleteTests : IAsyncLifetime
 
         await db.Modules.Where(m => moduleIds.Contains(m.Id)).ExecuteDeleteAsync();
         await db.Set<ModuleSaga>().Where(s => moduleIds.Contains(s.CorrelationId)).ExecuteDeleteAsync();
-        await db.Set<ModuleModifiedSaga>().Where(s => moduleIds.Contains(s.CorrelationId)).ExecuteDeleteAsync();
 
         await db.Namespaces.Where(n => namespaceIds.Contains(n.Id)).ExecuteDeleteAsync();
         await db.Stacks.Where(s => _stacks.Contains(s.Id)).ExecuteDeleteAsync();
@@ -196,8 +195,6 @@ public class SignalEdgeBlocksDeleteTests : IAsyncLifetime
         Assert.Null(await db.Modules.AsNoTracking().FirstOrDefaultAsync(m => m.Id == moduleId));
         Assert.Null(await db.Set<ModuleSaga>().AsNoTracking()
             .FirstOrDefaultAsync(s => s.CorrelationId == moduleId));
-        Assert.Null(await db.Set<ModuleModifiedSaga>().AsNoTracking()
-            .FirstOrDefaultAsync(s => s.CorrelationId == moduleId));
     }
 
     /// <summary>
@@ -314,14 +311,6 @@ public class SignalEdgeBlocksDeleteTests : IAsyncLifetime
             RowVersion = [],
             CurrentState = nameof(ModuleStateMachine.Gatekeeping),
             DesiredStateHeadline = DesiredStateHeadline.Applied
-        };
-
-        module.ModuleModifiedSaga = new ModuleModifiedSaga
-        {
-            CorrelationId = module.Id,
-            OrganizationId = _organizationId,
-            RowVersion = [],
-            CurrentState = nameof(ModuleModifiedStateMachine.Idle)
         };
 
         return module;

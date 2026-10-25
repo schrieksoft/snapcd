@@ -106,14 +106,6 @@ public class FakeRunner(
         var hub = scope.ServiceProvider.GetRequiredService<RunnerHub>();
         hub.Context = new FakeRunnerContext(connectionId, organizationId);
 
-        // The liveness ping carries a bare id rather than a step request, and a connection that
-        // does not answer it is dropped as stale before any step is dispatched.
-        if (endpoint == nameof(IRunnerLifecycleEndpoints.Ping))
-        {
-            await hub.Pong((Guid)payload);
-            return;
-        }
-
         var jobId = Read<Guid>(payload, "JobId");
 
         // A real runner reports its task on a timer for as long as it runs, which is what the

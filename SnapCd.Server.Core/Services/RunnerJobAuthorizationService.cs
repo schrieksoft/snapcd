@@ -12,7 +12,9 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Entities.Sagas.Base;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Constants;
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
 namespace SnapCd.Server.Core.Services;
@@ -70,6 +72,19 @@ public class RunnerJobAuthorizationService
         return new Guid(organizationId);
     }
 
+    /// <summary>
+    /// A connection with no registration can never be authorized, so it is closed: the runner reconnects,
+    /// registers again and repeats the call.
+    /// </summary>
+    private HubException ConnectionNotRegistered(HubCallerContext hubCallerContext)
+    {
+        _logger.LogWarning(
+            "No connection record for connection {ConnectionId}; closing it so the runner reconnects and registers",
+            hubCallerContext.ConnectionId);
+        hubCallerContext.Abort();
+        return new HubException($"{HubErrorCodes.ConnectionNotRegistered}: Runner connection not found");
+    }
+
     public async Task<Guid> ValidateIsForCurrentConnection(HubCallerContext hubCallerContext, Guid jobId)
     {
         var organizationId = GetValidatedOrganizationId(hubCallerContext);
@@ -79,10 +94,7 @@ public class RunnerJobAuthorizationService
         var connection = await connectionRepository.GetBySignalRConnectionIdAsync(hubCallerContext.ConnectionId, organizationId);
         if (connection == null)
         {
-            _logger.LogWarning(
-                "Authorization failed: No connection found for connection {ConnectionId}",
-                hubCallerContext.ConnectionId);
-            throw new HubException("Unauthorized: Runner connection not found");
+            throw ConnectionNotRegistered(hubCallerContext);
         }
 
         return organizationId;
@@ -127,6 +139,37 @@ public class RunnerJobAuthorizationService
             $"Module {moduleId} is not allowed to run jobs on Runner {runnerId}. You must first assign the Runner to this Module (or to its parent Namespace or Stack), or you must set the IsSuppliedToAllModules flag to 'true' on the Runner itself.");
     }
 
+    private const string LateReportNote = "The runner reported on this job after the server had ended it";
+
+    /// <summary>
+    /// Notes on an ended job that its runner was still working on it, so a result the server can no longer accept is not
+    /// silently lost. Only the runner the job's module runs on can leave the note, and only once.
+    /// </summary>
+    public static async Task RecordLateReport(SnapCdDbContext dbContext, Guid jobId, Guid organizationId, Guid runnerId)
+    {
+        var note = $"{LateReportNote}, at {DateTimeOffset.UtcNow:u}. Its result was not recorded; check the runner's logs for what it did.";
+
+        var moduleJob = await dbContext.ModuleJobs
+            .Where(j => j.Id == jobId && j.OrganizationId == organizationId && j.Status != ExecutionStatus.Running && j.Module.RunnerId == runnerId)
+            .FirstOrDefaultAsync();
+        if (moduleJob != null)
+        {
+            if (moduleJob.ServerSideError?.Contains(LateReportNote) == true) return;
+            moduleJob.ServerSideErrorHeader ??= LateReportNote;
+            moduleJob.ServerSideError = ErrorText.Body(string.IsNullOrEmpty(moduleJob.ServerSideError) ? note : $"{moduleJob.ServerSideError}\n\n{note}");
+            await dbContext.SaveChangesAsync();
+            return;
+        }
+
+        var stateMigrationJob = await dbContext.StateMigrationJobs
+            .Where(j => j.Id == jobId && j.OrganizationId == organizationId && j.Status != ExecutionStatus.Running && j.Module.RunnerId == runnerId)
+            .FirstOrDefaultAsync();
+        if (stateMigrationJob == null || stateMigrationJob.ServerSideError?.Contains(LateReportNote) == true) return;
+        stateMigrationJob.ServerSideErrorHeader ??= LateReportNote;
+        stateMigrationJob.ServerSideError = ErrorText.Body(string.IsNullOrEmpty(stateMigrationJob.ServerSideError) ? note : $"{stateMigrationJob.ServerSideError}\n\n{note}");
+        await dbContext.SaveChangesAsync();
+    }
+
     /// <summary>
     /// Authorizes a runner callback for one job family: that the connection is known, the job
     /// exists, and the caller is the runner instance the job was pinned to. Whether the saga is in
@@ -152,10 +195,7 @@ public class RunnerJobAuthorizationService
 
         if (connection == null)
         {
-            _logger.LogWarning(
-                "Authorization failed: No connection found for connection {ConnectionId}",
-                hubCallerContext.ConnectionId);
-            throw new HubException("Unauthorized: Runner connection not found");
+            throw ConnectionNotRegistered(hubCallerContext);
         }
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
@@ -175,6 +215,7 @@ public class RunnerJobAuthorizationService
             _logger.LogWarning(
                 "Authorization failed: {Family} job {JobId} not found (Module: {ModuleId}, Connection: {ConnectionId})",
                 family, jobId, moduleId, hubCallerContext.ConnectionId);
+            await RecordLateReport(dbContext, jobId, connection.OrganizationId, connection.RunnerId);
             throw new HubException($"Could not find a Job with correlation id {jobId}.");
         }
 

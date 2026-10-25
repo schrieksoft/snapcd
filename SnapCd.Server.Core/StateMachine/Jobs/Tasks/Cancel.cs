@@ -69,6 +69,7 @@ public partial class JobStateMachine<
     TProbeCompleted,
     TProbeCancelled,
     TProbeFaulted,
+    TApplyFromPlanFaulted,
     TCancelKillRequested,
     TDummyCancelKillCompleted,
     TCancelKillCompleted>
@@ -116,6 +117,7 @@ public partial class JobStateMachine<
     where TProbeCompleted : ProbeCompletedBase
     where TProbeCancelled : StepResponseBase
     where TProbeFaulted : StepFaultedBase
+    where TApplyFromPlanFaulted : FromPlanFaultedBase
     where TCancelKillRequested : CancelKillRequestedBase, new()
     where TDummyCancelKillCompleted : class
     where TCancelKillCompleted : StepResponseBase
@@ -280,6 +282,48 @@ public partial class JobStateMachine<
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(OutputCompleted)
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(PolicyValidateCompleted)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(SelectRunnerInstanceFaulted)
+                .CancelAfterFault<TSaga, SelectRunnerInstanceFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(SelectRunnerInstanceCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(GetDefinitiveRevisionFaulted)
+                .CancelAfterFault<TSaga, TGetDefinitiveRevisionFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(GetDefinitiveRevisionCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(GetModuleFaulted)
+                .CancelAfterFault<TSaga, TGetModuleFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(GetModuleCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(InitFaulted)
+                .CancelAfterFault<TSaga, TInitFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(InitCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(ValidateFaulted)
+                .CancelAfterFault<TSaga, TValidateFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(ValidateCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(VariablesFaulted)
+                .CancelAfterFault<TSaga, TVariablesFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(VariablesCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(PolicyValidateFaulted)
+                .CancelAfterFault<TSaga, TPolicyValidateFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(PolicyValidateCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(ApplyPlanFaulted)
+                .CancelAfterFault<TSaga, TPlanFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(ApplyPlanCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(ApplyFromPlanFaulted)
+                .CancelAfterFault<TSaga, TApplyFromPlanFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(ApplyFromPlanCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(OutputFaulted)
+                .CancelAfterFault<TSaga, TOutputFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(OutputCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(CancelKillCompleted)
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(CancelKillRequested.TimeoutExpired)
@@ -309,11 +353,56 @@ public partial class JobStateMachine<
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(OutputCompleted)
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(PolicyValidateCompleted)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(SelectRunnerInstanceFaulted)
+                .CancelAfterFault<TSaga, SelectRunnerInstanceFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(SelectRunnerInstanceCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(GetDefinitiveRevisionFaulted)
+                .CancelAfterFault<TSaga, TGetDefinitiveRevisionFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(GetDefinitiveRevisionCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(GetModuleFaulted)
+                .CancelAfterFault<TSaga, TGetModuleFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(GetModuleCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(InitFaulted)
+                .CancelAfterFault<TSaga, TInitFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(InitCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(ValidateFaulted)
+                .CancelAfterFault<TSaga, TValidateFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(ValidateCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(VariablesFaulted)
+                .CancelAfterFault<TSaga, TVariablesFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(VariablesCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(PolicyValidateFaulted)
+                .CancelAfterFault<TSaga, TPolicyValidateFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(PolicyValidateCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(ApplyPlanFaulted)
+                .CancelAfterFault<TSaga, TPlanFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(ApplyPlanCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(ApplyFromPlanFaulted)
+                .CancelAfterFault<TSaga, TApplyFromPlanFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(ApplyFromPlanCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
+            When(OutputFaulted)
+                .CancelAfterFault<TSaga, TOutputFaulted, TResponseCancelled>(_logger, Cancelled),
+            When(OutputCancelled)
+                .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(CancelModuleRequested)
                 .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested, TCancelKillRequested, TDummyCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled),
-            Ignore(HeartbeatScheduled.Received),
-            Ignore(HeartbeatRequested.Completed),
-            Ignore(HeartbeatRequested.Completed2),
+            When(HeartbeatScheduled.Received)
+                .ThenHeartbeatScheduled(HeartbeatRequested),
+            When(HeartbeatRequested.Completed)
+                .ThenHeartbeatCompleted(HeartbeatScheduled),
+            When(HeartbeatRequested.Completed2)
+                .CancelAfterLostRunner<TSaga, TResponseCancelled>(_logger, Cancelled),
             Ignore(RunnerReconnectedEvent)
         );
 

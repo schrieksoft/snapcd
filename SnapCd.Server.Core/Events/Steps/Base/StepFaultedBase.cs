@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Contracts;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Events.Steps.Base;
 
@@ -15,8 +16,11 @@ namespace SnapCd.Server.Core.Events.Steps.Base;
 /// Contains common error information and the IsServerSideError flag to distinguish
 /// between server-side errors (in consumers/activities) and runner-side errors.
 /// </summary>
-public abstract class StepFaultedBase : StepResponseBase
+public abstract class StepFaultedBase : StepResponseBase, IStepFault
 {
+    /// <summary>The step this fault belongs to, declared by each fault type.</summary>
+    public abstract ServerSideStep Step { get; }
+
     public string? ErrorMessage { get; set; }
     public string? StackTrace { get; set; }
 

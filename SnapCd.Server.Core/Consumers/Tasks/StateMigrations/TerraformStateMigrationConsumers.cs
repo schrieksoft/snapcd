@@ -68,7 +68,7 @@ public class MoveConsumer(
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }
@@ -123,7 +123,7 @@ public class ImportConsumer(
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }
@@ -178,7 +178,7 @@ public class RemoveConsumer(
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }
@@ -233,7 +233,7 @@ public class MoveDryRunConsumer(
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }
@@ -288,7 +288,7 @@ public class RemoveDryRunConsumer(
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }
@@ -343,7 +343,7 @@ public class ImportPreCheckConsumer(
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }

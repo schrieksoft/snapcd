@@ -113,7 +113,6 @@ public class SourceChangedService
             {
                 ModuleId = module.Id,
                 OrganizationId = organizationId,
-                DesiredStateHeadline = DesiredStateHeadline.Applied,
                 SetNewDesiredState = false
             }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
 

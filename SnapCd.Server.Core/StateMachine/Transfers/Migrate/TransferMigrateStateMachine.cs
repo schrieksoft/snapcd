@@ -232,6 +232,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
         Configure_Preamble();
         Configure_Consent();
         Configure_TransferHalves();
+        Configure_Faults();
     }
 
     /// <summary>

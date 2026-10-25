@@ -22,6 +22,9 @@ namespace SnapCd.Runner.Logging;
 public interface IJobLogStream
 {
     Task EmitAsync(JobLogEnvelope envelope, string message, CancellationToken ct = default);
+
+    /// <summary>Waits, within a bound, until the job's queued lines have been handed to the connection.</summary>
+    Task DrainAsync(Guid jobId);
 }
 
 /// <summary>

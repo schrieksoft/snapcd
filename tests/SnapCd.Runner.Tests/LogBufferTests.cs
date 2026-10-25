@@ -6,99 +6,75 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Runner.Hub;
 
 namespace SnapCd.Runner.Tests;
 
-/// <summary>
-/// The buffer holds what could not be shipped. Its two add paths differ in what happens when it
-/// is full, which is the whole reason they are separate methods.
-/// </summary>
 public class LogBufferTests
 {
+    private static List<LogEntryDto> Batch(int count, int from = 0) =>
+        Enumerable.Range(from, count).Select(i => new LogEntryDto { Message = $"line {i}" }).ToList();
+
+    private static List<string> Messages(IEnumerable<LogEntryDto> entries) => entries.Select(e => e.Message).ToList();
+
     [Fact]
-    public void An_entry_added_while_disconnected_comes_back_out_with_its_endpoint()
+    public async Task Flush_sends_each_batch_whole_and_in_order()
     {
-        var buffer = new LogBuffer();
+        var buffer = new LogBuffer(capacity: 1000);
+        buffer.Add(Batch(150));
+        buffer.Add(Batch(30, from: 150));
+        var sentBatches = new List<List<LogEntryDto>>();
 
-        buffer.AddWhileDisconnected("AddStateMigrationLogs", "first");
-        buffer.AddWhileDisconnected("AddModuleJobLogs", "second");
+        var sent = await buffer.FlushAsync(batch =>
+        {
+            sentBatches.Add(batch);
+            return Task.CompletedTask;
+        });
 
-        var batch = buffer.TakeBatch(10);
-
-        Assert.Equal(
-            [("AddStateMigrationLogs", (object)"first"), ("AddModuleJobLogs", (object)"second")],
-            batch);
+        Assert.Equal(180, sent);
+        Assert.Equal([150, 30], sentBatches.Select(b => b.Count));
+        Assert.Equal(Messages(Batch(180)), Messages(sentBatches.SelectMany(b => b)));
         Assert.True(buffer.IsEmpty);
     }
 
     [Fact]
-    public void A_full_buffer_drops_its_oldest_to_hold_a_new_entry()
+    public async Task A_failed_batch_is_kept_whole_at_the_front()
     {
-        var buffer = new LogBuffer();
-        for (var i = 0; i < LogBuffer.MaxSize; i++)
-            buffer.AddWhileDisconnected("AddModuleJobLogs", i);
+        var buffer = new LogBuffer(capacity: 1000);
+        var first = Batch(10);
+        var second = Batch(10, from: 10);
+        buffer.Add(first);
+        buffer.Add(second);
+        buffer.Add(Batch(10, from: 20));
+        var calls = 0;
 
-        buffer.AddWhileDisconnected("AddModuleJobLogs", "newest");
+        await Assert.ThrowsAsync<InvalidOperationException>(() => buffer.FlushAsync(_ =>
+            ++calls == 2 ? throw new InvalidOperationException("connection lost") : Task.CompletedTask));
 
-        Assert.Equal(LogBuffer.MaxSize, buffer.Count);
-        Assert.Equal(1, buffer.DroppedCount);
+        Assert.Equal(20, buffer.Count);
 
-        // The oldest went, not the newest: an entry describing what a job is doing now is worth
-        // more than one describing what it was doing ten thousand entries ago.
-        var batch = buffer.TakeBatch(LogBuffer.MaxSize);
-        Assert.Equal(1, batch[0].Entry);
-        Assert.Equal("newest", batch[^1].Entry);
-    }
+        var resent = new List<List<LogEntryDto>>();
+        await buffer.FlushAsync(batch =>
+        {
+            resent.Add(batch);
+            return Task.CompletedTask;
+        });
 
-    /// <summary>
-    /// A retry must not evict: the held entry might still arrive, and the one being requeued has
-    /// already failed once.
-    /// </summary>
-    [Fact]
-    public void A_full_buffer_refuses_a_retry_rather_than_evicting()
-    {
-        var buffer = new LogBuffer();
-        for (var i = 0; i < LogBuffer.MaxSize; i++)
-            buffer.AddWhileDisconnected("AddModuleJobLogs", i);
-
-        buffer.AddForRetry("AddModuleJobLogs", "requeued");
-
-        Assert.Equal(LogBuffer.MaxSize, buffer.Count);
-        Assert.Equal(0, buffer.DroppedCount);
-
-        var batch = buffer.TakeBatch(LogBuffer.MaxSize);
-        Assert.DoesNotContain(("AddModuleJobLogs", (object)"requeued"), batch);
+        Assert.Same(second, resent[0]);
+        Assert.Equal(Messages(Batch(20, from: 10)), Messages(resent.SelectMany(b => b)));
     }
 
     [Fact]
-    public void A_batch_is_capped_and_leaves_the_rest_behind()
+    public void A_full_buffer_drops_the_oldest_batches_and_counts_their_entries()
     {
-        var buffer = new LogBuffer();
-        for (var i = 0; i < 250; i++)
-            buffer.AddWhileDisconnected("AddModuleJobLogs", i);
+        var buffer = new LogBuffer(capacity: 10);
 
-        Assert.Equal(100, buffer.TakeBatch(100).Count);
-        Assert.Equal(150, buffer.Count);
-    }
+        buffer.Add(Batch(6));
+        buffer.Add(Batch(6, from: 6));
 
-    [Fact]
-    public void The_dropped_count_is_reported_once()
-    {
-        var buffer = new LogBuffer();
-        for (var i = 0; i < LogBuffer.MaxSize + 3; i++)
-            buffer.AddWhileDisconnected("AddModuleJobLogs", i);
-
-        Assert.Equal(3, buffer.ReadAndResetDroppedCount());
-        Assert.Equal(0, buffer.ReadAndResetDroppedCount());
-    }
-
-    [Fact]
-    public void An_empty_buffer_yields_an_empty_batch()
-    {
-        var buffer = new LogBuffer();
-
-        Assert.True(buffer.IsEmpty);
-        Assert.Empty(buffer.TakeBatch(100));
+        Assert.Equal(6, buffer.Count);
+        Assert.Equal(6, buffer.TakeDroppedCount());
+        Assert.Equal(0, buffer.TakeDroppedCount());
     }
 }

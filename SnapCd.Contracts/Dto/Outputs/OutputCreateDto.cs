@@ -16,6 +16,13 @@ public class OutputCreateDto
     public string Name { get; set; } = null!;
     public bool? Sensitive { get; set; }
     public string Type { get; set; } = null!;
+
+    /// <summary>
+    /// cty JSON encoding of a complex type, as <c>tofu output -json</c> reports it. Null for a
+    /// primitive type, which the <see cref="Type"/> tag fully describes.
+    /// </summary>
+    public string? TypeDefinition { get; set; }
+
     public string Value { get; set; } = null!;
     public bool FromExtraFile { get; set; } = false;
 }

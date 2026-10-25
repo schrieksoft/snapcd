@@ -20,7 +20,6 @@ public partial class Tasks
     public async Task ApplyFromPlan(
         ApplyFromPlanRequestBase request,
         HubConnection connection,
-        IJobLogStream logStream,
         Func<Guid, int, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, int?, Task> faulted)
@@ -43,7 +42,7 @@ public partial class Tasks
             request.JobId,
             nameof(ApplyFromPlan),
             logger,
-            logStream,
+            _jobLogStream,
             request.Metadata
         );
 

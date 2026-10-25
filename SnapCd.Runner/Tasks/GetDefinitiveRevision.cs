@@ -24,7 +24,6 @@ public partial class Tasks
     public async Task GetDefinitiveRevision(
         GetDefinitiveRevisionRequest request,
         HubConnection connection,
-        IJobLogStream logStream,
         Func<Guid, string, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)
@@ -47,7 +46,7 @@ public partial class Tasks
             request.JobId,
             nameof(GetDefinitiveRevision),
             logger,
-            logStream,
+            _jobLogStream,
             request.Metadata
         );
 

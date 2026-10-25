@@ -14,6 +14,7 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.MaintenanceMode;
+using SnapCd.Server.Core.Services.ModuleHold;
 
 namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 
@@ -40,6 +41,7 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
 
     // Resolved lazily: the maintenance-gated path runs without the job-service dependency graph.
     private JobService ExecutionService => _serviceProvider.GetRequiredService<JobService>();
+    private ModuleHoldGate HoldGate => _serviceProvider.GetRequiredService<ModuleHoldGate>();
 
     public async Task Execute(
         BehaviorContext<ModuleSaga, TMessage> context,
@@ -64,12 +66,28 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
                 return;
             }
 
+            if (await HoldGate.ParkIfHeld(context.Saga, null, false))
+            {
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
+
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
             // Check if there's a current ModuleJob for this module
             var hasCurrentJob = await dbContext.ModuleJobs
                 .Where(j => j.ModuleId == context.Saga.CorrelationId && j.OrganizationId == context.Saga.OrganizationId && j.IsCurrent == true)
                 .AnyAsync();
+
+            if (context.Saga.QueuedDesiredStateHeadline == DesiredStateHeadline.Destroyed &&
+                await ModuleDestroyedCheck.IsDestroyedAsync(dbContext, context.Saga.CorrelationId, context.Saga.OrganizationId))
+            {
+                context.Saga.QueuedDesiredStateHeadline = null;
+                context.Saga.QueuedReason = null;
+                _logger.LogInformation("Module {ModuleId} already destroyed, dropping the queued destroy", context.Saga.CorrelationId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
 
             // Only proceed if there's no current job and there's a queued request
             if (!hasCurrentJob && context.Saga.QueuedDesiredStateHeadline.HasValue)

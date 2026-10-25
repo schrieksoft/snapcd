@@ -841,16 +841,6 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.DestroyOutputFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeAddModuleJobLogs(List<ModuleJobLogEntryDto> logEntries)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.AddModuleJobLogs, logEntries);
-    }
-
-    public async Task InvokeAddStateMigrationLogs(List<StateMigrationLogEntryDto> logEntries)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.AddStateMigrationLogs, logEntries);
-    }
-
 
     public async Task InvokeSplitGetModuleCompleted(Guid jobId)
     {

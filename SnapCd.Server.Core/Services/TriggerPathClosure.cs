@@ -55,9 +55,8 @@ public static class TriggerPathClosure
 
     /// <summary>
     /// The watched-path union a refresh request must carry for one refresh group: the declared paths of every
-    /// filter-enabled member. Every dispatch site must use this — the consumer evaluates all eligible members
-    /// of the group against the report, and a report missing a member's paths composes with empty hashes and
-    /// fail-opens into a spurious trigger.
+    /// filter-enabled member. Every dispatch site must use this: the consumer judges a filter-enabled module only
+    /// by a report that hashed all of its declared paths, so a member whose paths are left out is never triggered.
     /// </summary>
     public static List<string> GroupWatchedPaths(IEnumerable<Module> groupMembers)
     {
@@ -87,9 +86,9 @@ public static class TriggerPathClosure
     }
 
     /// <summary>
-    /// Composes the closure hash over the watched paths from reported per-path tree hashes. A path missing from
-    /// the report contributes an empty hash, which is also how the runner reports a directory that does not exist
-    /// at the refreshed commit — either way the composition moves when a path appears or disappears.
+    /// Composes the closure hash over the watched paths from reported per-path tree hashes. The runner reports a
+    /// directory that does not exist at the refreshed commit as an empty hash, so the composition moves when a
+    /// path appears or disappears.
     /// </summary>
     public static string Compose(IEnumerable<string> watchedPaths, IReadOnlyDictionary<string, string> reportedTreeHashes)
     {

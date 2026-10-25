@@ -52,7 +52,7 @@ namespace SnapCd.Server.Core.Hubs;
 public class RunnerHub : Hub
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
-    private readonly JobLogServiceFactory _jobLogServiceFactory;
+    private readonly LogService _logService;
     private readonly JobServiceFactory _jobServiceFactory;
     private readonly IBus _bus;
     private readonly ILogger<RunnerHub> _logger;
@@ -100,15 +100,17 @@ public class RunnerHub : Hub
     private readonly RunnerConnectionValidator _connectionValidator;
     private readonly ServerSettings _serverSettings;
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
+    private readonly OpenConnections<RunnerHub> _openConnections;
     private readonly ReportRunningTaskHandler _reportRunningTaskHandler;
     private readonly CancelKillHandler _cancelKillHandler;
 
     public RunnerHub(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
-        JobLogServiceFactory jobLogServiceFactory,
+        LogService logService,
         JobServiceFactory jobServiceFactory,
         IBus bus,
         ILogger<RunnerHub> logger,
+        OpenConnections<RunnerHub> openConnections,
         RunnerJobAuthorizationService authorizationService,
         ApplyGetDefinitiveRevisionHandler applyGetDefinitiveRevisionHandler,
         DestroyGetDefinitiveRevisionHandler destroyGetDefinitiveRevisionHandler,
@@ -157,10 +159,11 @@ public class RunnerHub : Hub
         CancelKillHandler cancelKillHandler)
     {
         _dbContextFactory = dbContextFactory;
-        _jobLogServiceFactory = jobLogServiceFactory;
+        _logService = logService;
         _jobServiceFactory = jobServiceFactory;
         _bus = bus;
         _logger = logger;
+        _openConnections = openConnections;
         _authorizationService = authorizationService;
         _applyGetDefinitiveRevisionHandler = applyGetDefinitiveRevisionHandler;
         _destroyGetDefinitiveRevisionHandler = destroyGetDefinitiveRevisionHandler;
@@ -355,6 +358,9 @@ public class RunnerHub : Hub
                 throw new HubException(validationResult.RejectionReason ?? "Connection validation failed");
             }
 
+            // Before the row exists, so selection never finds a row whose connection it does not know is open.
+            _openConnections.Add(Context.ConnectionId);
+
             // Create connection record in database
             var connectionRecord = new RunnerConnection
             {
@@ -402,6 +408,8 @@ public class RunnerHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        _openConnections.Remove(Context.ConnectionId);
+
         try
         {
             // Query database to get connection info by ConnectionId
@@ -438,36 +446,16 @@ public class RunnerHub : Hub
     }
 
     /// <summary>
-    /// Acknowledge a liveness ping. Invoking this proves the runner can still service hub calls,
-    /// which an open connection alone does not.
+    /// Receive a batch of log entries from the runner
     /// </summary>
-    public Task Pong(Guid pingId)
-    {
-        Services.RunnerLivenessProbe.Acknowledge(pingId);
-        return Task.CompletedTask;
-    }
-
-    /// <summary>Receive a batch of log entries from a runner working on a deployment job.</summary>
-    public Task AddModuleJobLogs(List<ModuleJobLogEntryDto> logEntries) =>
-        AddLogs<ModuleJob, ModuleJobLogEntryDto>(logEntries);
-
-    /// <summary>Receive a batch of log entries from a runner working on a manual job.</summary>
-    public Task AddStateMigrationLogs(List<StateMigrationLogEntryDto> logEntries) =>
-        AddLogs<StateMigrationJob, StateMigrationLogEntryDto>(logEntries);
-
-    /// <summary>
-    /// The batch handling every table shares. Which endpoint the runner invoked is what names the
-    /// table, so nothing here looks a job id up across tables.
-    /// </summary>
-    private async Task AddLogs<TJob, TLogEntry>(List<TLogEntry> logEntries)
-        where TJob : class, IJobWithLogs
-        where TLogEntry : class, IJobLogEntry
+    public async Task AddLogs(List<LogEntryDto> logEntries)
     {
         if (logEntries == null || logEntries.Count == 0)
             return;
 
         try
         {
+            // Query database to get connection info
             using var connectionRepository = _connectionRepositoryFactory.Create();
             var connection = await connectionRepository.GetBySignalRConnectionIdAsync(Context.ConnectionId, _authorizationService.GetValidatedOrganizationId(Context));
 
@@ -477,25 +465,11 @@ public class RunnerHub : Hub
                 return;
             }
 
-            // Same question every step method asks: is the caller the runner this job was given to.
-            // SelectedRunnerId is null only on a row written before it existed, and null is not a
-            // match, so those are refused rather than trusted.
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-            var jobId = logEntries.First().JobId;
-            var selectedRunnerId = await dbContext.Set<TJob>().AsNoTracking()
-                .Where(j => j.Id == jobId && j.OrganizationId == connection.OrganizationId)
-                .Select(j => j.SelectedRunnerId)
-                .FirstOrDefaultAsync();
+            // TODO: Add permission checking here (like LogsController.CheckHasPermission)
+            // For now, skip permission checking
 
-            if (selectedRunnerId != connection.RunnerId)
-            {
-                _logger.LogWarning(
-                    "Authorization failed: logs for job {JobId} require Runner {RequiredRunnerId}, but the caller is {CallerRunnerId}",
-                    jobId, selectedRunnerId, connection.RunnerId);
-                throw new HubException($"Unauthorized: not the runner for job {jobId}.");
-            }
-
-            await _jobLogServiceFactory.Create<TJob, TLogEntry>().AddLogEntries(logEntries);
+            // Add log entries to database
+            await _logService.AddLogEntries(logEntries);
 
             // Publish LogReceivedEvent for the first correlation ID
             var firstEntry = logEntries.First();
@@ -1267,7 +1241,7 @@ public class RunnerHub : Hub
         SourceRevisionType sourceRevisionType,
         string definitiveRevision)
     {
-        await _sourceRefreshHandler.Complete(sourceUrl, sourceRevision, sourceType, sourceRevisionType, definitiveRevision);
+        await _sourceRefreshHandler.Complete(_authorizationService.GetValidatedOrganizationId(Context), sourceUrl, sourceRevision, sourceType, sourceRevisionType, definitiveRevision);
     }
 
 
@@ -1278,7 +1252,7 @@ public class RunnerHub : Hub
         SourceRevisionType sourceRevisionType,
         SourceRefreshResult result)
     {
-        await _sourceRefreshHandler.CompleteV2(sourceUrl, sourceRevision, sourceType, sourceRevisionType, result);
+        await _sourceRefreshHandler.CompleteV2(_authorizationService.GetValidatedOrganizationId(Context), sourceUrl, sourceRevision, sourceType, sourceRevisionType, result);
     }
 
     public async Task SourceRefreshFaulted(

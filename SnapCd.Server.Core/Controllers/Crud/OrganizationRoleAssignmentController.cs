@@ -75,7 +75,7 @@ public class OrganizationRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public virtual async Task<ActionResult<OrganizationRoleAssignmentReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -97,7 +97,7 @@ public class OrganizationRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public virtual async Task<ActionResult<OrganizationRoleAssignmentReadDto>> Update(Guid organizationId, OrganizationRoleAssignmentUpdateDto dto, Guid id)
     {
         try
@@ -131,7 +131,7 @@ public class OrganizationRoleAssignmentController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public virtual async Task<IActionResult> Delete(Guid organizationId, Guid id)
     {
         try

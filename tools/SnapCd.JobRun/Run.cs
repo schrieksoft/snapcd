@@ -16,6 +16,8 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Hubs;
+using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.RippleProbes;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -66,6 +68,7 @@ public static class Run
         var dbFactory = services.GetRequiredService<IDbContextFactory<SnapCdDbContext>>();
 
         var runnerId = await SeedRunnerConnection(dbFactory, options);
+        services.GetRequiredService<OpenConnections<RunnerHub>>().Add(options.ConnectionId);
         if (runnerId is null)
         {
             Console.Error.WriteLine(
@@ -473,12 +476,14 @@ public static class Run
         foreach (var step in runner.Dispatched)
             Console.WriteLine($"  {step}");
 
-        if (!string.IsNullOrWhiteSpace(job?.Logs))
+        using var scope = services.CreateScope();
+        var logs = await scope.ServiceProvider.GetRequiredService<LogService>().GetLogEntries(jobId);
+        if (logs.Count > 0)
         {
             Console.WriteLine();
             Console.WriteLine("Logs");
-            foreach (var line in job.Logs.Split('\n').TakeLast(20))
-                Console.WriteLine($"  {line.TrimEnd()}");
+            foreach (var entry in logs.TakeLast(20))
+                Console.WriteLine($"  {entry.Message?.TrimEnd()}");
         }
     }
 

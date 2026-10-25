@@ -21,7 +21,17 @@ public class Variable : AuditBase, IEntity
     public Guid VariableSetId { get; set; }
     [MaxLength(255)] public string Name { get; set; } = null!;
     [MaxLength(255)] public string? Type { get; set; }
-    [MaxLength(2000)] public string? Description { get; set; }
+
+    /// <summary>
+    /// cty JSON encoding of a complex type, in the same form <c>tofu output -json</c> reports an
+    /// output's type. Null for a primitive type, which <see cref="Type"/> fully describes.
+    /// </summary>
+    public string? TypeDefinition { get; set; }
+
+    /// <summary>Declared default, serialised as JSON. Null when the variable is required.</summary>
+    public string? Default { get; set; }
+
+    public string? Description { get; set; }
     public bool Sensitive { get; set; } = false;
     public bool Nullable { get; set; } = false;
     public bool FromExtraFile { get; set; } = false;

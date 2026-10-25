@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
-using SnapCd.Server.Core.Factories;
 using Microsoft.Extensions.Logging.Abstractions;
 using Serilog.Events;
 using SnapCd.Contracts;
@@ -26,7 +25,7 @@ public class LogServiceTests : IAsyncLifetime
 {
     private readonly Fixture _fixture;
     private SnapCdDbContext _dbContext = null!;
-    private JobLogService<ModuleJob, ModuleJobLogEntryDto> _logService = null!;
+    private LogService _logService = null!;
     private ModuleJob _testJob1 = null!;
     private ModuleJob _testJob2 = null!;
 
@@ -38,7 +37,7 @@ public class LogServiceTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _dbContext = _fixture.CreateDbContext();
-        _logService = new JobLogService<ModuleJob, ModuleJobLogEntryDto>(new FixtureDbContextFactory(_fixture), NullLogger<JobLogServiceFactory>.Instance);
+        _logService = new LogService(new FixtureDbContextFactory(_fixture), NullLogger<LogService>.Instance);
 
         // Create test ModuleJobs
         _testJob1 = new ModuleJob
@@ -65,19 +64,11 @@ public class LogServiceTests : IAsyncLifetime
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task DisposeAsync()
+    public Task DisposeAsync()
     {
-        // The manual-job rows these tests seed outlive the context, and StateMigrationJobs admits
-        // one Running job per module, so a row left behind fails the next test that seeds one.
-        if (_seededStateMigrations.Count > 0)
-            await _dbContext.StateMigrationJobs
-                .Where(j => _seededStateMigrations.Contains(j.Id))
-                .ExecuteDeleteAsync();
-
         _dbContext?.Dispose();
+        return Task.CompletedTask;
     }
-
-    private readonly List<Guid> _seededStateMigrations = [];
 
     #region Basic Functionality Tests
 
@@ -95,7 +86,7 @@ public class LogServiceTests : IAsyncLifetime
     public async Task AddLogEntries_WithEmptyList_ShouldReturnImmediately()
     {
         // Arrange
-        var emptyList = new List<ModuleJobLogEntryDto>();
+        var emptyList = new List<LogEntryDto>();
 
         // Act
         await _logService.AddLogEntries(emptyList);
@@ -105,10 +96,10 @@ public class LogServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AddLogEntries_ToNewModuleJob_ShouldStoreLogsAsJson()
+    public async Task AddLogEntries_ToNewModuleJob_ShouldStoreAChunk()
     {
         // Arrange
-        var logEntries = new List<ModuleJobLogEntryDto>
+        var logEntries = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Test message 1", "Init"),
             CreateLogEntry(_testJob1.Id, "Test message 2", "Init")
@@ -121,22 +112,24 @@ public class LogServiceTests : IAsyncLifetime
         using var verifyContext = _fixture.CreateDbContext();
         var job = await verifyContext.ModuleJobs.FindAsync(_testJob1.Id, _testJob1.OrganizationId);
         Assert.NotNull(job);
-        Assert.NotNull(job.Logs);
-        Assert.Contains("Test message 1", job.Logs);
-        Assert.Contains("Test message 2", job.Logs);
+        Assert.Null(job.Logs);
+        Assert.True(await verifyContext.ModuleJobLogChunks.AnyAsync(c => c.JobId == _testJob1.Id));
+
+        var logs = await _logService.GetLogEntries(_testJob1.Id);
+        Assert.Equal(["Test message 1", "Test message 2"], logs.Select(l => l.Message));
     }
 
     [Fact]
     public async Task AddLogEntries_ToExistingModuleJob_ShouldAppendLogs()
     {
         // Arrange
-        var firstBatch = new List<ModuleJobLogEntryDto>
+        var firstBatch = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "First batch", "Init")
         };
         await _logService.AddLogEntries(firstBatch);
 
-        var secondBatch = new List<ModuleJobLogEntryDto>
+        var secondBatch = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Second batch", "Plan")
         };
@@ -180,7 +173,7 @@ public class LogServiceTests : IAsyncLifetime
     public async Task GetLogEntries_ForJobWithLogs_ShouldDeserializeCorrectly()
     {
         // Arrange
-        var logEntries = new List<ModuleJobLogEntryDto>
+        var logEntries = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Message 1", "Init", LogEventLevel.Information),
             CreateLogEntry(_testJob1.Id, "Message 2", "Plan", LogEventLevel.Warning)
@@ -214,7 +207,7 @@ public class LogServiceTests : IAsyncLifetime
     public async Task GetLogString_WithLogs_ShouldJoinWithNewlines()
     {
         // Arrange
-        var logEntries = new List<ModuleJobLogEntryDto>
+        var logEntries = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Line 1", "Init"),
             CreateLogEntry(_testJob1.Id, "Line 2", "Init"),
@@ -230,43 +223,11 @@ public class LogServiceTests : IAsyncLifetime
         Assert.Equal(expected, result);
     }
 
-    /// <summary>
-    /// A task that runs twice in one job keeps its runs apart. A probe is dispatched once per
-    /// wave the Module owes, all under the task name "Probe", so grouping on the name alone
-    /// would merge answers to different questions into one log.
-    /// </summary>
-    [Fact]
-    public async Task GetLogStrings_WithALogCorrelation_KeepsEachRunSeparate()
-    {
-        var firstWave = Guid.NewGuid();
-        var secondWave = Guid.NewGuid();
-
-        await _logService.AddLogEntries(new List<ModuleJobLogEntryDto>
-        {
-            CreateLogEntry(_testJob1.Id, "first wave line", "Probe",
-                logCorrelationId: firstWave,
-                logCorrelationDiscriminator: LogCorrelationDiscriminator.ProbeWave),
-            CreateLogEntry(_testJob1.Id, "second wave line", "Probe",
-                logCorrelationId: secondWave,
-                logCorrelationDiscriminator: LogCorrelationDiscriminator.ProbeWave),
-            CreateLogEntry(_testJob1.Id, "plain line", "Plan")
-        });
-
-        var result = await _logService.GetLogStrings(_testJob1.Id);
-
-        Assert.Equal(3, result.Count);
-        Assert.Contains("first wave line", result[$"Probe (ProbeWave {firstWave})"]);
-        Assert.Contains("second wave line", result[$"Probe (ProbeWave {secondWave})"]);
-
-        // A step with no correlation is still keyed by its task name alone.
-        Assert.Contains("plain line", result["Plan"]);
-    }
-
     [Fact]
     public async Task GetLogStrings_WithMultipleContexts_ShouldGroupCorrectly()
     {
         // Arrange
-        var logEntries = new List<ModuleJobLogEntryDto>
+        var logEntries = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Init message 1", "Init"),
             CreateLogEntry(_testJob1.Id, "Init message 2", "Init"),
@@ -294,14 +255,14 @@ public class LogServiceTests : IAsyncLifetime
     #region JSON Handling Tests
 
     [Fact]
-    public async Task AddLogEntries_WithCorruptedExistingJson_ShouldStartFresh()
+    public async Task AddLogEntries_WithCorruptedExistingJson_ReportsItAndKeepsNewLines()
     {
         // Arrange
         var job = await _dbContext.ModuleJobs.FindAsync(_testJob1.Id, _testJob1.OrganizationId);
         job!.Logs = "{ invalid json [[[";
         await _dbContext.SaveChangesAsync();
 
-        var logEntries = new List<ModuleJobLogEntryDto>
+        var logEntries = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "New message", "Init")
         };
@@ -311,12 +272,13 @@ public class LogServiceTests : IAsyncLifetime
 
         // Assert
         var logs = await _logService.GetLogEntries(_testJob1.Id);
-        Assert.Single(logs);
-        Assert.Equal("New message", logs[0].Message);
+        Assert.Equal(2, logs.Count);
+        Assert.Equal("Part of this log could not be read.", logs[0].Message);
+        Assert.Equal("New message", logs[1].Message);
     }
 
     [Fact]
-    public async Task GetLogEntries_WithCorruptedJson_ShouldReturnEmptyList()
+    public async Task GetLogEntries_WithCorruptedJson_ReportsTheUnreadablePart()
     {
         // Arrange
         var job = await _dbContext.ModuleJobs.FindAsync(_testJob1.Id, _testJob1.OrganizationId);
@@ -327,8 +289,9 @@ public class LogServiceTests : IAsyncLifetime
         var result = await _logService.GetLogEntries(_testJob1.Id);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        var entry = Assert.Single(result);
+        Assert.Equal(LogEventLevel.Error, entry.Level);
+        Assert.Equal(LogSource.Server, entry.Source);
     }
 
     #endregion
@@ -340,7 +303,7 @@ public class LogServiceTests : IAsyncLifetime
     {
         // Arrange
         var now = DateTimeOffset.UtcNow;
-        var logEntries = new List<ModuleJobLogEntryDto>
+        var logEntries = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Third", "Init", LogEventLevel.Information, now.AddSeconds(3), now.AddSeconds(3)),
             CreateLogEntry(_testJob1.Id, "First", "Init", LogEventLevel.Information, now.AddSeconds(1), now.AddSeconds(1)),
@@ -364,14 +327,14 @@ public class LogServiceTests : IAsyncLifetime
         var now = DateTimeOffset.UtcNow;
 
         // Add first batch
-        var firstBatch = new List<ModuleJobLogEntryDto>
+        var firstBatch = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Timestamp 3", "Init", LogEventLevel.Information, now.AddSeconds(3), now.AddSeconds(3))
         };
         await _logService.AddLogEntries(firstBatch);
 
         // Add second batch with earlier timestamp
-        var secondBatch = new List<ModuleJobLogEntryDto>
+        var secondBatch = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Timestamp 1", "Init", LogEventLevel.Information, now.AddSeconds(1), now.AddSeconds(1)),
             CreateLogEntry(_testJob1.Id, "Timestamp 2", "Init", LogEventLevel.Information, now.AddSeconds(2), now.AddSeconds(2))
@@ -393,7 +356,7 @@ public class LogServiceTests : IAsyncLifetime
     {
         // Arrange
         var now = DateTimeOffset.UtcNow;
-        var logEntries = new List<ModuleJobLogEntryDto>
+        var logEntries = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Init 2", "Init", LogEventLevel.Information, now.AddSeconds(2), now.AddSeconds(2)),
             CreateLogEntry(_testJob1.Id, "Plan 1", "Plan", LogEventLevel.Information, now.AddSeconds(3), now.AddSeconds(3)),
@@ -426,9 +389,9 @@ public class LogServiceTests : IAsyncLifetime
             var messageIndex = i;
             var task = Task.Run(async () =>
             {
-                var service = new JobLogService<ModuleJob, ModuleJobLogEntryDto>(new FixtureDbContextFactory(_fixture), NullLogger<JobLogServiceFactory>.Instance);
+                var service = new LogService(new FixtureDbContextFactory(_fixture), NullLogger<LogService>.Instance);
 
-                var logEntry = new List<ModuleJobLogEntryDto>
+                var logEntry = new List<LogEntryDto>
                 {
                     CreateLogEntry(_testJob1.Id, $"Concurrent message {messageIndex}", "Apply")
                 };
@@ -461,9 +424,9 @@ public class LogServiceTests : IAsyncLifetime
             var index = i;
             var task = Task.Run(async () =>
             {
-                var service = new JobLogService<ModuleJob, ModuleJobLogEntryDto>(new FixtureDbContextFactory(_fixture), NullLogger<JobLogServiceFactory>.Instance);
+                var service = new LogService(new FixtureDbContextFactory(_fixture), NullLogger<LogService>.Instance);
 
-                var logEntry = new List<ModuleJobLogEntryDto>
+                var logEntry = new List<LogEntryDto>
                 {
                     CreateLogEntry(
                         _testJob1.Id,
@@ -502,9 +465,9 @@ public class LogServiceTests : IAsyncLifetime
             var index = i;
             var task = Task.Run(async () =>
             {
-                var service = new JobLogService<ModuleJob, ModuleJobLogEntryDto>(new FixtureDbContextFactory(_fixture), NullLogger<JobLogServiceFactory>.Instance);
+                var service = new LogService(new FixtureDbContextFactory(_fixture), NullLogger<LogService>.Instance);
 
-                var logEntry = new List<ModuleJobLogEntryDto>
+                var logEntry = new List<LogEntryDto>
                 {
                     CreateLogEntry(_testJob1.Id, $"Job1 Message {index}", "Apply")
                 };
@@ -519,9 +482,9 @@ public class LogServiceTests : IAsyncLifetime
             var index = i;
             var task = Task.Run(async () =>
             {
-                var service = new JobLogService<ModuleJob, ModuleJobLogEntryDto>(new FixtureDbContextFactory(_fixture), NullLogger<JobLogServiceFactory>.Instance);
+                var service = new LogService(new FixtureDbContextFactory(_fixture), NullLogger<LogService>.Instance);
 
-                var logEntry = new List<ModuleJobLogEntryDto>
+                var logEntry = new List<LogEntryDto>
                 {
                     CreateLogEntry(_testJob2.Id, $"Job2 Message {index}", "Apply")
                 };
@@ -549,7 +512,7 @@ public class LogServiceTests : IAsyncLifetime
     public async Task AddLogEntries_WithMultipleCorrelationIds_ShouldHandleEachSeparately()
     {
         // Arrange
-        var logEntries = new List<ModuleJobLogEntryDto>
+        var logEntries = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Job1 message", "Init"),
             CreateLogEntry(_testJob2.Id, "Job2 message", "Init"),
@@ -575,7 +538,7 @@ public class LogServiceTests : IAsyncLifetime
     {
         // Arrange
         var nonExistentJobId = Guid.NewGuid();
-        var logEntries = new List<ModuleJobLogEntryDto>
+        var logEntries = new List<LogEntryDto>
         {
             CreateLogEntry(nonExistentJobId, "Message for non-existent job", "Init"),
             CreateLogEntry(_testJob1.Id, "Message for valid job", "Init")
@@ -594,7 +557,7 @@ public class LogServiceTests : IAsyncLifetime
     public async Task GetLogStrings_WithNullLogContext_ShouldUseDefaultKey()
     {
         // Arrange
-        var logEntries = new List<ModuleJobLogEntryDto>
+        var logEntries = new List<LogEntryDto>
         {
             CreateLogEntry(_testJob1.Id, "Message with null context", null!)
         };
@@ -610,45 +573,168 @@ public class LogServiceTests : IAsyncLifetime
 
     #endregion
 
-    #region Helper Methods
+    #region Chunk Tests
 
-    /// <summary>
-    /// The property the split exists for: a service closed over one table cannot see another's
-    /// rows. Before this, LogService read all three and took whichever matched, so a caller that
-    /// named the wrong table still worked and nothing said so.
-    /// </summary>
-    [Fact]
-    public async Task A_service_for_one_table_does_not_see_another_tables_job()
+    private LogEntryDto ModuleEntry(string message, string task, DateTimeOffset timestamp)
     {
-        var stateMigration = new StateMigrationJob
-        {
-            Id = Guid.NewGuid(),
-            OrganizationId = _fixture.Organizations["0"].Id,
-            // Its own module: StateMigrationJobs admits one Running job per module, and the
-            // test below seeds one too.
-            ModuleId = _fixture.Modules["0002"].Id,
-            TimestampStart = DateTimeOffset.UtcNow,
-            Status = ExecutionStatus.Running,
-            JobType = "SplitProve"
-        };
-        _dbContext.StateMigrationJobs.Add(stateMigration);
-        await _dbContext.SaveChangesAsync();
-        _seededStateMigrations.Add(stateMigration.Id);
-
-        // _logService is closed over ModuleJob, and this id is in StateMigrationJobs.
-        await _logService.AddLogEntries(new List<ModuleJobLogEntryDto>
-        {
-            CreateLogEntry(stateMigration.Id, "wrong table", "SplitProve")
-        });
-
-        Assert.Empty(await _logService.GetLogEntries(stateMigration.Id));
-
-        await using var check = _fixture.CreateDbContext();
-        var row = await check.StateMigrationJobs.AsNoTracking()
-            .SingleAsync(j => j.Id == stateMigration.Id);
-
-        Assert.Null(row.Logs);
+        var entry = CreateLogEntry(_testJob1.Id, message, task, LogEventLevel.Information, timestamp, timestamp);
+        entry.ModuleId = _testJob1.ModuleId;
+        return entry;
     }
+
+    [Fact]
+    public async Task A_stored_log_from_before_chunks_reads_first_and_is_summarised_as_sequence_zero()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var job = await _dbContext.ModuleJobs.FindAsync(_testJob1.Id, _testJob1.OrganizationId);
+        job!.Logs = System.Text.Json.JsonSerializer.Serialize(new List<LogEntryDto>
+        {
+            ModuleEntry("legacy 1", "Init", now.AddSeconds(-20)),
+            ModuleEntry("legacy 2", "Init", now.AddSeconds(-10))
+        });
+        await _dbContext.SaveChangesAsync();
+
+        await _logService.AddLogEntries([ModuleEntry("chunked", "Plan", now)]);
+
+        var summaries = await _logService.GetChunkSummaries(_testJob1.Id);
+        Assert.Equal(LogService.LegacySequence, summaries[0].Sequence);
+        Assert.Null(summaries[0].TaskNames);
+        Assert.Equal(["Plan"], summaries[1].TaskNames!);
+
+        var entries = await _logService.GetLogEntries(_testJob1.Id);
+        Assert.Equal(["legacy 1", "legacy 2", "chunked"], entries.Select(e => e.Message));
+    }
+
+    [Fact]
+    public async Task A_chunk_stores_only_per_line_fields_and_reads_back_the_module_context()
+    {
+        var entry = ModuleEntry("hello", "Init", DateTimeOffset.UtcNow);
+        entry.ModuleName = "stored-name-that-must-not-be-kept";
+        await _logService.AddLogEntries([entry]);
+
+        await using var verify = _fixture.CreateDbContext();
+        var chunk = await verify.ModuleJobLogChunks.SingleAsync(c => c.JobId == _testJob1.Id);
+        var json = System.Text.Encoding.UTF8.GetString(Decompress(chunk.Payload));
+        Assert.DoesNotContain("stored-name-that-must-not-be-kept", json);
+        Assert.DoesNotContain(_testJob1.ModuleId.ToString(), json);
+
+        var module = await verify.Modules
+            .Where(m => m.Id == _testJob1.ModuleId)
+            .Select(m => new { m.Name, m.NamespaceId, NamespaceName = m.Namespace.Name, m.Namespace.StackId, StackName = m.Namespace.Stack.Name })
+            .SingleAsync();
+
+        var read = Assert.Single(await _logService.GetLogEntries(_testJob1.Id));
+        Assert.Equal("hello", read.Message);
+        Assert.Equal(_testJob1.Id, read.JobId);
+        Assert.Equal(_testJob1.ModuleId, read.ModuleId);
+        Assert.Equal(module.Name, read.ModuleName);
+        Assert.Equal(module.NamespaceId, read.NamespaceId);
+        Assert.Equal(module.NamespaceName, read.NamespaceName);
+        Assert.Equal(module.StackId, read.StackId);
+        Assert.Equal(module.StackName, read.StackName);
+    }
+
+    [Fact]
+    public async Task Summaries_after_a_sequence_return_only_newer_chunks_and_reading_a_subset_returns_only_their_lines()
+    {
+        var now = DateTimeOffset.UtcNow;
+        await _logService.AddLogEntries([ModuleEntry("first", "Init", now)]);
+        var first = (await _logService.GetChunkSummaries(_testJob1.Id)).Single();
+
+        await _logService.AddLogEntries([ModuleEntry("second", "Plan", now.AddSeconds(1))]);
+        await _logService.AddLogEntries([ModuleEntry("third", "Plan", now.AddSeconds(2))]);
+
+        var newer = await _logService.GetChunkSummaries(_testJob1.Id, afterSequence: first.Sequence);
+        Assert.Equal(2, newer.Count);
+        Assert.All(newer, s => Assert.True(s.Sequence > first.Sequence));
+
+        var lines = await _logService.ReadChunks(_testJob1.Id, [newer[1].Sequence]);
+        Assert.Equal(["third"], lines.Select(l => l.Message));
+    }
+
+    [Fact]
+    public async Task A_module_filter_reads_only_that_modules_chunks()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var other = ModuleEntry("other module", "Transfer", now);
+        other.ModuleId = _testJob2.ModuleId;
+        await _logService.AddLogEntries([ModuleEntry("own module", "Transfer", now), other]);
+
+        var own = await _logService.GetLogEntries(_testJob1.Id, _testJob1.ModuleId);
+        Assert.Equal(["own module"], own.Select(e => e.Message));
+        Assert.Equal(2, (await _logService.GetChunkSummaries(_testJob1.Id)).Count);
+    }
+
+    [Fact]
+    public async Task An_unreadable_chunk_is_reported_and_the_rest_still_reads()
+    {
+        var now = DateTimeOffset.UtcNow;
+        await _logService.AddLogEntries([ModuleEntry("broken", "Init", now)]);
+        await _logService.AddLogEntries([ModuleEntry("fine", "Init", now.AddSeconds(1))]);
+
+        await using (var db = _fixture.CreateDbContext())
+        {
+            var broken = await db.ModuleJobLogChunks.Where(c => c.JobId == _testJob1.Id).OrderBy(c => c.Sequence).FirstAsync();
+            broken.Payload = [1, 2, 3, 4];
+            await db.SaveChangesAsync();
+        }
+
+        var entries = await _logService.GetLogEntries(_testJob1.Id);
+        Assert.Equal(["Part of this log could not be read.", "fine"], entries.Select(e => e.Message));
+    }
+
+    [Fact]
+    public async Task A_chunk_is_stored_compressed()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var batch = Enumerable.Range(0, 200)
+            .Select(i => ModuleEntry($"      + resource \"kubernetes_manifest\" \"item_{i}\" {{", "Plan", now.AddMilliseconds(i)))
+            .ToList();
+        batch.ForEach(e => e.BatchTimeStamp = now);
+        await _logService.AddLogEntries(batch);
+
+        await using var verify = _fixture.CreateDbContext();
+        var chunk = await verify.ModuleJobLogChunks.SingleAsync(c => c.JobId == _testJob1.Id);
+        Assert.Equal(200, chunk.LineCount);
+        Assert.True(chunk.Payload.Length * 5 < chunk.UncompressedBytes,
+            $"payload {chunk.Payload.Length} bytes for {chunk.UncompressedBytes} uncompressed");
+    }
+
+    [Fact]
+    public async Task A_resent_batch_is_stored_once()
+    {
+        var batch = new List<LogEntryDto> { ModuleEntry("once", "Plan", DateTimeOffset.UtcNow) };
+
+        await _logService.AddLogEntries(batch);
+        await _logService.AddLogEntries(batch);
+
+        Assert.Equal(["once"], (await _logService.GetLogEntries(_testJob1.Id)).Select(e => e.Message));
+    }
+
+    [Fact]
+    public async Task Each_batch_in_one_call_is_its_own_chunk_and_keeps_its_batch_timestamp()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var later = ModuleEntry("later batch", "Plan", now.AddSeconds(1));
+        await _logService.AddLogEntries([ModuleEntry("earlier batch", "Plan", now), later]);
+
+        Assert.Equal(2, (await _logService.GetChunkSummaries(_testJob1.Id)).Count);
+        var entries = await _logService.GetLogEntries(_testJob1.Id);
+        Assert.Equal(["earlier batch", "later batch"], entries.Select(e => e.Message));
+        Assert.Equal(later.BatchTimeStamp, entries[1].BatchTimeStamp);
+    }
+
+    private static byte[] Decompress(byte[] payload)
+    {
+        using var gzip = new System.IO.Compression.GZipStream(new MemoryStream(payload), System.IO.Compression.CompressionMode.Decompress);
+        using var output = new MemoryStream();
+        gzip.CopyTo(output);
+        return output.ToArray();
+    }
+
+    #endregion
+
+    #region Helper Methods
 
     // A manual job's logs are the only channel a runner-side failure reaches the
     // operator on: the job row records no runner error.
@@ -666,38 +752,18 @@ public class LogServiceTests : IAsyncLifetime
         };
         _dbContext.StateMigrationJobs.Add(stateMigration);
         await _dbContext.SaveChangesAsync();
-        _seededStateMigrations.Add(stateMigration.Id);
 
-        // The state migration closure, because that is the table this job is in. A service
-        // closed over ModuleJob cannot see it, which is the point of the split.
-        var migrations = new JobLogService<StateMigrationJob, StateMigrationLogEntryDto>(
-            new FixtureDbContextFactory(_fixture), NullLogger<JobLogServiceFactory>.Instance);
-
-        await migrations.AddLogEntries(new List<StateMigrationLogEntryDto>
+        await _logService.AddLogEntries(new List<LogEntryDto>
         {
-            new()
-            {
-                JobId = stateMigration.Id,
-                Timestamp = DateTimeOffset.UtcNow,
-                BatchTimeStamp = DateTimeOffset.UtcNow,
-                ModuleId = _fixture.Modules["0001"].Id,
-                StackName = "stack",
-                NamespaceName = "ns",
-                Message = "could not find the revision",
-                TaskName = "SplitProve"
-            }
+            CreateLogEntry(stateMigration.Id, "could not find the revision", "SplitProve")
         });
 
-        var entries = await migrations.GetLogEntries(stateMigration.Id);
+        var entries = await _logService.GetLogEntries(stateMigration.Id);
         Assert.Single(entries);
         Assert.Equal("could not find the revision", entries[0].Message);
 
         await using var verify = _fixture.CreateDbContext();
-        var stored = await verify.StateMigrationJobs
-            .Where(j => j.Id == stateMigration.Id)
-            .Select(j => j.Logs)
-            .FirstAsync();
-        Assert.False(string.IsNullOrEmpty(stored));
+        Assert.True(await verify.StateMigrationJobLogChunks.AnyAsync(c => c.JobId == stateMigration.Id));
     }
 
     // An id in neither table is an anomaly; it must not take the other entries
@@ -705,7 +771,7 @@ public class LogServiceTests : IAsyncLifetime
     [Fact]
     public async Task AddLogEntries_UnknownJob_SkipsWithoutAffectingOthers()
     {
-        await _logService.AddLogEntries(new List<ModuleJobLogEntryDto>
+        await _logService.AddLogEntries(new List<LogEntryDto>
         {
             CreateLogEntry(Guid.NewGuid(), "orphan", "Apply"),
             CreateLogEntry(_testJob1.Id, "kept", "Apply")
@@ -720,7 +786,7 @@ public class LogServiceTests : IAsyncLifetime
     [Fact]
     public async Task AddLogEntries_BlankLines_ArePreserved()
     {
-        await _logService.AddLogEntries(new List<ModuleJobLogEntryDto>
+        await _logService.AddLogEntries(new List<LogEntryDto>
         {
             CreateLogEntry(_testJob2.Id, "Map under comparison:", "SplitRefactorDiff"),
             CreateLogEntry(_testJob2.Id, "", "SplitRefactorDiff"),
@@ -736,7 +802,37 @@ public class LogServiceTests : IAsyncLifetime
             byTask["SplitRefactorDiff"]);
     }
 
-    private static ModuleJobLogEntryDto CreateLogEntry(
+    [Fact]
+    public async Task GetLogStrings_WithALogCorrelation_KeepsEachRunSeparate()
+    {
+        var firstWave = Guid.NewGuid();
+        var secondWave = Guid.NewGuid();
+        var moduleId = Guid.NewGuid();
+
+        await _logService.AddLogEntries(
+        [
+            CreateLogEntry(_testJob1.Id, "first wave line", "Probe",
+                logCorrelationId: firstWave,
+                logCorrelationDiscriminator: LogCorrelationDiscriminator.ProbeWave,
+                moduleId: moduleId),
+            CreateLogEntry(_testJob1.Id, "second wave line", "Probe",
+                logCorrelationId: secondWave,
+                logCorrelationDiscriminator: LogCorrelationDiscriminator.ProbeWave,
+                moduleId: moduleId),
+            CreateLogEntry(_testJob1.Id, "plain line", "Plan", moduleId: moduleId)
+        ]);
+
+        var result = await _logService.GetLogStrings(_testJob1.Id);
+
+        Assert.Equal(3, result.Count);
+        Assert.Contains("first wave line", result[$"Probe (ProbeWave {firstWave})"]);
+        Assert.Contains("second wave line", result[$"Probe (ProbeWave {secondWave})"]);
+
+        // A step with no correlation is still keyed by its task name alone.
+        Assert.Contains("plain line", result["Plan"]);
+    }
+
+    private static LogEntryDto CreateLogEntry(
         Guid correlationId,
         string message,
         string logContext,
@@ -744,10 +840,11 @@ public class LogServiceTests : IAsyncLifetime
         DateTimeOffset? timestamp = null,
         DateTimeOffset? batchTimestamp = null,
         Guid? logCorrelationId = null,
-        LogCorrelationDiscriminator? logCorrelationDiscriminator = null)
+        LogCorrelationDiscriminator? logCorrelationDiscriminator = null,
+        Guid? moduleId = null)
     {
         var now = DateTimeOffset.UtcNow;
-        return new ModuleJobLogEntryDto
+        return new LogEntryDto
         {
             JobId = correlationId,
             Timestamp = timestamp ?? now,
@@ -755,11 +852,11 @@ public class LogServiceTests : IAsyncLifetime
             Level = level,
             Message = message,
             TaskName = logContext,
-            ModuleId = Guid.NewGuid(),
-            StackName = "TestStack",
-            NamespaceName = "TestNamespace",
             LogCorrelationId = logCorrelationId,
-            LogCorrelationDiscriminator = logCorrelationDiscriminator
+            LogCorrelationDiscriminator = logCorrelationDiscriminator,
+            ModuleId = moduleId ?? Guid.NewGuid(),
+            StackName = "TestStack",
+            NamespaceName = "TestNamespace"
         };
     }
 

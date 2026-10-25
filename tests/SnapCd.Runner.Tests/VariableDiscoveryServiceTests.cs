@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.Extensions.Logging.Abstractions;
+using SnapCd.Runner.Exceptions;
 using SnapCd.Runner.Services;
 
 namespace SnapCd.Runner.Tests;
@@ -23,7 +24,7 @@ public class TerraformVariableDiscoveryServiceTests
 
     public TerraformVariableDiscoveryServiceTests()
     {
-        _service = new TerraformVariableDiscoveryService(NullLogger<TerraformVariableDiscoveryService>.Instance);
+        _service = new TerraformVariableDiscoveryService(NullLogger<TerraformVariableDiscoveryService>.Instance, InspectBinary.Inspect);
         _testDataBasePath = Path.Combine(AppContext.BaseDirectory, "TestData", "Terraform");
     }
 
@@ -190,63 +191,6 @@ public class TerraformVariableDiscoveryServiceTests
         // Assert - variable without default should have Nullable = false
         var requiredVar = variables.First(v => v.Name == "required_value");
         Assert.False(requiredVar.Nullable);
-    }
-
-    [Fact]
-    public async Task ParseFileAsync_Throws_When_File_Not_Found()
-    {
-        // Arrange
-        var nonExistentFile = "/path/to/nonexistent.tf";
-
-        // Act & Assert
-        await Assert.ThrowsAsync<FileNotFoundException>(() =>
-            _service.ParseFileAsync(nonExistentFile));
-    }
-
-    [Fact]
-    public async Task ParseFileAsync_Parses_Tf_File()
-    {
-        // Arrange
-        var filePath = Path.Combine(_testDataBasePath, "Simple", "simple.tf");
-
-        // Act
-        var variables = await _service.ParseFileAsync(filePath);
-
-        // Assert
-        Assert.Single(variables);
-        Assert.Equal("environment", variables[0].Name);
-    }
-
-    [Fact]
-    public async Task ParseFileAsync_Throws_For_Unsupported_File_Type()
-    {
-        // Arrange
-        var tempFile = Path.Combine(Path.GetTempPath(), "test.txt");
-        await File.WriteAllTextAsync(tempFile, "test content");
-
-        try
-        {
-            // Act & Assert
-            await Assert.ThrowsAsync<NotSupportedException>(() =>
-                _service.ParseFileAsync(tempFile));
-        }
-        finally
-        {
-            File.Delete(tempFile);
-        }
-    }
-
-    [Fact]
-    public async Task ParseFileAsync_Handles_Empty_Tf_File()
-    {
-        // Arrange
-        var filePath = Path.Combine(_testDataBasePath, "Empty", "empty.tf");
-
-        // Act
-        var variables = await _service.ParseFileAsync(filePath);
-
-        // Assert
-        Assert.Empty(variables);
     }
 
     [Fact]
@@ -446,4 +390,66 @@ public class TerraformVariableDiscoveryServiceTests
     }
 
     #endregion
+
+    private static string WriteModule(Dictionary<string, string> files)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "snapcd-discovery-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        foreach (var (name, contents) in files)
+            File.WriteAllText(Path.Combine(dir, name), contents);
+        return dir;
+    }
+
+    [Fact]
+    public async Task Variable_Blocks_Inside_Heredocs_Are_Not_Discovered()
+    {
+        var dir = WriteModule(new()
+        {
+            ["namespace.tf"] = """
+                resource "snapcd_namespace_extra_file" "this" {
+                  file_name = "extra_namespace_variables.tf"
+                  contents  = <<EOT
+                variable "extra_tenant_id" {}
+                EOT
+                }
+                """,
+            ["extra_namespace_variables.tf"] = "variable \"extra_tenant_id\" {}\n"
+        });
+
+        var variables = await _service.DiscoverVariablesAsync(dir, new HashSet<string> { "extra_namespace_variables.tf" });
+
+        var variable = Assert.Single(variables);
+        Assert.Equal("extra_tenant_id", variable.Name);
+        Assert.True(variable.FromExtraFile);
+    }
+
+    [Fact]
+    public async Task Duplicate_Declaration_Fails_Discovery_Naming_Both_Files()
+    {
+        var dir = WriteModule(new()
+        {
+            ["main.tf"] = "variable \"tenant_id\" {}\n",
+            ["extra_namespace_variables.tf"] = "variable \"tenant_id\" {}\n"
+        });
+
+        var ex = await Assert.ThrowsAsync<VariableParseException>(() => _service.DiscoverVariablesAsync(dir));
+
+        Assert.Contains("main.tf", ex.Message);
+        Assert.Contains("extra_namespace_variables.tf", ex.Message);
+    }
+
+    [Fact]
+    public async Task Output_Sources_Are_Mapped_By_File()
+    {
+        var dir = WriteModule(new()
+        {
+            ["outputs.tf"] = "output \"id\" {\n  value = 1\n}\n",
+            ["extra_outputs.tf"] = "output \"extra\" {\n  value = 2\n}\n"
+        });
+
+        var outputs = await _service.DiscoverOutputSourcesAsync(dir, new HashSet<string> { "extra_outputs.tf" });
+
+        Assert.False(outputs["id"]);
+        Assert.True(outputs["extra"]);
+    }
 }

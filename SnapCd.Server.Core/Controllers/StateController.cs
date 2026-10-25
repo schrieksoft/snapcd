@@ -23,8 +23,8 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Controllers;
 
-[Route("api/{organizationId:guid}/state/{stateStoreId}/{stateFileName}")]
-[Route("api/state/{stateStoreId}/{stateFileName}")]
+[Route("api/{organizationId:guid}/state/{stateStoreId:guid}/{stateFileName}")]
+[Route("api/state/{stateStoreId:guid}/{stateFileName}")]
 [ApiController]
 [AllowAnonymous]
 [PermissionSource(Skip = true,
@@ -58,18 +58,18 @@ public class StateController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetState(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId, organizationId);
+        var authResult = await Authenticate(organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
 
         try
         {
-            var stateFile = await service.FindByName(stateFileName, stateStoreId);
+            var stateFile = await service.FindByName(stateFileName, stateStoreId, authResult.OrganizationId);
             if (stateFile == null)
                 return NotFound();
 
-            var latestVersion = await service.GetLatestVersion(stateFile.Id);
+            var latestVersion = await service.GetLatestVersion(stateFile.Id, authResult.OrganizationId);
             if (latestVersion == null || latestVersion.Data == null)
                 return NotFound();
 
@@ -85,14 +85,14 @@ public class StateController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> PostState(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId, organizationId);
+        var authResult = await Authenticate(organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
 
         try
         {
-            var stateFile = await service.FindByName(stateFileName, stateStoreId);
+            var stateFile = await service.FindByName(stateFileName, stateStoreId, authResult.OrganizationId);
             var lockId = Request.Query["ID"].ToString();
 
             if (stateFile != null && !string.IsNullOrEmpty(stateFile.LockId))
@@ -117,7 +117,7 @@ public class StateController : ControllerBase
                 stateFile = await service.CreateStateFile(stateFile);
             }
 
-            await service.CreateVersion(stateFile.Id, authResult.OrganizationId, encrypted, authResult.ServicePrincipalId, AuditPrincipalDiscriminator.ServicePrincipal);
+            await service.CreateVersion(stateFile.Id, stateFile.OrganizationId, encrypted, authResult.ServicePrincipalId, AuditPrincipalDiscriminator.ServicePrincipal);
             return Ok();
         }
         catch (PrincipalNotAuthorizedException)
@@ -129,14 +129,14 @@ public class StateController : ControllerBase
     [HttpDelete]
     public async Task<IActionResult> DeleteState(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId, organizationId);
+        var authResult = await Authenticate(organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
 
         try
         {
-            var stateFile = await service.FindByName(stateFileName, stateStoreId);
+            var stateFile = await service.FindByName(stateFileName, stateStoreId, authResult.OrganizationId);
             if (stateFile == null)
                 return NotFound();
 
@@ -152,7 +152,7 @@ public class StateController : ControllerBase
     [HttpPost("lock")]
     public async Task<IActionResult> Lock(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId, organizationId);
+        var authResult = await Authenticate(organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
@@ -162,7 +162,7 @@ public class StateController : ControllerBase
             using var reader = new StreamReader(Request.Body);
             var lockInfoJson = await reader.ReadToEndAsync();
 
-            var stateFile = await service.FindByName(stateFileName, stateStoreId);
+            var stateFile = await service.FindByName(stateFileName, stateStoreId, authResult.OrganizationId);
 
             if (stateFile == null)
             {
@@ -206,7 +206,7 @@ public class StateController : ControllerBase
     [HttpPost("unlock")]
     public async Task<IActionResult> Unlock(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId, organizationId);
+        var authResult = await Authenticate(organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
@@ -217,7 +217,7 @@ public class StateController : ControllerBase
             var unlockInfoJson = await reader.ReadToEndAsync();
             var unlockInfo = System.Text.Json.JsonSerializer.Deserialize<TerraformLockInfo>(unlockInfoJson);
 
-            var stateFile = await service.FindByName(stateFileName, stateStoreId);
+            var stateFile = await service.FindByName(stateFileName, stateStoreId, authResult.OrganizationId);
             if (stateFile == null)
                 return NotFound();
 
@@ -241,7 +241,7 @@ public class StateController : ControllerBase
     [HttpPost("force-unlock")]
     public async Task<IActionResult> ForceUnlock(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId, organizationId);
+        var authResult = await Authenticate(organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
@@ -268,7 +268,7 @@ public class StateController : ControllerBase
         }
     }
 
-    private async Task<AuthResult> Authenticate(Guid stateStoreId, Guid? routeOrganizationId = null)
+    private async Task<AuthResult> Authenticate(Guid? routeOrganizationId)
     {
         var authHeader = Request.Headers.Authorization.ToString();
         if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))

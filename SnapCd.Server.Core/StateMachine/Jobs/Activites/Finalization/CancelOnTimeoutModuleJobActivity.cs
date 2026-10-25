@@ -40,6 +40,18 @@ public class CancelOnTimeoutModuleJobActivity<TSaga, TMessage> :
             _ => (ActualStateHeadline?)null
         };
         
+        var runner = string.IsNullOrEmpty(context.Saga.RunnerInstanceName)
+            ? context.Saga.RunnerName
+            : $"{context.Saga.RunnerName} ({context.Saga.RunnerInstanceName})";
+
+        await _repository.SetServerSideError(
+            context.Saga.CorrelationId,
+            context.Saga.OrganizationId,
+            null,
+            "Runner did not confirm the cancel",
+            $"The server asked runner '{runner}' to stop the job, but the runner did not confirm within the cancel timeout, so the job was closed as cancelled. "
+            + "If the runner was still connected, the step it was running may have continued. Check the runner's logs, and the server's log for why the request could not be delivered.");
+
         await _repository.Finalize(
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,

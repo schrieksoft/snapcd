@@ -19,7 +19,8 @@ public class GatekeepingJobRequestedBase
     public Guid? JobId { get; set; }
 
     //public Guid CorrelationId { get; set; }
-    public DesiredStateHeadline DesiredStateHeadline { get; set; }
+    /// <summary>The state to move to, or null to act on whatever the module is already headed for.</summary>
+    public DesiredStateHeadline? DesiredStateHeadline { get; set; }
     public bool SetNewDesiredState { get; set; }
 
     public string? DefinitiveRevision { get; set; }

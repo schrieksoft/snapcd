@@ -204,6 +204,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
         Configure_Approval();
         Configure_Setup();
         Configure_CancelKill();
+        Configure_Faults();
 
         // The state migration reports what it managed; the list that follows reports what is actually there.
         During(MigrateStatePending,

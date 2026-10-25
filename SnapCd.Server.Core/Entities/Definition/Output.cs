@@ -21,6 +21,12 @@ public class Output : AuditBase, IEntity
     public Guid OutputSetId { get; set; }
     [MaxLength(255)] public string Name { get; set; } = null!;
     [MaxLength(255)] public string Type { get; set; } = null!;
+
+    /// <summary>
+    /// cty JSON encoding of a complex type, as <c>tofu output -json</c> reports it. Null for a
+    /// primitive type, which <see cref="Type"/> fully describes.
+    /// </summary>
+    public string? TypeDefinition { get; set; }
     public bool FromExtraFile { get; set; } = false;
 
     [JsonIgnore] // So that JSON Serialization does not create a loop

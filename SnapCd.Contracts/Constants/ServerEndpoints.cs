@@ -98,8 +98,7 @@ public static class ServerEndpoints
 
     // One endpoint per table that stores runner logs. Which one a runner invokes is what says
     // where the batch belongs, so the server never looks an id up across tables.
-    public const string AddModuleJobLogs = "AddModuleJobLogs";
-    public const string AddStateMigrationLogs = "AddStateMigrationLogs";
+    public const string AddLogs = "AddLogs";
 
     public const string ReportRunningTask = "ReportRunningTask";
     

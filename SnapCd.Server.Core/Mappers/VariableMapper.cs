@@ -29,6 +29,8 @@ public static class VariableMapper
             VariableSetId = entity.VariableSetId,
             Name = entity.Name,
             Type = entity.Type,
+            TypeDefinition = entity.TypeDefinition,
+            Default = entity.Default,
             Description = entity.Description,
             Sensitive = entity.Sensitive,
             Nullable = entity.Nullable,

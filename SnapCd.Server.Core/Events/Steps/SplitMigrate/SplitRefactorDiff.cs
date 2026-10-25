@@ -8,6 +8,7 @@
 
 
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Events.Steps.SplitMigrate;
 
@@ -17,6 +18,9 @@ public class SplitRefactorDiffCompleted : StepResponseBase
 {
 }
 
-public class SplitRefactorDiffFaulted : StepFaultedBase;
+public class SplitRefactorDiffFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.SplitRefactorDiff;
+}
 
 public class SplitRefactorDiffCancelled : StepResponseBase;

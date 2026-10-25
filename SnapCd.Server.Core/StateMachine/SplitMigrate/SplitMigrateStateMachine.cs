@@ -111,6 +111,7 @@ public partial class SplitMigrateStateMachine : MassTransitStateMachine<SplitMig
         Configure_SplitMigrateMap();
         Configure_SplitMigrateProve();
         Configure_Approval();
+        Configure_Faults();
         Configure_SplitMigrateRun();
         Configure_SplitMigrateVerify();
 

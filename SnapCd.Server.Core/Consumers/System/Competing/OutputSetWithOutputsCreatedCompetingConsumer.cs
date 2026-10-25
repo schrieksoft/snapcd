@@ -60,7 +60,6 @@ public class OutputSetWithOutputsCreatedCompetingConsumer : IConsumer<OutputSetW
             {
                 ModuleId = moduleId,
                 OrganizationId = context.Message.OrganizationId,
-                DesiredStateHeadline = DesiredStateHeadline.Applied,
                 SetNewDesiredState = false
             }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
     }

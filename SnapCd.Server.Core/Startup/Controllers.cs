@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Controllers.ModuleHolds;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using SnapCd.Server.Core.Controllers;
@@ -118,6 +119,7 @@ public static class Controllers
             typeof(ErrorController),
             typeof(HomeController),
             typeof(ResourceController),
+            typeof(ModuleHoldController),
             typeof(UserInfoController)
 
         });

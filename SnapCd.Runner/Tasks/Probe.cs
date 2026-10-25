@@ -27,7 +27,6 @@ public partial class Tasks
     public async Task Probe(
         ProbeRequestBase request,
         HubConnection connection,
-        IJobLogStream logStream,
         Func<Guid, string?, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)
@@ -50,7 +49,7 @@ public partial class Tasks
             request.JobId,
             nameof(Probe),
             logger,
-            logStream,
+            _jobLogStream,
             request.Metadata,
             request.ProbeWaveId,
             LogCorrelationDiscriminator.ProbeWave

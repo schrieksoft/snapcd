@@ -92,8 +92,8 @@ properties:
     properties:
       BatchSizeLimit:
         type: integer
-        description: Maximum number of log events to ship in a single batch. The PeriodicBatchingSink will flush early when
-          this size is reached even before PeriodSeconds elapses.
+        description: Maximum number of log events to ship in a single batch. A job's queue ships early when this size is reached
+          even before PeriodSeconds elapses.
         default: 50
       PeriodSeconds:
         type: integer
@@ -105,6 +105,26 @@ properties:
         description: When true, the first event in a fresh batch is emitted immediately rather than waiting for the period
           or size threshold. Keeps initial job output responsive.
         default: true
+      BatchBytesLimit:
+        type: integer
+        description: A batch also ships once its messages reach this many characters, so long lines go in fewer calls.
+        default: 262144
+      QueueLimit:
+        type: integer
+        description: Most lines one job may have waiting to ship; beyond it lines are dropped and the job's log says how many.
+        default: 200000
+      QueueWarningThreshold:
+        type: integer
+        description: A job with this many lines waiting to ship is logged as a warning on the runner.
+        default: 20000
+      DrainTimeoutSeconds:
+        type: integer
+        description: How long a step waits for its job's logs to ship before reporting its result.
+        default: 30
+      IdleSeconds:
+        type: integer
+        description: A job's queue is retired after this long with nothing to ship.
+        default: 60
     description: Tunables for the per-Job log shipping pipeline that streams engine output back to the Server over SignalR.
       Defaults are sensible for typical workloads; tune BatchSizeLimit and PeriodSeconds together if you need lower per-log
       latency at the cost of more frequent network round-trips.

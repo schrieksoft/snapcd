@@ -8,16 +8,16 @@
 
 @implements IAsyncDisposable
 
-@typeparam TJob where TJob : class, SnapCd.Server.Core.Entities.Interfaces.IJobWithLogs
-@typeparam TLogEntry where TLogEntry : class, SnapCd.Contracts.Dto.Misc.IJobLogEntry
-
 @using System.Text
 @using System.Text.Json
 @using System.Text.RegularExpressions
 @using AnsiConsoleToHtml
 @using SnapCd.Contracts.Dto.Misc
+@using Microsoft.Extensions.Options
 @using SnapCd.Server.Core.Services
-@inject SnapCd.Server.Core.Factories.JobLogServiceFactory JobLogServiceFactory
+@using SnapCd.Server.Core.Settings
+@inject LogService LogService
+@inject IOptions<JobLogSettings> JobLogSettings
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 
@@ -28,9 +28,13 @@
 @*                    OnClick="() => ReloadLogs()"/> *@
 @* </MudTooltip> *@
 
-@if (_htmlLogs.Count == 0)
+@if (!_loaded)
 {
     <p><em>Loading logs...</em></p>
+}
+else if (_tasks.Count == 0)
+{
+    <p><em>No logs yet.</em></p>
 }
 else
 {
@@ -50,32 +54,58 @@ else
     <MudExpansionPanels>
 
 
-        @foreach (var kvp in _htmlLogs.Where(kvp => Matches(kvp.Key)))
+        @foreach (var taskName in _tasks.Where(Matches))
         {
-            var taskName = kvp.Key;
-            <MudExpansionPanel @key="kvp.Key"
-                               Expanded="@(kvp.Key == _expandedTask)"
-                               ExpandedChanged="@(isExpanded => OnTaskPanelExpanded(isExpanded, kvp.Key))">
+            var task = taskName;
+            <MudExpansionPanel @key="task"
+                               Expanded="@(task == _expandedTask)"
+                               ExpandedChanged="@(isExpanded => OnTaskPanelExpanded(isExpanded, task))">
                 <TitleContent>
-                    <MudText Typo="Typo.body2">@kvp.Key</MudText>
+                    <MudText Typo="Typo.body2">@task</MudText>
                 </TitleContent>
                 <ChildContent>
                     <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mb-1">
-                        <MudTooltip Text="@($"Download {taskName} as text")">
+                        <MudTooltip Text="@($"Download {task} as text")">
                             <MudIconButton Icon="@SnapCdIcons.Download"
                                            Size="Size.Small"
-                                           OnClick="@(() => DownloadText(taskName))"/>
+                                           OnClick="@(() => DownloadText(task))"/>
                         </MudTooltip>
-                        <MudTooltip Text="@($"Download {taskName} as JSON")">
+                        <MudTooltip Text="@($"Download {task} as JSON")">
                             <MudIconButton Icon="@SnapCdIcons.Code"
                                            Size="Size.Small"
-                                           OnClick="@(() => DownloadJson(taskName))"/>
+                                           OnClick="@(() => DownloadJson(task))"/>
                         </MudTooltip>
                     </MudStack>
-                    @* No whitespace between the tags and the content: white-space: pre-wrap renders
-                       the surrounding newlines as blank lines above and below the log. *@
-                    <div
-                        style="padding: 1em; background: #000000; color: white; font-family: monospace; white-space: pre-wrap;">@((MarkupString)(kvp.Value ?? string.Empty))</div>
+                    @if (IsHiddenAsLarge(task))
+                    {
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            These logs are very large (@FormatSize(TaskBytes(task))). Consider downloading them instead of viewing them here.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="MudBlazor.Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="@(() => Reveal(task))"
+                                   Class="mb-2">
+                            Show logs
+                        </MudButton>
+                    }
+                    else
+                    {
+                        @if (HasOlderFor(task))
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="MudBlazor.Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="LoadMoreLogs"
+                                       Class="mb-2">
+                                Load more logs
+                            </MudButton>
+                        }
+                        @* No whitespace between the tags and the content: white-space: pre-wrap renders
+                           the surrounding newlines as blank lines above and below the log. *@
+                        <div
+                            style="padding: 1em; background: #000000; color: white; font-family: monospace; white-space: pre-wrap;">@((MarkupString)(_htmlLogs.GetValueOrDefault(task) ?? string.Empty))</div>
+                    }
                 </ChildContent>
             </MudExpansionPanel>
         }
@@ -84,7 +114,7 @@ else
 }
 
 @code {
-    [Parameter] public Guid JobId { get; set; }
+    [Parameter] public Guid ModuleJobId { get; set; }
     [Parameter] public string? InitialTask { get; set; }
     [Parameter] public string[]? TaskFilter { get; set; }
 
@@ -99,8 +129,13 @@ else
     [Parameter] public EventCallback<string?> OnTaskChanged { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
-    private Dictionary<string, string>? _logs;
-    private Dictionary<string, string?> _htmlLogs = new();
+    private readonly SemaphoreSlim _loadLock = new(1, 1);
+    private bool _loaded;
+    private List<LogChunkSummary> _summaries = [];
+    private readonly SortedDictionary<long, List<LogEntryDto>> _chunks = new();
+    private readonly List<string> _tasks = [];
+    private readonly Dictionary<string, string> _htmlLogs = new();
+    private readonly HashSet<string> _revealed = [];
     private string? _expandedTask;
     private string? _previousInitialTask;
     private bool _initializing;
@@ -203,12 +238,15 @@ else
         _downloadModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import", "./_content/SnapCd.Server.Core/snapcd-download.js");
 
-    private async Task<List<TLogEntry>> EntriesFor(string? taskName)
+    private async Task<List<LogEntryDto>> EntriesFor(string? taskName)
     {
-        var entries = await JobLogServiceFactory.Create<TJob, TLogEntry>().GetLogEntries(JobId);
-
-        if (ModuleId is { } module)
-            entries = entries.Where(e => e.ModuleId == module).ToList();
+        var tasks = taskName is not null ? [taskName] : TaskFilter;
+        var summaries = await LogService.GetChunkSummaries(ModuleJobId, ModuleId);
+        var sequences = summaries
+            .Where(s => tasks is null || tasks.Any(s.HasTask))
+            .Select(s => s.Sequence)
+            .ToList();
+        var entries = await LogService.ReadChunks(ModuleJobId, sequences, ModuleId);
 
         if (taskName is not null)
             return entries.Where(e => (e.TaskName ?? "Default") == taskName).ToList();
@@ -219,19 +257,10 @@ else
         return entries;
     }
 
-    /// <summary>Whether a task name, or a log key built from one, is in scope for this list.</summary>
-    private bool Matches(string name)
-    {
-        if (TaskFilter is null) return true;
-        if (TaskFilter.Contains(name)) return true;
-
-        return IncludeCorrelated && TaskFilter.Any(t => name.StartsWith($"{t} (", StringComparison.Ordinal));
-    }
-
     private string FileNameFor(string? taskName, string extension)
         => taskName is null
-            ? $"job-{JobId}-logs.{extension}"
-            : $"job-{JobId}-{taskName}.{extension}";
+            ? $"job-{ModuleJobId}-logs.{extension}"
+            : $"job-{ModuleJobId}-{taskName}.{extension}";
 
     private async Task DownloadText(string? taskName)
     {
@@ -276,18 +305,127 @@ else
         }
     }
 
-    private async Task ReloadLogs()
-    {
-        _logs = await JobLogServiceFactory.Create<TJob, TLogEntry>().GetLogStrings(JobId, ModuleId);
+    private long LastSequence => _summaries.Count == 0 ? -1 : _summaries[^1].Sequence;
 
-        foreach (var kvp in _logs)
+    private long OldestLoaded => _chunks.Count == 0 ? long.MaxValue : _chunks.Keys.First();
+
+    private IEnumerable<LogChunkSummary> Unloaded => _summaries.Where(s => s.Sequence < OldestLoaded);
+
+    private bool HasOlderFor(string task) => Unloaded.Any(s => s.HasTask(task));
+
+    private long TaskBytes(string task) => _summaries.Where(s => s.HasTask(task)).Sum(s => s.UncompressedBytes);
+
+    private bool IsHiddenAsLarge(string task) =>
+        !_revealed.Contains(task) && TaskBytes(task) > JobLogSettings.Value.LargeLogThresholdBytes;
+
+    private static string FormatSize(long bytes) =>
+        bytes >= 1024 * 1024 ? $"{bytes / (1024.0 * 1024):0.#} MB" : $"{bytes / 1024.0:0.#} KB";
+
+    /// <summary>The newest of <paramref name="candidates"/> that fit in one page, always at least one.</summary>
+    private List<long> NewestPage(IEnumerable<LogChunkSummary> candidates)
+    {
+        var page = new List<long>();
+        long bytes = 0;
+        foreach (var summary in candidates.OrderByDescending(s => s.Sequence))
         {
-            if (!string.IsNullOrEmpty(kvp.Value))
-            {
-                _htmlLogs[kvp.Key] = ConvertToWrappedHtml(kvp.Value);
-            }
+            if (page.Count > 0 && bytes + summary.UncompressedBytes > JobLogSettings.Value.PageBytes)
+                break;
+            page.Add(summary.Sequence);
+            bytes += summary.UncompressedBytes;
+        }
+
+        return page;
+    }
+
+    private async Task Load(IReadOnlyCollection<long> sequences)
+    {
+        if (sequences.Count == 0)
+            return;
+
+        var entries = await LogService.ReadChunks(ModuleJobId, sequences, ModuleId);
+
+        // A page is contiguous and older or newer than everything loaded, so its lines file under its lowest sequence.
+        foreach (var sequence in sequences)
+            _chunks[sequence] = [];
+        _chunks[sequences.Min()] = entries;
+
+        RenderTasks(entries.Select(e => e.TaskName ?? LogService.DefaultTaskName).Distinct());
+    }
+
+    /// <summary>Whether a task name, or a log key built from one, is in scope for this list.</summary>
+    private bool Matches(string name)
+    {
+        if (TaskFilter is null) return true;
+        if (TaskFilter.Contains(name)) return true;
+
+        return IncludeCorrelated && TaskFilter.Any(t => name.StartsWith($"{t} (", StringComparison.Ordinal));
+    }
+
+    private void RenderTasks(IEnumerable<string> tasks)
+    {
+        foreach (var task in tasks)
+        {
+            if (!_tasks.Contains(task))
+                _tasks.Add(task);
+
+            var text = string.Join(Environment.NewLine, LogService.InWrittenOrder(_chunks.Values
+                    .SelectMany(lines => lines)
+                    .Where(e => (e.TaskName ?? LogService.DefaultTaskName) == task))
+                .Select(e => e.Message));
+
+            _htmlLogs[task] = string.IsNullOrEmpty(text) ? string.Empty : ConvertToWrappedHtml(text);
         }
     }
+
+    private void AddKnownTasks()
+    {
+        foreach (var task in _summaries.SelectMany(s => s.TaskNames ?? []))
+            if (!_tasks.Contains(task))
+                _tasks.Add(task);
+    }
+
+    private async Task ReloadLogs()
+    {
+        await _loadLock.WaitAsync();
+        try
+        {
+            if (!_loaded)
+            {
+                _summaries = await LogService.GetChunkSummaries(ModuleJobId, ModuleId);
+                AddKnownTasks();
+                await Load(NewestPage(_summaries));
+                _loaded = true;
+                return;
+            }
+
+            var added = await LogService.GetChunkSummaries(ModuleJobId, ModuleId, LastSequence);
+            if (added.Count == 0)
+                return;
+
+            _summaries.AddRange(added);
+            AddKnownTasks();
+            await Load(added.Select(s => s.Sequence).ToList());
+        }
+        finally
+        {
+            _loadLock.Release();
+        }
+    }
+
+    private async Task LoadMoreLogs()
+    {
+        await _loadLock.WaitAsync();
+        try
+        {
+            await Load(NewestPage(Unloaded));
+        }
+        finally
+        {
+            _loadLock.Release();
+        }
+    }
+
+    private void Reveal(string task) => _revealed.Add(task);
 
     public async Task RefreshLogs(bool invokeAsync = false)
     {
@@ -301,18 +439,10 @@ else
 
     public async Task InitializeLogs()
     {
-        if (_logs != null || _initializing) return;
+        if (_loaded) return;
 
-        _initializing = true;
-        try
-        {
-            await ReloadLogs();
-            StateHasChanged();
-        }
-        finally
-        {
-            _initializing = false;
-        }
+        await ReloadLogs();
+        StateHasChanged();
     }
 
 }

@@ -23,7 +23,7 @@ namespace SnapCd.Runner.Tasks;
 public partial class Tasks
 {
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IJobLogStreams _jobLogStreams;
+    private readonly IJobLogStream _jobLogStream;
     private readonly ProcessRegistry _processRegistry;
     private readonly RunnerSettings _settings;
     private readonly ModuleGetterFactory _moduleGetterFactory;
@@ -59,7 +59,7 @@ public partial class Tasks
         ProcessRegistry processRegistry,
         IOptions<RunnerSettings> settings,
         ILoggerFactory loggerFactory,
-        IJobLogStreams jobLogStreams,
+        IJobLogStream jobLogStream,
         ModuleGetterFactory moduleGetterFactory,
         EngineFactory engineFactory,
         VariableDiscoveryServiceFactory discoveryServiceFactory,
@@ -74,7 +74,7 @@ public partial class Tasks
         _processRegistry = processRegistry;
         _runningTaskReporter = runningTaskReporter;
         _loggerFactory = loggerFactory;
-        _jobLogStreams = jobLogStreams;
+        _jobLogStream = jobLogStream;
         _settings = settings.Value;
         _moduleGetterFactory = moduleGetterFactory;
         _engineFactory = engineFactory;
@@ -103,9 +103,27 @@ public partial class Tasks
     }
 
     /// <summary>
-    /// Invoke hub method with automatic retry on transient failures.
+    /// Report a step's result, with automatic retry on transient failures. The job's logs ship first, so a
+    /// finished step has its logs.
     /// </summary>
     private async Task InvokeWithRetryAsync(
+        Func<Task> invocation,
+        string operationName,
+        Guid jobId,
+        HubConnection connection,
+        int maxRetries = HubInvocationRetry.DefaultMaxRetries,
+        TimeSpan? initialDelay = null)
+    {
+        if (jobId != Guid.Empty)
+            await _jobLogStream.DrainAsync(jobId);
+
+        await RetryHubInvocationAsync(invocation, operationName, jobId, connection, maxRetries, initialDelay);
+    }
+
+    /// <summary>
+    /// Invoke hub method with automatic retry on transient failures.
+    /// </summary>
+    private async Task RetryHubInvocationAsync(
         Func<Task> invocation,
         string operationName,
         Guid jobId,

@@ -40,7 +40,7 @@ public partial class Tasks
             jobId, task, connection, TimeSpan.FromSeconds(reportFrequencySeconds), reportingCts.Token);
 
         var logger = _loggerFactory.CreateLogger<Tasks>();
-        var taskContext = new RunnerTaskContext(jobId, task, logger, _jobLogStreams.StateMigrations, metadata);
+        var taskContext = new RunnerTaskContext(jobId, task, logger, _jobLogStream, metadata);
         var runnerHubClient = new RunnerHubClient(connection);
 
         try

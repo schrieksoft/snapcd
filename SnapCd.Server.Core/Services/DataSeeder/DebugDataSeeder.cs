@@ -422,15 +422,6 @@ public class DebugDataSeeder : ProductionDataSeeder
                 DesiredStateHeadline = DesiredStateHeadline.Applied,
                 QueuedDesiredStateHeadline = null
             };
-            debugModule.ModuleModifiedSaga = new ModuleModifiedSaga
-            {
-                CorrelationId = debugModule.Id,
-                OrganizationId = _preseededOrganizationId,
-                RowVersion = [],
-                CurrentState = nameof(ModuleModifiedStateMachine.Idle),
-                LastUpdated = null,
-                TimeoutTokenId = null
-            };
             dbContext.Modules.Add(debugModule);
         }
         else
@@ -470,15 +461,6 @@ public class DebugDataSeeder : ProductionDataSeeder
                 CurrentState = nameof(ModuleStateMachine.Gatekeeping),
                 DesiredStateHeadline = DesiredStateHeadline.Applied,
                 QueuedDesiredStateHeadline = null
-            };
-            mockModule.ModuleModifiedSaga = new ModuleModifiedSaga
-            {
-                CorrelationId = mockModule.Id,
-                OrganizationId = _preseededOrganizationId,
-                RowVersion = [],
-                CurrentState = nameof(ModuleModifiedStateMachine.Idle),
-                LastUpdated = null,
-                TimeoutTokenId = null
             };
             dbContext.Modules.Add(mockModule);
         }
@@ -525,15 +507,6 @@ public class DebugDataSeeder : ProductionDataSeeder
                 CurrentState = nameof(ModuleStateMachine.Gatekeeping),
                 DesiredStateHeadline = DesiredStateHeadline.Applied,
                 QueuedDesiredStateHeadline = null
-            };
-            monorepoModule.ModuleModifiedSaga = new ModuleModifiedSaga
-            {
-                CorrelationId = monorepoModule.Id,
-                OrganizationId = _preseededOrganizationId,
-                RowVersion = [],
-                CurrentState = nameof(ModuleModifiedStateMachine.Idle),
-                LastUpdated = null,
-                TimeoutTokenId = null
             };
             dbContext.Modules.Add(monorepoModule);
         }
@@ -641,15 +614,6 @@ public class DebugDataSeeder : ProductionDataSeeder
                 QueuedDesiredStateHeadline = null
             };
 
-            module.ModuleModifiedSaga = new ModuleModifiedSaga
-            {
-                CorrelationId = moduleId,
-                OrganizationId = _preseededOrganizationId,
-                RowVersion = [],
-                CurrentState = nameof(ModuleModifiedStateMachine.Idle),
-                LastUpdated = null,
-                TimeoutTokenId = null
-            };
 
             dbContext.Modules.Add(module);
         }

@@ -141,15 +141,6 @@ public class Module_SmokeTests : IAsyncLifetime
             DesiredStateHeadline = DesiredStateHeadline.Applied,
             QueuedDesiredStateHeadline = null,
         };
-        module.ModuleModifiedSaga = new ModuleModifiedSaga
-        {
-            CorrelationId = module.Id,
-            OrganizationId = module.OrganizationId,
-            RowVersion = Array.Empty<byte>(),
-            CurrentState = nameof(ModuleModifiedStateMachine.Idle),
-            LastUpdated = null,
-            TimeoutTokenId = null,
-        };
         return module;
     }
 

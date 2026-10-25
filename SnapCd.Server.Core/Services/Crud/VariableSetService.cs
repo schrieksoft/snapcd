@@ -83,6 +83,8 @@ public class VariableSetService : GenericCrudService<
                 OrganizationId = organizationId,
                 Name = inputDto.Name,
                 Type = inputDto.Type,
+                TypeDefinition = inputDto.TypeDefinition,
+                Default = inputDto.Default,
                 Description = inputDto.Description,
                 Sensitive = inputDto.Sensitive,
                 Nullable = inputDto.Nullable,

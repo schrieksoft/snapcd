@@ -103,7 +103,7 @@
     [Inject] private ModuleJobApprovalSecuredRepositoryFactory ModuleJobApprovalRepoFactory { get; set; } = null!;
 
     private ModuleJob? _moduleJob;
-    private ListLogs<ModuleJob, ModuleJobLogEntryDto>? _inlineLogsRef;
+    private ListLogs? _inlineLogsRef;
     private ListProbes? _probesRef;
     private DownstreamImpact? _impact;
     private ApprovalPanel? _panelRef;

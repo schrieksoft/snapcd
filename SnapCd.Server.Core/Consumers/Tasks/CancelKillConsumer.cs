@@ -52,7 +52,7 @@ public abstract class CancelKillConsumer<TRequested> : IConsumer<TRequested>
 
         if (string.IsNullOrEmpty(runnerName))
         {
-            _logger.LogWarning("No runner name provided in kill cancel request for job {CorrelationId}", correlationId);
+            _logger.LogError("No runner name provided in kill cancel request for job {CorrelationId}; the cancel will complete on its timeout", correlationId);
             return;
         }
 
@@ -64,7 +64,7 @@ public abstract class CancelKillConsumer<TRequested> : IConsumer<TRequested>
 
             if (connection == null)
             {
-                _logger.LogWarning("Runner {RunnerName} not found in database for job {CorrelationId}",
+                _logger.LogError("Runner {RunnerName} not connected for kill cancel of job {CorrelationId}; the cancel will complete on its timeout",
                     runnerName, correlationId);
                 return;
             }

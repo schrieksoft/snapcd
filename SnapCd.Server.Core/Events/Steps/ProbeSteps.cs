@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps;
@@ -36,12 +37,22 @@ public abstract class ProbeCompletedBase : StepResponseBase
     public string? SignalsJson { get; set; }
 }
 
+public abstract class ApplyProbeFaultedBase : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.ApplyProbe;
+}
+
+public abstract class DestroyProbeFaultedBase : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.DestroyProbe;
+}
+
 public class ApplyProbeRequested : ProbeRequestedBase;
 public class ApplyProbeCompleted : ProbeCompletedBase;
 public class ApplyProbeCancelled : StepResponseBase;
-public class ApplyProbeFaulted : StepFaultedBase;
+public class ApplyProbeFaulted : ApplyProbeFaultedBase;
 
 public class DummyDestroyProbeRequested : ProbeRequestedBase;
 public class DummyDestroyProbeCompleted : ProbeCompletedBase;
 public class DummyDestroyProbeCancelled : StepResponseBase;
-public class DummyDestroyProbeFaulted : StepFaultedBase;
+public class DummyDestroyProbeFaulted : DestroyProbeFaultedBase;

@@ -80,21 +80,21 @@ public static class JobExtensionMethods
             .Finalize();
     }
 
-    public static EventActivityBinder<TSaga, Fault<TRequestMessage>> ThenFaulted<TSaga, TResponseFailed, TRequestMessage>(this
-        EventActivityBinder<TSaga, Fault<TRequestMessage>> binder, State failed, ILogger logger)
+    public static EventActivityBinder<TSaga, Fault<TMessage>> ThenFaultedOnFault<TSaga, TResponseFailed, TMessage>(this
+        EventActivityBinder<TSaga, Fault<TMessage>> binder, State failed, ILogger logger)
         where TSaga : JobSagaBase
-        where TRequestMessage : StepRequestBase, new()
+        where TMessage : class
         where TResponseFailed : ModuleJobEventCompletedBase, new()
     {
         return binder
-            .Then(x => logger.LogInformation($"Plan failed for Module {x.Saga.ModuleId} and ModuleJobId {x.Saga.CorrelationId}"))
+            .Then(x => logger.LogInformation("Job {ModuleJobId} for Module {ModuleId} failed", x.Saga.CorrelationId, x.Saga.ModuleId))
             .Publish(context => new TResponseFailed
             {
                 ModuleId = context.Saga.ModuleId,
                 OrganizationId = context.Saga.OrganizationId,
                 ModuleJobId = context.Saga.CorrelationId
             })
-            .Activity(x => x.OfType<FailModuleJobRequestActivity<TSaga, TRequestMessage>>())
+            .Activity(x => x.OfType<FailModuleJobOnFaultActivity<TSaga, TMessage>>())
             .TransitionTo(failed)
             .Finalize();
     }
@@ -106,7 +106,7 @@ public static class JobExtensionMethods
         where TResponseFailed : ModuleJobEventCompletedBase, new()
     {
         return binder
-            .Then(x => logger.LogInformation($"Plan failed for Module {x.Saga.ModuleId} and ModuleJobId {x.Saga.CorrelationId}"))
+            .Then(x => logger.LogInformation("Job {ModuleJobId} for Module {ModuleId} failed", x.Saga.CorrelationId, x.Saga.ModuleId))
             .Publish(context => new TResponseFailed
             {
                 ModuleId = context.Saga.ModuleId,
@@ -132,6 +132,7 @@ public static class JobExtensionMethods
                 ModuleJobId = context.Saga.CorrelationId,
                 CancellationReason = CancellationReason.UserRequested
             })
+            .Activity(x => x.OfType<CancelModuleJobActivity<TSaga, TCancelledMessage>>())
             .TransitionTo(cancelled)
             .Finalize();
     }
@@ -212,17 +213,43 @@ public static class JobExtensionMethods
                 // Log the event type dynamically
                 logger.LogDebug($"Cancelled via: {typeof(TEvent).Name}");
             })
-            .Publish(context =>
+            .Publish(context => new TResponseCancelled
             {
-                cancelled.ModuleId = context.Saga.ModuleId;
-                cancelled.ModuleJobId = context.Saga.CorrelationId;
-                cancelled.OrganizationId = context.Saga.OrganizationId;
-                cancelled.CancellationReason ??= CancellationReason.UserRequested;
-                return cancelled;
+                ModuleId = context.Saga.ModuleId,
+                ModuleJobId = context.Saga.CorrelationId,
+                OrganizationId = context.Saga.OrganizationId,
+                CancellationReason = cancelled.CancellationReason ?? CancellationReason.UserRequested
             })
             .Activity(x => x.OfType<CancelModuleJobActivity<TSaga, TEvent>>())
             .TransitionTo(transitionTo)
             .Finalize();
+    }
+
+    /// <summary>
+    /// The runner is lost while the job waits to cancel after its current step: the cancel completes, and the lost runner is kept on the job.
+    /// </summary>
+    public static EventActivityBinder<TSaga, HeartbeatFailed> CancelAfterLostRunner<TSaga, TResponseCancelled>(this
+        EventActivityBinder<TSaga, HeartbeatFailed> binder, ILogger logger, State transitionTo)
+        where TSaga : JobSagaBase
+        where TResponseCancelled : ModuleJobEventCompletedBase, new()
+    {
+        return binder
+            .Activity(x => x.OfType<RecordLostRunnerActivity<TSaga>>())
+            .Cancel(logger, transitionTo, new TResponseCancelled());
+    }
+
+    /// <summary>
+    /// A step that faults while its job is being cancelled: the cancel completes, and a server-side fault is kept on the job.
+    /// </summary>
+    public static EventActivityBinder<TSaga, TFaulted> CancelAfterFault<TSaga, TFaulted, TResponseCancelled>(this
+        EventActivityBinder<TSaga, TFaulted> binder, ILogger logger, State transitionTo)
+        where TFaulted : StepFaultedBase
+        where TSaga : JobSagaBase
+        where TResponseCancelled : ModuleJobEventCompletedBase, new()
+    {
+        return binder
+            .Activity(x => x.OfType<RecordServerSideFaultActivity<TSaga, TFaulted>>())
+            .Cancel(logger, transitionTo, new TResponseCancelled());
     }
 
 

@@ -25,7 +25,6 @@ public partial class Tasks
     public async Task Variables(
         VariablesRequestBase request,
         HubConnection connection,
-        IJobLogStream logStream,
         Func<Guid, VariableSetCreateDto?, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)
@@ -48,7 +47,7 @@ public partial class Tasks
             request.JobId,
             nameof(Variables),
             logger,
-            logStream,
+            _jobLogStream,
             request.Metadata
         );
 

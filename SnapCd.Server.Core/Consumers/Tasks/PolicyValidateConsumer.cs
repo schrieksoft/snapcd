@@ -106,7 +106,7 @@ public abstract class PolicyValidateConsumer<TRequested, TFaulted> : IConsumer<T
                 CorrelationId = jobId,
                 OrganizationId = orgId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }

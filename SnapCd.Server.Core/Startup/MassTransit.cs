@@ -10,6 +10,7 @@ using SnapCd.Server.Core.StateMachine.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
+using SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
@@ -419,13 +420,6 @@ public static class MassTransit
             // Concurrency limit of 1 for DriftCheckScheduled (partition by ModuleId)
             s.Message<DriftCheckScheduled>(x => x.UsePartitioner(partition, m => m.Message.ModuleId));
         }, endpointNameFormatter);
-
-        // ModuleModifiedSaga with concurrency limit of 1 for ModuleModifiedTriggerRequested
-        AddSagaReceiveEndpoint<ModuleModifiedSaga, TMqFactory>(serviceBusSettings, context, cfg, serviceBusSettings.SagaConcurrencyLimit, s =>
-        {
-            var partition = s.CreatePartitioner(1);
-            s.Message<ModuleModifiedTriggerRequested>(x => x.UsePartitioner(partition, m => m.Message.ModuleId));
-        }, endpointNameFormatter);
     }
 
     /// <summary>
@@ -454,6 +448,7 @@ public static class MassTransit
         services.AddScoped(typeof(SendTransferStepToRunnerActivity<,>));
         services.AddScoped<CheckArtefactPresentActivity>();
         services.AddScoped<CheckConsentDecidedActivity>();
+        services.AddScoped<ModuleHoldCheckActivity>();
     }
 
     /// <summary>
@@ -472,7 +467,6 @@ public static class MassTransit
     private static void AddSagaStateMachines(IBusRegistrationConfigurator x)
     {
         AddSagaStateMachine<ModuleStateMachine, ModuleSaga>(x);
-        AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
         AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
         AddSagaStateMachine<TransferMigrateStateMachine, TransferMigrateSaga>(x);
         AddSagaStateMachine<LookupAddressesStateMachine, LookupAddressesSaga>(x);
@@ -527,6 +521,7 @@ public static class MassTransit
                 ApplyProbeCompleted,
                 ApplyProbeCancelled,
                 ApplyProbeFaulted,
+                ApplyFromPlanFaulted,
                 ApplyCancelKillRequested,
                 DummyApplyCancelKillCompleted,
                 ApplyCancelKillCompleted
@@ -579,6 +574,7 @@ public static class MassTransit
                 DummyDestroyProbeCompleted,
                 DummyDestroyProbeCancelled,
                 DummyDestroyProbeFaulted,
+                DestroyFromPlanFaulted,
                 DestroyCancelKillRequested,
                 DummyDestroyCancelKillCompleted,
                 DestroyCancelKillCompleted

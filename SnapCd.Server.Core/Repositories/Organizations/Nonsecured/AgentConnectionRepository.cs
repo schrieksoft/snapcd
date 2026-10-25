@@ -100,6 +100,16 @@ public class AgentConnectionRepository : GenericOrganizationChildRepository<Agen
     }
 
     /// <summary>
+    /// Deletes this row only. A row the agent has since rewritten by reconnecting has a new id and is kept.
+    /// </summary>
+    public async Task DeleteConnectionRecord(Guid connectionRecordId)
+    {
+        await DbContext.AgentConnections
+            .Where(c => c.Id == connectionRecordId)
+            .ExecuteDeleteAsync();
+    }
+
+    /// <summary>
     /// Deletes all connections owned by a specific server instance.
     /// Used by cleanup job when a server is detected as crashed/offline.
     /// </summary>

@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Contracts.Dto.OutputSets;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 
 namespace SnapCd.Server.Core.Events.Steps.Transfer;
@@ -59,11 +60,17 @@ public class AnalyseTransferRefactorMapCompleted : TransferStepResponseBase
 
 public class AnalyseTransferRefactorMapCancelled : TransferStepCancelledBase;
 
-public class AnalyseTransferRefactorMapFaulted : TransferStepFaultedBase;
+public class AnalyseTransferRefactorMapFaulted : TransferStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.AnalyseTransferRefactorMap;
+}
 
 public class TransferMigrateMapCancelled : TransferStepCancelledBase;
 
-public class TransferMigrateMapFaulted : TransferStepFaultedBase;
+public class TransferMigrateMapFaulted : TransferStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.TransferMigrateMap;
+}
 
 /// <summary>
 /// `transfer migrate prove` for one participant: does this root plan to zero changes with the
@@ -92,7 +99,10 @@ public class TransferMigrateProveCompleted : TransferStepResponseBase
 
 public class TransferMigrateProveCancelled : TransferStepCancelledBase;
 
-public class TransferMigrateProveFaulted : TransferStepFaultedBase;
+public class TransferMigrateProveFaulted : TransferStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.TransferMigrateProve;
+}
 
 public class TransferMigrateRunRequested : TransferStepRequestBase
 {
@@ -113,7 +123,10 @@ public class TransferMigrateRunCompleted : TransferStepResponseBase
 
 public class TransferMigrateRunCancelled : TransferStepCancelledBase;
 
-public class TransferMigrateRunFaulted : TransferStepFaultedBase;
+public class TransferMigrateRunFaulted : TransferStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.TransferMigrateRun;
+}
 
 public class TransferMigrateVerifyRequested : TransferStepRequestBase
 {
@@ -123,7 +136,10 @@ public class TransferMigrateVerifyCompleted : TransferStepResponseBase;
 
 public class TransferMigrateVerifyCancelled : TransferStepCancelledBase;
 
-public class TransferMigrateVerifyFaulted : TransferStepFaultedBase;
+public class TransferMigrateVerifyFaulted : TransferStepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.TransferMigrateVerify;
+}
 
 
 

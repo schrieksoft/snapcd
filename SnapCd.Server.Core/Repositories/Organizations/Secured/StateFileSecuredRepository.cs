@@ -67,8 +67,29 @@ public class StateFileSecuredRepository : GenericStateStoreChildSecuredRepositor
         return entity;
     }
 
-    public async Task<StateFile?> FindByName(string name, Guid stateStoreId)
+    public async Task<StateFile?> FindByName(string name, Guid stateStoreId, Guid organizationId)
     {
-        return await Repository.FindByName(name, stateStoreId);
+        var entity = await Repository.FindByName(name, stateStoreId);
+
+        if (entity == null || !CanRead(entity.Id, organizationId))
+            return null;
+
+        return entity;
+    }
+
+    /// <summary>A version carries the permission of the state file it belongs to.</summary>
+    public void AssertCanReadVersions(Guid stateFileId, Guid organizationId)
+    {
+        if (!CanRead(stateFileId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(StateFile)} with ID {stateFileId} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
+    }
+
+    /// <summary>Adding, restoring and deleting a version all change what the state file resolves to.</summary>
+    public void AssertCanWriteVersions(Guid stateFileId, Guid organizationId)
+    {
+        if (!CanUpdate(stateFileId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(StateFile)} with ID {stateFileId} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to update it.");
     }
 }

@@ -8,9 +8,14 @@
 
 using SnapCd.Server.Core.Events.Steps.Base;
 
+using SnapCd.Server.Core.Entities.Definition;
+
 namespace SnapCd.Server.Core.Events.Steps;
 
-public abstract class PlanFaultedBase : StepFaultedBase;
+public abstract class PlanFaultedBase : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Plan;
+}
 
 /// <summary>
 /// Event indicating that plan has faulted with an error.

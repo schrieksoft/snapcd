@@ -128,6 +128,7 @@ public partial class LookupAddressesStateMachine : MassTransitStateMachine<Looku
         );
 
         Configure_Preamble();
+        Configure_Faults();
 
         During(ListPending,
             When(ListCompleted)

@@ -83,7 +83,7 @@ public abstract class TransferStepConsumer<TRequest, TFaulted> : IConsumer<TRequ
                 OrganizationId = orgId,
                 ModuleId = msg.ModuleId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }

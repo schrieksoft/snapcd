@@ -98,8 +98,7 @@ public class RunnerTaskContext
             "[{TaskName}] [{StackName}.{NamespaceName}.{ModuleName}] {Message}",
             taskName, _metadata.StackName, _metadata.NamespaceName, _metadata.ModuleName, message);
 
-        // Ship — IJobLogStream gets the explicit envelope. HubJobLogStream returns CompletedTask
-        // synchronously after enqueueing into the Serilog batching pipeline.
+        // Ship: HubJobLogStream enqueues and returns a completed task.
         var envelope = new JobLogEnvelope(
             JobId: _jobId,
             ModuleId: _metadata.ModuleId,

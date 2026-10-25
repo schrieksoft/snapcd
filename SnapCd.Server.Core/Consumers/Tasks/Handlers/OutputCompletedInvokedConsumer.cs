@@ -22,9 +22,10 @@ namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 /// This consumer processes OutputCompletedInvoked events to store output sets
 /// without blocking the SignalR connection.
 /// </summary>
-public abstract class OutputCompletedInvokedConsumer<TInvoked, TCompleted> : IConsumer<TInvoked>
+public abstract class OutputCompletedInvokedConsumer<TInvoked, TCompleted, TFaulted> : IConsumer<TInvoked>
     where TInvoked : OutputCompletedInvokedBase
     where TCompleted : StepResponseBase, new()
+    where TFaulted : StepFaultedBase, new()
 {
     private readonly ILogger _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
@@ -50,8 +51,11 @@ public abstract class OutputCompletedInvokedConsumer<TInvoked, TCompleted> : ICo
         if (outputSet == null)
         {
             _logger.LogDebug("No output set provided for job {JobId}, skipping storage", jobId);
+            await _bus.Publish(new TCompleted { CorrelationId = jobId });
             return;
         }
+
+        var organizationId = Guid.Empty;
 
         try
         {
@@ -63,6 +67,7 @@ public abstract class OutputCompletedInvokedConsumer<TInvoked, TCompleted> : ICo
 
             if (jobView != null)
             {
+                organizationId = jobView.OrganizationId;
                 await _outputSetService.CreateWithOutputsNonsecured(outputSet, jobView.ModuleId, jobView.OrganizationId);
                 _logger.LogDebug("Stored OutputSet for job {JobId}", jobId);
                 
@@ -74,17 +79,24 @@ public abstract class OutputCompletedInvokedConsumer<TInvoked, TCompleted> : ICo
             else
             {
                 _logger.LogWarning("Could not find module job {JobId} to store OutputSet", jobId);
+                await context.Publish(new TFaulted
+                {
+                    CorrelationId = jobId,
+                    ErrorMessage = $"The server could not find job {jobId} to store its outputs.",
+                    IsServerSideError = true
+                });
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to store OutputSet for job {JobId}", jobId);
             
-            await context.Publish(new OutputFaulted
+            await context.Publish(new TFaulted
             {
                 CorrelationId = jobId,
+                OrganizationId = organizationId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }
@@ -96,7 +108,7 @@ public class ApplyOutputCompletedInvokedConsumer(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
     OutputSetService outputSetService,
     IBus bus)
-    : OutputCompletedInvokedConsumer<ApplyOutputCompletedInvoked, ApplyOutputCompleted>(
+    : OutputCompletedInvokedConsumer<ApplyOutputCompletedInvoked, ApplyOutputCompleted, ApplyOutputFaulted>(
         logger, dbContextFactory, outputSetService, bus);
 
 public class DestroyOutputCompletedInvokedConsumer(
@@ -104,5 +116,5 @@ public class DestroyOutputCompletedInvokedConsumer(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
     OutputSetService outputSetService,
     IBus bus)
-    : OutputCompletedInvokedConsumer<DestroyOutputCompletedInvoked, DestroyOutputCompleted>(
+    : OutputCompletedInvokedConsumer<DestroyOutputCompletedInvoked, DestroyOutputCompleted, DestroyOutputFaulted>(
         logger, dbContextFactory, outputSetService, bus);

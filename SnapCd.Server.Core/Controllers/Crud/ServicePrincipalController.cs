@@ -76,7 +76,7 @@ public class ServicePrincipalController : GenericCrudController<
         }
     }
 
-    [HttpGet($"{ServicePrincipalCustomEndpointNames.GetWithVerifySecret}/{{id}}")]
+    [HttpGet($"{ServicePrincipalCustomEndpointNames.GetWithVerifySecret}/{{id:guid}}")]
     public async Task<ActionResult<ServicePrincipalReadDto>> GetWithSecretVerify(Guid organizationId, Guid id, [FromQuery] string? secret)
     {
         try
@@ -145,7 +145,7 @@ public class ServicePrincipalController : GenericCrudController<
         }
     }
 
-    [HttpGet("Metadata/{id}")]
+    [HttpGet("Metadata/{id:guid}")]
     [PermissionSource(Repository = typeof(ServicePrincipalSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
     public override async Task<ActionResult<ServicePrincipalMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)
     {

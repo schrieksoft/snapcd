@@ -162,16 +162,6 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
             QueuedDesiredStateHeadline = null
         };
 
-        entity.ModuleModifiedSaga = new ModuleModifiedSaga
-        {
-            CorrelationId = entity.Id,
-            OrganizationId = entity.OrganizationId,
-            RowVersion = [],
-            CurrentState = nameof(ModuleModifiedStateMachine.Idle),
-            LastUpdated = null,
-            TimeoutTokenId = null
-        };
-
         return await base.ExecuteCreate(entity);
     }
 
@@ -179,8 +169,7 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
     {
         NameValidator.EnsureValid(entity.Name, "Module");
 
-        // First get the existing module to check for namespace changes
-        var existingModule = await Get(entity.Id, entity.OrganizationId);
+        var existingModule = OriginalOf(await Get(entity.Id, entity.OrganizationId));
 
         // Check if the namespace is changing
         if (existingModule.NamespaceId != entity.NamespaceId) await ValidateNamespaceChange(existingModule, entity.NamespaceId, entity.OrganizationId);
@@ -192,10 +181,11 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
         if (updated.ApplyApprovalThreshold != existingModule.ApplyApprovalThreshold ||
             updated.DestroyApprovalThreshold != existingModule.DestroyApprovalThreshold ||
             updated.StateMigrationApprovalThreshold != existingModule.StateMigrationApprovalThreshold)
+            // No time to live: a dropped message leaves waiting jobs on a threshold that no longer applies.
             await EnqueueOrPublish(() => Bus.Publish(new ModuleApprovalThresholdModifiedEvent
             {
                 ModuleId = updated.Id
-            }, context => { context.TimeToLive = TimeSpan.FromSeconds(60); }));
+            }));
 
         return updated;
     }

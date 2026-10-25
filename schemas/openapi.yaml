@@ -435,6 +435,69 @@ paths:
       x-snapcd-permissions:
         notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
           by roles on the target state store, not by this API''s bearer-token role model.'
+  /api/{organizationId}/ModuleHold/heartbeat:
+    post:
+      tags:
+      - ModuleHold
+      summary: Hold the listed Modules out of deployment, or keep holding them
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleHoldHeartbeatRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleHoldHeartbeatRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleHoldHeartbeatRequestDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleHoldHeartbeatResponseDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleHoldHeartbeatResponseDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleHoldHeartbeatResponseDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
   /api/{organizationId}/SourceChangedNotification:
     post:
       tags:
@@ -32317,7 +32380,7 @@ paths:
         anyOf:
         - Organization.IdentityAccessManager
         - Organization.Owner
-  /api/{organizationId}/SourceRefresherPreselection/BySourceUrl/{name}:
+  /api/{organizationId}/SourceRefresherPreselection/BySourceUrl/{sourceUrl}:
     get:
       tags:
       - SourceRefresherPreselection
@@ -32341,7 +32404,7 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: name
+      - name: sourceUrl
         in: path
         required: true
         schema:
@@ -32367,7 +32430,7 @@ paths:
         - Organization.Reader
         - Organization.SourceRefresherPreselectionContributor
         - Organization.SourceRefresherPreselectionReader
-  /api/{organizationId}/SourceRefresherPreselection/Metadata/BySourceUrl/{name}:
+  /api/{organizationId}/SourceRefresherPreselection/Metadata/BySourceUrl/{sourceUrl}:
     get:
       tags:
       - SourceRefresherPreselection
@@ -32391,7 +32454,7 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: name
+      - name: sourceUrl
         in: path
         required: true
         schema:
@@ -38748,6 +38811,15 @@ components:
         name:
           type: string
           description: Name of the Module. Must be unique in combination with `namespace_id`.
+        hold:
+          oneOf:
+          - type: 'null'
+          - description: |-
+              On create only: hold the new Module out of deployment for a client still configuring it (the provider, during an
+              apply), which keeps the hold alive with heartbeats. Unset, the Module is not held. Never returned.
+            $ref: '#/components/schemas/ModuleHoldTimingDto'
+          description: 'On create only: hold the new Module out of deployment for a client still configuring it (the provider,
+            during an apply), which keeps the hold alive with heartbeats. Unset, the Module is not held. Never returned.'
         namespaceId:
           type: string
           description: ID of the Module's parent Namespace.
@@ -39006,6 +39078,114 @@ components:
           - boolean
           description: If true any pre-existing file with the same name will be overwritten.
       description: DTO for updating an existing ModuleExtraFile (PUT operations).
+    ModuleHoldHeartbeatRequestDto:
+      type: object
+      properties:
+        moduleIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Every Module the client is holding; those not yet held are held now.
+        namespaceIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Every Namespace the client is holding, which holds every Module in it; those not yet held are held
+            now.
+        stackIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Every Stack the client is holding, which holds every Module in its Namespaces; those not yet held are
+            held now.
+        heartbeatIntervalSeconds:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: How often the client sends a heartbeat; when unset the server's default is used. Kept within the server's
+            limits.
+          format: int32
+        heartbeatBufferSeconds:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: How long past the heartbeat interval a hold lasts; when unset the server's default is used. Kept within
+            the server's limits.
+          format: int32
+      description: Holds the listed Modules, and the Modules in the listed Namespaces and Stacks, out of deployment, or keeps
+        holding them, until the next heartbeat is due.
+    ModuleHoldHeartbeatResponseDto:
+      required:
+      - effectiveHeartbeatIntervalSeconds
+      - effectiveExpirySeconds
+      type: object
+      properties:
+        effectiveHeartbeatIntervalSeconds:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          description: The interval the client must send heartbeats at, after the server's limits are applied.
+          format: int32
+        effectiveExpirySeconds:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          description: How long each hold lasts after this heartbeat, after the server's limits are applied.
+          format: int32
+        warning:
+          type:
+          - 'null'
+          - string
+          description: Set when the server's limits changed the requested heartbeat interval or buffer, saying what was applied
+            and why.
+        notHeldModuleIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: 'Modules that could not be held: the caller may not update them.'
+        notHeldNamespaceIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: 'Namespaces that could not be held: the caller may not update them.'
+        notHeldStackIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: 'Stacks that could not be held: the caller may not update them.'
+      description: The holds as the server applied them.
+    ModuleHoldTimingDto:
+      type: object
+      properties:
+        heartbeatIntervalSeconds:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: How often the client sends a heartbeat. Kept within the server's limits.
+          format: int32
+        heartbeatBufferSeconds:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: How long past the heartbeat interval a hold lasts. Kept within the server's limits.
+          format: int32
+      description: How a client holding Modules sends heartbeats. Either value left unset takes the server's default.
     ModuleHookCreateDto:
       type: object
       properties:
@@ -40420,6 +40600,15 @@ components:
         name:
           type: string
           description: Name of the Module. Must be unique in combination with `namespace_id`.
+        hold:
+          oneOf:
+          - type: 'null'
+          - description: |-
+              On create only: hold the new Module out of deployment for a client still configuring it (the provider, during an
+              apply), which keeps the hold alive with heartbeats. Unset, the Module is not held. Never returned.
+            $ref: '#/components/schemas/ModuleHoldTimingDto'
+          description: 'On create only: hold the new Module out of deployment for a client still configuring it (the provider,
+            during an apply), which keeps the hold alive with heartbeats. Unset, the Module is not held. Never returned.'
         namespaceId:
           type: string
           description: ID of the Module's parent Namespace.
@@ -41215,6 +41404,15 @@ components:
         name:
           type: string
           description: Name of the Module. Must be unique in combination with `namespace_id`.
+        hold:
+          oneOf:
+          - type: 'null'
+          - description: |-
+              On create only: hold the new Module out of deployment for a client still configuring it (the provider, during an
+              apply), which keeps the hold alive with heartbeats. Unset, the Module is not held. Never returned.
+            $ref: '#/components/schemas/ModuleHoldTimingDto'
+          description: 'On create only: hold the new Module out of deployment for a client still configuring it (the provider,
+            during an apply), which keeps the hold alive with heartbeats. Unset, the Module is not held. Never returned.'
         namespaceId:
           type: string
           description: ID of the Module's parent Namespace.
@@ -44995,6 +45193,7 @@ security:
 tags:
 - name: OrganizationSwitch
 - name: State
+- name: ModuleHold
 - name: SourceChangedNotification
 - name: Job
 - name: MissionRun
@@ -45078,8 +45277,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 606
+  documented: 607
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1412
+  documented: 1431
   missing: 0

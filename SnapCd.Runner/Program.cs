@@ -107,15 +107,8 @@ builder.Services.AddQuartz(q =>
 // Terminal logging — vanilla MEL via the host default (Console + Debug providers configured from
 // the standard "Logging" section in appsettings.json). Matches SnapCd.Server.Host + SnapCd.Agent.
 
-// Server-shipping — IJobLogStream is the explicit "this log ships" producer surface. HubJobLogStream
-// owns a private Serilog logger + PeriodicBatchingSink + SignalRLogSink. Serilog is scoped to
-// HubJobLogStream only; the rest of the runner is on MEL.
-//
-// One stream per table that stores runner logs, so a caller names the table its logs belong in
-// rather than the server working it out from the id.
-builder.Services.AddSingleton<IJobLogStreams, JobLogStreams>();
-builder.Services.AddSingleton<Lazy<IJobLogStreams>>(sp =>
-    new Lazy<IJobLogStreams>(() => sp.GetRequiredService<IJobLogStreams>()));
+// Server-shipping: IJobLogStream is the explicit "this log ships" producer surface; HubJobLogStream batches per job.
+builder.Services.AddSingleton<IJobLogStream, HubJobLogStream>();
 
 builder.Services.AddHttpClient<ServicePrincipalTokenService>();
 builder.Services.AddSingleton<TokenInitializationService>();

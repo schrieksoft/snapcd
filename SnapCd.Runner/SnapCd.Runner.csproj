@@ -12,13 +12,37 @@
         <NoWarn>$(NoWarn);CS1591</NoWarn>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <SnapCdInspectSource>$(MSBuildThisFileDirectory)../tools/snapcd-inspect</SnapCdInspectSource>
+        <SnapCdInspectBinary>$(MSBuildThisFileDirectory)EmbeddedTools/snapcd-inspect</SnapCdInspectBinary>
+    </PropertyGroup>
+
     <ItemGroup>
-        <!-- Built by CI (release.yaml) before publish; absent in local dev builds, where discovery
-             falls back to a snapcd-inspect binary on PATH. -->
-        <EmbeddedResource Include="EmbeddedTools/snapcd-inspect"
-                          Condition="Exists('EmbeddedTools/snapcd-inspect')"
-                          LogicalName="SnapCd.Runner.EmbeddedTools.snapcd-inspect" />
+        <SnapCdInspectInput Include="$(SnapCdInspectSource)/*.go;$(SnapCdInspectSource)/go.mod;$(SnapCdInspectSource)/go.sum"
+                            Exclude="$(SnapCdInspectSource)/*_test.go" />
     </ItemGroup>
+
+    <!-- Rebuilds the embedded tool whenever its Go source is newer than the binary; skipped when Go is not installed. -->
+    <Target Name="DetectGo" BeforeTargets="BeforeBuild">
+        <Exec Command="go version" ContinueOnError="true" StandardOutputImportance="low" StandardErrorImportance="low" IgnoreExitCode="true">
+            <Output TaskParameter="ExitCode" PropertyName="GoVersionExitCode" />
+        </Exec>
+    </Target>
+
+    <Target Name="BuildSnapCdInspect" AfterTargets="DetectGo" Condition="'$(GoVersionExitCode)' == '0'"
+            Inputs="@(SnapCdInspectInput)" Outputs="$(SnapCdInspectBinary)">
+        <Exec Command="go build -C &quot;$(SnapCdInspectSource)&quot; -buildvcs=false -o &quot;$(SnapCdInspectBinary)&quot; ."
+              EnvironmentVariables="CGO_ENABLED=0;GOOS=linux;GOARCH=amd64" />
+    </Target>
+
+    <!-- Added after the build step so a binary created by it on a clean checkout is embedded in the same build. -->
+    <Target Name="EmbedSnapCdInspect" AfterTargets="BuildSnapCdInspect" BeforeTargets="PrepareResources">
+        <ItemGroup>
+            <EmbeddedResource Include="$(SnapCdInspectBinary)"
+                              Condition="Exists('$(SnapCdInspectBinary)')"
+                              LogicalName="SnapCd.Runner.EmbeddedTools.snapcd-inspect" />
+        </ItemGroup>
+    </Target>
 
     <ItemGroup>
         <PackageReference Include="Google.Protobuf" Version="3.33.1" />
@@ -28,7 +52,6 @@
         <PackageReference Include="OpenIddict.AspNetCore" Version="7.0.0" />
         <PackageReference Include="OpenIddict.Abstractions" Version="7.0.0" />
         <PackageReference Include="OpenIddict.Quartz" Version="7.0.0" />
-        <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="5.0.0" />
         <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
         <PackageReference Include="Azure.Identity" Version="1.16.0" />

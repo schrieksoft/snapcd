@@ -49,7 +49,7 @@ public class ModuleMissionController : GenericCrudController<
         => base.Create(organizationId, dto);
 
     [EndpointSummary("List ModuleMissions assigned to a specific Agent")]
-    [HttpGet("ByAgent/{agentId}")]
+    [HttpGet("ByAgent/{agentId:guid}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<ModuleMissionReadDto>>> ListByAgent(Guid organizationId, Guid agentId)
     {
@@ -69,7 +69,7 @@ public class ModuleMissionController : GenericCrudController<
     }
 
     [EndpointSummary("List ModuleMissions targeting a specific Module")]
-    [HttpGet("ByModule/{moduleId}")]
+    [HttpGet("ByModule/{moduleId:guid}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<ModuleMissionReadDto>>> ListByModule(Guid organizationId, Guid moduleId)
     {

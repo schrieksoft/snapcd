@@ -36,7 +36,7 @@ public class IntegrationRoleAssignmentController : ControllerBase
         catch (PrincipalNotAuthorizedException e) { return StatusCode(StatusCodes.Status403Forbidden, e.Message); }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<IntegrationRoleAssignmentReadDto>> Get(Guid organizationId, Guid id)
     {
         try { return await _service.Get(id, organizationId); }
@@ -53,7 +53,7 @@ public class IntegrationRoleAssignmentController : ControllerBase
         catch (Exception e) { return StatusCode(StatusCodes.Status500InternalServerError, e.Message); }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public async Task<ActionResult<IntegrationRoleAssignmentReadDto>> Update(Guid organizationId, Guid id, [FromBody] IntegrationRoleAssignmentUpdateDto dto)
     {
         try { return await _service.Update(dto, id, organizationId); }
@@ -63,7 +63,7 @@ public class IntegrationRoleAssignmentController : ControllerBase
         catch (Exception e) { return StatusCode(StatusCodes.Status500InternalServerError, e.Message); }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid organizationId, Guid id)
     {
         try { await _service.Delete(id, organizationId); return NoContent(); }

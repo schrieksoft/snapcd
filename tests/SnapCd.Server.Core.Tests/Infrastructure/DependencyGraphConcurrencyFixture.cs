@@ -175,13 +175,6 @@ public class DependencyGraphConcurrencyFixture : IAsyncLifetime
             CurrentState = nameof(ModuleStateMachine.Gatekeeping),
             DesiredStateHeadline = DesiredStateHeadline.Applied
         };
-        module.ModuleModifiedSaga = new ModuleModifiedSaga
-        {
-            CorrelationId = module.Id,
-            OrganizationId = orgId,
-            RowVersion = [],
-            CurrentState = nameof(ModuleModifiedStateMachine.Idle)
-        };
         return module;
     }
 

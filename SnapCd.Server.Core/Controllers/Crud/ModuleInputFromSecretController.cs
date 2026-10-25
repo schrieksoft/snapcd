@@ -55,7 +55,7 @@ public class ModuleInputFromSecretController : BaseController
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<ModuleInputFromSecretReadDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -104,7 +104,7 @@ public class ModuleInputFromSecretController : BaseController
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     public async Task<ActionResult<ModuleInputFromSecretReadDto>> Update(Guid organizationId, Guid id, [FromBody] ModuleInputFromSecretUpdateDto dto)
     {
         try
@@ -131,7 +131,7 @@ public class ModuleInputFromSecretController : BaseController
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid organizationId, Guid id)
     {
         try

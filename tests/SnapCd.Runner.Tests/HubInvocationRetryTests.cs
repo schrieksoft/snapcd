@@ -24,6 +24,14 @@ public class HubInvocationRetryTests
     }
 
     [Fact]
+    public void An_unregistered_connection_is_retryable()
+    {
+        var ex = new HubException($"{HubErrorCodes.ConnectionNotRegistered}: Runner connection not found");
+
+        Assert.True(HubInvocationRetry.IsRetryable(ex));
+    }
+
+    [Fact]
     public void A_rejection_without_a_code_is_not_retryable()
     {
         Assert.False(HubInvocationRetry.IsRetryable(new HubException("Unauthorized: This job requires a specific runner")));

@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Events.Steps;
 
@@ -30,39 +31,63 @@ public abstract class VariablesRequestedBase : StepRequestBase;
 public class ApplyGetModuleRequested : GetModuleRequestedBase;
 public class ApplyGetModuleCompleted : StepResponseBase;
 public class ApplyGetModuleCancelled : StepResponseBase;
-public class ApplyGetModuleFaulted : StepFaultedBase;
+public class ApplyGetModuleFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.GetModule;
+}
 
 public class ApplyInitRequested : InitRequestedBase;
 public class ApplyInitCompleted : StepResponseBase;
 public class ApplyInitCancelled : StepResponseBase;
-public class ApplyInitFaulted : StepFaultedBase;
+public class ApplyInitFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Init;
+}
 
 public class ApplyValidateRequested : ValidateRequestedBase;
 public class ApplyValidateCompleted : StepResponseBase;
 public class ApplyValidateCancelled : StepResponseBase;
-public class ApplyValidateFaulted : StepFaultedBase;
+public class ApplyValidateFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Validate;
+}
 
 public class ApplyVariablesRequested : VariablesRequestedBase;
 public class ApplyVariablesCompleted : StepResponseBase;
 public class ApplyVariablesCancelled : StepResponseBase;
-public class ApplyVariablesFaulted : StepFaultedBase;
+public class ApplyVariablesFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Variables;
+}
 
 public class DestroyGetModuleRequested : GetModuleRequestedBase;
 public class DestroyGetModuleCompleted : StepResponseBase;
 public class DestroyGetModuleCancelled : StepResponseBase;
-public class DestroyGetModuleFaulted : StepFaultedBase;
+public class DestroyGetModuleFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.GetModule;
+}
 
 public class DestroyInitRequested : InitRequestedBase;
 public class DestroyInitCompleted : StepResponseBase;
 public class DestroyInitCancelled : StepResponseBase;
-public class DestroyInitFaulted : StepFaultedBase;
+public class DestroyInitFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Init;
+}
 
 public class DestroyValidateRequested : ValidateRequestedBase;
 public class DestroyValidateCompleted : StepResponseBase;
 public class DestroyValidateCancelled : StepResponseBase;
-public class DestroyValidateFaulted : StepFaultedBase;
+public class DestroyValidateFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Validate;
+}
 
 public class DestroyVariablesRequested : VariablesRequestedBase;
 public class DestroyVariablesCompleted : StepResponseBase;
 public class DestroyVariablesCancelled : StepResponseBase;
-public class DestroyVariablesFaulted : StepFaultedBase;
+public class DestroyVariablesFaulted : StepFaultedBase
+{
+    public override ServerSideStep Step => ServerSideStep.Variables;
+}

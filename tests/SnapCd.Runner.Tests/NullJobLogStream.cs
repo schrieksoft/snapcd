@@ -18,4 +18,6 @@ internal sealed class NullJobLogStream : IJobLogStream
 {
     public Task EmitAsync(JobLogEnvelope envelope, string message, CancellationToken ct = default)
         => Task.CompletedTask;
+
+    public Task DrainAsync(Guid jobId) => Task.CompletedTask;
 }

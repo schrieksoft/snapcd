@@ -80,7 +80,8 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
             _logger.LogError(ex,
                 "Failed to record running task {TaskName} for job {JobId}",
                 message.TaskName, message.JobId);
-            // Don't rethrow - this is tracking information, not critical
+            // Rethrown so the endpoint's retry applies: this row is the job's liveness record.
+            throw;
         }
     }
 }

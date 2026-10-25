@@ -21,6 +21,12 @@ public static class HubErrorCodes
     /// </summary>
     public const string TokenExpired = "SNAPCD-E002";
 
+    /// <summary>
+    /// The caller's connection has no registration on the server. Transient: the server closes the connection,
+    /// the caller reconnects and registers again, and the same call succeeds.
+    /// </summary>
+    public const string ConnectionNotRegistered = "SNAPCD-E003";
+
     /// <summary>Whether a message carries the given code.</summary>
     public static bool Is(string code, string? message) =>
         message is not null && message.StartsWith(code, StringComparison.Ordinal);
@@ -28,7 +34,8 @@ public static class HubErrorCodes
     /// <summary>The codes a caller should try again; everything else is permanent.</summary>
     public static readonly IReadOnlySet<string> Retryable = new HashSet<string>(StringComparer.Ordinal)
     {
-        TokenExpired
+        TokenExpired,
+        ConnectionNotRegistered
     };
 
     /// <summary>Whether a message carries any code the caller should try again.</summary>

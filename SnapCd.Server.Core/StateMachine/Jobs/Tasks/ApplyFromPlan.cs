@@ -65,6 +65,7 @@ public partial class JobStateMachine<
     TProbeCompleted,
     TProbeCancelled,
     TProbeFaulted,
+    TApplyFromPlanFaulted,
     TCancelKillRequested,
     TDummyCancelKillCompleted,
     TCancelKillCompleted>
@@ -112,14 +113,15 @@ public partial class JobStateMachine<
     where TProbeCompleted : ProbeCompletedBase
     where TProbeCancelled : StepResponseBase
     where TProbeFaulted : StepFaultedBase
+    where TApplyFromPlanFaulted : FromPlanFaultedBase
     where TCancelKillRequested : CancelKillRequestedBase, new()
     where TDummyCancelKillCompleted : class
     where TCancelKillCompleted : StepResponseBase
 {
     public Event<TApplyFromPlanRequested> ApplyFromPlanRequested { get; } = null!;
     public Event<TApplyFromPlanCompleted> ApplyFromPlanCompleted { get; } = null!;
-    public Event<ApplyFromPlanCancelled> ApplyFromPlanCancelled { get; } = null!;
-    public Event<ApplyFromPlanFaulted> ApplyFromPlanFaulted { get; } = null!;
+    public Event<TApplyFromPlanCancelled> ApplyFromPlanCancelled { get; } = null!;
+    public Event<TApplyFromPlanFaulted> ApplyFromPlanFaulted { get; } = null!;
 
     public State ApplyFromPlanPending { get; } = null!;
     public State ApplyFromPlanWaitingForRunner { get; } = null!;
@@ -206,7 +208,7 @@ public partial class JobStateMachine<
                 .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested, TCancelKillRequested, TDummyCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
             When(ApplyFromPlanCancelled)
-                .ThenCancelled<TSaga, TResponseCancelled, ApplyFromPlanCancelled>(Cancelled),
+                .ThenCancelled<TSaga, TResponseCancelled, TApplyFromPlanCancelled>(Cancelled),
             When(ApplyFromPlanFaulted)
                 .Then(context =>
                 {
@@ -222,7 +224,7 @@ public partial class JobStateMachine<
                         ActualResourceCount = actualResourceCount
                     });
                 })
-                .ThenFaulted<TSaga, TResponseFailed, ApplyFromPlanFaulted>(Failed, _logger),
+                .ThenFaulted<TSaga, TResponseFailed, TApplyFromPlanFaulted>(Failed, _logger),
             Ignore(RunnerReconnectedEvent)
         );
     }

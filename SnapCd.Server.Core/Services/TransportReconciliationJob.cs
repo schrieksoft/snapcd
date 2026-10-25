@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.Missions;
 using SnapCd.Server.Core.Events.System;
@@ -61,39 +62,38 @@ public class TransportReconciliationJob
         var heartbeats = await RearmHeartbeats(dbContext);
         var approvals = await RearmApprovalTimeouts(dbContext);
         var driftChecks = await RearmDriftChecks(dbContext);
-        var debounces = await RearmDebounces(dbContext);
         var missions = await RearmMissionDeadlines(dbContext);
         var selects = await RedriveSelectRunnerInstance(dbContext);
         var strandedCancels = await FlagStrandedCancellations(dbContext);
+        var holdChecks = await RearmHoldChecks(dbContext);
 
         _logger.LogInformation(
-            "Transport reconciliation complete: {HeartbeatCount} heartbeat ticks republished, {ApprovalCount} approval timeouts rescheduled, {DriftCount} drift checks rescheduled, {DebounceCount} debounces flushed, {MissionCount} mission deadline checks rescheduled, {SelectCount} runner selections re-driven, {StrandedCancelCount} stranded cancellations flagged",
-            heartbeats, approvals, driftChecks, debounces, missions, selects, strandedCancels);
+            "Transport reconciliation complete: {HeartbeatCount} heartbeat ticks republished, {ApprovalCount} approval timeouts rescheduled, {DriftCount} drift checks rescheduled, {MissionCount} mission deadline checks rescheduled, {SelectCount} runner selections re-driven, {StrandedCancelCount} stranded cancellations flagged, {HoldCheckCount} hold checks re-armed",
+            heartbeats, approvals, driftChecks, missions, selects, strandedCancels, holdChecks);
     }
 
-
-    // Republishing the trigger makes a parked debounce re-arm through the machine's own
-    // Schedule call, so the flush tick is built and delivered by the current transport.
-    private async Task<int> RearmDebounces(SnapCdDbContext dbContext)
+    // A check sent now reschedules itself while the hold is live, so the hold's expiry need not be known here.
+    private async Task<int> RearmHoldChecks(SnapCdDbContext dbContext)
     {
-        var waiting = await dbContext.Set<ModuleModifiedSaga>().AsNoTracking()
-            .Where(s => s.CurrentState == "WaitingForMoreEvents")
+        var held = await dbContext.ModuleSagas.AsNoTracking()
+            .Where(s => s.QueuedReason == QueuedReason.HeldBySession)
             .Select(s => new { s.CorrelationId, s.OrganizationId })
             .ToListAsync();
 
-        foreach (var saga in waiting)
+        foreach (var saga in held)
         {
-            await _bus.Publish(new ModuleModifiedTriggerRequested
+            await _bus.Publish(new ModuleHoldCheck
             {
                 ModuleId = saga.CorrelationId,
                 OrganizationId = saga.OrganizationId
             });
 
-            _logger.LogDebug("Re-armed modified-debounce for module {ModuleId}", saga.CorrelationId);
+            _logger.LogDebug("Re-armed hold check for module {ModuleId}", saga.CorrelationId);
         }
 
-        return waiting.Count;
+        return held.Count;
     }
+
 
     // The deadline check re-arms itself from the run's current DeadlineAt when it fires early,
     // so scheduling at a stale deadline is self-correcting once the agent heartbeats again.

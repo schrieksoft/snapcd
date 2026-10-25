@@ -6,66 +6,119 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System.Collections.Concurrent;
+using SnapCd.Contracts.Dto.Misc;
 
 namespace SnapCd.Runner.Hub;
 
 /// <summary>
-/// Holds log entries that could not be shipped, so they can be sent once the connection is back.
-/// Each entry travels with the endpoint it is bound for, because entries for different job tables
-/// cannot be sent in one invoke.
-///
-/// Capped, and full means something has to give. Which thing depends on why the entry is being
-/// held, so the two cases are separate methods rather than one with a flag.
+/// Holds log batches that could not be sent, and sends them in order once the connection is back. Batches are
+/// kept whole: the server recognises a resent batch by its batch timestamp.
 /// </summary>
-public class LogBuffer
+public class LogBuffer(int capacity)
 {
-    public const int MaxSize = 10000;
-
-    private readonly ConcurrentQueue<(string Endpoint, object Entry)> _entries = new();
+    private readonly LinkedList<List<LogEntryDto>> _batches = new();
+    private readonly SemaphoreSlim _flushLock = new(1, 1);
+    private readonly object _gate = new();
+    private int _count;
     private int _droppedCount;
 
-    public int Count => _entries.Count;
-
-    public bool IsEmpty => _entries.IsEmpty;
-
-    /// <summary>How many entries have been dropped since the count was last read and reset.</summary>
-    public int DroppedCount => _droppedCount;
-
-    /// <summary>
-    /// Holds an entry that was never sent because the connection was down. The oldest is dropped
-    /// to make room, because the newest entry is the one describing what the job is doing now.
-    /// </summary>
-    public void AddWhileDisconnected(string endpoint, object entry)
+    public bool IsEmpty
     {
-        if (_entries.Count >= MaxSize)
+        get
         {
-            _entries.TryDequeue(out _);
-            Interlocked.Increment(ref _droppedCount);
+            lock (_gate)
+                return _batches.Count == 0;
         }
-
-        _entries.Enqueue((endpoint, entry));
     }
+
+    /// <summary>How many entries are buffered.</summary>
+    public int Count
+    {
+        get
+        {
+            lock (_gate)
+                return _count;
+        }
+    }
+
+    /// <summary>Adds a batch, dropping the oldest batches once the buffer holds more than its capacity in entries.</summary>
+    public void Add(List<LogEntryDto> batch)
+    {
+        lock (_gate)
+        {
+            _batches.AddLast(batch);
+            _count += batch.Count;
+            DropOldestOverCapacity();
+        }
+    }
+
+    /// <summary>Returns how many entries were dropped since the last call, and resets the count.</summary>
+    public int TakeDroppedCount() => Interlocked.Exchange(ref _droppedCount, 0);
 
     /// <summary>
-    /// Holds an entry whose send failed for a reason worth repeating. Nothing is evicted to make
-    /// room: these are already-attempted entries, and dropping a held one to requeue a failed one
-    /// trades an entry that might still arrive for one that just did not.
+    /// Sends every buffered batch, oldest first, one per call. A batch that fails to send is put back at the
+    /// front and the exception is rethrown, so nothing is lost and the order is kept.
     /// </summary>
-    public void AddForRetry(string endpoint, object entry)
+    public async Task<int> FlushAsync(Func<List<LogEntryDto>, Task> send)
     {
-        if (_entries.Count < MaxSize)
-            _entries.Enqueue((endpoint, entry));
+        await _flushLock.WaitAsync();
+        try
+        {
+            var sent = 0;
+            while (TakeOldest() is { } batch)
+            {
+                try
+                {
+                    await send(batch);
+                }
+                catch
+                {
+                    PutBackAtFront(batch);
+                    throw;
+                }
+
+                sent += batch.Count;
+            }
+
+            return sent;
+        }
+        finally
+        {
+            _flushLock.Release();
+        }
     }
 
-    /// <summary>Takes up to <paramref name="max"/> entries, oldest first.</summary>
-    public List<(string Endpoint, object Entry)> TakeBatch(int max)
+    private List<LogEntryDto>? TakeOldest()
     {
-        var batch = new List<(string Endpoint, object Entry)>();
-        while (batch.Count < max && _entries.TryDequeue(out var entry)) batch.Add(entry);
-        return batch;
+        lock (_gate)
+        {
+            if (_batches.First is not { } first)
+                return null;
+
+            _batches.RemoveFirst();
+            _count -= first.Value.Count;
+            return first.Value;
+        }
     }
 
-    /// <summary>Reads the dropped count and resets it, so a caller reports each drop once.</summary>
-    public int ReadAndResetDroppedCount() => Interlocked.Exchange(ref _droppedCount, 0);
+    private void PutBackAtFront(List<LogEntryDto> batch)
+    {
+        lock (_gate)
+        {
+            _batches.AddFirst(batch);
+            _count += batch.Count;
+            DropOldestOverCapacity();
+        }
+    }
+
+    private void DropOldestOverCapacity()
+    {
+        while (_count > capacity && _batches.Count > 1)
+        {
+            var oldest = _batches.First!.Value;
+            _batches.RemoveFirst();
+            _count -= oldest.Count;
+            Interlocked.Add(ref _droppedCount, oldest.Count);
+        }
+    }
 }

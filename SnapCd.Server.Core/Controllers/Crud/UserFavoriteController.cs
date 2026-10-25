@@ -87,7 +87,7 @@ public class UserFavoriteController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public virtual async Task<IActionResult> Delete(Guid organizationId, Guid id)
     {
         try

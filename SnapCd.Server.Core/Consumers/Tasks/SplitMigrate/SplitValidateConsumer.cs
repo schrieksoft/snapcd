@@ -60,7 +60,7 @@ public class SplitValidateConsumer : IConsumer<SplitValidateRequested>
                 CorrelationId = jobId,
                 OrganizationId = orgId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }

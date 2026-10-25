@@ -150,6 +150,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Transfer> Transfers { get; set; }
     public DbSet<TransferLock> TransferLocks { get; set; }
     public DbSet<StateMigrationJobArtefact> StateMigrationJobArtefacts { get; set; }
+    public DbSet<ModuleJobLogChunk> ModuleJobLogChunks { get; set; }
+    public DbSet<StateMigrationJobLogChunk> StateMigrationJobLogChunks { get; set; }
 
     public DbSet<TransferArtefact> TransferArtefacts { get; set; }
     public DbSet<ModuleJobApproval> ModuleJobApprovals { get; set; }
@@ -309,7 +311,6 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             yield return new RemoveSagaClassMap();
             yield return new DestroyJobSagaClassMap();
             yield return new ModuleSagaClassMap();
-            yield return new ModuleModifiedSagaClassMap();
         }
     }
 
@@ -445,6 +446,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new TransferArtefactClassMap());
         modelBuilder.ApplyConfiguration(new TransferLockClassMap());
         modelBuilder.ApplyConfiguration(new StateMigrationJobArtefactClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleJobLogChunkClassMap());
+        modelBuilder.ApplyConfiguration(new StateMigrationJobLogChunkClassMap());
         modelBuilder.ApplyConfiguration(new UserFavoriteClassMap());
         modelBuilder.ApplyConfiguration(new UserColorClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobApprovalClassMap());

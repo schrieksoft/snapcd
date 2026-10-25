@@ -22,9 +22,10 @@ namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 /// This consumer processes VariablesCompletedInvoked events to store variable sets
 /// without blocking the SignalR connection.
 /// </summary>
-public abstract class VariablesCompletedInvokedConsumer<TInvoked, TCompleted> : IConsumer<TInvoked>
+public abstract class VariablesCompletedInvokedConsumer<TInvoked, TCompleted, TFaulted> : IConsumer<TInvoked>
     where TInvoked : VariablesCompletedInvokedBase
     where TCompleted : StepResponseBase, new()
+    where TFaulted : StepFaultedBase, new()
 {
     private readonly ILogger _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
@@ -47,6 +48,8 @@ public abstract class VariablesCompletedInvokedConsumer<TInvoked, TCompleted> : 
         var jobId = context.Message.JobId;
         var variableSet = context.Message.VariableSet;
 
+        var organizationId = Guid.Empty;
+
         try
         {
             if (variableSet != null)
@@ -59,6 +62,7 @@ public abstract class VariablesCompletedInvokedConsumer<TInvoked, TCompleted> : 
 
                 if (jobView != null)
                 {
+                    organizationId = jobView.OrganizationId;
                     await _variableSetService.CreateWithVariables(variableSet, jobView.ModuleId, jobView.OrganizationId);
                     _logger.LogDebug("Stored VariableSet for job {JobId}", jobId);
                 }
@@ -80,11 +84,12 @@ public abstract class VariablesCompletedInvokedConsumer<TInvoked, TCompleted> : 
         {
             _logger.LogError(ex, "Failed to store VariableSet for job {JobId}", jobId);
 
-            await context.Publish(new VariablesFaulted
+            await context.Publish(new TFaulted
             {
                 CorrelationId = jobId,
+                OrganizationId = organizationId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }
@@ -96,7 +101,7 @@ public class ApplyVariablesCompletedInvokedConsumer(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
     VariableSetService variableSetService,
     IBus bus)
-    : VariablesCompletedInvokedConsumer<ApplyVariablesCompletedInvoked, ApplyVariablesCompleted>(
+    : VariablesCompletedInvokedConsumer<ApplyVariablesCompletedInvoked, ApplyVariablesCompleted, ApplyVariablesFaulted>(
         logger, dbContextFactory, variableSetService, bus);
 
 public class DestroyVariablesCompletedInvokedConsumer(
@@ -104,5 +109,5 @@ public class DestroyVariablesCompletedInvokedConsumer(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
     VariableSetService variableSetService,
     IBus bus)
-    : VariablesCompletedInvokedConsumer<DestroyVariablesCompletedInvoked, DestroyVariablesCompleted>(
+    : VariablesCompletedInvokedConsumer<DestroyVariablesCompletedInvoked, DestroyVariablesCompleted, DestroyVariablesFaulted>(
         logger, dbContextFactory, variableSetService, bus);

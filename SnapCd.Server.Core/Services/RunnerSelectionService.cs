@@ -14,6 +14,8 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Settings;
 
+using SnapCd.Server.Core.Hubs;
+
 namespace SnapCd.Server.Core.Services;
 
 /// <summary>
@@ -38,20 +40,20 @@ public class RunnerSelectionService
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly SnapCdDbContext _dbContext;
     private readonly ServerSettings _serverSettings;
-    private readonly RunnerLivenessProbe _livenessProbe;
+    private readonly OpenConnections<RunnerHub> _openConnections;
     private readonly ILogger<RunnerSelectionService> _logger;
 
     public RunnerSelectionService(
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
         SnapCdDbContext dbContext,
         IOptions<ServerSettings> serverSettings,
-        RunnerLivenessProbe livenessProbe,
+        OpenConnections<RunnerHub> openConnections,
         ILogger<RunnerSelectionService> logger)
     {
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _dbContext = dbContext;
         _serverSettings = serverSettings.Value;
-        _livenessProbe = livenessProbe;
+        _openConnections = openConnections;
         _logger = logger;
     }
 
@@ -107,6 +109,15 @@ public class RunnerSelectionService
                 + "longer running, this is a stale connection and will be cleaned up automatically; retry the job "
                 + "once it clears.");
 
+        if (!_openConnections.Contains(connection.SignalRConnectionId))
+        {
+            _logger.LogWarning(
+                "Specific runner {RunnerName} has a connection record but its connection is closed; removing the record",
+                specificRunnerName);
+            await connectionRepository.DeleteConnectionRecord(connection.Id);
+            return null;
+        }
+
         return connection;
     }
     
@@ -133,9 +144,7 @@ public class RunnerSelectionService
         // Drop any connection this server cannot actually reach over SignalR.
         var reachable = allConnections.Where(IsDispatchableFromThisServer).ToList();
 
-        // A reachable row only records that a runner once connected, so candidates are tried in
-        // preference order and the first one to answer a ping wins. Ordering before probing keeps
-        // this to a single round trip whenever the preferred instance is healthy.
+        // A reachable row is owned by this server, so whether its connection is still open is known here.
         var jobCounts = reachable.Count > 1
             ? await GetActiveJobCountsByRunnerAsync(organizationId, runnerId)
             : new Dictionary<string, int>();
@@ -147,7 +156,7 @@ public class RunnerSelectionService
 
         foreach (var candidate in candidates)
         {
-            if (await _livenessProbe.IsAlive(candidate.SignalRConnectionId))
+            if (_openConnections.Contains(candidate.SignalRConnectionId))
             {
                 _logger.LogDebug(
                     "Selected runner instance {InstanceName} with {JobCount} active jobs (from {TotalInstances} reachable)",
@@ -159,12 +168,11 @@ public class RunnerSelectionService
             }
 
             _logger.LogWarning(
-                "Runner instance {InstanceName} did not answer a liveness ping; removing its stale "
-                + "connection record and trying the next instance",
+                "Runner instance {InstanceName} has a connection record but its connection is closed; removing "
+                + "the record and trying the next instance",
                 candidate.InstanceName);
 
-            await connectionRepository.DeleteConnection(
-                candidate.OrganizationId, candidate.RunnerId, candidate.InstanceName);
+            await connectionRepository.DeleteConnectionRecord(candidate.Id);
         }
 
         // Rows this server cannot reach are a different failure from a runner that went quiet: the

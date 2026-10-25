@@ -21,10 +21,11 @@ namespace SnapCd.Runner.Services.ModuleSourceRefresher;
 /// locally-referenced terraform directories at a commit. Discovery is exact for module topology because
 /// terraform requires module source arguments to be literal strings.
 ///
-/// The binary is carried as an embedded resource inside the Runner itself (added at publish time by CI) and
-/// extracted to the working directory on first use, so no separate install is needed on any distribution
-/// channel. When no resource is embedded (local dev builds) or the platform cannot run it, resolution falls
-/// back to <see cref="SourceCacheSettings.InspectBinaryPath"/> — a non-default value there always wins.
+/// The binary is carried as an embedded resource inside the Runner itself, built from tools/snapcd-inspect by
+/// the Runner's project whenever its Go source changes, and extracted to the working directory on first use,
+/// so no separate install is needed on any distribution channel. When no resource is embedded (a build machine
+/// without Go) or the platform cannot run it, resolution falls back to
+/// <see cref="SourceCacheSettings.InspectBinaryPath"/>; a non-default value there always wins.
 /// </summary>
 public class SnapCdInspect
 {
@@ -132,6 +133,53 @@ public class SnapCdInspect
 
     public List<ModuleClosure> Discover(string cloneDir, string commitSha, IReadOnlyCollection<string> roots)
     {
+        var result = Run<InspectResult>(["--repo", cloneDir, "--commit", commitSha, "--roots", string.Join(',', roots)]);
+
+        return result.Closures
+            .Select(c => new ModuleClosure
+            {
+                RootPath = c.RootPath,
+                ReferencedPaths = c.ReferencedPaths
+            })
+            .ToList();
+    }
+
+    public class InspectedVariable
+    {
+        public string Name { get; set; } = null!;
+        public string? Type { get; set; }
+        public string? TypeDefinition { get; set; }
+
+        /// <summary>Declared default of any shape, held as raw JSON.</summary>
+        public JsonElement? Default { get; set; }
+
+        public string? Description { get; set; }
+        public bool Sensitive { get; set; }
+        public bool Nullable { get; set; }
+        public string File { get; set; } = null!;
+    }
+
+    public class InspectedOutput
+    {
+        public string Name { get; set; } = null!;
+        public string File { get; set; } = null!;
+    }
+
+    public class InspectedModule
+    {
+        public List<InspectedVariable> Variables { get; set; } = new();
+        public List<InspectedOutput> Outputs { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Reads the variable and output declarations of the module in <paramref name="directory"/> with the HCL parser,
+    /// so text inside strings is never taken for a declaration. Throws with the parser's message on invalid configuration.
+    /// </summary>
+    public InspectedModule InspectVariables(string directory) =>
+        Run<InspectedModule>(["variables", "--dir", directory]);
+
+    private T Run<T>(IEnumerable<string> arguments)
+    {
         var binaryPath = _binaryPath.Value;
 
         var startInfo = new ProcessStartInfo
@@ -142,12 +190,8 @@ public class SnapCdInspect
             UseShellExecute = false,
             CreateNoWindow = true
         };
-        startInfo.ArgumentList.Add("--repo");
-        startInfo.ArgumentList.Add(cloneDir);
-        startInfo.ArgumentList.Add("--commit");
-        startInfo.ArgumentList.Add(commitSha);
-        startInfo.ArgumentList.Add("--roots");
-        startInfo.ArgumentList.Add(string.Join(',', roots));
+        foreach (var argument in arguments)
+            startInfo.ArgumentList.Add(argument);
 
         using var process = new Process();
         process.StartInfo = startInfo;
@@ -160,15 +204,7 @@ public class SnapCdInspect
         if (process.ExitCode != 0)
             throw new Exception($"{binaryPath} failed with exit code {process.ExitCode}: {stderr}");
 
-        var result = JsonSerializer.Deserialize<InspectResult>(stdout, JsonOptions)
-                     ?? throw new Exception($"{binaryPath} produced no parseable output");
-
-        return result.Closures
-            .Select(c => new ModuleClosure
-            {
-                RootPath = c.RootPath,
-                ReferencedPaths = c.ReferencedPaths
-            })
-            .ToList();
+        return JsonSerializer.Deserialize<T>(stdout, JsonOptions)
+               ?? throw new Exception($"{binaryPath} produced no parseable output");
     }
 }

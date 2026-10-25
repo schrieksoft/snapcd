@@ -66,7 +66,9 @@ public abstract partial class TerraformStateMigrationStateMachine<
             When(CancelKillCompleted).ThenStateMigrationCancelled<TSaga, TCancelKillCompleted>(Cancelled),
             When(MigrateStateCancelled).ThenStateMigrationCancelled<TSaga, TMigrateStateCancelled>(Cancelled),
             When(MigrateStateCompleted).ThenStateMigrationCancelled<TSaga, TMigrateStateCompleted>(Cancelled),
-            When(MigrateStateFaulted).ThenStateMigrationCancelled<TSaga, TMigrateStateFaulted>(Cancelled),
+            When(MigrateStateFaulted)
+                .Activity(x => x.OfType<RecordStateMigrationServerSideFaultActivity<TSaga, TMigrateStateFaulted>>())
+                .ThenStateMigrationCancelled<TSaga, TMigrateStateFaulted>(Cancelled),
 
             // A runner that never answers would otherwise leave the saga here for good.
             When(CancelKillRequested.TimeoutExpired)

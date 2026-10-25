@@ -176,6 +176,11 @@ func run(repoDir, commit string, roots []string) (Result, error) {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "variables" {
+		runVariables(os.Args[2:])
+		return
+	}
+
 	repoDir := flag.String("repo", "", "path to the (bare) git repository")
 	commit := flag.String("commit", "", "commit SHA to inspect")
 	roots := flag.String("roots", "", "comma-separated repo-root-relative directories to resolve closures for")
@@ -194,6 +199,28 @@ func main() {
 
 	encoder := json.NewEncoder(os.Stdout)
 	if err := encoder.Encode(result); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func runVariables(args []string) {
+	flags := flag.NewFlagSet("variables", flag.ExitOnError)
+	dir := flags.String("dir", "", "module directory on disk to read variable and output declarations from")
+	_ = flags.Parse(args)
+
+	if *dir == "" {
+		fmt.Fprintln(os.Stderr, "usage: snapcd-inspect variables --dir <path>")
+		os.Exit(2)
+	}
+
+	result, err := inspectVariables(*dir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if err := json.NewEncoder(os.Stdout).Encode(result); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Components.Authorization;
 using SnapCd.Server.Core.Licensing.Services;
@@ -53,6 +54,10 @@ public static class MiscService
         services.AddScoped<JobService>();
         services.AddScoped<SecuredJobService>();
         services.AddScoped<JobOrchestrationService>();
+        services.AddScoped<Services.ModuleHold.ModuleHoldStore>();
+        services.AddScoped<Services.ModuleHold.ModuleHoldService>();
+        services.AddScoped<Services.ModuleHold.ModuleHoldGate>();
+        services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<SourceChangedService>();
 
         // Authentication and Security Services
@@ -98,7 +103,7 @@ public static class MiscService
         services.AddScoped<SourceRefreshJob>();
         services.AddScoped<SourceRefreshDispatcher>();
 
-        services.AddScoped<JobLogServiceFactory>();
+        services.AddScoped<LogService>();
 
         // Other services
         services.AddScoped<IPrincipalProvider, HttpContextPrincipalProvider>();

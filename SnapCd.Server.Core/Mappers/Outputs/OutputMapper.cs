@@ -28,6 +28,7 @@ public static class OutputMapper
             OutputSetId = entity.OutputSetId,
             Name = entity.Name,
             Type = entity.Type,
+            TypeDefinition = entity.TypeDefinition,
         };
     }
 

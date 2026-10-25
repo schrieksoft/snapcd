@@ -14,7 +14,7 @@ namespace SnapCd.Server.Core.UI.Dashboard.Pages.Organization;
 
 /// <summary>
 /// Canned <see cref="ModuleJob"/> log content used by the dev harness, in the production shape — a
-/// <see cref="List{ModuleJobLogEntryDto}"/> serialised to <c>ModuleJob.Logs</c>. Each scenario is a sequence of
+/// <see cref="List{LogEntryDto}"/> serialised to <c>ModuleJob.Logs</c>. Each scenario is a sequence of
 /// per-phase snippets (one <see cref="PhaseSnippet"/> per <c>TaskName</c>) so the synthesised job
 /// reads like a real runner trace and the agent's <c>TaskName</c>-based filtering works the way the
 /// skills expect.
@@ -312,25 +312,24 @@ public static class MissionTestBenchScenarios
             }).ToArray()),
     };
 
-    /// <summary>Render the scenario as a flat <see cref="List{ModuleJobLogEntryDto}"/> suitable for
-    /// <c>JsonSerializer.Serialize</c> into <c>ModuleJob.Logs</c>. Timestamps run forward; entries
-    /// within a phase are 100 ms apart, phases 1 s apart — close enough to realistic that
+    /// <summary>Render the scenario as a flat list of log entries. Timestamps run forward; entries
+    /// within a phase are 100 ms apart, phases 1 s apart, close enough to realistic that
     /// <see cref="LogService.GetLogStrings"/>'s ordering-by-Timestamp works correctly.</summary>
-    public static List<ModuleJobLogEntryDto> BuildEntries(
+    public static List<LogEntryDto> BuildEntries(
         Scenario scenario,
         Guid jobId,
         Guid moduleId,
         string moduleName,
         DateTimeOffset startTime)
     {
-        var entries = new List<ModuleJobLogEntryDto>();
+        var entries = new List<LogEntryDto>();
         var batchStamp = startTime;
         var time = startTime;
         foreach (var phase in scenario.Phases)
         {
             foreach (var msg in phase.Messages)
             {
-                entries.Add(new ModuleJobLogEntryDto
+                entries.Add(new LogEntryDto
                 {
                     JobId = jobId,
                     Timestamp = time,

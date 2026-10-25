@@ -66,7 +66,7 @@ public class NamespaceController : GenericCrudController<
         }
     }
 
-    [HttpGet("Metadata/{stackId}/{name}")]
+    [HttpGet("Metadata/{stackId:guid}/{name}")]
     [PermissionSource(Repository = typeof(NamespaceSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
     public async Task<ActionResult<NamespaceMetadataReadDto>> GetMetadata(Guid organizationId, Guid stackId, string name)
     {

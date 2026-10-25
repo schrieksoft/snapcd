@@ -70,7 +70,7 @@ public class TransferSelectRunnerInstanceConsumer : IConsumer<TransferSelectRunn
                 OrganizationId = orgId,
                 ModuleId = msg.ModuleId,
                 ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
+                StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
         }
