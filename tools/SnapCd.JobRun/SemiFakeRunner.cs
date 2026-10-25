@@ -49,7 +49,6 @@ public class SemiFakeRunner(
     protected override async Task Reply(RunnerHub hub, string endpoint, object payload, Guid jobId)
     {
         var tasks = services.GetRequiredService<RunnerTasks>();
-        var logStream = services.GetRequiredService<IJobLogStreams>().ModuleJobs;
 
         switch (endpoint)
         {
@@ -63,7 +62,7 @@ public class SemiFakeRunner(
 
             case nameof(IApplyEndpoints.ApplyInit):
                 await tasks.Init(
-                    (InitRequestBase)payload, _unconnected, logStream,
+                    (InitRequestBase)payload, _unconnected,
                     id => hub.ApplyInitCompleted(id),
                     id => hub.ApplyInitCancelled(id),
                     (id, error, stack) => hub.ApplyInitFaulted(id, error, stack));
@@ -71,7 +70,7 @@ public class SemiFakeRunner(
 
             case nameof(IApplyEndpoints.ApplyValidate):
                 await tasks.Validate(
-                    (ValidateRequestBase)payload, _unconnected, logStream,
+                    (ValidateRequestBase)payload, _unconnected,
                     id => hub.ApplyValidateCompleted(id),
                     id => hub.ApplyValidateCancelled(id),
                     (id, error, stack) => hub.ApplyValidateFaulted(id, error, stack));
@@ -81,7 +80,7 @@ public class SemiFakeRunner(
             // leaves the plan with no values for its variables.
             case nameof(IApplyEndpoints.ApplyVariables):
                 await tasks.Variables(
-                    (VariablesRequestBase)payload, _unconnected, logStream,
+                    (VariablesRequestBase)payload, _unconnected,
                     (id, set) => hub.ApplyVariablesCompleted(id, set),
                     id => hub.ApplyVariablesCancelled(id),
                     (id, error, stack) => hub.ApplyVariablesFaulted(id, error, stack));
@@ -89,7 +88,7 @@ public class SemiFakeRunner(
 
             case nameof(IApplyEndpoints.ApplyPlan):
                 await tasks.Plan(
-                    (PlanRequestBase)payload, _unconnected, logStream,
+                    (PlanRequestBase)payload, _unconnected,
                     (id, data) => hub.ApplyPlanCompleted(id, data),
                     id => hub.ApplyPlanCancelled(id),
                     (id, error, stack, outcome) => hub.ApplyPlanFaulted(id, error, stack, outcome));
@@ -97,7 +96,7 @@ public class SemiFakeRunner(
 
             case nameof(IApplyEndpoints.ApplyFromPlan):
                 await tasks.ApplyFromPlan(
-                    (ApplyFromPlanRequestBase)payload, _unconnected, logStream,
+                    (ApplyFromPlanRequestBase)payload, _unconnected,
                     (id, count) => hub.ApplyFromPlanCompleted(id, count),
                     id => hub.ApplyFromPlanCancelled(id),
                     (id, error, stack, count) => hub.ApplyFromPlanFaulted(id, error, stack, count));
@@ -105,7 +104,7 @@ public class SemiFakeRunner(
 
             case nameof(IApplyEndpoints.ApplyProbe):
                 await tasks.Probe(
-                    (ProbeRequestBase)payload, _unconnected, logStream,
+                    (ProbeRequestBase)payload, _unconnected,
                     (id, signals) => hub.ApplyProbeCompleted(id, signals),
                     id => hub.ApplyProbeCancelled(id),
                     (id, error, stack) => hub.ApplyProbeFaulted(id, error, stack));
@@ -113,7 +112,7 @@ public class SemiFakeRunner(
 
             case nameof(IApplyEndpoints.ApplyOutput):
                 await tasks.Output(
-                    (OutputRequestBase)payload, _unconnected, logStream,
+                    (OutputRequestBase)payload, _unconnected,
                     (id, outputs) => hub.ApplyOutputCompleted(id, outputs),
                     id => hub.ApplyOutputCancelled(id),
                     (id, error, stack) => hub.ApplyOutputFaulted(id, error, stack));
@@ -127,7 +126,7 @@ public class SemiFakeRunner(
 
             case nameof(IDestroyEndpoints.DestroyInit):
                 await tasks.Init(
-                    (InitRequestBase)payload, _unconnected, logStream,
+                    (InitRequestBase)payload, _unconnected,
                     id => hub.DestroyInitCompleted(id),
                     id => hub.DestroyInitCancelled(id),
                     (id, error, stack) => hub.DestroyInitFaulted(id, error, stack));
@@ -135,7 +134,7 @@ public class SemiFakeRunner(
 
             case nameof(IDestroyEndpoints.DestroyValidate):
                 await tasks.Validate(
-                    (ValidateRequestBase)payload, _unconnected, logStream,
+                    (ValidateRequestBase)payload, _unconnected,
                     id => hub.DestroyValidateCompleted(id),
                     id => hub.DestroyValidateCancelled(id),
                     (id, error, stack) => hub.DestroyValidateFaulted(id, error, stack));
@@ -143,7 +142,7 @@ public class SemiFakeRunner(
 
             case nameof(IDestroyEndpoints.DestroyVariables):
                 await tasks.Variables(
-                    (VariablesRequestBase)payload, _unconnected, logStream,
+                    (VariablesRequestBase)payload, _unconnected,
                     (id, set) => hub.DestroyVariablesCompleted(id, set),
                     id => hub.DestroyVariablesCancelled(id),
                     (id, error, stack) => hub.DestroyVariablesFaulted(id, error, stack));
@@ -151,7 +150,7 @@ public class SemiFakeRunner(
 
             case nameof(IDestroyEndpoints.DestroyOutput):
                 await tasks.Output(
-                    (OutputRequestBase)payload, _unconnected, logStream,
+                    (OutputRequestBase)payload, _unconnected,
                     (id, outputs) => hub.DestroyOutputCompleted(id, outputs),
                     id => hub.DestroyOutputCancelled(id),
                     (id, error, stack) => hub.DestroyOutputFaulted(id, error, stack));
@@ -161,7 +160,7 @@ public class SemiFakeRunner(
             // propagates.
             case nameof(IDestroyEndpoints.DestroyPlan):
                 await tasks.PlanDestroy(
-                    (PlanDestroyRequestBase)payload, _unconnected, logStream,
+                    (PlanDestroyRequestBase)payload, _unconnected,
                     (id, data) => hub.DestroyPlanCompleted(id, data),
                     id => hub.DestroyPlanCancelled(id),
                     (id, error, stack, outcome) => hub.DestroyPlanFaulted(id, error, stack, outcome));
@@ -169,7 +168,7 @@ public class SemiFakeRunner(
 
             case nameof(IDestroyEndpoints.DestroyFromPlan):
                 await tasks.DestroyFromPlan(
-                    (DestroyFromPlanRequestBase)payload, _unconnected, logStream,
+                    (DestroyFromPlanRequestBase)payload, _unconnected,
                     (id, count) => hub.DestroyFromPlanCompleted(id, count),
                     id => hub.DestroyFromPlanCancelled(id),
                     (id, error, stack, count) => hub.DestroyFromPlanFaulted(id, error, stack, count));

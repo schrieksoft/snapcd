@@ -68,7 +68,7 @@ public static class RunnerComposition
 
         // The runner streams its logs over its hub connection, which a run does not have. These
         // go to the console instead, where the rest of the run's output already is.
-        services.AddSingleton<IJobLogStreams, ConsoleJobLogStreams>();
+        services.AddSingleton<IJobLogStream, ConsoleJobLogStream>();
 
         // Same reason: the heartbeat has no connection to report over.
         services.AddSingleton<IRunningTaskReporter, SilentTaskReporter>();
@@ -78,12 +78,6 @@ public static class RunnerComposition
 }
 
 /// <summary>Job logs written where the run's own output goes.</summary>
-public class ConsoleJobLogStreams : IJobLogStreams
-{
-    public IJobLogStream ModuleJobs { get; } = new ConsoleJobLogStream();
-    public IJobLogStream StateMigrations { get; } = new ConsoleJobLogStream();
-}
-
 public class ConsoleJobLogStream : IJobLogStream
 {
     public Task EmitAsync(JobLogEnvelope envelope, string message, CancellationToken ct = default)
@@ -91,4 +85,7 @@ public class ConsoleJobLogStream : IJobLogStream
         Console.WriteLine($"     | {envelope.TaskName}: {message}");
         return Task.CompletedTask;
     }
+
+    /// <summary>Nothing is queued, so there is nothing to wait for.</summary>
+    public Task DrainAsync(Guid jobId) => Task.CompletedTask;
 }
