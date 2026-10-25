@@ -69,6 +69,7 @@ public class CustomOutputMapper
                         OutputSetId = outputSet.Id,
                         OrganizationId = organizationId,
                         Type = outputValue.Type,
+                        TypeDefinition = outputValue.TypeDefinition,
                         FromExtraFile = outputValue.FromExtraFile
                     });
                 }
@@ -116,6 +117,7 @@ public class CustomOutputMapper
             Id = output.Id,
             Name = output.Name,
             Type = output.Type,
+            TypeDefinition = output.TypeDefinition,
             OutputSetId = output.OutputSetId,
             FromExtraFile = output.FromExtraFile
         };
@@ -161,7 +163,8 @@ public class CustomOutputMapper
             RemoteSecretName = CreateRemoteSecretName(organizationId, moduleId, outputCreateDto.Name),
             OrganizationId = organizationId,
             OutputSetId = outputSetId,
-            Type = outputCreateDto.Type
+            Type = outputCreateDto.Type,
+            TypeDefinition = outputCreateDto.TypeDefinition
         };
     }
 

@@ -4844,6 +4844,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("TypeDefinition")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id", "OrganizationId");
 
                     b.HasIndex("Id")
@@ -7798,9 +7801,11 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<DateTime>("CreatedDateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Default")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Description")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("FromExtraFile")
                         .HasColumnType("bit");
@@ -7833,6 +7838,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("Type")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("TypeDefinition")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("VariableSetId")
                         .HasColumnType("uniqueidentifier");

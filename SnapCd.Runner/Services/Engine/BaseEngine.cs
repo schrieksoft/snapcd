@@ -395,8 +395,13 @@ public abstract class BaseEngine
             try
             {
                 string? type = null;
+                string? typeDefinition = null;
                 if (property.Value["type"] is JArray typeArray && typeArray.Count > 0)
+                {
+                    // A complex type arrives as ["object",{...}]: the tag alone does not describe it.
                     type = typeArray[0].ToString();
+                    typeDefinition = typeArray.ToString(Formatting.None);
+                }
                 else if (property.Value["type"] != null) type = property.Value["type"]?.ToString();
 
                 string? value = null;
@@ -413,6 +418,7 @@ public abstract class BaseEngine
                     Name = property.Name,
                     Sensitive = property.Value["sensitive"]?.Value<bool>(),
                     Type = type ?? throw new InvalidOperationException("Output type is not defined"),
+                    TypeDefinition = typeDefinition,
                     Value = value ?? throw new InvalidOperationException("Output value is not defined"),
                     FromExtraFile = fromExtraFile
                 };

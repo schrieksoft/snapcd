@@ -50,6 +50,8 @@ public class TerraformVariableDiscoveryService : IVariableDiscoveryService
             {
                 Name = v.Name,
                 Type = v.Type,
+                TypeDefinition = v.TypeDefinition,
+                Default = v.Default?.GetRawText(),
                 Description = v.Description,
                 Sensitive = v.Sensitive,
                 Nullable = v.Nullable,
