@@ -148,6 +148,11 @@ public class SnapCdInspect
     {
         public string Name { get; set; } = null!;
         public string? Type { get; set; }
+        public string? TypeDefinition { get; set; }
+
+        /// <summary>Declared default of any shape, held as raw JSON.</summary>
+        public JsonElement? Default { get; set; }
+
         public string? Description { get; set; }
         public bool Sensitive { get; set; }
         public bool Nullable { get; set; }

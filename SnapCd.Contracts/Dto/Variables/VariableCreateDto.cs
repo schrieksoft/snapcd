@@ -15,6 +15,16 @@ public class VariableCreateDto
 {
     public string Name { get; set; } = null!;
     public string? Type { get; set; }
+
+    /// <summary>
+    /// cty JSON encoding of a complex type, in the same form <c>tofu output -json</c> reports an
+    /// output's type. Null for a primitive type, which the <see cref="Type"/> tag fully describes.
+    /// </summary>
+    public string? TypeDefinition { get; set; }
+
+    /// <summary>Declared default, serialised as JSON. Null when the variable is required.</summary>
+    public string? Default { get; set; }
+
     public string? Description { get; set; }
     public bool Sensitive { get; set; } = false;
     public bool Nullable { get; set; } = false;

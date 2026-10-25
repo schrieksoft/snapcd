@@ -66,7 +66,7 @@ func TestCommentMarkersInsideStringsAreKept(t *testing.T) {
 	}
 }
 
-func TestTypeIsReportedAsSourceText(t *testing.T) {
+func TestComplexTypeIsReportedAsTagAndDefinition(t *testing.T) {
 	dir := writeModule(t, map[string]string{
 		"variables.tf": "variable \"settings\" {\n  type = object({\n    names = list(string)\n    sizes = map(number)\n  })\n}\n",
 	})
@@ -75,9 +75,72 @@ func TestTypeIsReportedAsSourceText(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := strings.Join(strings.Fields(variableNamed(t, result, "settings").Type), "")
-	if got != "object({names=list(string)sizes=map(number)})" {
-		t.Fatalf("unexpected type text %q", got)
+	v := variableNamed(t, result, "settings")
+	if v.Type != "object" {
+		t.Errorf("type tag %q, want %q", v.Type, "object")
+	}
+	want := `["object",{"names":["list","string"],"sizes":["map","number"]}]`
+	if v.TypeDefinition != want {
+		t.Errorf("type definition %q, want %q", v.TypeDefinition, want)
+	}
+}
+
+func TestPrimitiveTypeHasNoDefinition(t *testing.T) {
+	dir := writeModule(t, map[string]string{
+		"variables.tf": "variable \"name\" {\n  type = string\n}\nvariable \"anything\" {\n  type = any\n}\n",
+	})
+
+	result, err := inspectVariables(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, wantTag := range map[string]string{"name": "string", "anything": "any"} {
+		v := variableNamed(t, result, name)
+		if v.Type != wantTag {
+			t.Errorf("%s: type tag %q, want %q", name, v.Type, wantTag)
+		}
+		if v.TypeDefinition != "" {
+			t.Errorf("%s: type definition %q, want empty", name, v.TypeDefinition)
+		}
+	}
+}
+
+func TestOptionalAttributesSurviveInTheDefinition(t *testing.T) {
+	dir := writeModule(t, map[string]string{
+		"variables.tf": "variable \"settings\" {\n  type = object({\n    a = string\n    b = optional(bool)\n    c = optional(number, 3)\n  })\n}\n",
+	})
+
+	result, err := inspectVariables(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `["object",{"a":"string","b":"bool","c":"number"},["b","c"]]`
+	if got := variableNamed(t, result, "settings").TypeDefinition; got != want {
+		t.Errorf("type definition %q, want %q", got, want)
+	}
+}
+
+func TestDefaultIsReported(t *testing.T) {
+	dir := writeModule(t, map[string]string{
+		"variables.tf": "variable \"size\" {\n  type    = number\n  default = 3\n}\nvariable \"tags\" {\n  type    = map(string)\n  default = { env = \"dev\" }\n}\nvariable \"required\" {\n  type = string\n}\n",
+	})
+
+	result, err := inspectVariables(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := variableNamed(t, result, "size").Default; got != float64(3) {
+		t.Errorf("size default %v (%T), want 3", got, got)
+	}
+	tags, ok := variableNamed(t, result, "tags").Default.(map[string]interface{})
+	if !ok {
+		t.Fatalf("tags default is %T, want a map", variableNamed(t, result, "tags").Default)
+	}
+	if tags["env"] != "dev" {
+		t.Errorf("tags default %v, want env=dev", tags)
+	}
+	if got := variableNamed(t, result, "required").Default; got != nil {
+		t.Errorf("required default %v, want nil", got)
 	}
 }
 

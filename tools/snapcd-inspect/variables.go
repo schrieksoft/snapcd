@@ -16,18 +16,24 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 type VariableInfo struct {
-	Name        string `json:"name"`
-	Type        string `json:"type,omitempty"`
-	Description string `json:"description,omitempty"`
-	Sensitive   bool   `json:"sensitive"`
-	Nullable    bool   `json:"nullable"`
-	File        string `json:"file"`
+	Name string `json:"name"`
+	Type string `json:"type,omitempty"`
+	// TypeDefinition is the cty JSON encoding of a complex type, in the same form
+	// `tofu output -json` reports an output's type. Empty for a primitive type.
+	TypeDefinition string      `json:"typeDefinition,omitempty"`
+	Default        interface{} `json:"default,omitempty"`
+	Description    string      `json:"description,omitempty"`
+	Sensitive      bool        `json:"sensitive"`
+	Nullable       bool        `json:"nullable"`
+	File           string      `json:"file"`
 }
 
 type OutputInfo struct {
@@ -49,6 +55,52 @@ var blockSchema = &hcl.BodySchema{
 
 var nullableSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{{Name: "nullable"}},
+}
+
+var typeSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{{Name: "type"}},
+}
+
+// typeTag is the leading identifier of a type expression: "object" for
+// object({...}), "string" for string. Empty when the expression is not a type.
+func typeTag(expr hcl.Expression) string {
+	ty, _, diags := typeexpr.TypeConstraintWithDefaults(expr)
+	if diags.HasErrors() {
+		return ""
+	}
+	switch {
+	case ty.IsObjectType():
+		return "object"
+	case ty.IsTupleType():
+		return "tuple"
+	case ty.IsMapType():
+		return "map"
+	case ty.IsListType():
+		return "list"
+	case ty.IsSetType():
+		return "set"
+	case ty == cty.DynamicPseudoType:
+		return "any"
+	default:
+		return ty.FriendlyName()
+	}
+}
+
+// typeDefinition is the cty JSON encoding of a type expression, returned only for
+// a complex type: a primitive is fully described by its tag alone.
+func typeDefinition(expr hcl.Expression) (string, error) {
+	ty, _, diags := typeexpr.TypeConstraintWithDefaults(expr)
+	if diags.HasErrors() {
+		return "", diags
+	}
+	if ty.IsPrimitiveType() || ty == cty.DynamicPseudoType {
+		return "", nil
+	}
+	encoded, err := ctyjson.MarshalType(ty)
+	if err != nil {
+		return "", err
+	}
+	return string(encoded), nil
 }
 
 // configFiles lists a module directory's configuration files the way OpenTofu loads them: primary files first, then overrides.
@@ -104,6 +156,8 @@ func inspectVariables(dir string) (VariablesResult, error) {
 	variableFile := map[string]string{}
 	outputFile := map[string]string{}
 	explicitNullable := map[string]bool{}
+	variableTypeTag := map[string]string{}
+	variableTypeDefinition := map[string]string{}
 	var problems []string
 
 	read := func(name string, isOverride bool) {
@@ -138,6 +192,17 @@ func inspectVariables(dir string) (VariablesResult, error) {
 						continue
 					}
 					explicitNullable[label] = value.True()
+				}
+
+				typeAttrs, _, _ := block.Body.PartialContent(typeSchema)
+				if attr, ok := typeAttrs.Attributes["type"]; ok {
+					definition, defErr := typeDefinition(attr.Expr)
+					if defErr != nil {
+						problems = append(problems, fmt.Sprintf("variable %q in %s: %s", label, name, defErr))
+						continue
+					}
+					variableTypeTag[label] = typeTag(attr.Expr)
+					variableTypeDefinition[label] = definition
 				}
 			case "output":
 				if previous, seen := outputFile[label]; seen && !isOverride {
@@ -175,13 +240,22 @@ func inspectVariables(dir string) (VariablesResult, error) {
 			nullable = !variable.Required
 		}
 
+		// The tag comes from the parsed type expression; tfconfig's own Type is the
+		// source text, which carries every attribute of an object type.
+		tag, parsed := variableTypeTag[name]
+		if !parsed {
+			tag = variable.Type
+		}
+
 		result.Variables = append(result.Variables, VariableInfo{
-			Name:        name,
-			Type:        variable.Type,
-			Description: variable.Description,
-			Sensitive:   variable.Sensitive,
-			Nullable:    nullable,
-			File:        variableFile[name],
+			Name:           name,
+			Type:           tag,
+			TypeDefinition: variableTypeDefinition[name],
+			Default:        variable.Default,
+			Description:    variable.Description,
+			Sensitive:      variable.Sensitive,
+			Nullable:       nullable,
+			File:           variableFile[name],
 		})
 	}
 	for name := range module.Outputs {
