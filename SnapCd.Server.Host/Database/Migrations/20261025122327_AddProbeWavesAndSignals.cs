@@ -14,11 +14,77 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     /// <inheritdoc />
-    public partial class AddProbeWavesAndSignalOutputs : Migration
+    public partial class AddProbeWavesAndSignals : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<Guid>(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "TransferMigrateSagas",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "SelectedRunnerId",
+                table: "StateMigrationJobs",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "SplitMigrateSagas",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "RemoveSagas",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "MoveSagas",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "SelectedRunnerId",
+                table: "ModuleJobs",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "LookupAddressesSagas",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "ImportSagas",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "DestroyJobSagas",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "ApplyJobSagas",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "ProbingForWaveId",
+                table: "ApplyJobSagas",
+                type: "uniqueidentifier",
+                nullable: true);
+
             migrationBuilder.CreateTable(
                 name: "ProbeWaves",
                 columns: table => new
@@ -27,7 +93,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     OriginModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     OriginModuleJobId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MaxDepth = table.Column<int>(type: "int", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
@@ -92,15 +157,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProbeWaveParticipants",
+                name: "SignalEdges",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ProbeWaveId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SignalOutputSetId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    LastProbeModuleJobId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ConsumerModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UpstreamModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
@@ -112,27 +177,76 @@ namespace SnapCd.Server.Host.Database.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProbeWaveParticipants", x => new { x.Id, x.OrganizationId });
+                    table.PrimaryKey("PK_SignalEdges", x => new { x.Id, x.OrganizationId });
                     table.ForeignKey(
-                        name: "FK_ProbeWaveParticipants_Modules_ModuleId_OrganizationId",
-                        columns: x => new { x.ModuleId, x.OrganizationId },
+                        name: "FK_SignalEdges_Modules_ConsumerModuleId_OrganizationId",
+                        columns: x => new { x.ConsumerModuleId, x.OrganizationId },
                         principalTable: "Modules",
                         principalColumns: new[] { "Id", "OrganizationId" },
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ProbeWaveParticipants_Organizations_OrganizationId",
+                        name: "FK_SignalEdges_Modules_UpstreamModuleId_OrganizationId",
+                        columns: x => new { x.UpstreamModuleId, x.OrganizationId },
+                        principalTable: "Modules",
+                        principalColumns: new[] { "Id", "OrganizationId" },
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SignalEdges_Organizations_OrganizationId",
                         column: x => x.OrganizationId,
                         principalTable: "Organizations",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ProbeWaveParticipants_ProbeWaves_ProbeWaveId_OrganizationId",
+                        name: "FK_SignalEdges_ProbeWaves_ProbeWaveId_OrganizationId",
+                        columns: x => new { x.ProbeWaveId, x.OrganizationId },
+                        principalTable: "ProbeWaves",
+                        principalColumns: new[] { "Id", "OrganizationId" },
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ModuleProbeAttempts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProbeWaveId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Timestamp = table.Column<long>(type: "bigint", nullable: false),
+                    SignalOutputSetId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ProbeModuleJobId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    CreatedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ModifiedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ModifiedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ModifiedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ModuleProbeAttempts", x => new { x.Id, x.OrganizationId });
+                    table.ForeignKey(
+                        name: "FK_ModuleProbeAttempts_Modules_ModuleId_OrganizationId",
+                        columns: x => new { x.ModuleId, x.OrganizationId },
+                        principalTable: "Modules",
+                        principalColumns: new[] { "Id", "OrganizationId" },
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ModuleProbeAttempts_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ModuleProbeAttempts_ProbeWaves_ProbeWaveId_OrganizationId",
                         columns: x => new { x.ProbeWaveId, x.OrganizationId },
                         principalTable: "ProbeWaves",
                         principalColumns: new[] { "Id", "OrganizationId" },
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ProbeWaveParticipants_SignalOutputSets_SignalOutputSetId_OrganizationId",
+                        name: "FK_ModuleProbeAttempts_SignalOutputSets_SignalOutputSetId_OrganizationId",
                         columns: x => new { x.SignalOutputSetId, x.OrganizationId },
                         principalTable: "SignalOutputSets",
                         principalColumns: new[] { "Id", "OrganizationId" },
@@ -177,77 +291,35 @@ namespace SnapCd.Server.Host.Database.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "SignalContributions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProbeWaveParticipantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UpstreamParticipantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CreatedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ModifiedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ModifiedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    ModifiedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ModifiedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SignalContributions", x => new { x.Id, x.OrganizationId });
-                    table.ForeignKey(
-                        name: "FK_SignalContributions_Organizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organizations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SignalContributions_ProbeWaveParticipants_ProbeWaveParticipantId_OrganizationId",
-                        columns: x => new { x.ProbeWaveParticipantId, x.OrganizationId },
-                        principalTable: "ProbeWaveParticipants",
-                        principalColumns: new[] { "Id", "OrganizationId" },
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_SignalContributions_ProbeWaveParticipants_UpstreamParticipantId_OrganizationId",
-                        columns: x => new { x.UpstreamParticipantId, x.OrganizationId },
-                        principalTable: "ProbeWaveParticipants",
-                        principalColumns: new[] { "Id", "OrganizationId" },
-                        onDelete: ReferentialAction.Restrict);
-                });
-
             migrationBuilder.CreateIndex(
-                name: "IX_ProbeWaveParticipants_Id",
-                table: "ProbeWaveParticipants",
+                name: "IX_ModuleProbeAttempts_Id",
+                table: "ModuleProbeAttempts",
                 column: "Id",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProbeWaveParticipants_ModuleId_OrganizationId",
-                table: "ProbeWaveParticipants",
+                name: "IX_ModuleProbeAttempts_ModuleId_OrganizationId",
+                table: "ModuleProbeAttempts",
                 columns: new[] { "ModuleId", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProbeWaveParticipants_OrganizationId",
-                table: "ProbeWaveParticipants",
+                name: "IX_ModuleProbeAttempts_OrganizationId",
+                table: "ModuleProbeAttempts",
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProbeWaveParticipants_ProbeWaveId_ModuleId_OrganizationId",
-                table: "ProbeWaveParticipants",
-                columns: new[] { "ProbeWaveId", "ModuleId", "OrganizationId" },
-                unique: true);
+                name: "IX_ModuleProbeAttempts_ProbeWaveId_ModuleId_OrganizationId_Timestamp",
+                table: "ModuleProbeAttempts",
+                columns: new[] { "ProbeWaveId", "ModuleId", "OrganizationId", "Timestamp" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProbeWaveParticipants_ProbeWaveId_OrganizationId",
-                table: "ProbeWaveParticipants",
+                name: "IX_ModuleProbeAttempts_ProbeWaveId_OrganizationId",
+                table: "ModuleProbeAttempts",
                 columns: new[] { "ProbeWaveId", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProbeWaveParticipants_SignalOutputSetId_OrganizationId",
-                table: "ProbeWaveParticipants",
+                name: "IX_ModuleProbeAttempts_SignalOutputSetId_OrganizationId",
+                table: "ModuleProbeAttempts",
                 columns: new[] { "SignalOutputSetId", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
@@ -272,36 +344,41 @@ namespace SnapCd.Server.Host.Database.Migrations
                 columns: new[] { "OriginModuleJobId", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_SignalContributions_Id",
-                table: "SignalContributions",
+                name: "IX_SignalEdges_ConsumerModuleId_OrganizationId",
+                table: "SignalEdges",
+                columns: new[] { "ConsumerModuleId", "OrganizationId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SignalEdges_Id",
+                table: "SignalEdges",
                 column: "Id",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_SignalContributions_OrganizationId",
-                table: "SignalContributions",
+                name: "IX_SignalEdges_OrganizationId",
+                table: "SignalEdges",
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SignalContributions_ProbeWaveParticipantId_OrganizationId",
-                table: "SignalContributions",
-                columns: new[] { "ProbeWaveParticipantId", "OrganizationId" });
+                name: "IX_SignalEdges_ProbeWaveId_ConsumerModuleId_Status_OrganizationId",
+                table: "SignalEdges",
+                columns: new[] { "ProbeWaveId", "ConsumerModuleId", "Status", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_SignalContributions_ProbeWaveParticipantId_Status_OrganizationId",
-                table: "SignalContributions",
-                columns: new[] { "ProbeWaveParticipantId", "Status", "OrganizationId" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SignalContributions_ProbeWaveParticipantId_UpstreamParticipantId_OrganizationId",
-                table: "SignalContributions",
-                columns: new[] { "ProbeWaveParticipantId", "UpstreamParticipantId", "OrganizationId" },
+                name: "IX_SignalEdges_ProbeWaveId_ConsumerModuleId_UpstreamModuleId_OrganizationId",
+                table: "SignalEdges",
+                columns: new[] { "ProbeWaveId", "ConsumerModuleId", "UpstreamModuleId", "OrganizationId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_SignalContributions_UpstreamParticipantId_OrganizationId",
-                table: "SignalContributions",
-                columns: new[] { "UpstreamParticipantId", "OrganizationId" });
+                name: "IX_SignalEdges_ProbeWaveId_OrganizationId",
+                table: "SignalEdges",
+                columns: new[] { "ProbeWaveId", "OrganizationId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SignalEdges_UpstreamModuleId_OrganizationId",
+                table: "SignalEdges",
+                columns: new[] { "UpstreamModuleId", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_SignalOutputs_Id",
@@ -356,19 +433,63 @@ namespace SnapCd.Server.Host.Database.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "SignalContributions");
+                name: "ModuleProbeAttempts");
+
+            migrationBuilder.DropTable(
+                name: "SignalEdges");
 
             migrationBuilder.DropTable(
                 name: "SignalOutputs");
-
-            migrationBuilder.DropTable(
-                name: "ProbeWaveParticipants");
 
             migrationBuilder.DropTable(
                 name: "ProbeWaves");
 
             migrationBuilder.DropTable(
                 name: "SignalOutputSets");
+
+            migrationBuilder.DropColumn(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "TransferMigrateSagas");
+
+            migrationBuilder.DropColumn(
+                name: "SelectedRunnerId",
+                table: "StateMigrationJobs");
+
+            migrationBuilder.DropColumn(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "SplitMigrateSagas");
+
+            migrationBuilder.DropColumn(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "RemoveSagas");
+
+            migrationBuilder.DropColumn(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "MoveSagas");
+
+            migrationBuilder.DropColumn(
+                name: "SelectedRunnerId",
+                table: "ModuleJobs");
+
+            migrationBuilder.DropColumn(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "LookupAddressesSagas");
+
+            migrationBuilder.DropColumn(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "ImportSagas");
+
+            migrationBuilder.DropColumn(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "DestroyJobSagas");
+
+            migrationBuilder.DropColumn(
+                name: "ProbeSignalWaitScheduleTokenId",
+                table: "ApplyJobSagas");
+
+            migrationBuilder.DropColumn(
+                name: "ProbingForWaveId",
+                table: "ApplyJobSagas");
         }
     }
 }
