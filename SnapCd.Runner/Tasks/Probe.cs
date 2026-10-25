@@ -80,13 +80,13 @@ public partial class Tasks
             // change being asked about. The process already runs in the inited directory.
             // The variables file is written by Plan, so a job that reached here without planning
             // has none; the remaining sources still resolve.
-            var varFileArg = File.Exists(varsPath) ? $" -var-file=\"{varsPath}\"" : string.Empty;
+            var varFileArg = File.Exists(varsPath) ? $" --var-file \"{varsPath}\"" : string.Empty;
 
             // An ordinary plan, not refreshed, with the wave's predictions supplied and this
             // Module's own predicted outputs written out for whoever reads them.
             var command =
-                $"{BaseEngine.ProbeEngine} plan -refresh=false " +
-                $"-signals-in=\"{inputsPath}\" -signals-out=\"{signalsPath}\"" +
+                $"{BaseEngine.ProbeEngine} probe " +
+                $"--signals-in \"{inputsPath}\" --signals-out \"{signalsPath}\"" +
                 varFileArg;
             await engine.RunProcess(command, killCts.Token);
 

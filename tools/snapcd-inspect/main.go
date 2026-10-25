@@ -181,6 +181,14 @@ func main() {
 		return
 	}
 
+	if len(os.Args) > 1 && os.Args[1] == "signals" {
+		os.Exit(runSignals(os.Args[2:]))
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "probe" {
+		os.Exit(runProbe(os.Args[2:]))
+	}
+
 	repoDir := flag.String("repo", "", "path to the (bare) git repository")
 	commit := flag.String("commit", "", "commit SHA to inspect")
 	roots := flag.String("roots", "", "comma-separated repo-root-relative directories to resolve closures for")
