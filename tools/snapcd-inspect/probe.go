@@ -9,10 +9,10 @@ import (
 
 	"github.com/opentofu/opentofu/internal/backend"
 	"github.com/opentofu/opentofu/internal/backend/local"
-	"github.com/opentofu/opentofu/internal/configs"
 	"github.com/opentofu/opentofu/internal/command/arguments"
 	"github.com/opentofu/opentofu/internal/command/clistate"
 	"github.com/opentofu/opentofu/internal/command/views"
+	"github.com/opentofu/opentofu/internal/configs"
 	"github.com/opentofu/opentofu/internal/configs/configload"
 	"github.com/opentofu/opentofu/internal/depsfile"
 	"github.com/opentofu/opentofu/internal/encryption"
@@ -125,19 +125,6 @@ func planWithPredicted(
 		return nil, diags.Append(fmt.Errorf("config loader: %w", err))
 	}
 
-	mod, hclDiags := configs.NewParser(nil).LoadConfigDirSelective(".", configs.SelectiveLoadBackend)
-	diags = diags.Append(hclDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	// A probe reads a plan and discards it, so it never touches remote state.
-	if mod.Backend != nil {
-		return nil, diags.Append(fmt.Errorf(
-			"a probe plans against local state and cannot use the module's %q backend",
-			mod.Backend.Type))
-	}
-
 	// The probe runs in a directory the job already inited, so the provider
 	// selections are the ones that init recorded.
 	locks, lockDiags := depsfile.LoadLocksFromFile(".terraform.lock.hcl")
@@ -163,10 +150,31 @@ func planWithPredicted(
 	if err != nil {
 		return nil, diags.Append(fmt.Errorf("terminal: %w", err))
 	}
-	planView := views.NewPlan(&arguments.View{NoColor: true, ViewType: arguments.ViewHuman}, views.NewView(streams))
+	// Colour as tofu's own plan does, so a probe's log reads like the Plan step
+	// beside it rather than as flat text. A View colorizes only once Configure has
+	// been applied to it, which NewPlan does not do.
+	viewArgs := &arguments.View{ViewType: arguments.ViewHuman}
+	view := views.NewView(streams)
+	view.Configure(viewArgs)
+	planView := views.NewPlan(viewArgs, view)
 
 	enc := encryption.Disabled()
-	be := local.New(enc.State())
+
+	// A probe plans against the module's real state, so it reads from whatever
+	// backend init configured. The operation still runs locally; the backend
+	// supplies state and nothing else.
+	remote, backendDiags := stateBackend(ctx, enc.State())
+	diags = diags.Append(backendDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	var be *local.Local
+	if remote != nil {
+		be = local.NewWithBackend(remote, enc.State())
+	} else {
+		be = local.New(enc.State())
+	}
 	// No provisioners: a probe plans and never applies, so no provisioner runs.
 	be.ContextOpts = &tofu.ContextOpts{
 		Plugins: plugins.NewLibrary(factories, nil),
