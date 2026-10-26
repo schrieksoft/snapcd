@@ -80,6 +80,19 @@ public class SqlVault : IVault
         return Decrypt(row.Ciphertext);
     }
 
+    public async Task<VersionedSecret> GetSecretWithVersionAsync(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            throw new ArgumentException("Secret name cannot be null or empty", nameof(name));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync();
+        var row = await db.Set<VaultSecret>().FirstOrDefaultAsync(s => s.Name == name);
+        if (row is null)
+            throw new KeyNotFoundException($"Secret \"{name}\" not found.");
+
+        return new VersionedSecret(Decrypt(row.Ciphertext), row.Version);
+    }
+
     public async Task DeleteSecretAsync(string name)
     {
         if (string.IsNullOrEmpty(name))

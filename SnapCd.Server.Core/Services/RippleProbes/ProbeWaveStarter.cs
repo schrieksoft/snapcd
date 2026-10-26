@@ -30,7 +30,7 @@ public class ProbeWaveStarterFactory(
         return new ProbeWaveStarter(
             dbFactory.CreateDbContext(),
             lookupFactory.Create(),
-            recorderFactory,
+            recorderFactory.Create(),
             bus,
             loggerFactory.CreateLogger<ProbeWaveStarter>());
     }
@@ -70,20 +70,20 @@ public class ProbeWaveStarter : IDisposable
 
     private readonly SnapCdDbContext _dbContext;
     private readonly RippleProbeConsumerLookup _lookup;
-    private readonly ProbeSignalRecorderFactory _recorderFactory;
+    private readonly ProbeSignalRecorder _recorder;
     private readonly IPublishEndpoint _bus;
     private readonly ILogger<ProbeWaveStarter> _logger;
 
     public ProbeWaveStarter(
         SnapCdDbContext dbContext,
         RippleProbeConsumerLookup lookup,
-        ProbeSignalRecorderFactory recorderFactory,
+        ProbeSignalRecorder recorder,
         IPublishEndpoint bus,
         ILogger<ProbeWaveStarter> logger)
     {
         _dbContext = dbContext;
         _lookup = lookup;
-        _recorderFactory = recorderFactory;
+        _recorder = recorder;
         _bus = bus;
         _logger = logger;
     }
@@ -113,7 +113,6 @@ public class ProbeWaveStarter : IDisposable
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
-            OriginModuleId = originModuleId,
             OriginModuleJobId = originModuleJobId
         };
 
@@ -144,8 +143,7 @@ public class ProbeWaveStarter : IDisposable
         // building one requires every confirmed upstream to have reported.
         if (!string.IsNullOrWhiteSpace(outputSignalsJson))
         {
-            using var recorder = _recorderFactory.Create();
-            await recorder.Record(
+            await _recorder.Record(
                 wave.Id, originModuleId, organizationId, originModuleJobId, outputSignalsJson!);
         }
 
@@ -168,7 +166,6 @@ public class ProbeWaveStarter : IDisposable
             {
                 ModuleId = consumer.ModuleId,
                 OrganizationId = organizationId,
-                ProbeWaveId = wave.Id,
                 DesiredStateHeadline = DesiredStateHeadline.Applied,
                 SetNewDesiredState = false
             });
@@ -180,5 +177,6 @@ public class ProbeWaveStarter : IDisposable
     {
         _dbContext.Dispose();
         _lookup.Dispose();
+        _recorder.Dispose();
     }
 }

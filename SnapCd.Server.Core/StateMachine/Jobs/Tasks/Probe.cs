@@ -348,7 +348,7 @@ public partial class JobStateMachine<
         where TMessage : class
     {
         var provider = PipeExtensions.GetPayload<IServiceProvider>(context);
-        using var inputs = provider.GetRequiredService<ProbeInputsBuilderFactory>().Create();
+        var inputs = provider.GetRequiredService<ProbeInputsBuilder>();
 
         var waves = await inputs.FindWavesToProbeFor(
             context.Saga.ModuleId, context.Saga.OrganizationId, context.Saga.CorrelationId);
@@ -359,9 +359,33 @@ public partial class JobStateMachine<
         where TMessage : class
     {
         var provider = PipeExtensions.GetPayload<IServiceProvider>(context);
-        using var reader = provider.GetRequiredService<ProbeReadinessReaderFactory>().Create();
+        var reader = provider.GetRequiredService<ProbeReadinessReader>();
 
         var readiness = await reader.Read(context.Saga.ModuleId, context.Saga.OrganizationId);
+
+        if (readiness == ProbeReadiness.EngineCannotProbe)
+            await ReleaseWhatWaitedOnThisModule(context);
+
         return readiness == ProbeReadiness.Probe;
+    }
+
+    /// <summary>
+    /// An engine that cannot answer the question releases whatever waited on it, rather than
+    /// leaving the wave to wait for a report that will never come. The approver sees the gap.
+    /// </summary>
+    private static async Task ReleaseWhatWaitedOnThisModule<TMessage>(BehaviorContext<TSaga, TMessage> context)
+        where TMessage : class
+    {
+        var provider = PipeExtensions.GetPayload<IServiceProvider>(context);
+        var inputs = provider.GetRequiredService<ProbeInputsBuilder>();
+        var resolver = provider.GetRequiredService<SignalEdgeResolver>();
+
+        var waves = await inputs.FindWavesToProbeFor(
+            context.Saga.ModuleId, context.Saga.OrganizationId, context.Saga.CorrelationId);
+
+        foreach (var waveId in waves)
+            await resolver.ResolveAsUnanswerable(
+                waveId, context.Saga.ModuleId, context.Saga.OrganizationId,
+                "its engine cannot be probed");
     }
 }

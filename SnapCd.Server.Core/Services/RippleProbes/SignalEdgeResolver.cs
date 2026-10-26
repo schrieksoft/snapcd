@@ -89,7 +89,17 @@ public class SignalEdgeResolver : IDisposable
         // The wave grows here. A Module reading one of these changed outputs gets an edge now
         // rather than at creation: whether it is reached depends on what this plan turned out to
         // change, which nothing knew when the wave started.
-        await AddEdges(probeWaveId, moduleId, organizationId, reading);
+        //
+        // A wave informs one approval decision and ends when that decision is made, so it stops
+        // growing then. A probe still in flight at that moment reports its result as normal, and
+        // the Modules its signals reach are simply not enrolled: there is no longer a decision for
+        // their answers to inform.
+        if (await IsLive(probeWaveId, organizationId))
+            await AddEdges(probeWaveId, moduleId, organizationId, reading);
+        else
+            _logger.LogDebug(
+                "Wave {ProbeWaveId} is closed, so the signals from Module {ModuleId} reach no further",
+                probeWaveId, moduleId);
 
         await Resolve(
             probeWaveId,
@@ -99,6 +109,18 @@ public class SignalEdgeResolver : IDisposable
                 ? SignalEdgeStatus.Confirmed
                 : SignalEdgeStatus.NotNeeded);
     }
+
+    /// <summary>
+    /// Whether the approval this wave informs is still open. The wave ends with that decision, and
+    /// an ended wave neither grows nor asks for another probe.
+    /// </summary>
+    private async Task<bool> IsLive(Guid probeWaveId, Guid organizationId) =>
+        await _dbContext.ProbeWaves.AsNoTracking()
+            .Where(w => w.Id == probeWaveId && w.OrganizationId == organizationId)
+            .Join(_dbContext.ModuleJobs.Where(j =>
+                    j.Status == ExecutionStatus.Running && j.WaitingForApproval == true),
+                w => w.OriginModuleJobId, j => j.Id, (w, _) => w.Id)
+            .AnyAsync();
 
     /// <summary>
     /// A Module will never report, because its job failed, it is paused, or it no longer exists.
@@ -197,17 +219,14 @@ public class SignalEdgeResolver : IDisposable
 
         await NotifyWave(probeWaveId, organizationId);
 
-        // Whoever waited on this Module may now be waiting on nothing. Each is asked for an Apply
-        // rather than being told it is ready: the gate serialises per Module and re-checks the
-        // wave itself, because only the consumer's own edges say whether its last upstream has
-        // answered. SetNewDesiredState is false, so a probe cannot move a Module towards Applied
-        // when its desired state is Destroyed.
+        // Whoever waited on this Module may now be waiting on nothing. Each is asked for an Apply,
+        // and the job decides for itself whether it owes a probe. SetNewDesiredState is false, so
+        // a probe cannot move a Module towards Applied when its desired state is Destroyed.
         foreach (var edge in pending)
             await _bus.Publish(new GatekeepingJobRequested
             {
                 ModuleId = edge.ConsumerModuleId,
                 OrganizationId = organizationId,
-                ProbeWaveId = probeWaveId,
                 DesiredStateHeadline = DesiredStateHeadline.Applied,
                 SetNewDesiredState = false
             });

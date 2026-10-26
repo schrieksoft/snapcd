@@ -177,7 +177,7 @@ public class GatekeepingTargetTests : IAsyncLifetime
     }
 
     /// <summary>Sends a trigger and waits until the saga has handled it.</summary>
-    private async Task Trigger(DesiredStateHeadline? state = null, bool setNew = false, Guid? probeWaveId = null)
+    private async Task Trigger(DesiredStateHeadline? state = null, bool setNew = false)
     {
         var jobId = Guid.NewGuid();
         await _harness.Bus.Publish(new GatekeepingJobRequested
@@ -186,7 +186,6 @@ public class GatekeepingTargetTests : IAsyncLifetime
             OrganizationId = _organizationId,
             DesiredStateHeadline = state,
             SetNewDesiredState = setNew,
-            ProbeWaveId = probeWaveId,
             JobId = jobId
         });
         Assert.True(await WaitUntil(() => _harness.Consumed.Select<GatekeepingJobRequested>(m => m.Context.Message.JobId == jobId).Any()));
@@ -195,17 +194,17 @@ public class GatekeepingTargetTests : IAsyncLifetime
     private bool Ran(DesiredStateHeadline state) => _ran.Any(r => r.ModuleId == _moduleId && r.State == state);
 
     /// <summary>
-    /// A wave asks an extra question, never a replacement one. A Module whose dependencies are not
-    /// satisfied queues like any other, which is what keeps a Module that has never applied out of
-    /// an apply it cannot run: its upstream has no state and no outputs for it to read.
+    /// A Module whose dependencies are not satisfied queues, which is what keeps a Module that has
+    /// never applied out of an apply it cannot run: its upstream has no state and no outputs for
+    /// it to read. Whether the resulting job owes a probe is the job's own question.
     /// </summary>
     [Fact]
-    public async Task A_probe_wave_does_not_release_a_module_whose_dependencies_are_unmet()
+    public async Task A_module_whose_dependencies_are_unmet_is_queued()
     {
         await SetSaga(desired: DesiredStateHeadline.Applied, queued: null);
         _dependencies.ApplyMet = false;
 
-        await Trigger(probeWaveId: Guid.NewGuid());
+        await Trigger();
 
         Assert.False(Ran(DesiredStateHeadline.Applied));
         Assert.Equal(DesiredStateHeadline.Applied, (await ReadSaga()).QueuedDesiredStateHeadline);

@@ -41,9 +41,6 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
     private JobService ExecutionService => _serviceProvider.GetRequiredService<JobService>();
     private ModuleHoldGate HoldGate => _serviceProvider.GetRequiredService<ModuleHoldGate>();
 
-    private ProbeWaveReadiness ProbeReadiness =>
-        _serviceProvider.GetRequiredService<ProbeWaveReadinessFactory>().Create();
-
     public async Task Execute(
         BehaviorContext<ModuleSaga, TGatekeepingJobRequested> context,
         IBehavior<ModuleSaga, TGatekeepingJobRequested> next)
@@ -143,18 +140,10 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 .Where(j => j.ModuleId == context.Message.ModuleId && j.OrganizationId == context.Message.OrganizationId && j.IsCurrent == true)
                 .FirstOrDefaultAsync();
 
-            // A probe asks an extra question on top of the dependency check, never in place of it:
-            // whether this Module owes the wave an answer. A Module whose dependencies are not
-            // satisfied queues like any other, and the wave is answered by whichever apply runs
-            // once they are.
             var canExecute = await ExecutionService.CheckDependenciesAsync(
                 context.Saga.CorrelationId,
                 context.Message.OrganizationId,
                 effectiveDesiredState);
-
-            if (canExecute && context.Message.ProbeWaveId is { } probeWaveId)
-                canExecute = await ProbeReadiness.IsReady(
-                    probeWaveId, context.Saga.CorrelationId, context.Message.OrganizationId);
 
             _logger.LogDebug(
                 "Gate for module {ModuleId}: currentJob {CurrentJob}, canExecute {CanExecute}",

@@ -28,12 +28,4 @@ public class GatekeepingJobRequestedBase
     public string? DesiredClosureHash { get; set; }
 
     public string? RunnerInstanceNameOverride { get; set; }
-
-    /// <summary>
-    /// Set when this request exists to probe for a wave. Such a request is gated on the wave's own
-    /// readiness, which is whether every upstream the Module reads has reported into that wave,
-    /// rather than on the Module's upstream dependencies being applied: a probe runs precisely
-    /// while those upstreams are still deciding what they will do.
-    /// </summary>
-    public Guid? ProbeWaveId { get; set; }
 }

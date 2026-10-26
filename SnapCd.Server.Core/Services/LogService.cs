@@ -342,9 +342,9 @@ public class LogService
             .Where(w => waveIds.Contains(w.Id) && w.OrganizationId == organizationId)
             .Select(w => new ProbeWaveOrigin(
                 w.Id,
-                w.OriginModule.Namespace.Stack.Name,
-                w.OriginModule.Namespace.Name,
-                w.OriginModule.Name))
+                w.OriginModuleJob.Module.Namespace.Stack.Name,
+                w.OriginModuleJob.Module.Namespace.Name,
+                w.OriginModuleJob.Module.Name))
             .ToDictionaryAsync(o => o.WaveId);
     }
 }

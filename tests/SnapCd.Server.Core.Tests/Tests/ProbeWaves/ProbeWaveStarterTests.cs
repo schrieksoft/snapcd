@@ -40,6 +40,7 @@ public class ProbeWaveStarterTests : IAsyncLifetime
     public ProbeWaveStarterTests(Fixture fixture) => _fixture = fixture;
 
     private Guid _consumerAppliedJobId;
+    private readonly List<Guid> _originJobs = [];
 
     public async Task InitializeAsync()
     {
@@ -71,7 +72,8 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
 
         var waveIds = await db.ProbeWaves
-            .Where(w => w.OriginModuleId == _originModuleId || w.OriginModuleId == _consumerModuleId)
+            .Where(w => w.OriginModuleJob.ModuleId == _originModuleId ||
+                        w.OriginModuleJob.ModuleId == _consumerModuleId)
             .Select(w => w.Id)
             .ToListAsync();
 
@@ -85,7 +87,7 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         if (_inputs.Count > 0)
             await db.ModuleInputs.Where(i => _inputs.Contains(i.Id)).ExecuteDeleteAsync();
 
-        await db.ModuleJobs.Where(j => j.Id == _consumerAppliedJobId).ExecuteDeleteAsync();
+        await db.ModuleJobs.Where(j => j.Id == _consumerAppliedJobId || _originJobs.Contains(j.Id)).ExecuteDeleteAsync();
     }
 
     [Fact]
@@ -300,39 +302,70 @@ public class ProbeWaveStarterTests : IAsyncLifetime
     {
         await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
 
-        var jobId = Guid.NewGuid();
+        var jobId = await AddOriginJob();
         var waveId = await Start(["vpc_id"], jobId);
 
         await using var db = _fixture.CreateDbContext();
-        var wave = await db.ProbeWaves.AsNoTracking().FirstAsync(w => w.Id == waveId!.Value);
+        var wave = await db.ProbeWaves
+            .AsNoTracking()
+            .Include(w => w.OriginModuleJob)
+            .FirstAsync(w => w.Id == waveId!.Value);
 
-        Assert.Equal(_originModuleId, wave.OriginModuleId);
+        Assert.Equal(_originModuleId, wave.OriginModuleJob.ModuleId);
         Assert.Equal(jobId, wave.OriginModuleJobId);
     }
 
+
+    /// <summary>
+    /// The origin job whose approval the wave informs, and which it is constrained to. A wave
+    /// cannot be written without it.
+    /// </summary>
+    private async Task<Guid> AddOriginJob()
+    {
+        var jobId = Guid.NewGuid();
+
+        await using var db = _fixture.CreateDbContext();
+        db.ModuleJobs.Add(new ModuleJob
+        {
+            Id = jobId,
+            OrganizationId = _organizationId,
+            ModuleId = _originModuleId,
+            JobType = "ApplyJobSaga",
+            Status = ExecutionStatus.Running,
+            WaitingForApproval = true,
+            TimestampStart = DateTimeOffset.UtcNow.AddTicks(_originJobs.Count),
+            CreatedDateTime = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        _originJobs.Add(jobId);
+        return jobId;
+    }
 
     private async Task<Guid?> Start(
         string[] changedOutputNames,
         Guid? originJobId = null,
         string? outputSignalsJson = null)
     {
-        var factory = new FixtureDbContextFactory(_fixture);
+        // One context across the three, as a scope gives them: a lookup on its own connection
+        // would not see what the starter has written and not yet committed.
+        await using var dbContext = _fixture.CreateDbContext();
 
         using var starter = new ProbeWaveStarter(
-            _fixture.CreateDbContext(),
-            new RippleProbeConsumerLookup(_fixture.CreateDbContext()),
-            new ProbeSignalRecorderFactory(
-                factory,
+            dbContext,
+            new RippleProbeConsumerLookup(dbContext),
+            new ProbeSignalRecorder(
+                dbContext,
                 Mock.Of<ISignalSecretWriter>(),
                 Mock.Of<IPublishEndpoint>(),
-                NullLoggerFactory.Instance),
+                NullLogger<ProbeSignalRecorder>.Instance),
             Mock.Of<IPublishEndpoint>(),
             NullLogger<ProbeWaveStarter>.Instance);
 
         return await starter.Start(
             _originModuleId,
             _organizationId,
-            originJobId ?? Guid.NewGuid(),
+            originJobId ?? await AddOriginJob(),
             changedOutputNames,
             outputSignalsJson);
     }

@@ -29,21 +29,21 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
 {
     private readonly ILogger _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
-    private readonly ProbeSignalRecorderFactory _recorderFactory;
-    private readonly SignalEdgeResolverFactory _resolverFactory;
+    private readonly ProbeSignalRecorder _recorder;
+    private readonly SignalEdgeResolver _resolver;
     private readonly IBus _bus;
 
     protected ProbeCompletedInvokedConsumer(
         ILogger logger,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
-        ProbeSignalRecorderFactory recorderFactory,
-        SignalEdgeResolverFactory resolverFactory,
+        ProbeSignalRecorder recorder,
+        SignalEdgeResolver resolver,
         IBus bus)
     {
         _logger = logger;
         _dbContextFactory = dbContextFactory;
-        _recorderFactory = recorderFactory;
-        _resolverFactory = resolverFactory;
+        _recorder = recorder;
+        _resolver = resolver;
         _bus = bus;
     }
 
@@ -86,8 +86,7 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
                     }
                     else
                     {
-                        using var recorder = _recorderFactory.Create();
-                        await recorder.Record(
+                        await _recorder.Record(
                             probeWaveId.Value,
                             jobView.ModuleId,
                             jobView.OrganizationId,
@@ -98,8 +97,7 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
 
                         // Whoever waited on this Module now has an answer, and a consumer whose
                         // last edge this was is released by it.
-                        using var resolver = _resolverFactory.Create();
-                        await resolver.ResolveAfterSignals(
+                        await _resolver.ResolveAfterSignals(
                             probeWaveId.Value, jobView.ModuleId, jobView.OrganizationId);
                     }
                 }
@@ -119,8 +117,8 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
 public class ApplyProbeCompletedInvokedConsumer(
     ILogger<ApplyProbeCompletedInvokedConsumer> logger,
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
-    ProbeSignalRecorderFactory recorderFactory,
-    SignalEdgeResolverFactory resolverFactory,
+    ProbeSignalRecorder recorder,
+    SignalEdgeResolver resolver,
     IBus bus)
     : ProbeCompletedInvokedConsumer<ApplyProbeCompletedInvoked, ApplyProbeCompleted>(
-        logger, dbContextFactory, recorderFactory, resolverFactory, bus);
+        logger, dbContextFactory, recorder, resolver, bus);

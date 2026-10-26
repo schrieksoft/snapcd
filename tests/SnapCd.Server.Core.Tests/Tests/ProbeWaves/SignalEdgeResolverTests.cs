@@ -38,6 +38,7 @@ public class SignalEdgeResolverTests : IAsyncLifetime
     private Guid _secondHopModuleId;
 
     private readonly List<Guid> _waves = [];
+    private readonly List<Guid> _originJobs = [];
     private readonly List<Guid> _inputs = [];
 
     public SignalEdgeResolverTests(Fixture fixture) => _fixture = fixture;
@@ -63,6 +64,7 @@ public class SignalEdgeResolverTests : IAsyncLifetime
         await db.SignalOutputs.Where(o => setIds.Contains(o.SignalOutputSetId)).ExecuteDeleteAsync();
         await db.SignalOutputSets.Where(s => setIds.Contains(s.Id)).ExecuteDeleteAsync();
         await db.ProbeWaves.Where(w => _waves.Contains(w.Id)).ExecuteDeleteAsync();
+        await db.ModuleJobs.Where(j => _originJobs.Contains(j.Id)).ExecuteDeleteAsync();
 
         if (_inputs.Count > 0)
             await db.ModuleInputs.Where(i => _inputs.Contains(i.Id)).ExecuteDeleteAsync();
@@ -161,14 +163,40 @@ public class SignalEdgeResolverTests : IAsyncLifetime
         await resolver.ResolveAfterSignals(probeWaveId, moduleId, _organizationId);
     }
 
+
+    /// <summary>
+    /// The origin job whose approval a wave informs, and which it is constrained to. The job is
+    /// awaiting that decision, which is the state a wave is live in.
+    /// </summary>
+    private async Task<Guid> AddOriginJob(Guid moduleId)
+    {
+        var jobId = Guid.NewGuid();
+
+        await using var db = _fixture.CreateDbContext();
+        db.ModuleJobs.Add(new ModuleJob
+        {
+            Id = jobId,
+            OrganizationId = _organizationId,
+            ModuleId = moduleId,
+            JobType = "ApplyJobSaga",
+            Status = ExecutionStatus.Running,
+            WaitingForApproval = true,
+            TimestampStart = DateTimeOffset.UtcNow.AddTicks(_originJobs.Count),
+            CreatedDateTime = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        _originJobs.Add(jobId);
+        return jobId;
+    }
+
     private async Task<Guid> AddWave()
     {
         var wave = new ProbeWave
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
-            OriginModuleId = _producerModuleId,
-            OriginModuleJobId = Guid.NewGuid()
+            OriginModuleJobId = await AddOriginJob(_producerModuleId)
         };
 
         await using var db = _fixture.CreateDbContext();

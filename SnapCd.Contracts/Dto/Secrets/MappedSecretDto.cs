@@ -13,4 +13,7 @@ namespace SnapCd.Contracts.Dto.Secrets;
 public class MappedSecretDto : MappedSecretCreateDto, IDto
 {
     public Guid Id { get; set; }
+
+    /// <summary>The version the vault holds this value under, for standing in where the value must not be carried.</summary>
+    public string? Version { get; set; }
 }

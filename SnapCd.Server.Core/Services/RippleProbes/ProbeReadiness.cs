@@ -8,6 +8,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Enums;
 
 namespace SnapCd.Server.Core.Services.RippleProbes;
@@ -25,7 +26,10 @@ public enum ProbeReadiness
     Probe,
 
     /// <summary>Every upstream has answered and none carries anything this Module reads.</summary>
-    NothingToProbe
+    NothingToProbe,
+
+    /// <summary>This Module's engine cannot plan with unknown values, so no probe can answer.</summary>
+    EngineCannotProbe
 }
 
 public class ProbeReadinessReaderFactory(IDbContextFactory<SnapCdDbContext> dbFactory)
@@ -74,9 +78,29 @@ public class ProbeReadinessReader : IDisposable
         if (statuses.Any(s => s == SignalEdgeStatus.Potential))
             return ProbeReadiness.WaitForSignals;
 
-        return statuses.Any(s => s == SignalEdgeStatus.Confirmed)
+        if (!statuses.Any(s => s == SignalEdgeStatus.Confirmed))
+            return ProbeReadiness.NothingToProbe;
+
+        return await EngineSupportsProbes(moduleId, organizationId)
             ? ProbeReadiness.Probe
-            : ProbeReadiness.NothingToProbe;
+            : ProbeReadiness.EngineCannotProbe;
+    }
+
+    /// <summary>
+    /// A probe plans with values that are not yet known, which needs a planner that carries an
+    /// unknown through. The Module's own engine, else its Namespace's default, else OpenTofu.
+    /// </summary>
+    private async Task<bool> EngineSupportsProbes(Guid moduleId, Guid organizationId)
+    {
+        var engines = await _dbContext.Modules
+            .AsNoTracking()
+            .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
+            .Select(m => new { m.Engine, NamespaceDefault = m.Namespace.DefaultEngine })
+            .FirstOrDefaultAsync();
+
+        var engine = engines?.Engine ?? engines?.NamespaceDefault ?? StateManagementEngine.OpenTofu;
+
+        return engine.SupportsProbes();
     }
 
     public void Dispose()

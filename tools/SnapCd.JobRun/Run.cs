@@ -423,7 +423,7 @@ public static class Run
                     a.SignalOutputSetId,
                     j.Status,
                     a.ProbeWaveId,
-                    OriginName = a.ProbeWave.OriginModule.Name
+                    OriginName = a.ProbeWave.OriginModuleJob.Module.Name
                 })
             .OrderBy(x => x.Name)
             .ThenBy(x => x.OriginName)

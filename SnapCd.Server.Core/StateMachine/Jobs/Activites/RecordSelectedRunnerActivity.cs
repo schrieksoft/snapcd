@@ -9,13 +9,15 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services.RunInputs;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
 
 /// <summary>
-/// Copies the saga's selected runner onto the job row. The saga is deleted when the job finishes,
-/// so the row is the only place the fact survives, and it is what authorizes a runner writing
-/// against a job it was not given.
+/// Copies the saga's selected runner and a hash of its declaration onto the job row. The saga is
+/// deleted when the job finishes, so the row is the only place either fact survives: the runner is
+/// what authorizes a runner writing against a job it was not given, and the hash is what says
+/// whether a prediction made from this job still holds.
 ///
 /// One per job table rather than one generic over the three, because each table has its own
 /// repository with its own update convention, and an activity is resolved from DI by its closed
@@ -33,6 +35,10 @@ public class RecordSelectedRunnerActivity<TSaga, TMessage> : IStateMachineActivi
     {
         await _jobs.RecordSelectedRunner(
             context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.RunnerId);
+
+        if (context.Saga.DeclaredJson is { } declared)
+            await _jobs.RecordDeclarationHash(
+                context.Saga.CorrelationId, context.Saga.OrganizationId, DeclarationHash.Compose(declared));
 
         await next.Execute(context).ConfigureAwait(false);
     }

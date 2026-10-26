@@ -16,6 +16,34 @@ using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Services.RippleProbes;
 
+/// <summary>What a job ran against, for judging whether a prediction made from it still holds.</summary>
+public record JobFingerprint(
+    ExecutionStatus Status,
+    string? Revision,
+    string? DeclarationHash,
+    string? ParamsHash,
+    string? EnvVarsHash)
+{
+    /// <summary>
+    /// What has moved between the run that answered and the Module's latest run. A hash absent on
+    /// either side is not a difference: it says the comparison cannot be made, not that it failed.
+    /// </summary>
+    public List<StalenessReason> Against(JobFingerprint current)
+    {
+        var moved = new List<StalenessReason>();
+
+        if (Differs(Revision, current.Revision)) moved.Add(StalenessReason.Revision);
+        if (Differs(DeclarationHash, current.DeclarationHash)) moved.Add(StalenessReason.Declaration);
+        if (Differs(ParamsHash, current.ParamsHash)) moved.Add(StalenessReason.Parameters);
+        if (Differs(EnvVarsHash, current.EnvVarsHash)) moved.Add(StalenessReason.EnvironmentVariables);
+
+        return moved;
+    }
+
+    private static bool Differs(string? probed, string? current) =>
+        probed is not null && current is not null && !string.Equals(probed, current, StringComparison.Ordinal);
+}
+
 public class ProbeWaveReadServiceFactory(IDbContextFactory<SnapCdDbContext> dbContextFactory)
 {
     public ProbeWaveReadService Create()
@@ -52,7 +80,7 @@ public class ProbeWaveReadService : IDisposable
         int take = 20)
     {
         var waveIds = await _dbContext.ProbeWaves
-            .Where(w => w.OriginModuleId == originModuleId && w.OrganizationId == organizationId)
+            .Where(w => w.OriginModuleJob.ModuleId == originModuleId && w.OrganizationId == organizationId)
             .OrderByDescending(w => w.CreatedDateTime)
             .Take(take)
             .Select(w => w.Id)
@@ -74,6 +102,17 @@ public class ProbeWaveReadService : IDisposable
     /// Keyed on the job rather than the Module because a Module has many jobs and only this one's
     /// findings belong beside this one's approval decision.
     /// </summary>
+    /// <summary>
+    /// Why this job started no propagation, where it should have. A wave that could not be written
+    /// leaves nothing to read, so the reason is kept on the job and reported from there.
+    /// </summary>
+    public async Task<string?> PropagationFailure(Guid originModuleJobId, Guid organizationId) =>
+        await _dbContext.ModuleJobs
+            .AsNoTracking()
+            .Where(j => j.Id == originModuleJobId && j.OrganizationId == organizationId)
+            .Select(j => j.PropagationError)
+            .FirstOrDefaultAsync();
+
     public async Task<ProbeWaveView?> GetByOriginJob(
         Guid originModuleJobId,
         Guid organizationId,
@@ -139,10 +178,10 @@ public class ProbeWaveReadService : IDisposable
             .Select(w => new
             {
                 w.Id,
-                w.OriginModuleId,
+                OriginModuleId = w.OriginModuleJob.ModuleId,
                 w.OriginModuleJobId,
                 w.CreatedDateTime,
-                OriginModuleName = w.OriginModule.Name
+                OriginModuleName = w.OriginModuleJob.Module.Name
             })
             .FirstOrDefaultAsync();
 
@@ -180,12 +219,52 @@ public class ProbeWaveReadService : IDisposable
             .Select(a => a.ProbeModuleJobId!.Value)
             .ToList();
 
-        var probeJobStatuses = probeJobIds.Count == 0
-            ? new Dictionary<Guid, ExecutionStatus>()
+        // The status and what the job ran against, in one read: a prediction holds only while the
+        // Module's code, declaration and resolved inputs are what they were when it was made.
+        var probeJobs = probeJobIds.Count == 0
+            ? new Dictionary<Guid, JobFingerprint>()
             : await _dbContext.ModuleJobs
                 .AsNoTracking()
                 .Where(j => probeJobIds.Contains(j.Id) && j.OrganizationId == organizationId)
-                .ToDictionaryAsync(j => j.Id, j => j.Status);
+                .ToDictionaryAsync(j => j.Id, j => new JobFingerprint(
+                    j.Status, j.DefinitiveRevision, j.DeclarationHash, j.ParamsHash, j.EnvVarsHash));
+
+        var probeJobStatuses = probeJobs.ToDictionary(j => j.Key, j => j.Value.Status);
+
+        // A wave informs one approval decision and ends when that decision is made, so a prediction
+        // it carries stops being a claim about the present and becomes a record of what was
+        // predicted. Only a live wave's answers can go stale. Probes still in flight when the
+        // decision lands continue to record their results; what stops is the comparison.
+        var waveIsLive = await _dbContext.ModuleJobs
+            .AsNoTracking()
+            .AnyAsync(j => j.Id == wave.OriginModuleJobId &&
+                           j.OrganizationId == organizationId &&
+                           j.Status == ExecutionStatus.Running &&
+                           j.WaitingForApproval == true);
+
+        // What each Module most recently ran against, which is what a probe's own fingerprint is
+        // judged against. The newest job that recorded one, per Module.
+        var attemptModuleIds = waveIsLive
+            ? attempts.Select(a => a.ModuleId).Distinct().ToList()
+            : [];
+
+        var currentFingerprints = attemptModuleIds.Count == 0
+            ? new Dictionary<Guid, JobFingerprint>()
+            : (await _dbContext.ModuleJobs
+                    .AsNoTracking()
+                    .Where(j => attemptModuleIds.Contains(j.ModuleId) &&
+                                j.OrganizationId == organizationId &&
+                                j.DeclarationHash != null)
+                    .OrderByDescending(j => j.CreatedDateTime)
+                    .Select(j => new
+                    {
+                        j.ModuleId,
+                        Fingerprint = new JobFingerprint(
+                            j.Status, j.DefinitiveRevision, j.DeclarationHash, j.ParamsHash, j.EnvVarsHash)
+                    })
+                    .ToListAsync())
+                .GroupBy(j => j.ModuleId)
+                .ToDictionary(g => g.Key, g => g.First().Fingerprint);
 
         var moduleIds = edges.Select(e => e.ConsumerModuleId).Distinct().ToList();
 
@@ -200,7 +279,8 @@ public class ProbeWaveReadService : IDisposable
             OriginModuleName = wave.OriginModuleName,
             OriginModuleJobId = wave.OriginModuleJobId,
             CreatedDateTime = wave.CreatedDateTime,
-            ModulesOmitted = moduleIds.Count - visibleIds.Count
+            ModulesOmitted = moduleIds.Count - visibleIds.Count,
+            IsLive = waveIsLive
         };
 
         var setIds = attempts
@@ -238,6 +318,11 @@ public class ProbeWaveReadService : IDisposable
                         ProbeJobStatus = a.ProbeModuleJobId is { } probeJobId &&
                                          probeJobStatuses.TryGetValue(probeJobId, out var probeStatus)
                             ? probeStatus
+                            : null,
+                        Stale = a.ProbeModuleJobId is { } fingerprintedJobId &&
+                                probeJobs.TryGetValue(fingerprintedJobId, out var probed) &&
+                                currentFingerprints.TryGetValue(a.ModuleId, out var current)
+                            ? probed.Against(current)
                             : null,
                         Signals = a.SignalOutputSetId == null
                             ? []

@@ -46,6 +46,7 @@ public class SignalEdgeBlocksDeleteTests : IAsyncLifetime
     private Guid _runnerId;
     private readonly List<Guid> _stacks = [];
     private readonly List<Guid> _waves = [];
+    private readonly List<Guid> _originJobs = [];
 
     public SignalEdgeBlocksDeleteTests(Fixture fixture) => _fixture = fixture;
 
@@ -68,6 +69,7 @@ public class SignalEdgeBlocksDeleteTests : IAsyncLifetime
         await db.SignalEdges.Where(e => _waves.Contains(e.ProbeWaveId)).ExecuteDeleteAsync();
         await db.ModuleProbeAttempts.Where(a => _waves.Contains(a.ProbeWaveId)).ExecuteDeleteAsync();
         await db.ProbeWaves.Where(w => _waves.Contains(w.Id)).ExecuteDeleteAsync();
+        await db.ModuleJobs.Where(j => _originJobs.Contains(j.Id)).ExecuteDeleteAsync();
 
         await db.Modules.Where(m => moduleIds.Contains(m.Id)).ExecuteDeleteAsync();
         await db.Set<ModuleSaga>().Where(s => moduleIds.Contains(s.CorrelationId)).ExecuteDeleteAsync();
@@ -202,14 +204,40 @@ public class SignalEdgeBlocksDeleteTests : IAsyncLifetime
     /// one is therefore a consumer on one edge and an upstream on another, which is what puts both
     /// foreign keys in the way of deleting it.
     /// </summary>
+
+    /// <summary>
+    /// The origin job whose approval a wave informs, and which it is constrained to. The job is
+    /// awaiting that decision, which is the state a wave is live in.
+    /// </summary>
+    private async Task<Guid> AddOriginJob(Guid moduleId)
+    {
+        var jobId = Guid.NewGuid();
+
+        await using var db = _fixture.CreateDbContext();
+        db.ModuleJobs.Add(new ModuleJob
+        {
+            Id = jobId,
+            OrganizationId = _organizationId,
+            ModuleId = moduleId,
+            JobType = "ApplyJobSaga",
+            Status = ExecutionStatus.Running,
+            WaitingForApproval = true,
+            TimestampStart = DateTimeOffset.UtcNow.AddTicks(_originJobs.Count),
+            CreatedDateTime = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        _originJobs.Add(jobId);
+        return jobId;
+    }
+
     private async Task<Guid> SeedWaveWithEdges(Hierarchy h)
     {
         var wave = new ProbeWave
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
-            OriginModuleId = h.UpstreamId,
-            OriginModuleJobId = Guid.NewGuid()
+            OriginModuleJobId = await AddOriginJob(h.UpstreamId)
         };
 
         _waves.Add(wave.Id);

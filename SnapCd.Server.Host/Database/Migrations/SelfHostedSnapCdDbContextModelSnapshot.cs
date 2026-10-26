@@ -2317,6 +2317,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<DateTime>("CreatedDateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DeclarationHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("DefinitiveClosureHash")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -2324,6 +2328,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("DefinitiveRevision")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("EnvVarsHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("FailedOnServerSideStep")
                         .HasColumnType("nvarchar(max)");
@@ -2362,6 +2370,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("OutputSignalsJson")
+                        .HasMaxLength(16000)
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("OutputsCreateList")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
@@ -2382,6 +2394,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<string>("ParamsHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<int?>("PlanCreateCount")
                         .HasColumnType("int");
 
@@ -2399,6 +2415,10 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<string>("PolicyOutcome")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PropagationError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<Guid?>("SelectedRunnerId")
                         .HasColumnType("uniqueidentifier");
@@ -5046,9 +5066,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<DateTime>("ModifiedDateTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("OriginModuleId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("OriginModuleJobId")
                         .HasColumnType("uniqueidentifier");
 
@@ -5058,8 +5075,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsUnique();
 
                     b.HasIndex("OrganizationId");
-
-                    b.HasIndex("OriginModuleId", "OrganizationId");
 
                     b.HasIndex("OriginModuleJobId", "OrganizationId");
 
@@ -12135,15 +12150,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "OriginModule")
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ModuleJob", "OriginModuleJob")
                         .WithMany()
-                        .HasForeignKey("OriginModuleId", "OrganizationId")
+                        .HasForeignKey("OriginModuleJobId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Organization");
 
-                    b.Navigation("OriginModule");
+                    b.Navigation("OriginModuleJob");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ProbeWaves.SignalEdge", b =>

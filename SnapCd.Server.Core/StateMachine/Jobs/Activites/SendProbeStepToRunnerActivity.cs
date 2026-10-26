@@ -24,8 +24,8 @@ namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
 public class SendProbeStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
     SnapCdDbContext dbContext,
     IMaintenanceModeService maintenanceMode,
-    ProbeInputsBuilderFactory inputsFactory,
-    ProbeSignalRecorderFactory recorderFactory,
+    ProbeInputsBuilder inputs,
+    ProbeSignalRecorder recorder,
     ILogger<SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>> logger)
     : SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(dbContext, maintenanceMode, logger)
     where TSaga : JobSagaBase
@@ -36,7 +36,6 @@ public class SendProbeStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
     {
         if (message is not ProbeRequestedBase probe) return;
 
-        using var inputs = inputsFactory.Create();
 
         var waves = await inputs.FindWavesToProbeFor(saga.ModuleId, saga.OrganizationId, saga.CorrelationId);
         var probeWaveId = waves.FirstOrDefault();
@@ -51,7 +50,6 @@ public class SendProbeStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
         if (saga is ApplyJobSaga applySaga) applySaga.ProbingForWaveId = probeWaveId;
 
         // Recorded before the probe runs rather than after, so a probe in flight is visible.
-        using var recorder = recorderFactory.Create();
         await recorder.RecordAttempt(probeWaveId, saga.ModuleId, saga.OrganizationId, saga.CorrelationId);
     }
 }

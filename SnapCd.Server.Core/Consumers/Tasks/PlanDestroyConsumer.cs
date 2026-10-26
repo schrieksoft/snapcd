@@ -16,6 +16,8 @@ using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Hubs;
+using SnapCd.Server.Core.Services.RunInputs;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 using SnapCd.Server.Core.Views;
@@ -34,17 +36,20 @@ public class PlanDestroyConsumer : IConsumer<DestroyPlanRequested>
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
     private readonly ParamResolverFactory _paramResolverFactory;
+    private readonly ModuleJobRepository _moduleJobs;
 
     public PlanDestroyConsumer(
         ILogger<PlanDestroyConsumer> logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection,
-        ParamResolverFactory paramResolverFactory)
+        ParamResolverFactory paramResolverFactory,
+        ModuleJobRepository moduleJobs)
     {
         _logger = logger;
         _hubContext = hubContext;
         _runnerSelection = runnerSelection;
         _paramResolverFactory = paramResolverFactory;
+        _moduleJobs = moduleJobs;
     }
 
     public async Task Consume(ConsumeContext<DestroyPlanRequested> context)
@@ -104,7 +109,14 @@ public class PlanDestroyConsumer : IConsumer<DestroyPlanRequested>
                 msg.Declared.Engine
             );
 
-            var resolvedParameters = await paramResolver.ResolveParameters();
+            var resolvedInputs = await paramResolver.ResolveParameterInputs();
+            var resolvedParameters = resolvedInputs.ToDictionary(i => i.Name, i => i.ResolvedValue);
+
+            // What this job was given, recorded so a prediction made from it can later be judged
+            // still current. Taken here because this is the only moment the resolved values exist.
+            var moduleJob = await _moduleJobs.Get(jobId, orgId);
+            moduleJob.ParamsHash = RunInputHash.Compose(resolvedInputs);
+            await _moduleJobs.ExecuteUpdate(moduleJob);
 
             _logger.LogDebug("Resolved {Count} Terraform variables for destroy plan job {JobId}",
                 resolvedParameters.Count, jobId);

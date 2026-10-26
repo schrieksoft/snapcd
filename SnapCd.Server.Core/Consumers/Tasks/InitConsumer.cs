@@ -16,6 +16,8 @@ using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Hubs;
+using SnapCd.Server.Core.Services.RunInputs;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services;
 
 using SnapCd.Server.Core.Events.Steps.Base;
@@ -37,17 +39,20 @@ public abstract class InitConsumer<TRequested, TFaulted> : IConsumer<TRequested>
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
     private readonly ParamResolverFactory _paramResolverFactory;
+    private readonly ModuleJobRepository _moduleJobs;
 
     protected InitConsumer(
         ILogger logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection,
-        ParamResolverFactory paramResolverFactory)
+        ParamResolverFactory paramResolverFactory,
+        ModuleJobRepository moduleJobs)
     {
         _logger = logger;
         _hubContext = hubContext;
         _runnerSelection = runnerSelection;
         _paramResolverFactory = paramResolverFactory;
+        _moduleJobs = moduleJobs;
     }
 
     /// <summary>The runner endpoint this job kind is dispatched to.</summary>
@@ -108,10 +113,17 @@ public abstract class InitConsumer<TRequested, TFaulted> : IConsumer<TRequested>
                 msg.Declared.Engine
             );
 
-            var resolvedEnvVars = await paramResolver.ResolveEnvVariables();
+            var resolvedInputs = await paramResolver.ResolveEnvVariableInputs();
+            var resolvedEnvVars = resolvedInputs.ToDictionary(i => i.Name, i => i.ResolvedValue);
 
             _logger.LogDebug("Resolved {Count} environment variables for job {JobId}",
                 resolvedEnvVars.Count, jobId);
+
+            // What this job was given, recorded so a prediction made from it can later be judged
+            // still current. Taken here because this is the only moment the resolved values exist.
+            var moduleJob = await _moduleJobs.Get(jobId, orgId);
+            moduleJob.EnvVarsHash = RunInputHash.Compose(resolvedInputs);
+            await _moduleJobs.ExecuteUpdate(moduleJob);
 
             // Select runner using least-loaded strategy
             var runner = await _runnerSelection.SelectSpecificRunnerAsync(orgId, runnerId, specificRunner);
@@ -178,9 +190,10 @@ public class ApplyInitConsumer(
     ILogger<ApplyInitConsumer> logger,
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection,
-    ParamResolverFactory paramResolverFactory)
+    ParamResolverFactory paramResolverFactory,
+    ModuleJobRepository moduleJobs)
     : InitConsumer<ApplyInitRequested, ApplyInitFaulted>(
-        logger, hubContext, runnerSelection, paramResolverFactory)
+        logger, hubContext, runnerSelection, paramResolverFactory, moduleJobs)
 {
     protected override string Endpoint => nameof(IApplyEndpoints.ApplyInit);
 }
@@ -189,9 +202,10 @@ public class DestroyInitConsumer(
     ILogger<DestroyInitConsumer> logger,
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection,
-    ParamResolverFactory paramResolverFactory)
+    ParamResolverFactory paramResolverFactory,
+    ModuleJobRepository moduleJobs)
     : InitConsumer<DestroyInitRequested, DestroyInitFaulted>(
-        logger, hubContext, runnerSelection, paramResolverFactory)
+        logger, hubContext, runnerSelection, paramResolverFactory, moduleJobs)
 {
     protected override string Endpoint => nameof(IDestroyEndpoints.DestroyInit);
 }

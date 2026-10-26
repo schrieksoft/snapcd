@@ -37,6 +37,12 @@ public class ProbeWaveView
     public bool IsSettled => Modules.All(m => !m.IsWaiting);
 
     /// <summary>
+    /// Whether the approval this wave informs is still open. A closed wave takes no further asking:
+    /// its predictions are a record of what was predicted, not a claim about the present.
+    /// </summary>
+    public bool IsLive { get; set; }
+
+    /// <summary>
     /// What the wave says about this change as a whole, for a reader about to approve it.
     ///
     /// Failed and Impact are read before Pending, so one bad probe or one destructive prediction
@@ -179,6 +185,15 @@ public enum ProbeProgress
 }
 
 /// <summary>One probe a Module ran for a wave, with what it predicted and where its logs are.</summary>
+/// <summary>What moved under a probe after it answered.</summary>
+public enum StalenessReason
+{
+    Revision,
+    Declaration,
+    Parameters,
+    EnvironmentVariables
+}
+
 public class ProbeAttemptView
 {
     /// <summary>The Apply job that carried this probe, which is where its logs live.</summary>
@@ -195,6 +210,16 @@ public class ProbeAttemptView
 
     /// <summary>What this probe predicted.</summary>
     public List<SignalOutputView> Signals { get; set; } = [];
+
+    /// <summary>
+    /// What has moved for this Module since the probe answered. A probe plans against the code,
+    /// the declaration and the resolved input values of one moment, so a prediction holds only
+    /// while those are unchanged. Empty where nothing has moved, and null where the comparison
+    /// cannot be made: an attempt that never reached a probe step records none of them.
+    /// </summary>
+    public List<StalenessReason>? Stale { get; set; }
+
+    public bool IsStale => Stale is { Count: > 0 };
 }
 
 public class SignalEdgeView

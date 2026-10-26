@@ -8,6 +8,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Enums;
@@ -29,6 +30,7 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
     private Guid _originModuleId;
     private Guid _consumerModuleId;
     private readonly List<Guid> _waves = [];
+    private readonly List<Guid> _originJobs = [];
     private readonly List<Guid> _signalSets = [];
 
     public ProbeWaveSchemaTests(Fixture fixture) => _fixture = fixture;
@@ -49,6 +51,7 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
         await db.SignalOutputs.Where(o => _signalSets.Contains(o.SignalOutputSetId)).ExecuteDeleteAsync();
         await db.SignalOutputSets.Where(s => _signalSets.Contains(s.Id)).ExecuteDeleteAsync();
         await db.ProbeWaves.Where(w => _waves.Contains(w.Id)).ExecuteDeleteAsync();
+        await db.ModuleJobs.Where(j => _originJobs.Contains(j.Id)).ExecuteDeleteAsync();
     }
 
     [Fact]
@@ -198,11 +201,37 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
         {
             Id = id,
             OrganizationId = _organizationId,
-            OriginModuleId = _originModuleId,
-            OriginModuleJobId = Guid.NewGuid()
+            OriginModuleJobId = await AddOriginJob(_originModuleId)
         });
         await db.SaveChangesAsync();
         return id;
+    }
+
+
+    /// <summary>
+    /// The origin job whose approval a wave informs, and which it is constrained to. The job is
+    /// awaiting that decision, which is the state a wave is live in.
+    /// </summary>
+    private async Task<Guid> AddOriginJob(Guid moduleId)
+    {
+        var jobId = Guid.NewGuid();
+
+        await using var db = _fixture.CreateDbContext();
+        db.ModuleJobs.Add(new ModuleJob
+        {
+            Id = jobId,
+            OrganizationId = _organizationId,
+            ModuleId = moduleId,
+            JobType = "ApplyJobSaga",
+            Status = ExecutionStatus.Running,
+            WaitingForApproval = true,
+            TimestampStart = DateTimeOffset.UtcNow.AddTicks(_originJobs.Count),
+            CreatedDateTime = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        _originJobs.Add(jobId);
+        return jobId;
     }
 
     private async Task<Guid> SeedAttempt(Guid waveId, Guid moduleId)

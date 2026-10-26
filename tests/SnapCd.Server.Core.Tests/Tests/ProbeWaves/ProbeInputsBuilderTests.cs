@@ -41,6 +41,7 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     private Guid _upstreamBId;
 
     private readonly List<Guid> _waves = [];
+    private readonly List<Guid> _originJobs = [];
     private readonly List<Guid> _signalSets = [];
     private readonly List<Guid> _inputs = [];
     private readonly List<Guid> _variableSets = [];
@@ -64,6 +65,7 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
         await db.SignalOutputs.Where(o => _signalSets.Contains(o.SignalOutputSetId)).ExecuteDeleteAsync();
         await db.SignalOutputSets.Where(s => _signalSets.Contains(s.Id)).ExecuteDeleteAsync();
         await db.ProbeWaves.Where(w => _waves.Contains(w.Id)).ExecuteDeleteAsync();
+        await db.ModuleJobs.Where(j => _originJobs.Contains(j.Id)).ExecuteDeleteAsync();
         await db.ModuleInputs.Where(i => _inputs.Contains(i.Id)).ExecuteDeleteAsync();
         await db.VariableSets.Where(v => _variableSets.Contains(v.Id)).ExecuteDeleteAsync();
     }
@@ -369,14 +371,40 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
 
     private static string RemoteNameFor(Guid setId, string name) => $"signal--{setId}--{name}";
 
+
+    /// <summary>
+    /// The origin job whose approval a wave informs, and which it is constrained to. The job is
+    /// awaiting that decision, which is the state a wave is live in.
+    /// </summary>
+    private async Task<Guid> AddOriginJob(Guid moduleId)
+    {
+        var jobId = Guid.NewGuid();
+
+        await using var db = _fixture.CreateDbContext();
+        db.ModuleJobs.Add(new ModuleJob
+        {
+            Id = jobId,
+            OrganizationId = _organizationId,
+            ModuleId = moduleId,
+            JobType = "ApplyJobSaga",
+            Status = ExecutionStatus.Running,
+            WaitingForApproval = true,
+            TimestampStart = DateTimeOffset.UtcNow.AddTicks(_originJobs.Count),
+            CreatedDateTime = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        _originJobs.Add(jobId);
+        return jobId;
+    }
+
     private async Task<Guid> AddWave()
     {
         var wave = new ProbeWave
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
-            OriginModuleId = _upstreamAId,
-            OriginModuleJobId = Guid.NewGuid()
+            OriginModuleJobId = await AddOriginJob(_upstreamAId)
         };
 
         await using var db = _fixture.CreateDbContext();

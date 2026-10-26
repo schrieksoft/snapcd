@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using MassTransit;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Services.RippleProbes;
@@ -25,7 +26,8 @@ public class StartProbeWaveActivity<TSaga, TMessage> :
     where TSaga : JobSagaBase, SagaStateMachineInstance
     where TMessage : class
 {
-    private readonly ProbeWaveStarterFactory? _starterFactory;
+    private readonly ProbeWaveStarter? _starter;
+    private readonly ModuleJobRepository? _moduleJobs;
     private readonly ILogger<StartProbeWaveActivity<TSaga, TMessage>> _logger;
 
     /// <summary>
@@ -35,9 +37,11 @@ public class StartProbeWaveActivity<TSaga, TMessage> :
     /// </summary>
     public StartProbeWaveActivity(
         ILogger<StartProbeWaveActivity<TSaga, TMessage>> logger,
-        ProbeWaveStarterFactory? starterFactory = null)
+        ProbeWaveStarter? starter = null,
+        ModuleJobRepository? moduleJobs = null)
     {
-        _starterFactory = starterFactory;
+        _starter = starter;
+        _moduleJobs = moduleJobs;
         _logger = logger;
     }
 
@@ -47,14 +51,13 @@ public class StartProbeWaveActivity<TSaga, TMessage> :
     {
         try
         {
-            if (_starterFactory != null && context.Message is PlanCompletedBase plan)
+            if (_starter != null && context.Message is PlanCompletedBase plan)
             {
                 var changed = ChangedOutputNames(plan);
 
                 if (changed.Count > 0)
                 {
-                    using var starter = _starterFactory!.Create();
-                    await starter.Start(
+                    await _starter.Start(
                         context.Saga.ModuleId,
                         context.Saga.OrganizationId,
                         context.Saga.CorrelationId,
@@ -68,10 +71,36 @@ public class StartProbeWaveActivity<TSaga, TMessage> :
             _logger.LogError(ex,
                 "Could not start propagation for job {CorrelationId}; the apply is unaffected",
                 context.Saga.CorrelationId);
+
+            // Recorded on the row rather than only logged: an approver deciding without the
+            // downstream answers should be told they are missing, not left to infer it from a
+            // panel that shows nothing.
+            await RecordFailure(context, ex);
         }
 
         await next.Execute(context).ConfigureAwait(false);
     }
+
+    private async Task RecordFailure(BehaviorContext<TSaga, TMessage> context, Exception ex)
+    {
+        try
+        {
+            if (_moduleJobs == null) return;
+
+            var job = await _moduleJobs.Get(context.Saga.CorrelationId, context.Saga.OrganizationId);
+            job.PropagationError = Truncate(ex.Message, 1000);
+            await _moduleJobs.ExecuteUpdate(job);
+        }
+        catch (Exception recordingFailed)
+        {
+            _logger.LogError(recordingFailed,
+                "Could not record the propagation failure for job {CorrelationId}",
+                context.Saga.CorrelationId);
+        }
+    }
+
+    private static string Truncate(string value, int length) =>
+        value.Length <= length ? value : value[..length];
 
     /// <summary>
     /// The outputs whose value changes for someone already reading it. Unchanged outputs carry no

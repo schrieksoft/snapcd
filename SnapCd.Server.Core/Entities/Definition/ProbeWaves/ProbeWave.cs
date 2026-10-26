@@ -25,8 +25,6 @@ public class ProbeWave : AuditBase, IEntity, IOrganizationChild
     public Guid OrganizationId { get; set; }
 
     /// <summary>The Module whose outputs changed.</summary>
-    public Guid OriginModuleId { get; set; }
-
     /// <summary>The job whose plan reported the change.</summary>
     public Guid OriginModuleJobId { get; set; }
 
@@ -35,7 +33,11 @@ public class ProbeWave : AuditBase, IEntity, IOrganizationChild
     /// <summary>The edges this wave has discovered, which is how it knows who is still owed an answer.</summary>
     public List<SignalEdge> Contributions { get; set; } = new();
 
-    [JsonIgnore] public Module OriginModule { get; set; } = null!;
+    /// <summary>
+    /// The job whose approval this wave informs. A wave exists to inform that one decision, so it
+    /// has no meaning once the job is gone.
+    /// </summary>
+    [JsonIgnore] public ModuleJob OriginModuleJob { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 
     public Guid ParentId()

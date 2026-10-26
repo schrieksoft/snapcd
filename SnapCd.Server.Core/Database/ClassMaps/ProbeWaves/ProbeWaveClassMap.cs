@@ -29,11 +29,13 @@ public class ProbeWaveClassMap : IEntityTypeConfiguration<ProbeWave>
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // A wave belongs to the job whose approval it informs, and the Module is an attribute of
+        // that job rather than a second thing the wave points at. One path, so it can cascade.
         entity
-            .HasOne(e => e.OriginModule)
+            .HasOne(e => e.OriginModuleJob)
             .WithMany()
-            .HasForeignKey(e => new { e.OriginModuleId, e.OrganizationId })
-            .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
+            .HasForeignKey(e => new { e.OriginModuleJobId, e.OrganizationId })
+            .HasPrincipalKey(j => new { j.Id, j.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade);
 
         entity.HasIndex(p => new { p.OriginModuleJobId, p.OrganizationId });

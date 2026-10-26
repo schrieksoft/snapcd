@@ -611,13 +611,13 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         Assert.Equal(ProbeProgress.Reported, view.Modules.Single().Progress);
     }
 
-    private async Task<Guid> AddJob(Guid moduleId, ExecutionStatus status)
+    private async Task<Guid> AddJob(Guid moduleId, ExecutionStatus status, Guid? id = null)
     {
         // ModuleJobs is unique on (ModuleId, TimestampStart, OrganizationId), so a Module probed
         // twice needs two distinct start times.
         var job = new ModuleJob
         {
-            Id = Guid.NewGuid(),
+            Id = id ?? Guid.NewGuid(),
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             Status = status,
@@ -633,14 +633,18 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         return job.Id;
     }
 
+    /// <summary>
+    /// A wave and the origin job whose approval it informs. A wave is constrained to that job, so
+    /// one cannot be written without it; a caller naming an id gets a job under that id.
+    /// </summary>
     private async Task<Guid> AddWave(Guid? originModuleJobId = null)
     {
         var wave = new ProbeWave
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
-            OriginModuleId = _originModuleId,
-            OriginModuleJobId = originModuleJobId ?? Guid.NewGuid()
+            OriginModuleJobId = await AddJob(
+                _originModuleId, ExecutionStatus.Running, originModuleJobId)
         };
 
         await using var db = _fixture.CreateDbContext();

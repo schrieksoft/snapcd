@@ -186,10 +186,13 @@ public partial class JobStateMachine<
                                 // we set "transition = true" when building the "DealWithApprovalStatus" logic from the "ApplyPlanRequested.Pending" state in order to transition to "WaitingForApproval"
                                 _ => transition,
                                 z1 => z1
-                                    .Activity(z2 => z2.OfType<WaitingForApprovalModuleJobActivity<TSaga, TMessage>>())
                                     // A destroy takes its outputs to null, which a Module reading one
                                     // of them needs told as much as any other change.
+                                    //
+                                    // Before the job row is marked, because a wave points at that row
+                                    // and the mark holds a lock on it until the pipeline commits.
                                     .Activity(z2 => z2.OfType<StartProbeWaveActivity<TSaga, TMessage>>())
+                                    .Activity(z2 => z2.OfType<WaitingForApprovalModuleJobActivity<TSaga, TMessage>>())
                                     .Then(context =>
                                     {
                                         // The approval timeout deadline is re-derivable as WaitingSince + ApprovalTimeoutMinutes.

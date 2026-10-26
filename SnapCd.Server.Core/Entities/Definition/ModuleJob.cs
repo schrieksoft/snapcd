@@ -54,6 +54,25 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
 
     [MaxLength(100)] public string? DefinitiveClosureHash { get; set; }
 
+    /// <summary>
+    /// What this job ran against, for judging whether a prediction made from it still holds. The
+    /// declaration covers everything resolved for the Module; the two input hashes cover the values
+    /// that were resolved, and are written separately because parameters and environment variables
+    /// resolve through their own resolver at their own step.
+    /// </summary>
+    [MaxLength(64)] public string? DeclarationHash { get; set; }
+
+    [MaxLength(64)] public string? ParamsHash { get; set; }
+
+    [MaxLength(64)] public string? EnvVarsHash { get; set; }
+
+    /// <summary>
+    /// Why this job's plan started no propagation, where it should have. The apply is unaffected,
+    /// so the job is not failed; what is lost is the answer an approver would have had, and the
+    /// record is what lets them ask for it again.
+    /// </summary>
+    [MaxLength(1000)] public string? PropagationError { get; set; }
+
     public ActualStateHeadline? ActualStateHeadline { get; set; }
 
     public PolicyOutcome? PolicyOutcome { get; set; }
@@ -69,6 +88,13 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
     [MaxLength(4000)] public string? OutputsModifyList { get; set; }
     [MaxLength(4000)] public string? OutputsDestroyList { get; set; }
     [MaxLength(4000)] public string? OutputsRecreateList { get; set; }
+
+    /// <summary>
+    /// What this plan said its outputs would become, in the format a downstream root consumes.
+    /// Kept because a propagation started from it can be asked for again after the plan message
+    /// is gone. Absent for an engine whose plan carries no encoded outputs.
+    /// </summary>
+    [MaxLength(16000)] public string? OutputSignalsJson { get; set; }
 
     public List<ModuleJobApproval> ModuleJobApprovals { get; set; } = null!;
     public List<ModuleJobMission> ModuleJobMissions { get; set; } = null!;
