@@ -46,6 +46,28 @@ public class ProbeWaveStarterFactory(
 /// </summary>
 public class ProbeWaveStarter : IDisposable
 {
+    private async Task<List<RippleProbeConsumer>> WithStateToPlanAgainst(
+        List<RippleProbeConsumer> consumers,
+        Guid organizationId)
+    {
+        if (consumers.Count == 0) return consumers;
+
+        var moduleIds = consumers.Select(c => c.ModuleId).ToList();
+
+        // An output set exists because a Module applied and reported its outputs, which is the
+        // same thing as having state to plan against.
+        var haveState = (await _dbContext.OutputSets
+                .Where(o =>
+                    moduleIds.Contains(o.ModuleId) &&
+                    o.OrganizationId == organizationId)
+                .Select(o => o.ModuleId)
+                .Distinct()
+                .ToListAsync())
+            .ToHashSet();
+
+        return consumers.Where(c => haveState.Contains(c.ModuleId)).ToList();
+    }
+
     private readonly SnapCdDbContext _dbContext;
     private readonly RippleProbeConsumerLookup _lookup;
     private readonly ProbeSignalRecorderFactory _recorderFactory;
@@ -80,6 +102,11 @@ public class ProbeWaveStarter : IDisposable
         if (changedOutputNames.Count == 0) return null;
 
         var consumers = await _lookup.ListConsumers(originModuleId, organizationId, changedOutputNames);
+
+        // A probe plans the consumer with a value predicted for one of its variables. A Module that
+        // has never reached a terminal state has no state and no outputs, so that plan would answer
+        // a different question from the one asked.
+        consumers = await WithStateToPlanAgainst(consumers, organizationId);
         if (consumers.Count == 0) return null;
 
         var wave = new ProbeWave

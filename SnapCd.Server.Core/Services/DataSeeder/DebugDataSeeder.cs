@@ -17,6 +17,7 @@ using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.DataSeeder;
 using SnapCd.Server.Core.Settings.DataSeeder.ToSeed;
@@ -614,6 +615,21 @@ public class DebugDataSeeder : ProductionDataSeeder
                 QueuedDesiredStateHeadline = null
             };
 
+            // The apply that left the output set below. A consumer is held until its upstream has
+            // applied, so without this every Module reads as never applied and nothing propagates.
+            dbContext.ModuleJobs.Add(new ModuleJob
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = _preseededOrganizationId,
+                ModuleId = moduleId,
+                JobType = nameof(ApplyJobSaga),
+                Status = ExecutionStatus.Completed,
+                ActualStateHeadline = ActualStateHeadline.Applied,
+                IsCurrent = null,
+                TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-5),
+                TimestampEnd = DateTimeOffset.UtcNow.AddMinutes(-5),
+                CreatedDateTime = DateTime.UtcNow
+            });
 
             dbContext.Modules.Add(module);
         }

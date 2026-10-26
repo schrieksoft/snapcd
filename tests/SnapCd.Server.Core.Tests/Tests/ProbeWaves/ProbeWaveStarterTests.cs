@@ -39,12 +39,31 @@ public class ProbeWaveStarterTests : IAsyncLifetime
 
     public ProbeWaveStarterTests(Fixture fixture) => _fixture = fixture;
 
-    public Task InitializeAsync()
+    private Guid _consumerAppliedJobId;
+
+    public async Task InitializeAsync()
     {
         _organizationId = _fixture.Organizations["0"].Id;
         _originModuleId = _fixture.Modules["0001"].Id;
         _consumerModuleId = _fixture.Modules["0000"].Id;
-        return Task.CompletedTask;
+
+        // Only a Module with state to plan against is enrolled, so the consumer needs an apply
+        // behind it for these tests to be about edge creation rather than about that filter.
+        _consumerAppliedJobId = Guid.NewGuid();
+
+        await using var db = _fixture.CreateDbContext();
+        db.ModuleJobs.Add(new ModuleJob
+        {
+            Id = _consumerAppliedJobId,
+            OrganizationId = _organizationId,
+            ModuleId = _consumerModuleId,
+            JobType = "Apply",
+            Status = ExecutionStatus.Completed,
+            ActualStateHeadline = ActualStateHeadline.Applied,
+            IsCurrent = false,
+            CreatedDateTime = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
     }
 
     public async Task DisposeAsync()
@@ -65,6 +84,8 @@ public class ProbeWaveStarterTests : IAsyncLifetime
 
         if (_inputs.Count > 0)
             await db.ModuleInputs.Where(i => _inputs.Contains(i.Id)).ExecuteDeleteAsync();
+
+        await db.ModuleJobs.Where(j => j.Id == _consumerAppliedJobId).ExecuteDeleteAsync();
     }
 
     [Fact]
@@ -134,6 +155,30 @@ public class ProbeWaveStarterTests : IAsyncLifetime
     /// the same producer is reachable and uninvolved, and writing it in order to dismiss it would
     /// fill a wave with rows nobody acts on.
     /// </summary>
+    /// <summary>
+    /// A probe plans the consumer with a predicted value. A Module that has never reached a
+    /// terminal state has no state and no outputs, so that plan answers a different question.
+    /// </summary>
+    [Fact]
+    public async Task A_Consumer_That_Has_Never_Applied_Gets_No_Edge()
+    {
+        var neverApplied = _fixture.Modules["0002"].Id;
+        await AddParamFromOutput(neverApplied, "vpc_id", "network_id");
+
+        var waveId = await Start(["vpc_id"]);
+
+        if (waveId is null) return;
+
+        await using var db = _fixture.CreateDbContext();
+        var moduleIds = await db.SignalEdges
+            .AsNoTracking()
+            .Where(e => e.ProbeWaveId == waveId.Value)
+            .Select(e => e.ConsumerModuleId)
+            .ToListAsync();
+
+        Assert.DoesNotContain(neverApplied, moduleIds);
+    }
+
     [Fact]
     public async Task A_Consumer_Of_An_Unchanged_Output_Gets_No_Edge()
     {

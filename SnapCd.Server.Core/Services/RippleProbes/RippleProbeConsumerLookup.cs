@@ -8,6 +8,7 @@
 
 
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 

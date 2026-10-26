@@ -177,7 +177,7 @@ public class GatekeepingTargetTests : IAsyncLifetime
     }
 
     /// <summary>Sends a trigger and waits until the saga has handled it.</summary>
-    private async Task Trigger(DesiredStateHeadline? state = null, bool setNew = false)
+    private async Task Trigger(DesiredStateHeadline? state = null, bool setNew = false, Guid? probeWaveId = null)
     {
         var jobId = Guid.NewGuid();
         await _harness.Bus.Publish(new GatekeepingJobRequested
@@ -186,12 +186,30 @@ public class GatekeepingTargetTests : IAsyncLifetime
             OrganizationId = _organizationId,
             DesiredStateHeadline = state,
             SetNewDesiredState = setNew,
+            ProbeWaveId = probeWaveId,
             JobId = jobId
         });
         Assert.True(await WaitUntil(() => _harness.Consumed.Select<GatekeepingJobRequested>(m => m.Context.Message.JobId == jobId).Any()));
     }
 
     private bool Ran(DesiredStateHeadline state) => _ran.Any(r => r.ModuleId == _moduleId && r.State == state);
+
+    /// <summary>
+    /// A wave asks an extra question, never a replacement one. A Module whose dependencies are not
+    /// satisfied queues like any other, which is what keeps a Module that has never applied out of
+    /// an apply it cannot run: its upstream has no state and no outputs for it to read.
+    /// </summary>
+    [Fact]
+    public async Task A_probe_wave_does_not_release_a_module_whose_dependencies_are_unmet()
+    {
+        await SetSaga(desired: DesiredStateHeadline.Applied, queued: null);
+        _dependencies.ApplyMet = false;
+
+        await Trigger(probeWaveId: Guid.NewGuid());
+
+        Assert.False(Ran(DesiredStateHeadline.Applied));
+        Assert.Equal(DesiredStateHeadline.Applied, (await ReadSaga()).QueuedDesiredStateHeadline);
+    }
 
     [Fact]
     public async Task An_automatic_trigger_checks_a_queued_destroy_against_its_dependents()

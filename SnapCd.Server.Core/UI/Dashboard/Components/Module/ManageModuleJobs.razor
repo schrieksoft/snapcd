@@ -174,7 +174,7 @@ else
                              ActivePanelIndex="@GetTabIndex(job.Id)"
                              ActivePanelIndexChanged="@(idx => OnTabChanged(job.Id, idx))">
                         <MudTabPanel Text="Logs" Style="text-transform: none">
-                            <ListLogs TJob="ModuleJob" TLogEntry="ModuleJobLogEntryDto" JobId="@job.Id"
+                            <ListLogs ModuleJobId="@job.Id"
                                       InitialTask="@(job.Id == _expandedJobId ? _activeTask : null)"
                                       OnTaskChanged="@(t => OnLogTaskChanged(job.Id, t))"
                                       @ref="_listLogsRefs[job.Id]"/>

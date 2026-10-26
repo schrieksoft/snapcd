@@ -61,7 +61,23 @@ else
                                Expanded="@(task == _expandedTask)"
                                ExpandedChanged="@(isExpanded => OnTaskPanelExpanded(isExpanded, task))">
                 <TitleContent>
-                    <MudText Typo="Typo.body2">@task</MudText>
+                    @if (OriginOf(task) is { } origin)
+                    {
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2">@BareTask(task)</MudText>
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">Source:</MudText>
+                            <MudLink Href="@($"/Module/{origin.StackName}/{origin.NamespaceName}/{origin.ModuleName}")"
+                                     Typo="Typo.body2"
+                                     Style="font-family: var(--snap-font-mono);"
+                                     @onclick:stopPropagation="true">
+                                @origin.NamespaceName/@origin.ModuleName
+                            </MudLink>
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">@task</MudText>
+                    }
                 </TitleContent>
                 <ChildContent>
                     <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mb-1">
@@ -240,7 +256,9 @@ else
 
     private async Task<List<LogEntryDto>> EntriesFor(string? taskName)
     {
-        var tasks = taskName is not null ? [taskName] : TaskFilter;
+        // A chunk is indexed by the bare task name, while a panel is keyed by that name qualified
+        // by its correlation, so the chunk filter takes the part before the qualifier.
+        string[]? tasks = taskName is not null ? [BareTask(taskName)] : TaskFilter;
         var summaries = await LogService.GetChunkSummaries(ModuleJobId, ModuleId);
         var sequences = summaries
             .Where(s => tasks is null || tasks.Any(s.HasTask))
@@ -249,10 +267,10 @@ else
         var entries = await LogService.ReadChunks(ModuleJobId, sequences, ModuleId);
 
         if (taskName is not null)
-            return entries.Where(e => (e.TaskName ?? "Default") == taskName).ToList();
+            return entries.Where(e => LogService.LogKey(e) == taskName).ToList();
 
         if (TaskFilter is not null)
-            return entries.Where(e => Matches(e.TaskName ?? "Default")).ToList();
+            return entries.Where(e => Matches(LogService.LogKey(e))).ToList();
 
         return entries;
     }
@@ -349,7 +367,60 @@ else
             _chunks[sequence] = [];
         _chunks[sequences.Min()] = entries;
 
-        RenderTasks(entries.Select(e => e.TaskName ?? LogService.DefaultTaskName).Distinct());
+        RenderTasks(entries.Select(LogService.LogKey).Distinct());
+        SortTasks();
+        await LoadWaveOrigins();
+    }
+
+    private Dictionary<Guid, ProbeWaveOrigin> _waveOrigins = new();
+
+    /// <summary>Where the wave a correlated task belongs to started, once that has been looked up.</summary>
+    private ProbeWaveOrigin? OriginOf(string task)
+    {
+        var open = task.IndexOf(" (", StringComparison.Ordinal);
+        if (open < 0 || !task.EndsWith(')')) return null;
+
+        var inner = task[(open + 2)..^1];
+        var space = inner.LastIndexOf(' ');
+        if (space < 0) return null;
+
+        return Guid.TryParse(inner[(space + 1)..], out var waveId)
+               && _waveOrigins.TryGetValue(waveId, out var origin)
+            ? origin
+            : null;
+    }
+
+    /// <summary>
+    /// A wave's id means nothing to a reader, so each correlated task is named by the Module whose
+    /// change started it.
+    /// </summary>
+    private async Task LoadWaveOrigins()
+    {
+        var waveIds = _tasks
+            .Select(t =>
+            {
+                var open = t.IndexOf(" (", StringComparison.Ordinal);
+                if (open < 0 || !t.EndsWith(')')) return (Guid?)null;
+                var inner = t[(open + 2)..^1];
+                var space = inner.LastIndexOf(' ');
+                return space >= 0 && Guid.TryParse(inner[(space + 1)..], out var id) ? id : null;
+            })
+            .Where(id => id is not null)
+            .Select(id => id!.Value)
+            .Where(id => !_waveOrigins.ContainsKey(id))
+            .Distinct()
+            .ToList();
+
+        if (waveIds.Count == 0) return;
+
+        foreach (var (id, origin) in await LogService.ProbeWaveOrigins(waveIds, OrganizationId))
+            _waveOrigins[id] = origin;
+    }
+
+    private static string BareTask(string key)
+    {
+        var qualifier = key.IndexOf(" (", StringComparison.Ordinal);
+        return qualifier < 0 ? key : key[..qualifier];
     }
 
     /// <summary>Whether a task name, or a log key built from one, is in scope for this list.</summary>
@@ -366,15 +437,61 @@ else
         foreach (var task in tasks)
         {
             if (!_tasks.Contains(task))
-                _tasks.Add(task);
+                InsertTask(task);
 
             var text = string.Join(Environment.NewLine, LogService.InWrittenOrder(_chunks.Values
                     .SelectMany(lines => lines)
-                    .Where(e => (e.TaskName ?? LogService.DefaultTaskName) == task))
+                    .Where(e => LogService.LogKey(e) == task))
                 .Select(e => e.Message));
 
             _htmlLogs[task] = string.IsNullOrEmpty(text) ? string.Empty : ConvertToWrappedHtml(text);
         }
+    }
+
+    /// <summary>
+    /// Panels follow the order the steps wrote their first log line, taken from the chunk index
+    /// rather than from the order lines happen to be paged in. A chunk is indexed by the bare task
+    /// name, so every correlation of one step sorts to that step's position and the correlations
+    /// then follow each other in the order their lines first appear.
+    /// </summary>
+    private void SortTasks()
+    {
+        var firstSequence = new Dictionary<string, long>();
+
+        foreach (var summary in _summaries.OrderBy(s => s.Sequence))
+        foreach (var name in summary.TaskNames ?? [])
+            if (!firstSequence.ContainsKey(name))
+                firstSequence[name] = summary.Sequence;
+
+        var seen = _tasks.Select((task, index) => (task, index))
+            .ToDictionary(x => x.task, x => x.index);
+
+        _tasks.Sort((left, right) =>
+        {
+            var byStep = Sequence(left).CompareTo(Sequence(right));
+            return byStep != 0 ? byStep : seen[left].CompareTo(seen[right]);
+        });
+
+        return;
+
+        long Sequence(string task) =>
+            firstSequence.TryGetValue(BareTask(task), out var sequence) ? sequence : long.MaxValue;
+    }
+
+    /// <summary>
+    /// A chunk is indexed by the bare task name, so a correlated step is first seeded from the
+    /// index under that name and only becomes several once its lines are read. The bare name is
+    /// dropped as soon as a correlation of it appears, or it would show as an empty panel.
+    /// </summary>
+    private void InsertTask(string task)
+    {
+        _tasks.Add(task);
+
+        var bare = BareTask(task);
+        if (bare == task) return;
+
+        _tasks.Remove(bare);
+        _htmlLogs.Remove(bare);
     }
 
     private void AddKnownTasks()
@@ -393,6 +510,7 @@ else
             {
                 _summaries = await LogService.GetChunkSummaries(ModuleJobId, ModuleId);
                 AddKnownTasks();
+                SortTasks();
                 await Load(NewestPage(_summaries));
                 _loaded = true;
                 return;

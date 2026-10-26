@@ -299,7 +299,7 @@ else
                             }
                             else
                             {
-                                <ListLogs TJob="StateMigrationJob" TLogEntry="StateMigrationLogEntryDto" JobId="@job.Id" @key="job.Id"
+                                <ListLogs ModuleJobId="@job.Id" @key="job.Id"
                                           @ref="_listLogsRefs[job.Id]"/>
                             }
                         </MudTabPanel>

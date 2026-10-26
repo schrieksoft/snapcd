@@ -74,13 +74,13 @@ public class StartProbeWaveActivity<TSaga, TMessage> :
     }
 
     /// <summary>
-    /// The outputs whose value changes. Unchanged outputs carry no signal, and a destroyed output
-    /// is a change a consumer needs to hear about as much as a modified one.
+    /// The outputs whose value changes for someone already reading it. Unchanged outputs carry no
+    /// signal, and a destroyed output is a change a consumer needs to hear about as much as a
+    /// modified one. A created output is not: it has no value yet for anyone to have consumed.
     /// </summary>
     private static List<string> ChangedOutputNames(PlanCompletedBase plan)
     {
-        return Split(plan.OutputsCreateList)
-            .Concat(Split(plan.OutputsModifyList))
+        return Split(plan.OutputsModifyList)
             .Concat(Split(plan.OutputsDestroyList))
             .Concat(Split(plan.OutputsRecreateList))
             .Distinct()

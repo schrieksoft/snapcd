@@ -143,15 +143,18 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 .Where(j => j.ModuleId == context.Message.ModuleId && j.OrganizationId == context.Message.OrganizationId && j.IsCurrent == true)
                 .FirstOrDefaultAsync();
 
-            // A probe is gated on its wave rather than on its dependencies. Those dependencies are
-            // mid-job by definition while a wave is open, which is the situation a probe is for.
-            var canExecute = context.Message.ProbeWaveId is { } probeWaveId
-                ? await ProbeReadiness.IsReady(
-                    probeWaveId, context.Saga.CorrelationId, context.Message.OrganizationId)
-                : await ExecutionService.CheckDependenciesAsync(
-                    context.Saga.CorrelationId,
-                    context.Message.OrganizationId,
-                    effectiveDesiredState);
+            // A probe asks an extra question on top of the dependency check, never in place of it:
+            // whether this Module owes the wave an answer. A Module whose dependencies are not
+            // satisfied queues like any other, and the wave is answered by whichever apply runs
+            // once they are.
+            var canExecute = await ExecutionService.CheckDependenciesAsync(
+                context.Saga.CorrelationId,
+                context.Message.OrganizationId,
+                effectiveDesiredState);
+
+            if (canExecute && context.Message.ProbeWaveId is { } probeWaveId)
+                canExecute = await ProbeReadiness.IsReady(
+                    probeWaveId, context.Saga.CorrelationId, context.Message.OrganizationId);
 
             _logger.LogDebug(
                 "Gate for module {ModuleId}: currentJob {CurrentJob}, canExecute {CanExecute}",

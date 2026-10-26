@@ -76,6 +76,7 @@ public class ProbeWaveModuleView
     public Guid ModuleId { get; set; }
     public string ModuleName { get; set; } = null!;
     public string NamespaceName { get; set; } = null!;
+    public string StackName { get; set; } = null!;
 
     /// <summary>
     /// Every probe this Module has run for the wave, newest first. A probe is repeatable, so a

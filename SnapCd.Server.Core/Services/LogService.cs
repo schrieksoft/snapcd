@@ -26,6 +26,9 @@ public record LogChunkSummary(long Sequence, Guid? ModuleId, IReadOnlyList<strin
     public bool HasTask(string taskName) => TaskNames is null || TaskNames.Contains(taskName);
 }
 
+/// <summary>Where a probe wave started, for naming it to a reader.</summary>
+public record ProbeWaveOrigin(Guid WaveId, string StackName, string NamespaceName, string ModuleName);
+
 public class LogService
 {
     public const string DefaultTaskName = "Default";
@@ -313,12 +316,35 @@ public class LogService
     /// The task name, qualified by a log correlation where one is set. The discriminator says what
     /// the id is, so a reader can tell a wave from whatever is correlated on next.
     /// </summary>
-    private static string LogKey(LogEntryDto entry)
+    public static string LogKey(LogEntryDto entry)
     {
         var taskName = entry.TaskName ?? DefaultTaskName;
 
         return entry is { LogCorrelationId: { } id, LogCorrelationDiscriminator: { } kind }
             ? $"{taskName} ({kind} {id})"
             : taskName;
+    }
+
+    /// <summary>
+    /// Where each of these probe waves came from, as namespace and Module. A wave's id says nothing
+    /// to a reader; the Module whose change started it is the thing they recognise.
+    /// </summary>
+    public async Task<Dictionary<Guid, ProbeWaveOrigin>> ProbeWaveOrigins(
+        IReadOnlyCollection<Guid> waveIds,
+        Guid organizationId)
+    {
+        if (waveIds.Count == 0) return [];
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        return await dbContext.ProbeWaves
+            .AsNoTracking()
+            .Where(w => waveIds.Contains(w.Id) && w.OrganizationId == organizationId)
+            .Select(w => new ProbeWaveOrigin(
+                w.Id,
+                w.OriginModule.Namespace.Stack.Name,
+                w.OriginModule.Namespace.Name,
+                w.OriginModule.Name))
+            .ToDictionaryAsync(o => o.WaveId);
     }
 }

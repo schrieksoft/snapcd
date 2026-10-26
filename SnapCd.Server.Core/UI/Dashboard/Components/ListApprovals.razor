@@ -84,7 +84,7 @@
 
         <MudPaper Elevation="0" Class="pa-4">
             <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
-            <ListLogs TJob="ModuleJob" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
+            <ListLogs ModuleJobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
         </MudPaper>
     }
 }

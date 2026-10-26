@@ -159,6 +159,7 @@ public class ProbeWaveReadService : IDisposable
                 e.Status,
                 ConsumerModuleName = e.ConsumerModule.Name,
                 ConsumerNamespaceName = e.ConsumerModule.Namespace.Name,
+                ConsumerStackName = e.ConsumerModule.Namespace.Stack.Name,
                 UpstreamModuleName = e.UpstreamModule.Name
             })
             .ToListAsync();
@@ -226,6 +227,7 @@ public class ProbeWaveReadService : IDisposable
                 ModuleId = module.ConsumerModuleId,
                 ModuleName = module.ConsumerModuleName,
                 NamespaceName = module.ConsumerNamespaceName,
+                StackName = module.ConsumerStackName,
                 Attempts = attempts
                     .Where(a => a.ModuleId == module.ConsumerModuleId)
                     .Select(a => new ProbeAttemptView
