@@ -317,7 +317,7 @@ public class StateMigrationServiceTests : IAsyncLifetime
             new ModuleRepository(_fixture.CreateDbContext(), principalProvider, _fixture.CreateMockBus(), _fixture.CreateModuleSettings()),
             principalProvider);
 
-        return new StateMigrationService(DbContextFactory(), securedRepository);
+        return new StateMigrationService(DbContextFactory().CreateDbContext(), securedRepository);
     }
 
     /// The fixture hands out contexts, not a factory; the service needs one of its own.

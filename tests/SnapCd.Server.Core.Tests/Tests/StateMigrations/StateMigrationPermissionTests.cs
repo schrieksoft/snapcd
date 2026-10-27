@@ -168,7 +168,7 @@ public class StateMigrationPermissionTests : IAsyncLifetime
         var secured = new ModuleSecuredRepository(
             new ModuleRepository(_fixture.CreateDbContext(), principalProvider, _fixture.CreateMockBus(), _fixture.CreateModuleSettings()),
             principalProvider);
-        return new StateMigrationService(DbContextFactory(), secured, null, _fixture.CreateMockBus());
+        return new StateMigrationService(DbContextFactory().CreateDbContext(), secured, null, _fixture.CreateMockBus());
     }
 
     private IDbContextFactory<SnapCdDbContext> DbContextFactory()

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Entities.Sagas.Base;
 
 namespace SnapCd.Server.Core.Services;
 
@@ -72,11 +73,26 @@ public class OrphanedJobCleanupService
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         // JobType names the saga table the job's state lives in, so each type is checked against
-        // its own. A type with no case here is reported as orphaned only once it is handled.
-        return await (
+        // its own.
+        var orphaned = await OrphansOf<SplitMigrateSaga>(dbContext,
+            StateMigrationTypes.SplitMigrate, StateMigrationTypes.SplitProve);
+
+        orphaned.AddRange(await OrphansOf<MoveSaga>(dbContext, StateMigrationTypes.Move));
+        orphaned.AddRange(await OrphansOf<ImportSaga>(dbContext, StateMigrationTypes.Import));
+        orphaned.AddRange(await OrphansOf<RemoveSaga>(dbContext, StateMigrationTypes.Remove));
+        orphaned.AddRange(await OrphansOf<LookupAddressesSaga>(dbContext, StateMigrationTypes.LookupAddresses));
+
+        return orphaned;
+    }
+
+    /// <summary>The open jobs of these types whose saga row is gone.</summary>
+    private static async Task<List<OrphanedJobInfo>> OrphansOf<TSaga>(
+        SnapCdDbContext dbContext, params string[] jobTypes)
+        where TSaga : StateMigrationSagaBase =>
+        await (
             from job in dbContext.StateMigrationJobs
-            where job.TimestampEnd == null && (job.JobType == StateMigrationTypes.SplitMigrate || job.JobType == StateMigrationTypes.SplitProve)
-            join saga in dbContext.Set<SplitMigrateSaga>()
+            where job.TimestampEnd == null && jobTypes.Contains(job.JobType)
+            join saga in dbContext.Set<TSaga>()
                 on new { job.Id, job.OrganizationId }
                 equals new { Id = saga.CorrelationId, saga.OrganizationId }
                 into sagas
@@ -84,5 +100,4 @@ public class OrphanedJobCleanupService
             where saga == null
             select new OrphanedJobInfo { Id = job.Id, OrganizationId = job.OrganizationId, JobType = job.JobType }
         ).ToListAsync();
-    }
 }

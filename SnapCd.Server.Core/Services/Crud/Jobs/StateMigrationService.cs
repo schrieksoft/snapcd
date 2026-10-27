@@ -35,7 +35,7 @@ public class StateMigrationServiceFactory(
     public StateMigrationService Create(IPrincipalProvider? principalProvider = null)
     {
         return new StateMigrationService(
-            dbFactory,
+            dbFactory.CreateDbContext(),
             moduleSecuredRepositoryFactory.Create(principalProvider),
             resolvedConfigurationServiceFactory.Create(),
             bus);
@@ -49,18 +49,18 @@ public class StateMigrationServiceFactory(
 /// </summary>
 public class StateMigrationService : IDisposable
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly ModuleSecuredRepository _moduleSecuredRepository;
     private readonly ResolvedConfigurationService? _resolvedConfigurationService;
     private readonly IBus? _bus;
 
     public StateMigrationService(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         ModuleSecuredRepository moduleSecuredRepository,
         ResolvedConfigurationService? resolvedConfigurationService = null,
         IBus? bus = null)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _moduleSecuredRepository = moduleSecuredRepository;
         _resolvedConfigurationService = resolvedConfigurationService;
         _bus = bus;
@@ -72,9 +72,7 @@ public class StateMigrationService : IDisposable
     /// </summary>
     public async Task<string?> GetBlockedReason(Guid moduleId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        var saga = await dbContext.Set<ModuleSaga>().AsNoTracking()
+        var saga = await _dbContext.Set<ModuleSaga>().AsNoTracking()
             .FirstOrDefaultAsync(s => s.CorrelationId == moduleId && s.OrganizationId == organizationId);
 
         if (saga is null)
@@ -83,13 +81,13 @@ public class StateMigrationService : IDisposable
         if (!saga.Paused)
             return "The module must be paused before a manual job can run.";
 
-        var hasRunningModuleJob = await dbContext.ModuleJobs.AsNoTracking()
+        var hasRunningModuleJob = await _dbContext.ModuleJobs.AsNoTracking()
             .AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.IsCurrent == true);
 
         if (hasRunningModuleJob)
             return "A job is still finishing on this module. Manual jobs become available once it is quiet.";
 
-        var hasRunningStateMigration = await dbContext.StateMigrationJobs.AsNoTracking()
+        var hasRunningStateMigration = await _dbContext.StateMigrationJobs.AsNoTracking()
             .AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId
                            && j.Status == ExecutionStatus.Running);
 
@@ -99,10 +97,10 @@ public class StateMigrationService : IDisposable
         // A manual job is pinned to one runner for its whole life, so one dispatched with nothing
         // connected is not late, it is lost. Deployment jobs queue here; a manual job is started
         // by someone standing on the page, so it is better refused than parked out of sight.
-        if (!await HasConnectedRunner(dbContext, moduleId, organizationId))
+        if (!await HasConnectedRunner(moduleId, organizationId))
             return "No runner is connected for this module.";
 
-        var engine = await ResolvedEngine(dbContext, moduleId, organizationId);
+        var engine = await ResolvedEngine(moduleId, organizationId);
 
         if (!engine.SupportsStateMigrations())
             return $"State migrations are not available for {engine} modules.";
@@ -114,10 +112,9 @@ public class StateMigrationService : IDisposable
     /// The engine a Module runs on, resolving the same way the configuration does: the Module's own,
     /// else its Namespace's default, else OpenTofu.
     /// </summary>
-    private static async Task<StateManagementEngine> ResolvedEngine(
-        SnapCdDbContext dbContext, Guid moduleId, Guid organizationId)
+    private async Task<StateManagementEngine> ResolvedEngine(Guid moduleId, Guid organizationId)
     {
-        var engines = await dbContext.Modules.AsNoTracking()
+        var engines = await _dbContext.Modules.AsNoTracking()
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new { m.Engine, NamespaceDefault = m.Namespace.DefaultEngine })
             .FirstOrDefaultAsync();
@@ -129,17 +126,16 @@ public class StateMigrationService : IDisposable
     /// Whether the runner this Module is configured for has a connection, honouring a Module that
     /// pins itself to one named instance.
     /// </summary>
-    private static async Task<bool> HasConnectedRunner(
-        SnapCdDbContext dbContext, Guid moduleId, Guid organizationId)
+    private async Task<bool> HasConnectedRunner(Guid moduleId, Guid organizationId)
     {
-        var module = await dbContext.Modules.AsNoTracking()
+        var module = await _dbContext.Modules.AsNoTracking()
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new { m.RunnerId, m.RunnerInstanceName })
             .FirstOrDefaultAsync();
 
         if (module is null) return false;
 
-        return await dbContext.RunnerConnections.AsNoTracking()
+        return await _dbContext.RunnerConnections.AsNoTracking()
             .AnyAsync(rc => rc.RunnerId == module.RunnerId
                             && rc.OrganizationId == organizationId
                             && (module.RunnerInstanceName == null
@@ -189,8 +185,6 @@ public class StateMigrationService : IDisposable
 
         var correlationId = optionalCorrelationId ?? Guid.NewGuid();
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
         var job = new StateMigrationJob
         {
             Id = correlationId,
@@ -201,11 +195,11 @@ public class StateMigrationService : IDisposable
             Status = ExecutionStatus.Running
         };
 
-        dbContext.StateMigrationJobs.Add(job);
+        _dbContext.StateMigrationJobs.Add(job);
 
         try
         {
-            await dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {
@@ -232,12 +226,10 @@ public class StateMigrationService : IDisposable
         string? proveRef,
         Guid transferId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
         var job = await AddTransferMigrateJob(
-            dbContext, moduleId, counterpartyModuleId, organizationId, proveRef, transferId);
+            moduleId, counterpartyModuleId, organizationId, proveRef, transferId);
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
         await DispatchTransferMigrate(job, counterpartyModuleId, proveRef, transferId);
         return job;
     }
@@ -256,14 +248,12 @@ public class StateMigrationService : IDisposable
         Guid consentPrincipalId,
         PrincipalDiscriminator consentPrincipalDiscriminator)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        var transfer = await dbContext.Transfers
+        var transfer = await _dbContext.Transfers
             .FirstOrDefaultAsync(t => t.Id == transferId && t.OrganizationId == organizationId)
             ?? throw new StateMigrationNotAllowedException($"No transfer with Id {transferId}.");
 
         var job = await AddTransferMigrateJob(
-            dbContext, moduleId, counterpartyModuleId, organizationId, proveRef, transferId);
+            moduleId, counterpartyModuleId, organizationId, proveRef, transferId);
 
         transfer.ConsentStatus = ConsentStatus.Granted;
         transfer.ConsentPrincipalId = consentPrincipalId;
@@ -271,7 +261,7 @@ public class StateMigrationService : IDisposable
         transfer.ConsentDecidedAt = DateTimeOffset.UtcNow;
         transfer.CounterpartyRef = proveRef;
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
         await DispatchTransferMigrate(job, counterpartyModuleId, proveRef, transferId);
         return job;
     }
@@ -281,7 +271,6 @@ public class StateMigrationService : IDisposable
     /// commits with whatever else that caller is writing.
     /// </summary>
     private async Task<StateMigrationJob> AddTransferMigrateJob(
-        SnapCdDbContext dbContext,
         Guid moduleId,
         Guid counterpartyModuleId,
         Guid organizationId,
@@ -299,7 +288,7 @@ public class StateMigrationService : IDisposable
 
         var blocked = await GetBlockedReason(moduleId, organizationId);
         if (blocked is not null)
-            throw new StateMigrationNotAllowedException($"{await ModuleName(dbContext, moduleId)}: {blocked}");
+            throw new StateMigrationNotAllowedException($"{await ModuleName(moduleId)}: {blocked}");
 
         var job = new StateMigrationJob
         {
@@ -313,7 +302,7 @@ public class StateMigrationService : IDisposable
             Status = ExecutionStatus.Running
         };
 
-        dbContext.StateMigrationJobs.Add(job);
+        _dbContext.StateMigrationJobs.Add(job);
         return job;
     }
 
@@ -356,8 +345,8 @@ public class StateMigrationService : IDisposable
                 $"{nameof(StateMigrationService)} was constructed without the dependencies needed to start a job.");
     }
 
-    private static async Task<string> ModuleName(SnapCdDbContext dbContext, Guid moduleId) =>
-        await dbContext.Modules.AsNoTracking()
+    private async Task<string> ModuleName(Guid moduleId) =>
+        await _dbContext.Modules.AsNoTracking()
             .Where(m => m.Id == moduleId)
             .Select(m => m.Name)
             .FirstOrDefaultAsync() ?? moduleId.ToString()[..8];
@@ -385,8 +374,6 @@ public class StateMigrationService : IDisposable
         if (blocked is not null)
             throw new StateMigrationNotAllowedException(blocked);
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
         var job = new StateMigrationJob
         {
             Id = Guid.NewGuid(),
@@ -397,8 +384,8 @@ public class StateMigrationService : IDisposable
             Status = ExecutionStatus.Running
         };
 
-        dbContext.StateMigrationJobs.Add(job);
-        await dbContext.SaveChangesAsync();
+        _dbContext.StateMigrationJobs.Add(job);
+        await _dbContext.SaveChangesAsync();
         await AnnounceStarted(job);
 
         try
@@ -446,8 +433,6 @@ public class StateMigrationService : IDisposable
         if (blocked is not null)
             throw new StateMigrationNotAllowedException(blocked);
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
         var job = new StateMigrationJob
         {
             Id = Guid.NewGuid(),
@@ -458,8 +443,8 @@ public class StateMigrationService : IDisposable
             Status = ExecutionStatus.Running
         };
 
-        dbContext.StateMigrationJobs.Add(job);
-        await dbContext.SaveChangesAsync();
+        _dbContext.StateMigrationJobs.Add(job);
+        await _dbContext.SaveChangesAsync();
         await AnnounceStarted(job);
 
         try
@@ -503,8 +488,6 @@ public class StateMigrationService : IDisposable
         if (blocked is not null)
             throw new StateMigrationNotAllowedException(blocked);
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
         var job = new StateMigrationJob
         {
             Id = Guid.NewGuid(),
@@ -515,8 +498,8 @@ public class StateMigrationService : IDisposable
             Status = ExecutionStatus.Running
         };
 
-        dbContext.StateMigrationJobs.Add(job);
-        await dbContext.SaveChangesAsync();
+        _dbContext.StateMigrationJobs.Add(job);
+        await _dbContext.SaveChangesAsync();
         await AnnounceStarted(job);
 
         try
@@ -557,8 +540,6 @@ public class StateMigrationService : IDisposable
         if (blocked is not null)
             throw new StateMigrationNotAllowedException(blocked);
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
         var job = new StateMigrationJob
         {
             Id = Guid.NewGuid(),
@@ -569,8 +550,8 @@ public class StateMigrationService : IDisposable
             Status = ExecutionStatus.Running
         };
 
-        dbContext.StateMigrationJobs.Add(job);
-        await dbContext.SaveChangesAsync();
+        _dbContext.StateMigrationJobs.Add(job);
+        await _dbContext.SaveChangesAsync();
         await AnnounceStarted(job);
 
         try
@@ -712,9 +693,7 @@ public class StateMigrationService : IDisposable
             throw new PrincipalNotAuthorizedException(
                 $"Principal is not allowed to decide manual jobs on Module with Id {moduleId}");
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        var job = await dbContext.StateMigrationJobs
+        var job = await _dbContext.StateMigrationJobs
             .FirstOrDefaultAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
 
         if (job is null)
@@ -723,7 +702,7 @@ public class StateMigrationService : IDisposable
         if (job.WaitingForApproval != true)
             throw new StateMigrationNotAllowedException("This job is not waiting for approval.");
 
-        dbContext.StateMigrationJobApprovals.Add(new StateMigrationJobApproval
+        _dbContext.StateMigrationJobApprovals.Add(new StateMigrationJobApproval
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
@@ -737,7 +716,7 @@ public class StateMigrationService : IDisposable
 
         try
         {
-            await dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {
@@ -754,9 +733,7 @@ public class StateMigrationService : IDisposable
 
     private async Task FailJob(Guid jobId, Guid organizationId, string errorMessage)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        var job = await dbContext.StateMigrationJobs
+        var job = await _dbContext.StateMigrationJobs
             .FirstOrDefaultAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
 
         if (job is null) return;
@@ -767,7 +744,7 @@ public class StateMigrationService : IDisposable
         job.ServerSideErrorHeader = "This job failed due to an error occurring on the Server. The full error can be seen below.";
         job.ServerSideError = ErrorText.Body(errorMessage);
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     /// <summary>
@@ -781,11 +758,9 @@ public class StateMigrationService : IDisposable
         string jobType,
         string errorMessage)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
         var timestamp = DateTimeOffset.UtcNow;
 
-        dbContext.StateMigrationJobs.Add(new StateMigrationJob
+        _dbContext.StateMigrationJobs.Add(new StateMigrationJob
         {
             Id = correlationId,
             ModuleId = moduleId,
@@ -798,11 +773,12 @@ public class StateMigrationService : IDisposable
             ServerSideError = ErrorText.Body(errorMessage)
         });
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     public void Dispose()
     {
         _moduleSecuredRepository?.Dispose();
+        _dbContext.Dispose();
     }
 }

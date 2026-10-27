@@ -19,16 +19,16 @@ namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 public class ScheduleDriftCheckActivity<TMessage> :
     IStateMachineActivity<ModuleSaga, TMessage> where TMessage : class
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly QuotaService _quotaService;
     private readonly ILogger<ScheduleDriftCheckActivity<TMessage>> _logger;
 
     public ScheduleDriftCheckActivity(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         QuotaService quotaService,
         ILogger<ScheduleDriftCheckActivity<TMessage>> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _quotaService = quotaService;
         _logger = logger;
     }
@@ -39,9 +39,7 @@ public class ScheduleDriftCheckActivity<TMessage> :
     {
         try
         {
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-            var moduleData = await dbContext.Modules
+            var moduleData = await _dbContext.Modules
                 .Where(m => m.Id == context.Saga.CorrelationId && m.OrganizationId == context.Saga.OrganizationId)
                 .Select(m => new
                 {

@@ -24,18 +24,18 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
     where TSaga : JobSagaBase
     where TMessage : class
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly Services.MaintenanceMode.IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<CheckRunnerConnectionActivity<TSaga, TMessage>> _logger;
 
     public CheckRunnerConnectionActivity(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IPublishEndpoint publishEndpoint,
         Services.MaintenanceMode.IMaintenanceModeService maintenanceMode,
         ILogger<CheckRunnerConnectionActivity<TSaga, TMessage>> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _publishEndpoint = publishEndpoint;
         _maintenanceMode = maintenanceMode;
         _logger = logger;
@@ -101,9 +101,7 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
                 attempt + 1, saga.RunnerId, saga.RunnerInstanceName);
 
             // Create new DbContext for this check (activities can't share contexts across threads)
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-            var connection = await dbContext.RunnerConnections
+            var connection = await _dbContext.RunnerConnections
                 .FirstOrDefaultAsync(rc =>
                     rc.RunnerId == saga.RunnerId &&
                     rc.OrganizationId == saga.OrganizationId &&

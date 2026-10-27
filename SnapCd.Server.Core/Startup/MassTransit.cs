@@ -323,6 +323,9 @@ public static class MassTransit
         typeof(MoveSelectRunnerInstanceConsumer),
         typeof(ImportSelectRunnerInstanceConsumer),
         typeof(RemoveSelectRunnerInstanceConsumer),
+        // A request the saga could not handle at all, so the job it was created for is closed here.
+        typeof(SnapCd.Server.Core.Consumers.Jobs.StateMigrationRequestFaultConsumer),
+
         // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
         typeof(ModuleJobHeartbeatConsumer),
         typeof(StateMigrationHeartbeatConsumer),
