@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.OutputSets;
@@ -25,20 +26,6 @@ public class RunnerHubClient
     {
         _hubConnection = hubConnection;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     public async Task InvokeSplitPlanEmptyVerifyCompleted(Guid jobId)
@@ -80,13 +67,6 @@ public class RunnerHubClient
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateRunCompleted, jobId);
     }
-
-
-
-
-
-
-
 
 
     public async Task InvokeAnalyseTransferRefactorMapCompleted(
@@ -266,8 +246,6 @@ public class RunnerHubClient
     }
 
 
-
-
     public async Task InvokeTransferMigrateVerifyCompleted(Guid jobId, Guid moduleId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateVerifyCompleted, jobId, moduleId);
@@ -349,8 +327,6 @@ public class RunnerHubClient
     }
 
 
-
-
     // Plan
     public async Task InvokeApplyPlanCompleted(Guid jobId, PlanCompletedData data)
     {
@@ -418,8 +394,6 @@ public class RunnerHubClient
     // Output
 
 
-
-
     // SourceRefresh (stateless - no JobId, matched by source parameters)
     public async Task InvokeSourceRefreshCompleted(
         string sourceUrl,
@@ -478,6 +452,7 @@ public class RunnerHubClient
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitCancelKillCompleted, jobId);
     }
+
 
     public async Task InvokeMoveCancelKillCompleted(Guid jobId)
     {
@@ -806,6 +781,21 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.ApplyOutputFaulted, jobId, errorMessage, stackTrace);
     }
 
+    public async Task InvokeApplyProbeCompleted(Guid jobId, string? signalsJson)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyProbeCompleted, jobId, signalsJson);
+    }
+
+    public async Task InvokeApplyProbeCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyProbeCancelled, jobId);
+    }
+
+    public async Task InvokeApplyProbeFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyProbeFaulted, jobId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeDestroyGetDefinitiveRevisionCompleted(Guid jobId, string definitiveRevision)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.DestroyGetDefinitiveRevisionCompleted, jobId, definitiveRevision);
@@ -850,6 +840,7 @@ public class RunnerHubClient
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.DestroyOutputFaulted, jobId, errorMessage, stackTrace);
     }
+
 
     public async Task InvokeSplitGetModuleCompleted(Guid jobId)
     {
@@ -939,7 +930,6 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(
             ServerEndpoints.TransferValidateFaulted, jobId, moduleId, errorMessage, stackTrace);
     }
-
 
 
 }

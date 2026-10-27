@@ -154,6 +154,20 @@ public static class StateManagementEngineCapabilities
             StateManagementEngine.Pulumi => false,
             _ => false
         };
+
+    /// <summary>
+    /// Whether this engine can be asked what an upstream's predicted outputs would do to it. A
+    /// probe plans with values that are not yet known, which needs the planner to carry an unknown
+    /// through; Pulumi's plan model has no equivalent.
+    /// </summary>
+    public static bool SupportsProbes(this StateManagementEngine engine) =>
+        engine switch
+        {
+            StateManagementEngine.OpenTofu => true,
+            StateManagementEngine.Terraform => true,
+            StateManagementEngine.Pulumi => false,
+            _ => false
+        };
 }
 
 public enum PulumiCommandTask
@@ -493,7 +507,8 @@ public enum SecretDiscriminator
     StackSecret,
     NamespaceSecret,
     ModuleSecret,
-    SecretOutput
+    SecretOutput,
+    SecretSignalOutput
 }
 
 public enum CancellationType
@@ -527,6 +542,15 @@ public enum PlanAction
     Update,
     Delete,
     Replace
+}
+
+/// <summary>
+/// What a log entry's LogCorrelationId holds. A step that runs more than once in one job sets
+/// the pair so its runs can be told apart; ProbeWave means the id is a ProbeWave's.
+/// </summary>
+public enum LogCorrelationDiscriminator
+{
+    ProbeWave
 }
 
 public enum LogSource

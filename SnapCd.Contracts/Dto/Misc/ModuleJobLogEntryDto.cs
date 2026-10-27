@@ -10,7 +10,8 @@ using Serilog.Events;
 
 namespace SnapCd.Contracts.Dto.Misc;
 
-public class LogEntryDto
+/// <summary>One line of a deployment job's log, as the runner reports it.</summary>
+public class ModuleJobLogEntryDto : IJobLogEntry
 {
     public Guid JobId { get; set; }
     public DateTimeOffset Timestamp { get; set; }
@@ -37,4 +38,12 @@ public class LogEntryDto
     public Dictionary<string, string>? Tags { get; set; }
 
     public LogSource Source { get; set; } = LogSource.Runner;
+
+    /// <summary>
+    /// Set by a step that runs more than once in one job, so its runs can be told apart. The
+    /// discriminator says what the id refers to.
+    /// </summary>
+    public Guid? LogCorrelationId { get; set; }
+
+    public LogCorrelationDiscriminator? LogCorrelationDiscriminator { get; set; }
 }

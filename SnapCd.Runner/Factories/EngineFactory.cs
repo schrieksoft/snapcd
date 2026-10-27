@@ -49,7 +49,11 @@ public class EngineFactory
             _workingDirectorySettings
         );
 
-        var additionalBinaryPaths = _engineSettings.Value.AdditionalBinaryPaths;
+        // snapcd-inspect is extracted beside the working directory and runs the probe, so the
+        // engine resolves it by name the way it resolves any other tool.
+        var additionalBinaryPaths = _engineSettings.Value.AdditionalBinaryPaths
+            .Append(Path.Combine(_workingDirectorySettings.Value.WorkingDirectory, "tools"))
+            .ToList();
         var runnerEnvVars = _runnerEnvVarsSettings.Value;
 
         List<EngineFlagEntry> engineFlags;

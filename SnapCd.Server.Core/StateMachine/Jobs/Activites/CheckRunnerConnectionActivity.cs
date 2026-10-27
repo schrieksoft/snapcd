@@ -100,7 +100,8 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
                 "CheckRunnerConnectionActivity: Performing check attempt {Attempt} for RunnerId={RunnerId}, InstanceName={InstanceName}",
                 attempt + 1, saga.RunnerId, saga.RunnerInstanceName);
 
-            // Create new DbContext for this check (activities can't share contexts across threads)
+            // A context per attempt, not the scope's: this polls for a row another connection is
+            // about to write, and a context that has already answered the question keeps its answer.
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
             var connection = await dbContext.RunnerConnections

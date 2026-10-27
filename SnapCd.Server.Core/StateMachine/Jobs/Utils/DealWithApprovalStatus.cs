@@ -60,6 +60,10 @@ public partial class JobStateMachine<
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
     TApplyFromPlanCancelled,
+    TProbeRequested,
+    TProbeCompleted,
+    TProbeCancelled,
+    TProbeFaulted,
     TApplyFromPlanFaulted,
     TCancelKillRequested,
     TDummyCancelKillCompleted,
@@ -104,6 +108,10 @@ public partial class JobStateMachine<
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TProbeRequested : ProbeRequestedBase, new()
+    where TProbeCompleted : ProbeCompletedBase
+    where TProbeCancelled : StepResponseBase
+    where TProbeFaulted : StepFaultedBase
     where TApplyFromPlanFaulted : FromPlanFaultedBase
     where TCancelKillRequested : CancelKillRequestedBase, new()
     where TDummyCancelKillCompleted : class
@@ -178,6 +186,12 @@ public partial class JobStateMachine<
                                 // we set "transition = true" when building the "DealWithApprovalStatus" logic from the "ApplyPlanRequested.Pending" state in order to transition to "WaitingForApproval"
                                 _ => transition,
                                 z1 => z1
+                                    // A destroy takes its outputs to null, which a Module reading one
+                                    // of them needs told as much as any other change.
+                                    //
+                                    // Before the job row is marked, because a wave points at that row
+                                    // and the mark holds a lock on it until the pipeline commits.
+                                    .Activity(z2 => z2.OfType<StartProbeWaveActivity<TSaga, TMessage>>())
                                     .Activity(z2 => z2.OfType<WaitingForApprovalModuleJobActivity<TSaga, TMessage>>())
                                     .Then(context =>
                                     {

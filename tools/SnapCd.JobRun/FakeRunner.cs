@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Services.Logs;
 using SnapCd.Contracts.Endpoints;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using System.Reflection;
@@ -171,7 +173,7 @@ public class FakeRunner(
     }
 
     /// <summary>The canned answer for one dispatched endpoint.</summary>
-    private async Task Reply(RunnerHub hub, string endpoint, object payload, Guid jobId)
+    protected virtual async Task Reply(RunnerHub hub, string endpoint, object payload, Guid jobId)
     {
         switch (endpoint)
         {
@@ -261,7 +263,16 @@ public class FakeRunner(
                     TotalChangedCount = changed,
                     CreateCount = changed,
                     TotalCountAfter = changed,
-                    PolicyOutcome = PolicyOutcome
+                    PolicyOutcome = PolicyOutcome,
+                    // A changed output, so the propagation trigger has something to look for.
+                    // The name has to be one a consumer actually reads, or the trigger correctly
+                    // finds nobody and the run proves only that it declines.
+                    OutputsTotalChangedCount = changed,
+                    OutputsModifyCount = changed,
+                    OutputsModifyList = changed == 0 ? null : [ChangedOutputNameFor(payload)],
+                    // The plan's own signals, which the origin of a wave answers from rather than
+                    // being probed. Without them a consumer's inputs document comes out empty.
+                    OutputSignalsJson = changed == 0 ? null : ProbeSignalsFor(payload)
                 });
                 break;
             }
@@ -425,12 +436,56 @@ public class FakeRunner(
                 });
                 break;
 
+            case nameof(IApplyEndpoints.ApplyProbe):
+                trace($"  probe inputs: {Read<string>(payload, "InputsJson")}");
+                await hub.ApplyProbeCompleted(jobId, ProbeSignalsFor(payload));
+                break;
+
             default:
                 // An endpoint nobody answers is the end of the run, and a stall with no reason
                 // given reads as the product hanging.
                 Console.WriteLine($"  !! no canned reply for {endpoint}; the run will stall here");
                 break;
         }
+    }
+
+    /// <summary>
+    /// The output a plan of this Module reports as changed. The diamond's Modules name theirs as
+    /// the fixture's roots do, so the consumer lookup finds the Modules that read them.
+    /// </summary>
+    private static string ChangedOutputNameFor(object payload)
+    {
+        var moduleId = Read<Guid>(payload, "ModuleId");
+
+        return moduleId switch
+        {
+            _ when moduleId == RunOptions.DiamondAModuleId => "a_id",
+            _ when moduleId == RunOptions.DiamondBModuleId => "b_id",
+            _ when moduleId == RunOptions.DiamondCModuleId => "c_id",
+            _ when moduleId == RunOptions.DiamondDModuleId => "d_id",
+            _ when moduleId == RunOptions.DiamondEModuleId => "e_id",
+            _ when moduleId == RunOptions.DiamondFModuleId => "f_id",
+            _ => "jobrun_output"
+        };
+    }
+
+    /// <summary>
+    /// What a probe of this Module reports. The diamond's Modules answer with the signals a real
+    /// a real plan produced for the matching root; anything else answers with one changed output,
+    /// which is enough for a Module whose consumers are not the point of the run.
+    /// </summary>
+    private static string ProbeSignalsFor(object payload)
+    {
+        var moduleId = Read<Guid>(payload, "ModuleId");
+
+        return moduleId switch
+        {
+            _ when moduleId == RunOptions.DiamondAModuleId => DiamondSignals.RootA,
+            _ when moduleId == RunOptions.DiamondBModuleId => DiamondSignals.RootB,
+            _ when moduleId == RunOptions.DiamondCModuleId => DiamondSignals.RootC,
+            _ when moduleId == RunOptions.DiamondDModuleId => DiamondSignals.RootD,
+            _ => DiamondSignals.RootA
+        };
     }
 
     /// <summary>Every instruction the edit was asked for, reported as having worked.</summary>
@@ -442,28 +497,48 @@ public class FakeRunner(
         })
         .ToList();
 
+    // Which table a job's logs belong in follows from the endpoint's interface, so the sets are
+    // read off the interfaces rather than listed by hand or matched on a name prefix.
+    private static readonly HashSet<string> StateMigrationEndpoints =
+    [
+        ..EndpointNamesOf<ISplitEndpoints>(),
+        ..EndpointNamesOf<ITransferEndpoints>(),
+        ..EndpointNamesOf<ILookupAddressesEndpoints>(),
+        ..EndpointNamesOf<IMoveEndpoints>(),
+        ..EndpointNamesOf<IImportEndpoints>(),
+        ..EndpointNamesOf<IRemoveEndpoints>(),
+    ];
+
+    private static HashSet<string> EndpointNamesOf<T>() =>
+        typeof(T).GetMethods().Select(m => m.Name).ToHashSet(StringComparer.Ordinal);
+
+    private TLogEntry Entry<TLogEntry>(Guid jobId, string task)
+        where TLogEntry : class, IJobLogEntry, new() =>
+        new()
+        {
+            JobId = jobId,
+            ModuleId = ModuleId,
+            Timestamp = DateTimeOffset.UtcNow,
+            BatchTimeStamp = DateTimeOffset.UtcNow,
+            StackName = "jobrun",
+            NamespaceName = "jobrun",
+            Level = LogEventLevel.Information,
+            Message = $"{task}: running under jobrun",
+            TaskName = task
+        };
+
     /// <summary>
     /// One line per step, which is what the page's log panel reads and what raises the event that
-    /// tells an open page to look again.
+    /// tells an open page to look again. The endpoint names the table, as a real runner's does.
     /// </summary>
     private async Task SendLog(RunnerHub hub, Guid jobId, string task)
     {
         try
         {
-            await hub.AddLogs([
-                new LogEntryDto
-                {
-                    JobId = jobId,
-                    ModuleId = ModuleId,
-                    Timestamp = DateTimeOffset.UtcNow,
-                    BatchTimeStamp = DateTimeOffset.UtcNow,
-                    StackName = "jobrun",
-                    NamespaceName = "jobrun",
-                    Level = LogEventLevel.Information,
-                    Message = $"{task}: running under jobrun",
-                    TaskName = task
-                }
-            ]);
+            if (StateMigrationEndpoints.Contains(task))
+                await hub.AddStateMigrationLogs([Entry<StateMigrationLogEntryDto>(jobId, task)]);
+            else
+                await hub.AddModuleJobLogs([Entry<ModuleJobLogEntryDto>(jobId, task)]);
         }
         catch (Exception ex)
         {

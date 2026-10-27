@@ -75,6 +75,15 @@ public class AzureVault : IVault
         return secret.Value;
     }
 
+    public async Task<VersionedSecret> GetSecretWithVersionAsync(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            throw new ArgumentException("Secret name cannot be null or empty", nameof(name));
+
+        KeyVaultSecret secret = await _secretClient.GetSecretAsync(name);
+        return new VersionedSecret(secret.Value, secret.Properties.Version);
+    }
+
     public async Task DeleteSecretAsync(string name)
     {
         if (string.IsNullOrEmpty(name))

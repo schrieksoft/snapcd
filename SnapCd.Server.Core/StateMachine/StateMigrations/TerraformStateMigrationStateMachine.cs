@@ -112,7 +112,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
     public Event<LookupAddressesFaulted> ListFaulted { get; } = null!;
 
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
-    public Request<TSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Request<TSaga, StateMigrationHeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<TSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     public State SelectRunnerInstancePending { get; } = null!;
@@ -195,6 +195,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
                         "{Verb} of {Count} addresses starting on Module {ModuleId}",
                         Verb, context.Message.Instructions.Count, context.Saga.ModuleId);
                 })
+                .Activity(x => x.OfType<RecordSelectedStateMigrationRunnerActivity<TSaga, TJobRequested>>())
                 .Publish(context => Request<TSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
                 .TransitionTo(SelectRunnerInstancePending)

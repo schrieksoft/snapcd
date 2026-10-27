@@ -9,6 +9,8 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Settings;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Jobs.Module;
@@ -59,6 +61,10 @@ using JobMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyProbeRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyProbeCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyProbeCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyProbeFaulted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanFaulted,
     SnapCd.Server.Core.Events.Steps.ApplyCancelKillRequested,
     SnapCd.Server.Core.Events.Steps.DummyApplyCancelKillCompleted,
@@ -83,7 +89,8 @@ public class MaintenanceOperationsService
     // the machine does not define faults the delivery for every saga of that runner. Groups
     // containing such sagas are skipped and reported instead of woken.
     private static readonly Lazy<HashSet<string>> ValidJobStates = new(() =>
-        new JobMachine(NullLogger<JobMachine>.Instance).States.Select(s => s.Name).ToHashSet());
+        new JobMachine(NullLogger<JobMachine>.Instance)
+            .States.Select(s => s.Name).ToHashSet());
 
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly IBus _bus;

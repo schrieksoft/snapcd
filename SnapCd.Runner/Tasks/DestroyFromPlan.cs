@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Runner.Logging;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests;
@@ -16,7 +17,16 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task DestroyFromPlan(DestroyFromPlanRequestBase request, HubConnection connection)
+    /// <summary>
+    /// Applies the saved destroy plan. The callbacks say which endpoints to answer on, as every
+    /// other step's do.
+    /// </summary>
+    public async Task DestroyFromPlan(
+        DestroyFromPlanRequestBase request,
+        HubConnection connection,
+        Func<Guid, int, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, int?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -36,7 +46,7 @@ public partial class Tasks
             request.JobId,
             nameof(DestroyFromPlan),
             logger,
-            _jobLogStream,
+            _jobLogStreams.ModuleJobs,
             request.Metadata
         );
 
@@ -69,8 +79,8 @@ public partial class Tasks
             taskContext.LogInformation($"Resource count: {actualResourceCount}");
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeDestroyFromPlanCompleted(request.JobId, actualResourceCount),
-                nameof(runnerHubClient.InvokeDestroyFromPlanCompleted),
+                () => completed(request.JobId, actualResourceCount),
+                nameof(completed),
                 request.JobId,
                 connection);
         }
@@ -78,8 +88,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("Destroy process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeDestroyFromPlanCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeDestroyFromPlanCancelled),
+                () => cancelled(request.JobId),
+                nameof(cancelled),
                 request.JobId,
                 connection);
         }
@@ -105,13 +115,13 @@ public partial class Tasks
             }
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeDestroyFromPlanFaulted(
+                () => faulted(
                     request.JobId,
                     ex.Message,
                     ex.StackTrace,
                     actualResourceCount
                 ),
-                nameof(runnerHubClient.InvokeDestroyFromPlanFaulted),
+                nameof(faulted),
                 request.JobId,
                 connection);
         }

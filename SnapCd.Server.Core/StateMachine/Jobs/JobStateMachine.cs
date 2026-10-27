@@ -8,6 +8,8 @@
 
 using System.Text.Json;
 using MassTransit;
+using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Base;
@@ -15,6 +17,7 @@ using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Events.Jobs.Module;
 
@@ -75,6 +78,10 @@ public partial class JobStateMachine<
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
     TApplyFromPlanCancelled,
+    TProbeRequested,
+    TProbeCompleted,
+    TProbeCancelled,
+    TProbeFaulted,
     TApplyFromPlanFaulted,
     TCancelKillRequested,
     TDummyCancelKillCompleted,
@@ -120,6 +127,10 @@ public partial class JobStateMachine<
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TProbeRequested : ProbeRequestedBase, new()
+    where TProbeCompleted : ProbeCompletedBase
+    where TProbeCancelled : StepResponseBase
+    where TProbeFaulted : StepFaultedBase
     where TApplyFromPlanFaulted : FromPlanFaultedBase
     where TCancelKillRequested : CancelKillRequestedBase, new()
     where TDummyCancelKillCompleted : class
@@ -166,16 +177,21 @@ public partial class JobStateMachine<
         TApplyFromPlanRequested,
         TApplyFromPlanCompleted,
         TApplyFromPlanCancelled,
+        TProbeRequested,
+        TProbeCompleted,
+        TProbeCancelled,
+        TProbeFaulted,
         TApplyFromPlanFaulted,
         TCancelKillRequested,
         TDummyCancelKillCompleted,
         TCancelKillCompleted
     >> _logger;
 
+
     public Event<TRequest> ModuleRequest { get; } = null!;
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
     public Event<CleanupOrphanedJobRequested> CleanupOrphanedJobRequested { get; } = null!;
-    public Request<TSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Request<TSaga, ModuleJobHeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<TSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     public State Completed { get; } = null!;
@@ -224,6 +240,10 @@ public partial class JobStateMachine<
             TApplyFromPlanRequested,
             TApplyFromPlanCompleted,
             TApplyFromPlanCancelled,
+            TProbeRequested,
+            TProbeCompleted,
+            TProbeCancelled,
+            TProbeFaulted,
             TApplyFromPlanFaulted,
             TCancelKillRequested,
             TDummyCancelKillCompleted,
@@ -266,6 +286,7 @@ public partial class JobStateMachine<
                     context.Saga.RunnerInstanceName = context.Message.Declared.RunnerInstanceName;
                     context.Saga.ApprovalTimeoutMinutes = context.Message.Declared.ApprovalTimeoutMinutes;
                 })
+                .Activity(x => x.OfType<RecordSelectedRunnerActivity<TSaga, TRequest>>())
                 .Publish(context => new SelectRunnerInstanceRequested
                 {
                     RunnerId = context.Saga.RunnerId,
@@ -285,6 +306,7 @@ public partial class JobStateMachine<
         Configure_Plan();
         Configure_PolicyValidate();
         Configure_ApplyFromPlan();
+        Configure_Probe();
         Configure_Output();
         Configure_Approval();
         Configure_Faults();

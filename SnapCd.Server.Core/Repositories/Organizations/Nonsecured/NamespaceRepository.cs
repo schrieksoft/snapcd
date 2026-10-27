@@ -253,6 +253,19 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
                 .ExecuteDeleteAsync();
         }
 
+        // A signal edge restricts on both of the Modules it names, so it blocks a Module that
+        // cascades away with this namespace. Swept here as well as in ModuleRepository, because a
+        // namespace delete cascades its Modules rather than deleting them through that repository.
+        //
+        await DbContext.SignalEdges
+            .Where(e => e.OrganizationId == organizationId &&
+                        (e.ConsumerModule.NamespaceId == id || e.UpstreamModule.NamespaceId == id))
+            .ExecuteDeleteAsync();
+
+        await DbContext.ModuleProbeAttempts
+            .Where(a => a.OrganizationId == organizationId && a.Module.NamespaceId == id)
+            .ExecuteDeleteAsync();
+
         // Now proceed with normal namespace deletion (which will cascade to modules)
         await base.ExecuteDelete(id, organizationId);
     }

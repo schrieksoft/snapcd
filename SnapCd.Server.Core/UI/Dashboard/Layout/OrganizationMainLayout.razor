@@ -8,6 +8,8 @@
 
 @implements IDisposable
 
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Services.PrincipalProvider
 @inject IHttpContextAccessor HttpContextAccessor
 @using Microsoft.AspNetCore.Identity
 @using SnapCd.Server.Core.Entities.Definition
@@ -26,7 +28,7 @@
 @inject IOrganizationActivationService OrganizationActivation
 @inject IPostOrganizationCreateRedirectPolicy PostOrganizationCreateRedirectPolicy
 @inject OrganizationMembershipCacheService MembershipCache
-@inject UserManager<User> UserManager
+@inject HttpContextPrincipalProvider PrincipalProvider
 @inject AuthenticationStateProvider AuthStateProvider
 
 
@@ -264,15 +266,20 @@
             return;
         }
 
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = await UserManager.GetUserAsync(authState.User);
-        if (user is null)
+        if (PrincipalProvider.GetPrincipalDiscriminatorOrDefault() != PrincipalDiscriminator.User)
         {
             _pageRoleAllowed = false;
             return;
         }
 
-        _pageRoleAllowed = await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, OrganizationId, attr.AnyOf);
+        var userId = PrincipalProvider.GetSubjectOrDefault(OrganizationId);
+        if (userId == Guid.Empty)
+        {
+            _pageRoleAllowed = false;
+            return;
+        }
+
+        _pageRoleAllowed = await MembershipCache.HasAnyOrganizationRoleAsync(userId, OrganizationId, attr.AnyOf);
     }
 
 }

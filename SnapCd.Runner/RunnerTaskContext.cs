@@ -11,6 +11,8 @@ using Microsoft.Extensions.Logging;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Runner.Logging;
 
+using SnapCd.Contracts;
+
 namespace SnapCd.Runner;
 
 /// <summary>
@@ -28,13 +30,25 @@ public class RunnerTaskContext
     private readonly JobMetadata _metadata;
 
 
-    public RunnerTaskContext(Guid jobId, string taskName, ILogger logger, IJobLogStream shipper, JobMetadata metadata)
+    private readonly Guid? _logCorrelationId;
+    private readonly LogCorrelationDiscriminator? _logCorrelationDiscriminator;
+
+    public RunnerTaskContext(
+        Guid jobId,
+        string taskName,
+        ILogger logger,
+        IJobLogStream shipper,
+        JobMetadata metadata,
+        Guid? logCorrelationId = null,
+        LogCorrelationDiscriminator? logCorrelationDiscriminator = null)
     {
         _jobId = jobId;
         _taskName = taskName;
         _logger = logger;
         _shipper = shipper;
         _metadata = metadata;
+        _logCorrelationId = logCorrelationId;
+        _logCorrelationDiscriminator = logCorrelationDiscriminator;
     }
 
     public void LogInformation(string message, string subContext = "")
@@ -92,7 +106,9 @@ public class RunnerTaskContext
             StackName: _metadata.StackName,
             NamespaceName: _metadata.NamespaceName,
             ModuleName: _metadata.ModuleName,
-            Level: level);
+            Level: level,
+            LogCorrelationId: _logCorrelationId,
+            LogCorrelationDiscriminator: _logCorrelationDiscriminator);
         _ = _shipper.EmitAsync(envelope, message);
     }
 }

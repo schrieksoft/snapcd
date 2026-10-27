@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Runner.Hub;
 
@@ -13,20 +14,24 @@ namespace SnapCd.Runner.Tests;
 
 public class LogBufferTests
 {
-    private static List<LogEntryDto> Batch(int count, int from = 0) =>
-        Enumerable.Range(from, count).Select(i => new LogEntryDto { Message = $"line {i}" }).ToList();
+    private const string Endpoint = ServerEndpoints.AddModuleJobLogs;
 
-    private static List<string> Messages(IEnumerable<LogEntryDto> entries) => entries.Select(e => e.Message).ToList();
+    private static List<IJobLogEntry> Batch(int count, int from = 0) =>
+        Enumerable.Range(from, count)
+            .Select(i => (IJobLogEntry)new ModuleJobLogEntryDto { Message = $"line {i}" })
+            .ToList();
+
+    private static List<string> Messages(IEnumerable<IJobLogEntry> entries) => entries.Select(e => e.Message).ToList();
 
     [Fact]
     public async Task Flush_sends_each_batch_whole_and_in_order()
     {
         var buffer = new LogBuffer(capacity: 1000);
-        buffer.Add(Batch(150));
-        buffer.Add(Batch(30, from: 150));
-        var sentBatches = new List<List<LogEntryDto>>();
+        buffer.Add(Endpoint, Batch(150));
+        buffer.Add(Endpoint, Batch(30, from: 150));
+        var sentBatches = new List<List<IJobLogEntry>>();
 
-        var sent = await buffer.FlushAsync(batch =>
+        var sent = await buffer.FlushAsync((_, batch) =>
         {
             sentBatches.Add(batch);
             return Task.CompletedTask;
@@ -44,18 +49,18 @@ public class LogBufferTests
         var buffer = new LogBuffer(capacity: 1000);
         var first = Batch(10);
         var second = Batch(10, from: 10);
-        buffer.Add(first);
-        buffer.Add(second);
-        buffer.Add(Batch(10, from: 20));
+        buffer.Add(Endpoint, first);
+        buffer.Add(Endpoint, second);
+        buffer.Add(Endpoint, Batch(10, from: 20));
         var calls = 0;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => buffer.FlushAsync(_ =>
+        await Assert.ThrowsAsync<InvalidOperationException>(() => buffer.FlushAsync((_, _) =>
             ++calls == 2 ? throw new InvalidOperationException("connection lost") : Task.CompletedTask));
 
         Assert.Equal(20, buffer.Count);
 
-        var resent = new List<List<LogEntryDto>>();
-        await buffer.FlushAsync(batch =>
+        var resent = new List<List<IJobLogEntry>>();
+        await buffer.FlushAsync((_, batch) =>
         {
             resent.Add(batch);
             return Task.CompletedTask;
@@ -70,11 +75,30 @@ public class LogBufferTests
     {
         var buffer = new LogBuffer(capacity: 10);
 
-        buffer.Add(Batch(6));
-        buffer.Add(Batch(6, from: 6));
+        buffer.Add(Endpoint, Batch(6));
+        buffer.Add(Endpoint, Batch(6, from: 6));
 
         Assert.Equal(6, buffer.Count);
         Assert.Equal(6, buffer.TakeDroppedCount());
         Assert.Equal(0, buffer.TakeDroppedCount());
+    }
+
+    [Fact]
+    public async Task Each_batch_is_sent_to_the_endpoint_it_was_held_for()
+    {
+        var buffer = new LogBuffer(capacity: 1000);
+        buffer.Add(ServerEndpoints.AddModuleJobLogs, Batch(2));
+        buffer.Add(ServerEndpoints.AddStateMigrationLogs, Batch(2, from: 2));
+        var endpoints = new List<string>();
+
+        await buffer.FlushAsync((endpoint, _) =>
+        {
+            endpoints.Add(endpoint);
+            return Task.CompletedTask;
+        });
+
+        Assert.Equal(
+            [ServerEndpoints.AddModuleJobLogs, ServerEndpoints.AddStateMigrationLogs],
+            endpoints);
     }
 }

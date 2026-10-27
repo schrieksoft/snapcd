@@ -132,7 +132,8 @@ public class ParamResolver<TModuleInputFromOutput>
 
             foreach (var secret in secrets)
             {
-                var value = mappedSecrets.FirstOrDefault(x => x.Id == secret.SecretId)?.Value ?? string.Empty;
+                var mapped = mappedSecrets.FirstOrDefault(x => x.Id == secret.SecretId);
+                var value = mapped?.Value ?? string.Empty;
 
                 value = formatStrings ? FormatValue(value, secret.Type) : value;
 
@@ -141,7 +142,8 @@ public class ParamResolver<TModuleInputFromOutput>
                     Name = secret.InputName,
                     ResolvedValue = value,
                     Source = ModuleInputSource.ModuleSecret,
-                    OriginalValue = secret.SecretName ?? string.Empty
+                    OriginalValue = secret.SecretName ?? string.Empty,
+                    SecretVersion = mapped?.Version
                 };
 
                 result.Add(resolvedInput);
@@ -398,28 +400,35 @@ public class ParamResolver<TModuleInputFromOutput>
         return paramDictionary.Values.ToList();
     }
 
-    public async Task<Dictionary<string, string>> ResolveParameters()
+    /// <summary>
+    /// The parameters as resolved, carrying each one's source and, for a secret, the version the
+    /// vault holds it under. A caller that must record what a run was given hashes these; the
+    /// values alone have already dropped what such a hash needs.
+    /// </summary>
+    public async Task<List<ModuleResolvedInput>> ResolveParameterInputs()
     {
         _context.LogDebug("Now attempting to resolve parameters");
 
         var resolvedParams = await GetMergedParameters();
         CheckResolvedParamsForDuplicates(resolvedParams);
 
-        return resolvedParams.ToDictionary(p => p.Name, p => p.ResolvedValue);
+        return resolvedParams;
     }
 
-    public async Task<Dictionary<string, string>> ResolveEnvVariables()
+    public async Task<Dictionary<string, string>> ResolveParameters() =>
+        (await ResolveParameterInputs()).ToDictionary(p => p.Name, p => p.ResolvedValue);
+
+    /// <summary>The environment variables as resolved. See <see cref="ResolveParameterInputs"/>.</summary>
+    public async Task<List<ModuleResolvedInput>> ResolveEnvVariableInputs()
     {
         var resolvedParams = await GetMergedParameters(false);
         CheckResolvedParamsForDuplicates(resolvedParams);
 
-        var resolvedValues = resolvedParams
-            .ToDictionary(
-                p => p.Name,
-                p => p.ResolvedValue
-            );
-        return resolvedValues;
+        return resolvedParams;
     }
+
+    public async Task<Dictionary<string, string>> ResolveEnvVariables() =>
+        (await ResolveEnvVariableInputs()).ToDictionary(p => p.Name, p => p.ResolvedValue);
 
 
     public void CheckResolvedParamsForDuplicates(

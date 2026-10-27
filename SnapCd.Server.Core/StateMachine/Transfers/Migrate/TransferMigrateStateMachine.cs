@@ -10,6 +10,7 @@
 using System.Text.Json;
 using SnapCd.Server.Core.Events.System;
 using MassTransit;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -41,7 +42,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
 
     // Liveness: the runner can go away mid-job.
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
-    public Request<TransferMigrateSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Request<TransferMigrateSaga, StateMigrationHeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<TransferMigrateSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     // From the runner, each naming the Module it is for
@@ -214,6 +215,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
                         "Transfer: moving state for Module {ModuleId}",
                         context.Saga.ModuleId);
                 })
+                .Activity(x => x.OfType<RecordSelectedStateMigrationRunnerActivity<TransferMigrateSaga, TransferMigrateRequested>>())
                 .IfElseAsync(
                     context => IsInitiator(context),
                     waiting => waiting

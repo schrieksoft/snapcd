@@ -60,6 +60,10 @@ public partial class JobStateMachine<
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
     TApplyFromPlanCancelled,
+    TProbeRequested,
+    TProbeCompleted,
+    TProbeCancelled,
+    TProbeFaulted,
     TApplyFromPlanFaulted,
     TCancelKillRequested,
     TDummyCancelKillCompleted,
@@ -104,6 +108,10 @@ public partial class JobStateMachine<
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TProbeRequested : ProbeRequestedBase, new()
+    where TProbeCompleted : ProbeCompletedBase
+    where TProbeCancelled : StepResponseBase
+    where TProbeFaulted : StepFaultedBase
     where TApplyFromPlanFaulted : FromPlanFaultedBase
     where TCancelKillRequested : CancelKillRequestedBase, new()
     where TDummyCancelKillCompleted : class

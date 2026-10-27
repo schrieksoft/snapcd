@@ -31,4 +31,13 @@ public class StoredLogLine
     public Dictionary<string, string>? Tags { get; set; }
 
     [JsonPropertyName("s")] public LogSource Source { get; set; }
+
+    /// <summary>Set by a step that runs more than once in one job, so its runs can be told apart.</summary>
+    [JsonPropertyName("c")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? LogCorrelationId { get; set; }
+
+    [JsonPropertyName("d")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LogCorrelationDiscriminator? LogCorrelationDiscriminator { get; set; }
 }

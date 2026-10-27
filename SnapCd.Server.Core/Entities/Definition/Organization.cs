@@ -54,6 +54,11 @@ public class Organization : AuditBase, ISystemEntity, ICreationTrackable
     public virtual ICollection<Secret> Secrets { get; set; } = new List<Secret>();
 
     public virtual ICollection<Output> Outputs { get; set; } = new List<Output>();
+    public virtual ICollection<Signals.SignalOutputSet> SignalOutputSets { get; set; } = new List<Signals.SignalOutputSet>();
+    public virtual ICollection<Signals.SignalOutput> SignalOutputs { get; set; } = new List<Signals.SignalOutput>();
+    public virtual ICollection<ProbeWaves.ProbeWave> ProbeWaves { get; set; } = new List<ProbeWaves.ProbeWave>();
+    public virtual ICollection<ProbeWaves.ModuleProbeAttempt> ModuleProbeAttempts { get; set; } = new List<ProbeWaves.ModuleProbeAttempt>();
+    public virtual ICollection<ProbeWaves.SignalEdge> SignalEdges { get; set; } = new List<ProbeWaves.SignalEdge>();
     public virtual ICollection<OutputSet> OutputSets { get; set; } = new List<OutputSet>();
     public virtual ICollection<Variable> Variables { get; set; } = new List<Variable>();
     public virtual ICollection<VariableSet> VariableSets { get; set; } = new List<VariableSet>();

@@ -60,9 +60,22 @@ builder.Services.Replace(ServiceDescriptor.Scoped<IPrincipalProvider>(_ => new L
     options.PrincipalId, PrincipalDiscriminator.User, [options.OrganizationId])));
 
 // The runner is answered in-process, so the dispatch seam is replaced rather than the hub itself.
-builder.Services.AddSingleton(sp => new FakeRunner(
-    sp, options.ConnectionId, options.OrganizationId, options.RunnerInstanceName,
-    Console.WriteLine));
+if (options.RealRunner)
+{
+    RunnerComposition.AddRunnerServices(builder.Services, builder.Configuration, options.WorkingDirectory);
+
+    var fixtures = Path.Combine(AppContext.BaseDirectory, "fixtures", "diamond");
+
+    builder.Services.AddSingleton<FakeRunner>(sp => new SemiFakeRunner(
+        sp, options.ConnectionId, options.OrganizationId, options.RunnerInstanceName,
+        Console.WriteLine, fixtures));
+}
+else
+{
+    builder.Services.AddSingleton(sp => new FakeRunner(
+        sp, options.ConnectionId, options.OrganizationId, options.RunnerInstanceName,
+        Console.WriteLine));
+}
 builder.Services.Replace(
     ServiceDescriptor.Singleton<IHubContext<RunnerHub>>(
         sp => new FakeHubContext(sp.GetRequiredService<FakeRunner>())));
@@ -75,6 +88,9 @@ if (!options.BusType.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
         ServiceDescriptor.Scoped<IPremiumMessageBrokerPolicy, LicensedForTheRun>());
 
 // The database has to exist before the host starts: the transport migrates itself on startup.
+if (options.RealRunner)
+    Console.WriteLine($"Runner      real tasks, Modules under {options.WorkingDirectory}");
+
 Console.WriteLine($"Database    {options.DatabaseName}");
 Console.WriteLine($"App db      {builder.Configuration["ConnectionString"]}");
 Console.WriteLine($"Bus db      {builder.Configuration["ServiceBus:TransportOptions:SqlServer:ConnectionString"]}");

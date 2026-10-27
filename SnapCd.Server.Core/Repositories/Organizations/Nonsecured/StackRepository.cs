@@ -181,6 +181,19 @@ public class StackRepository : GenericOrganizationChildRepository<Stack, StackRe
                 .ExecuteDeleteAsync();
         }
 
+        // A signal edge restricts on both of the Modules it names, so it blocks a Module that
+        // cascades away with this stack. A wave never crosses stacks, because the consumer lookup
+        // filters on a shared stack, so every edge reached here is wholly inside it and nothing
+        // outside is left waiting.
+        await DbContext.SignalEdges
+            .Where(e => e.OrganizationId == organizationId &&
+                        e.ConsumerModule.Namespace.StackId == id)
+            .ExecuteDeleteAsync();
+
+        await DbContext.ModuleProbeAttempts
+            .Where(a => a.OrganizationId == organizationId && a.Module.Namespace.StackId == id)
+            .ExecuteDeleteAsync();
+
         await base.ExecuteDelete(id, organizationId);
     }
 

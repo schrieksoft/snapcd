@@ -18,27 +18,36 @@ using SnapCd.Runner.Settings;
 namespace SnapCd.Runner.Logging;
 
 /// <summary>
-/// Default <see cref="IJobLogStream"/>. Each job gets its own <see cref="JobLogQueue"/>, so one job's log
-/// cannot hold back another's. Buffering through a disconnect is <see cref="RunnerHubConnection.SendLogsAsync"/>'s.
+/// Default <see cref="IJobLogStream"/>, for one table that stores runner logs. Each job gets its own
+/// <see cref="JobLogQueue{TLogEntry}"/>, so one job's log cannot hold back another's. Buffering through a
+/// disconnect is <see cref="RunnerHubConnection.SendLogsAsync{TLogEntry}"/>'s.
 /// </summary>
-public sealed class HubJobLogStream : IJobLogStream, IAsyncDisposable
+public sealed class HubJobLogStream<TLogEntry> : IJobLogStream, IAsyncDisposable
+    where TLogEntry : class, IJobLogEntry, new()
 {
-    private readonly ConcurrentDictionary<Guid, JobLogQueue> _queues = new();
+    private readonly ConcurrentDictionary<Guid, JobLogQueue<TLogEntry>> _queues = new();
     private readonly object _gate = new();
     private readonly RunnerHubConnection _hub;
     private readonly JobLogStreamSettings _settings;
-    private readonly ILogger<HubJobLogStream> _logger;
+    private readonly ILogger _logger;
 
-    public HubJobLogStream(RunnerHubConnection hub, IOptions<JobLogStreamSettings> settings, ILogger<HubJobLogStream> logger)
+    private readonly string _endpoint;
+
+    public HubJobLogStream(
+        RunnerHubConnection hub,
+        string endpoint,
+        JobLogStreamSettings settings,
+        ILogger logger)
     {
         _hub = hub;
-        _settings = settings.Value;
+        _endpoint = endpoint;
+        _settings = settings;
         _logger = logger;
     }
 
     public Task EmitAsync(JobLogEnvelope envelope, string message, CancellationToken ct = default)
     {
-        var line = new LogEntryDto
+        var line = new TLogEntry
         {
             Timestamp = DateTimeOffset.UtcNow,
             JobId = envelope.JobId,
@@ -49,7 +58,9 @@ public sealed class HubJobLogStream : IJobLogStream, IAsyncDisposable
             TaskName = envelope.TaskName,
             Level = MapLevel(envelope.Level),
             Message = message,
-            Source = LogSource.Runner
+            Source = LogSource.Runner,
+            LogCorrelationId = envelope.LogCorrelationId,
+            LogCorrelationDiscriminator = envelope.LogCorrelationDiscriminator
         };
 
         lock (_gate)
@@ -77,12 +88,13 @@ public sealed class HubJobLogStream : IJobLogStream, IAsyncDisposable
         await Task.WhenAll(_queues.Keys.Select(DrainAsync));
     }
 
-    private JobLogQueue QueueFor(Guid jobId)
+    private JobLogQueue<TLogEntry> QueueFor(Guid jobId)
     {
         if (_queues.TryGetValue(jobId, out var queue) && !queue.IsCompleted)
             return queue;
 
-        queue = new JobLogQueue(jobId, _hub.SendLogsAsync, _settings, _logger);
+        queue = new JobLogQueue<TLogEntry>(
+            jobId, batch => _hub.SendLogsAsync(_endpoint, batch), _settings, _logger);
         _queues[jobId] = queue;
         return queue;
     }

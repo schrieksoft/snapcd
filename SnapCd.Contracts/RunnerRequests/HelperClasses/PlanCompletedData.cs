@@ -42,4 +42,10 @@ public class PlanCompletedData
     public List<string>? OutputsModifyList { get; set; }
     public List<string>? OutputsDestroyList { get; set; }
     public List<string>? OutputsRecreateList { get; set; }
+
+    /// <summary>
+    /// What this plan says its outputs will become, in the format a downstream root consumes.
+    /// Absent for an engine whose plan carries no encoded outputs.
+    /// </summary>
+    public string? OutputSignalsJson { get; set; }
 }

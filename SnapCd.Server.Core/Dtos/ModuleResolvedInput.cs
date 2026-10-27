@@ -20,4 +20,10 @@ public class ModuleResolvedInput
 
     public bool IsFromNamespaceDefault { get; set; }
     public ModuleInputSource Source { get; set; }
+
+    /// <summary>
+    /// The version the vault holds a secret-sourced value under. It stands for the secret wherever
+    /// the value itself must not be carried.
+    /// </summary>
+    public string? SecretVersion { get; set; }
 }

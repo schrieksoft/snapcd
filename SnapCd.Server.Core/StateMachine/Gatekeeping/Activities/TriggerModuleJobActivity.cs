@@ -14,6 +14,7 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.RippleProbes;
 using SnapCd.Server.Core.Services.MaintenanceMode;
 using SnapCd.Server.Core.Services.ModuleHold;
 

@@ -56,6 +56,10 @@ public partial class JobStateMachine<
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
     TApplyFromPlanCancelled,
+    TProbeRequested,
+    TProbeCompleted,
+    TProbeCancelled,
+    TProbeFaulted,
     TApplyFromPlanFaulted,
     TCancelKillRequested,
     TDummyCancelKillCompleted,
@@ -100,6 +104,10 @@ public partial class JobStateMachine<
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TProbeRequested : ProbeRequestedBase, new()
+    where TProbeCompleted : ProbeCompletedBase
+    where TProbeCancelled : StepResponseBase
+    where TProbeFaulted : StepFaultedBase
     where TApplyFromPlanFaulted : FromPlanFaultedBase
     where TCancelKillRequested : CancelKillRequestedBase, new()
     where TDummyCancelKillCompleted : class
@@ -124,6 +132,8 @@ public partial class JobStateMachine<
     public Event<Fault<TPlanCompleted>> PlanCompletedFault { get; } = null!;
     public Event<Fault<TApplyFromPlanRequested>> ApplyFromPlanRequestFault { get; } = null!;
     public Event<Fault<TApplyFromPlanCompleted>> ApplyFromPlanCompletedFault { get; } = null!;
+    public Event<Fault<TProbeRequested>> ProbeRequestFault { get; } = null!;
+    public Event<Fault<TProbeCompleted>> ProbeCompletedFault { get; } = null!;
     public Event<Fault<TOutputRequested>> OutputRequestFault { get; } = null!;
     public Event<Fault<TOutputCompleted>> OutputCompletedFault { get; } = null!;
 
@@ -147,6 +157,8 @@ public partial class JobStateMachine<
         Event(() => PlanCompletedFault, x => { x.CorrelateById(y => y.Message.Message.CorrelationId); x.OnMissingInstance(m => m.Discard()); });
         Event(() => ApplyFromPlanRequestFault, x => { x.CorrelateById(y => y.Message.Message.CorrelationId); x.OnMissingInstance(m => m.Discard()); });
         Event(() => ApplyFromPlanCompletedFault, x => { x.CorrelateById(y => y.Message.Message.CorrelationId); x.OnMissingInstance(m => m.Discard()); });
+        Event(() => ProbeRequestFault, x => { x.CorrelateById(y => y.Message.Message.CorrelationId); x.OnMissingInstance(m => m.Discard()); });
+        Event(() => ProbeCompletedFault, x => { x.CorrelateById(y => y.Message.Message.CorrelationId); x.OnMissingInstance(m => m.Discard()); });
         Event(() => OutputRequestFault, x => { x.CorrelateById(y => y.Message.Message.CorrelationId); x.OnMissingInstance(m => m.Discard()); });
         Event(() => OutputCompletedFault, x => { x.CorrelateById(y => y.Message.Message.CorrelationId); x.OnMissingInstance(m => m.Discard()); });
 
@@ -169,6 +181,8 @@ public partial class JobStateMachine<
             When(PlanCompletedFault).ThenFaultedOnFault<TSaga, TResponseFailed, TPlanCompleted>(Failed, _logger),
             When(ApplyFromPlanRequestFault).ThenFaultedOnFault<TSaga, TResponseFailed, TApplyFromPlanRequested>(Failed, _logger),
             When(ApplyFromPlanCompletedFault).ThenFaultedOnFault<TSaga, TResponseFailed, TApplyFromPlanCompleted>(Failed, _logger),
+            When(ProbeRequestFault).ThenFaultedOnFault<TSaga, TResponseFailed, TProbeRequested>(Failed, _logger),
+            When(ProbeCompletedFault).ThenFaultedOnFault<TSaga, TResponseFailed, TProbeCompleted>(Failed, _logger),
             When(OutputRequestFault).ThenFaultedOnFault<TSaga, TResponseFailed, TOutputRequested>(Failed, _logger),
             When(OutputCompletedFault).ThenFaultedOnFault<TSaga, TResponseFailed, TOutputCompleted>(Failed, _logger)
         );

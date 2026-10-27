@@ -29,4 +29,8 @@ public class PlanOutputChange
 {
     public string Name { get; set; } = "";
     public PlanAction Action { get; set; }
+
+
+    /// <summary>Whether the plan declared this output sensitive.</summary>
+    public bool Sensitive { get; set; }
 }

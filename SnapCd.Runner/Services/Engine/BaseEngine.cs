@@ -443,6 +443,13 @@ public abstract class BaseEngine
         return moduleOutputSet;
     }
 
+    /// <summary>
+    /// The tool that reads and supplies signals. It links the OpenTofu lineage as a library rather
+    /// than being an engine: a Module applies with whatever engine it is configured for, and only
+    /// the probe and the signals read run on this.
+    /// </summary>
+    public const string ProbeEngine = "snapcd-inspect";
+
     protected void SaveEnvVarsToFile()
     {
         var exportLines = EnvVars

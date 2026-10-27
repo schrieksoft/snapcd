@@ -41,11 +41,11 @@ public enum StageOutcome
 /// </summary>
 public class StateMigrationStepService
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
 
-    public StateMigrationStepService(IDbContextFactory<SnapCdDbContext> dbContextFactory)
+    public StateMigrationStepService(SnapCdDbContext dbContext)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
     }
 
     /// <summary>
@@ -56,11 +56,9 @@ public class StateMigrationStepService
         Guid jobId, Guid organizationId, Guid moduleId, string task,
         Guid? transferId = null, string? runnerInstanceName = null, string? inputKey = null)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var attempt = await NextAttempt(jobId, organizationId, moduleId, task);
 
-        var attempt = await NextAttempt(dbContext, jobId, organizationId, moduleId, task);
-
-        dbContext.StateMigrationJobSteps.Add(new StateMigrationJobStep
+        _dbContext.StateMigrationJobSteps.Add(new StateMigrationJobStep
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
@@ -75,7 +73,7 @@ public class StateMigrationStepService
             StartedAt = DateTimeOffset.UtcNow
         });
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
         return attempt;
     }
 
@@ -85,9 +83,7 @@ public class StateMigrationStepService
         StateMigrationStepStatus status, int? exitCode = null,
         string? errorHeader = null, string? error = null)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        var step = await Latest(dbContext, jobId, organizationId, moduleId, task);
+        var step = await Latest(jobId, organizationId, moduleId, task);
         if (step == null) return;
 
         step.Status = status;
@@ -96,7 +92,7 @@ public class StateMigrationStepService
         step.Error = ErrorText.Body(error);
         step.EndedAt = DateTimeOffset.UtcNow;
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     /// <summary>
@@ -105,11 +101,9 @@ public class StateMigrationStepService
     /// </summary>
     public async Task Skipped(Guid jobId, Guid organizationId, Guid moduleId, string task, Guid? transferId = null)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var attempt = await NextAttempt(jobId, organizationId, moduleId, task);
 
-        var attempt = await NextAttempt(dbContext, jobId, organizationId, moduleId, task);
-
-        dbContext.StateMigrationJobSteps.Add(new StateMigrationJobStep
+        _dbContext.StateMigrationJobSteps.Add(new StateMigrationJobStep
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
@@ -123,7 +117,7 @@ public class StateMigrationStepService
             EndedAt = DateTimeOffset.UtcNow
         });
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     /// <summary>
@@ -133,11 +127,9 @@ public class StateMigrationStepService
     public async Task Reused(
         Guid jobId, Guid organizationId, Guid moduleId, string task, string inputKey, Guid? transferId = null)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var attempt = await NextAttempt(jobId, organizationId, moduleId, task);
 
-        var attempt = await NextAttempt(dbContext, jobId, organizationId, moduleId, task);
-
-        dbContext.StateMigrationJobSteps.Add(new StateMigrationJobStep
+        _dbContext.StateMigrationJobSteps.Add(new StateMigrationJobStep
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
@@ -152,7 +144,7 @@ public class StateMigrationStepService
             EndedAt = DateTimeOffset.UtcNow
         });
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     /// <summary>
@@ -161,9 +153,7 @@ public class StateMigrationStepService
     /// </summary>
     public async Task MarkStale(Guid jobId, Guid organizationId, Guid moduleId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        await dbContext.StateMigrationJobSteps
+        await _dbContext.StateMigrationJobSteps
             .Where(s => s.JobId == jobId
                         && s.OrganizationId == organizationId
                         && s.ModuleId == moduleId
@@ -174,9 +164,7 @@ public class StateMigrationStepService
     /// <summary>The latest attempt at each task, which is what the verdict and the matrix read.</summary>
     public async Task<IReadOnlyList<StateMigrationJobStep>> Latest(Guid jobId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        var steps = await dbContext.StateMigrationJobSteps.AsNoTracking()
+        var steps = await _dbContext.StateMigrationJobSteps.AsNoTracking()
             .Where(s => s.JobId == jobId && s.OrganizationId == organizationId)
             .ToListAsync();
 
@@ -216,10 +204,10 @@ public class StateMigrationStepService
         return StageOutcome.Succeeded;
     }
 
-    private static async Task<int> NextAttempt(
-        SnapCdDbContext dbContext, Guid jobId, Guid organizationId, Guid moduleId, string task)
+    private async Task<int> NextAttempt(
+        Guid jobId, Guid organizationId, Guid moduleId, string task)
     {
-        var latest = await dbContext.StateMigrationJobSteps.AsNoTracking()
+        var latest = await _dbContext.StateMigrationJobSteps.AsNoTracking()
             .Where(s => s.JobId == jobId && s.OrganizationId == organizationId
                         && s.ModuleId == moduleId && s.Task == task)
             .OrderByDescending(s => s.Attempt)
@@ -228,10 +216,10 @@ public class StateMigrationStepService
         return (latest?.Attempt ?? 0) + 1;
     }
 
-    private static async Task<StateMigrationJobStep?> Latest(
-        SnapCdDbContext dbContext, Guid jobId, Guid organizationId, Guid moduleId, string task)
+    private async Task<StateMigrationJobStep?> Latest(
+        Guid jobId, Guid organizationId, Guid moduleId, string task)
     {
-        return await dbContext.StateMigrationJobSteps
+        return await _dbContext.StateMigrationJobSteps
             .Where(s => s.JobId == jobId && s.OrganizationId == organizationId
                         && s.ModuleId == moduleId && s.Task == task)
             .OrderByDescending(s => s.Attempt)

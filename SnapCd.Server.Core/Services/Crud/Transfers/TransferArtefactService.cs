@@ -22,14 +22,14 @@ namespace SnapCd.Server.Core.Services.Crud.Transfers;
 /// </summary>
 public class TransferArtefactService
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IStateEncryptionService _encryption;
 
     public TransferArtefactService(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IStateEncryptionService encryption)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _encryption = encryption;
     }
 
@@ -37,24 +37,20 @@ public class TransferArtefactService
     public async Task StoreSourceFragment(
         Guid transferId, Guid organizationId, string fragment, string meta)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        var row = await Row(dbContext, transferId, organizationId);
+        var row = await Row(transferId, organizationId);
         row.SourceFragmentCiphertext = Encrypt(fragment);
         row.SourceFragmentMetaCiphertext = Encrypt(meta);
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     /// <summary>The output values the counterpart's plan reads.</summary>
     public async Task StoreReceiverOutputs(Guid transferId, Guid organizationId, string outputs)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        var row = await Row(dbContext, transferId, organizationId);
+        var row = await Row(transferId, organizationId);
         row.ReceiverOutputsCiphertext = Encrypt(outputs);
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     /// <summary>The fragment and its meta, or nulls while the source has not produced them.</summary>
@@ -74,9 +70,7 @@ public class TransferArtefactService
     /// <summary>Whether the source has produced the fragment the receiver waits for.</summary>
     public async Task<bool> HasSourceFragment(Guid transferId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        return await dbContext.TransferArtefacts.AsNoTracking()
+        return await _dbContext.TransferArtefacts.AsNoTracking()
             .AnyAsync(a => a.TransferId == transferId
                            && a.OrganizationId == organizationId
                            && a.SourceFragmentCiphertext != null);
@@ -85,9 +79,7 @@ public class TransferArtefactService
     /// <summary>Whether the half that produces the values has stored them.</summary>
     public async Task<bool> HasReceiverOutputs(Guid transferId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        return await dbContext.TransferArtefacts.AsNoTracking()
+        return await _dbContext.TransferArtefacts.AsNoTracking()
             .AnyAsync(a => a.TransferId == transferId
                            && a.OrganizationId == organizationId
                            && a.ReceiverOutputsCiphertext != null);
@@ -95,16 +87,13 @@ public class TransferArtefactService
 
     private async Task<TransferArtefact?> Find(Guid transferId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        return await dbContext.TransferArtefacts.AsNoTracking()
+        return await _dbContext.TransferArtefacts.AsNoTracking()
             .FirstOrDefaultAsync(a => a.TransferId == transferId && a.OrganizationId == organizationId);
     }
 
-    private static async Task<TransferArtefact> Row(
-        SnapCdDbContext dbContext, Guid transferId, Guid organizationId)
+    private async Task<TransferArtefact> Row(Guid transferId, Guid organizationId)
     {
-        var existing = await dbContext.TransferArtefacts
+        var existing = await _dbContext.TransferArtefacts
             .FirstOrDefaultAsync(a => a.TransferId == transferId && a.OrganizationId == organizationId);
 
         if (existing is not null) return existing;
@@ -116,7 +105,7 @@ public class TransferArtefactService
             TransferId = transferId
         };
 
-        dbContext.TransferArtefacts.Add(row);
+        _dbContext.TransferArtefacts.Add(row);
         return row;
     }
 

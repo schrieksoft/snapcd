@@ -30,6 +30,18 @@ public class ApplyOutputCompletedInvoked : OutputCompletedInvokedBase;
 public class DestroyOutputCompletedInvoked : OutputCompletedInvokedBase;
 
 /// <summary>
+/// Published when ProbeHandler.Complete is invoked from SignalR. Processed by
+/// ApplyProbeCompletedInvokedConsumer, which records the signals and then answers the saga.
+/// </summary>
+public abstract class ProbeCompletedInvokedBase
+{
+    public Guid JobId { get; set; }
+    public string? SignalsJson { get; set; }
+}
+
+public class ApplyProbeCompletedInvoked : ProbeCompletedInvokedBase;
+
+/// <summary>
 /// Published when VariableHandler.Complete is invoked from SignalR.
 /// Processed by VariablesCompletedInvokedConsumer to handle database work.
 /// </summary>

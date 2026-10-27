@@ -15,10 +15,19 @@ namespace SnapCd.Server.Core.Services.Vaults;
 /// <param name="WasChanged">True if the secret was created or updated, false if it already existed with the same value.</param>
 public record SetIfChangedResult(string Version, bool WasChanged);
 
+/// <param name="Version">The version identifier the store holds this value under.</param>
+public record VersionedSecret(string Value, string Version);
+
 public interface IVault : IDisposable
 {
     public Task<SetIfChangedResult> SetIfChanged(string secretName, string value);
     public Task<string> GetSecretAsync(string secretName);
+
+    /// <summary>
+    /// The secret and the version the store holds it under. The version stands for the secret
+    /// wherever its value must not be carried, such as in a hash of what a run was given.
+    /// </summary>
+    public Task<VersionedSecret> GetSecretWithVersionAsync(string secretName);
     public Task<string> SetSecretAsync(string secretName, string value);
 
     public Task DeleteSecretAsync(string secretName);

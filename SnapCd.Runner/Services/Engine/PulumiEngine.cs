@@ -65,6 +65,21 @@ public class PulumiEngine : BaseEngine, IEngine
         return ParsePlanFile(GetPlanPath());
     }
 
+    /// <summary>
+    /// Pulumi cannot be probed: a probe plans with values that are not yet known, which its plan
+    /// model has no equivalent of, so it has no predicted outputs to report.
+    /// </summary>
+    public Task<string?> ReadApplyPlanSignals(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<string?>(null);
+    }
+
+    /// <inheritdoc cref="ReadApplyPlanSignals"/>
+    public Task<string?> ReadDestroyPlanSignals(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<string?>(null);
+    }
+
     public IParsedPlan ParseDestroyPlan()
     {
         return ParsePlanFile(GetDestroyPreviewPath());

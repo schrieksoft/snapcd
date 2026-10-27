@@ -448,7 +448,7 @@ else
             await using var db = await DbContextFactory.CreateDbContextAsync();
             var jobId = NewId.NextGuid();
 
-            // Production shape: ModuleJob.Logs = JsonSerializer.Serialize(List<LogEntryDto>), sorted by
+            // Production shape: ModuleJob.Logs = JsonSerializer.Serialize(List<ModuleJobLogEntryDto>), sorted by
             // Timestamp. The test bench builds the per-phase entries via MissionTestBenchScenarios and serialises
             // them so ListLogs renders correctly and the MCP logs resource serves the right shape.
             var logEntries = MissionTestBenchScenarios.BuildEntries(scenario, jobId, moduleId, moduleName, now.AddSeconds(-30));

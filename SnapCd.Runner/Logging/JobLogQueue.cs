@@ -17,11 +17,12 @@ namespace SnapCd.Runner.Logging;
 /// One job's log lines waiting to ship. Each job has its own queue and sender, so a job writing a large log
 /// delays only itself. Lines leave in the order they were written.
 /// </summary>
-public sealed class JobLogQueue
+public sealed class JobLogQueue<TLogEntry>
+    where TLogEntry : class, IJobLogEntry, new()
 {
-    private readonly Queue<LogEntryDto> _lines = new();
+    private readonly Queue<TLogEntry> _lines = new();
     private readonly object _gate = new();
-    private readonly Func<List<LogEntryDto>, Task> _send;
+    private readonly Func<List<TLogEntry>, Task> _send;
     private readonly JobLogStreamSettings _settings;
     private readonly ILogger _logger;
     private readonly Guid _jobId;
@@ -31,13 +32,13 @@ public sealed class JobLogQueue
     private TaskCompletionSource _sendNow = NewSignal();
     private long _pendingBytes;
     private int _dropped;
-    private LogEntryDto? _lastLine;
+    private TLogEntry? _lastLine;
     private bool _warned;
     private bool _sending;
     private bool _completed;
     private bool _sentFirst;
 
-    public JobLogQueue(Guid jobId, Func<List<LogEntryDto>, Task> send, JobLogStreamSettings settings, ILogger logger)
+    public JobLogQueue(Guid jobId, Func<List<TLogEntry>, Task> send, JobLogStreamSettings settings, ILogger logger)
     {
         _jobId = jobId;
         _send = send;
@@ -57,7 +58,7 @@ public sealed class JobLogQueue
     }
 
     /// <summary>Queues a line. Returns false if the queue has been retired, so the caller makes a new one.</summary>
-    public bool TryEnqueue(LogEntryDto line)
+    public bool TryEnqueue(TLogEntry line)
     {
         lock (_gate)
         {
@@ -165,11 +166,11 @@ public sealed class JobLogQueue
         }
     }
 
-    private List<LogEntryDto> TakeBatch()
+    private List<TLogEntry> TakeBatch()
     {
         lock (_gate)
         {
-            var batch = new List<LogEntryDto>();
+            var batch = new List<TLogEntry>();
             long bytes = 0;
             while (_lines.Count > 0
                    && batch.Count < _settings.BatchSizeLimit
@@ -205,7 +206,7 @@ public sealed class JobLogQueue
         }
     }
 
-    private static LogEntryDto DroppedNotice(LogEntryDto last, int dropped) => new()
+    private static TLogEntry DroppedNotice(TLogEntry last, int dropped) => new()
     {
         JobId = last.JobId,
         ModuleId = last.ModuleId,

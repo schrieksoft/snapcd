@@ -22,12 +22,12 @@ namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 /// </summary>
 public class AnswerQuiescenceActivity<TMessage> : IStateMachineActivity<ModuleSaga, TMessage> where TMessage : class
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly ILogger<AnswerQuiescenceActivity<TMessage>> _logger;
 
-    public AnswerQuiescenceActivity(IDbContextFactory<SnapCdDbContext> dbContextFactory, ILogger<AnswerQuiescenceActivity<TMessage>> logger)
+    public AnswerQuiescenceActivity(SnapCdDbContext dbContext, ILogger<AnswerQuiescenceActivity<TMessage>> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -35,12 +35,11 @@ public class AnswerQuiescenceActivity<TMessage> : IStateMachineActivity<ModuleSa
     {
         if (context.Message is ModuleQuiescenceRequested || context.Saga.Paused)
         {
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
             var moduleId = context.Saga.CorrelationId;
             var organizationId = context.Saga.OrganizationId;
 
-            var running = await dbContext.ModuleJobs.AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.IsCurrent == true)
-                          || await dbContext.StateMigrationJobs.AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.Status == ExecutionStatus.Running);
+            var running = await _dbContext.ModuleJobs.AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.IsCurrent == true)
+                          || await _dbContext.StateMigrationJobs.AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.Status == ExecutionStatus.Running);
 
             if (!running)
             {

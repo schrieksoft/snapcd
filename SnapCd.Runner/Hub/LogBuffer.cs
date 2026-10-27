@@ -13,10 +13,13 @@ namespace SnapCd.Runner.Hub;
 /// <summary>
 /// Holds log batches that could not be sent, and sends them in order once the connection is back. Batches are
 /// kept whole: the server recognises a resent batch by its batch timestamp.
+///
+/// Each batch travels with the endpoint it is bound for. Entries for different job tables go to
+/// different endpoints, so a batch that outlives the connection still has to reach the right one.
 /// </summary>
 public class LogBuffer(int capacity)
 {
-    private readonly LinkedList<List<LogEntryDto>> _batches = new();
+    private readonly LinkedList<BufferedBatch> _batches = new();
     private readonly SemaphoreSlim _flushLock = new(1, 1);
     private readonly object _gate = new();
     private int _count;
@@ -42,11 +45,11 @@ public class LogBuffer(int capacity)
     }
 
     /// <summary>Adds a batch, dropping the oldest batches once the buffer holds more than its capacity in entries.</summary>
-    public void Add(List<LogEntryDto> batch)
+    public void Add(string endpoint, List<IJobLogEntry> batch)
     {
         lock (_gate)
         {
-            _batches.AddLast(batch);
+            _batches.AddLast(new BufferedBatch(endpoint, batch));
             _count += batch.Count;
             DropOldestOverCapacity();
         }
@@ -59,7 +62,7 @@ public class LogBuffer(int capacity)
     /// Sends every buffered batch, oldest first, one per call. A batch that fails to send is put back at the
     /// front and the exception is rethrown, so nothing is lost and the order is kept.
     /// </summary>
-    public async Task<int> FlushAsync(Func<List<LogEntryDto>, Task> send)
+    public async Task<int> FlushAsync(Func<string, List<IJobLogEntry>, Task> send)
     {
         await _flushLock.WaitAsync();
         try
@@ -69,7 +72,7 @@ public class LogBuffer(int capacity)
             {
                 try
                 {
-                    await send(batch);
+                    await send(batch.Endpoint, batch.Entries);
                 }
                 catch
                 {
@@ -77,7 +80,7 @@ public class LogBuffer(int capacity)
                     throw;
                 }
 
-                sent += batch.Count;
+                sent += batch.Entries.Count;
             }
 
             return sent;
@@ -88,7 +91,7 @@ public class LogBuffer(int capacity)
         }
     }
 
-    private List<LogEntryDto>? TakeOldest()
+    private BufferedBatch? TakeOldest()
     {
         lock (_gate)
         {
@@ -96,17 +99,17 @@ public class LogBuffer(int capacity)
                 return null;
 
             _batches.RemoveFirst();
-            _count -= first.Value.Count;
+            _count -= first.Value.Entries.Count;
             return first.Value;
         }
     }
 
-    private void PutBackAtFront(List<LogEntryDto> batch)
+    private void PutBackAtFront(BufferedBatch batch)
     {
         lock (_gate)
         {
             _batches.AddFirst(batch);
-            _count += batch.Count;
+            _count += batch.Entries.Count;
             DropOldestOverCapacity();
         }
     }
@@ -117,8 +120,11 @@ public class LogBuffer(int capacity)
         {
             var oldest = _batches.First!.Value;
             _batches.RemoveFirst();
-            _count -= oldest.Count;
-            Interlocked.Add(ref _droppedCount, oldest.Count);
+            _count -= oldest.Entries.Count;
+            Interlocked.Add(ref _droppedCount, oldest.Entries.Count);
         }
     }
 }
+
+/// <summary>A held batch and the hub endpoint it is bound for.</summary>
+public record BufferedBatch(string Endpoint, List<IJobLogEntry> Entries);

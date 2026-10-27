@@ -63,7 +63,20 @@ public class TerraformParsedPlan : IParsedPlan
         var tfActions = MapToTfplanActions(action);
         return Plan.OutputChanges
             .Where(rc => tfActions.Contains(rc.Change.Action))
-            .Select(rc => new PlanOutputChange { Name = rc.Name, Action = action })
+            .Select(rc => ToOutputChange(rc, action))
             .ToList();
+    }
+
+    /// <summary>One output change: its name, its action and whether it is sensitive.</summary>
+    private static PlanOutputChange ToOutputChange(Tfplan.OutputChange change, PlanAction action)
+    {
+        var result = new PlanOutputChange
+        {
+            Name = change.Name,
+            Action = action,
+            Sensitive = change.Sensitive
+        };
+
+        return result;
     }
 }

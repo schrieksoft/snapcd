@@ -9,6 +9,7 @@
 
 using System.Text.Json;
 using MassTransit;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
@@ -52,7 +53,7 @@ public partial class LookupAddressesStateMachine : MassTransitStateMachine<Looku
     public Event<LookupAddressesFaulted> ListFaulted { get; } = null!;
 
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
-    public Request<LookupAddressesSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Request<LookupAddressesSaga, StateMigrationHeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<LookupAddressesSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     public State LookupAddressesSelectRunnerInstancePending { get; } = null!;
@@ -120,6 +121,7 @@ public partial class LookupAddressesStateMachine : MassTransitStateMachine<Looku
                         "Checking {Count} addresses against Module {ModuleId}",
                         context.Message.Addresses.Count, context.Saga.ModuleId);
                 })
+                .Activity(x => x.OfType<RecordSelectedStateMigrationRunnerActivity<LookupAddressesSaga, LookupAddressesJobRequested>>())
                 .Publish(context => Request<LookupAddressesSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
                 .TransitionTo(LookupAddressesSelectRunnerInstancePending)

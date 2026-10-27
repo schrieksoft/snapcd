@@ -134,6 +134,12 @@ else
     [Parameter] public required Guid ModuleId { get; set; }
     [Parameter] public bool Enabled { get; set; } = true;
 
+    /// <summary>
+    /// Something an approver should know before approving, shown in the confirmation dialog. It
+    /// warns rather than blocks: whether to go ahead without it is the approver's call.
+    /// </summary>
+    [Parameter] public string? ApproveCaveat { get; set; }
+
     /// <summary>Raised after a decision is recorded, so the host can refresh the job it belongs to.</summary>
     [Parameter] public EventCallback OnDecided { get; set; }
 
@@ -195,7 +201,9 @@ else
         var parameters = new DialogParameters<DecideDialog>
         {
             { x => x.Verb, declined ? "Decline" : "Approve" },
-            { x => x.Noun, Source.DecisionNoun }
+            { x => x.Noun, Source.DecisionNoun },
+            // Only an approval acts on what has not been checked; a decline stops either way.
+            { x => x.Caveat, declined ? null : ApproveCaveat }
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };

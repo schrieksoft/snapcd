@@ -96,7 +96,11 @@ public static class ServerEndpoints
     public const string SourceRefreshCompletedV2 = "SourceRefreshCompletedV2";
     public const string SourceRefreshFaulted = "SourceRefreshFaulted";
 
+    // One endpoint per table that stores runner logs. Which one a runner invokes is what says
+    // where the batch belongs, so the server never looks an id up across tables.
     public const string AddLogs = "AddLogs";
+    public const string AddModuleJobLogs = "AddModuleJobLogs";
+    public const string AddStateMigrationLogs = "AddStateMigrationLogs";
 
     public const string ReportRunningTask = "ReportRunningTask";
     
@@ -123,6 +127,7 @@ public static class ServerEndpoints
     public const string SplitPlanCompleted = "SplitPlanCompleted";
     public const string SplitPlanCancelled = "SplitPlanCancelled";
     public const string SplitPlanFaulted = "SplitPlanFaulted";
+
 
     public const string TransferGetModuleCompleted = "TransferGetModuleCompleted";
     public const string TransferGetModuleCancelled = "TransferGetModuleCancelled";
@@ -198,6 +203,9 @@ public static class ServerEndpoints
     public const string ApplyOutputCompleted = "ApplyOutputCompleted";
     public const string ApplyOutputCancelled = "ApplyOutputCancelled";
     public const string ApplyOutputFaulted = "ApplyOutputFaulted";
+    public const string ApplyProbeCompleted = "ApplyProbeCompleted";
+    public const string ApplyProbeCancelled = "ApplyProbeCancelled";
+    public const string ApplyProbeFaulted = "ApplyProbeFaulted";
     public const string DestroyGetDefinitiveRevisionCompleted = "DestroyGetDefinitiveRevisionCompleted";
     public const string DestroyGetDefinitiveRevisionCancelled = "DestroyGetDefinitiveRevisionCancelled";
     public const string DestroyGetDefinitiveRevisionFaulted = "DestroyGetDefinitiveRevisionFaulted";

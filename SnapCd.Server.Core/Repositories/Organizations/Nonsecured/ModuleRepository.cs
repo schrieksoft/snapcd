@@ -244,6 +244,23 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
             DbContext.Transfers.RemoveRange(transfers);
         }
 
+        // A signal edge names two Modules and restricts on both, for the same reason a transfer
+        // does: SQL Server refuses two cascade paths into one table. A wave the Module appeared
+        // in would otherwise block the delete for good.
+        //
+        // The edges go rather than being marked Unanswerable. An edge is the relationship to
+        // this Module, so there is nothing left for a status to describe: a consumer whose other
+        // upstreams remain resolves on those, and one with no edges left has simply left the wave,
+        // which is what an absent edge already means to every reader.
+        await DbContext.SignalEdges
+            .Where(e => e.OrganizationId == organizationId &&
+                        (e.ConsumerModuleId == id || e.UpstreamModuleId == id))
+            .ExecuteDeleteAsync();
+
+        await DbContext.ModuleProbeAttempts
+            .Where(a => a.ModuleId == id && a.OrganizationId == organizationId)
+            .ExecuteDeleteAsync();
+
         // Now proceed with normal module deletion (which will cascade to other entities)
         await base.ExecuteDelete(id, organizationId);
     }

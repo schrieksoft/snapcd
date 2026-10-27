@@ -88,15 +88,17 @@ public class RunnerConnectionRepository : GenericOrganizationChildRepository<Run
     /// <summary>
     /// Deletes the active connection for a specific runner instance.
     /// Used when a runner disconnects.
+    ///
+    /// A set-based delete, because a stale row is swept by whichever of several callers reaches it
+    /// first: the row already being gone is the outcome asked for, not a conflict.
     /// </summary>
     public async Task DeleteConnection(Guid organizationId, Guid runnerId, string instanceName)
     {
-        var connection = await GetActiveConnection(organizationId, runnerId, instanceName);
-        if (connection != null)
-        {
-            DbContext.RunnerConnections.Remove(connection);
-            await DbContext.SaveChangesAsync();
-        }
+        await DbContext.RunnerConnections
+            .Where(rc => rc.OrganizationId == organizationId &&
+                         rc.RunnerId == runnerId &&
+                         rc.InstanceName == instanceName)
+            .ExecuteDeleteAsync();
     }
 
     /// <summary>

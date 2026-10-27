@@ -49,6 +49,8 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
             var isStateMigration = await db.StateMigrationJobs
                 .AnyAsync(j => j.Id == message.JobId && j.OrganizationId == message.OrganizationId);
 
+            // Each job family has its own table, because the foreign key is what makes the
+            // heartbeat's lookup safe.
             if (isStateMigration)
             {
                 await _runnerConnectionStateMigrationService.CreateOrUpdate(

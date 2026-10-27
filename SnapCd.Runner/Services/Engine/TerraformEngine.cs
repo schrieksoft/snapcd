@@ -48,6 +48,39 @@ public class TerraformEngine : BaseEngine, IEngine
         return ParsePlan(GetPlanApplyPath());
     }
 
+    /// <summary>
+    /// Read by Snap CD's own build rather than the engine: it reports a plan's output values in
+    /// the form a probe consumes, including the ones a plan cannot predict. It reads the saved
+    /// plan's output changes alone, which is why the engine's version need not match its own.
+    /// </summary>
+    public Task<string?> ReadApplyPlanSignals(CancellationToken cancellationToken = default) =>
+        ReadPlanSignals(GetPlanApplyPath(), "plan-signals.json", cancellationToken);
+
+    /// <summary>
+    /// The same for a destroy, whose outputs go to nothing. A Module reading one of them has its
+    /// input taken away, which is a finding a reader wants before approving the destroy.
+    /// </summary>
+    public Task<string?> ReadDestroyPlanSignals(CancellationToken cancellationToken = default) =>
+        ReadPlanSignals(GetPlanDestroyPath(), "destroy-plan-signals.json", cancellationToken);
+
+    private async Task<string?> ReadPlanSignals(
+        string planPath,
+        string signalsFileName,
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(planPath)) return null;
+
+        var signalsPath = $"{SnapCdDir}/{signalsFileName}";
+
+        await RunProcess(
+            $"{ProbeEngine} signals --plan \"{planPath}\" --out \"{signalsPath}\"",
+            cancellationToken);
+
+        return File.Exists(signalsPath)
+            ? await File.ReadAllTextAsync(signalsPath, cancellationToken)
+            : null;
+    }
+
     private TerraformParsedPlan ParsePlan(string planPath)
     {
         using var archive = ZipFile.OpenRead(planPath);

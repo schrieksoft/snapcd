@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Runner.Logging;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests;
@@ -16,7 +17,12 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task ApplyFromPlan(ApplyFromPlanRequestBase request, HubConnection connection)
+    public async Task ApplyFromPlan(
+        ApplyFromPlanRequestBase request,
+        HubConnection connection,
+        Func<Guid, int, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, int?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -36,7 +42,7 @@ public partial class Tasks
             request.JobId,
             nameof(ApplyFromPlan),
             logger,
-            _jobLogStream,
+            _jobLogStreams.ModuleJobs,
             request.Metadata
         );
 
@@ -69,7 +75,7 @@ public partial class Tasks
             taskContext.LogInformation($"Resource count: {actualResourceCount}");
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeApplyFromPlanCompleted(request.JobId, actualResourceCount),
+                () => completed(request.JobId, actualResourceCount),
                 nameof(runnerHubClient.InvokeApplyFromPlanCompleted),
                 request.JobId,
                 connection);
@@ -78,7 +84,7 @@ public partial class Tasks
         {
             taskContext.LogWarning("Apply process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeApplyFromPlanCancelled(request.JobId),
+                () => cancelled(request.JobId),
                 nameof(runnerHubClient.InvokeApplyFromPlanCancelled),
                 request.JobId,
                 connection);
@@ -104,7 +110,7 @@ public partial class Tasks
             }
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeApplyFromPlanFaulted(request.JobId, ex.Message, ex.StackTrace, actualResourceCount),
+                () => faulted(request.JobId, ex.Message, ex.StackTrace, actualResourceCount),
                 nameof(runnerHubClient.InvokeApplyFromPlanFaulted),
                 request.JobId,
                 connection);

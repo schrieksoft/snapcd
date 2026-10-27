@@ -7,11 +7,13 @@
 // for terms covering either use.
 
 using System.Text.Json;
+using SnapCd.Runner.Logging;
 using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
+using SnapCd.Runner.Services.Plan;
 using SnapCd.Runner.Services.PolicyEvaluation;
 
 namespace SnapCd.Runner.Tasks;
@@ -25,6 +27,7 @@ public partial class Tasks
     public async Task Plan(
         PlanRequestBase request,
         HubConnection connection,
+        IJobLogStream logStream,
         Func<Guid, PlanCompletedData, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, PolicyOutcome?, Task> faulted)
@@ -47,7 +50,7 @@ public partial class Tasks
             request.JobId,
             nameof(Plan),
             logger,
-            _jobLogStream,
+            logStream,
             request.Metadata
         );
 
@@ -139,7 +142,10 @@ public partial class Tasks
                 OutputsCreateList = plan.GetOutputChange(PlanAction.Create).Select(o => o.Name).ToList(),
                 OutputsModifyList = plan.GetOutputChange(PlanAction.Update).Select(o => o.Name).ToList(),
                 OutputsDestroyList = plan.GetOutputChange(PlanAction.Delete).Select(o => o.Name).ToList(),
-                OutputsRecreateList = plan.GetOutputChange(PlanAction.Replace).Select(o => o.Name).ToList()
+                OutputsRecreateList = plan.GetOutputChange(PlanAction.Replace).Select(o => o.Name).ToList(),
+                // Every output with its value, so a consumer can be planned against what this one
+                // will become rather than what it is now.
+                OutputSignalsJson = await engine.ReadApplyPlanSignals(killCts.Token)
             };
 
             await InvokeWithRetryAsync(
@@ -187,4 +193,16 @@ public partial class Tasks
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
         }
     }
+
+    /// <summary>
+    /// The outputs whose value changes. An unchanged output carries no signal, and a destroyed one
+    /// is a change a consumer needs to hear about as much as a modified one.
+    /// </summary>
+    private static List<PlanOutputChange> ChangedOutputs(IParsedPlan plan) =>
+    [
+        .. plan.GetOutputChange(PlanAction.Create),
+        .. plan.GetOutputChange(PlanAction.Update),
+        .. plan.GetOutputChange(PlanAction.Delete),
+        .. plan.GetOutputChange(PlanAction.Replace)
+    ];
 }

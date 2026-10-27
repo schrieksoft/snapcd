@@ -33,7 +33,7 @@ public class TransferServiceFactory(
         var provider = principalProvider ?? new HttpContextPrincipalProvider(new HttpContextAccessor());
 
         return new TransferService(
-            dbFactory,
+            dbFactory.CreateDbContext(),
             moduleSecuredRepositoryFactory.Create(provider),
             stateMigrationServiceFactory.Create(provider),
             provider,
@@ -46,7 +46,7 @@ public class TransferServiceFactory(
 /// job and records who agreed; it does not coordinate the two, which run independently.
 /// </summary>
 public class TransferService(
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     ModuleSecuredRepository moduleSecuredRepository,
     StateMigrationService stateMigrationService,
     IPrincipalProvider principalProvider,
@@ -69,8 +69,6 @@ public class TransferService(
 
         if (counterpartyModuleId == moduleId)
             throw new StateMigrationNotAllowedException("A Module cannot transfer to itself.");
-
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
         await EnsureModuleExists(dbContext, counterpartyModuleId, organizationId);
 
@@ -119,7 +117,6 @@ public class TransferService(
         bool granted,
         string? moduleRef)
     {
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var transfer = await LoadTransfer(dbContext, transferId, organizationId);
 
         if (transfer.CounterpartyModuleId != moduleId)
@@ -180,8 +177,6 @@ public class TransferService(
     /// </remarks>
     public async Task CloseIfBothSidesEnded(Guid transferId, Guid organizationId)
     {
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
-
         var transfer = await dbContext.Transfers
             .FirstOrDefaultAsync(t => t.Id == transferId && t.OrganizationId == organizationId);
 
@@ -203,8 +198,6 @@ public class TransferService(
     /// <summary>The open transfer this Module is in, in either role.</summary>
     public async Task<Transfer?> FindOpenForModule(Guid moduleId, Guid organizationId)
     {
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
-
         return await dbContext.Transfers.AsNoTracking()
             .FirstOrDefaultAsync(t =>
                 t.OrganizationId == organizationId &&
@@ -256,5 +249,9 @@ public class TransferService(
             .Select(m => m.Name)
             .FirstOrDefaultAsync() ?? moduleId.ToString()[..8];
 
-    public void Dispose() => moduleSecuredRepository.Dispose();
+    public void Dispose()
+    {
+        moduleSecuredRepository.Dispose();
+        dbContext.Dispose();
+    }
 }

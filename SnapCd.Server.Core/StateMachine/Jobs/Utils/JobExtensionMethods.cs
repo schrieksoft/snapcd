@@ -138,22 +138,26 @@ public static class JobExtensionMethods
     }
 
 
-    public static EventActivityBinder<TSaga, HeartbeatScheduled> ThenHeartbeatScheduled<TSaga>(this
-        EventActivityBinder<TSaga, HeartbeatScheduled> binder, Request<TSaga, HeartbeatRequested, HeartbeatCompleted> heartbeatRequested)
+    /// <summary>
+    /// TRequest names the job family, so the consumer that answers reads the right table. The
+    /// type argument is what carries it: there is no family left for a caller to get wrong.
+    /// </summary>
+    public static EventActivityBinder<TSaga, HeartbeatScheduled> ThenHeartbeatScheduled<TSaga, TRequest>(this
+        EventActivityBinder<TSaga, HeartbeatScheduled> binder, Request<TSaga, TRequest, HeartbeatCompleted> heartbeatRequested)
         where TSaga : JobSagaBase
+        where TRequest : HeartbeatRequestedBase, new()
     {
         return binder
             .IfElse(IsFromSupersededSchedule,
                 stale => stale,
                 current => current
                     .Request(heartbeatRequested,
-                        context => new HeartbeatRequested
+                        context => new TRequest
                         {
                             CorrelationId = context.Saga.CorrelationId,
                             OrganizationId = context.Saga.OrganizationId,
                             RunnerInstanceName = context.Saga.RunnerInstanceName,
-                            RunnerId = context.Saga.RunnerId,
-                            IsStateMigration = context.Saga is StateMigrationSagaBase
+                            RunnerId = context.Saga.RunnerId
                         }));
     }
 
@@ -191,7 +195,7 @@ public static class JobExtensionMethods
                 ModuleJobId = context.Saga.CorrelationId,
                 OrganizationId = context.Saga.OrganizationId
             })
-            .Activity(x => x.OfType<TimeoutModuleJobActivity<TSaga, HeartbeatRequested>>())
+            .Activity(x => x.OfType<TimeoutModuleJobActivity<TSaga, ModuleJobHeartbeatRequested>>())
             .TransitionTo(failed)
             .Finalize();
     }

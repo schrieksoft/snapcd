@@ -193,6 +193,23 @@ public class GatekeepingTargetTests : IAsyncLifetime
 
     private bool Ran(DesiredStateHeadline state) => _ran.Any(r => r.ModuleId == _moduleId && r.State == state);
 
+    /// <summary>
+    /// A Module whose dependencies are not satisfied queues, which is what keeps a Module that has
+    /// never applied out of an apply it cannot run: its upstream has no state and no outputs for
+    /// it to read. Whether the resulting job owes a probe is the job's own question.
+    /// </summary>
+    [Fact]
+    public async Task A_module_whose_dependencies_are_unmet_is_queued()
+    {
+        await SetSaga(desired: DesiredStateHeadline.Applied, queued: null);
+        _dependencies.ApplyMet = false;
+
+        await Trigger();
+
+        Assert.False(Ran(DesiredStateHeadline.Applied));
+        Assert.Equal(DesiredStateHeadline.Applied, (await ReadSaga()).QueuedDesiredStateHeadline);
+    }
+
     [Fact]
     public async Task An_automatic_trigger_checks_a_queued_destroy_against_its_dependents()
     {

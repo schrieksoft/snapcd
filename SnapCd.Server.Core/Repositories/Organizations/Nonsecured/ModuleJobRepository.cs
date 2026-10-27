@@ -118,6 +118,29 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
             await ExecuteUpdate(job); //E.g. if calling from MassTransit state machine, a transaction is already running
     }
 
+    public async Task RecordSelectedRunner(Guid id, Guid organizationId, Guid selectedRunnerId, bool wrapInTransaction = false)
+    {
+        var job = await Get(id, organizationId);
+        job.SelectedRunnerId = selectedRunnerId;
+
+        if (wrapInTransaction)
+            await Update(job);
+        else
+            await ExecuteUpdate(job); //E.g. if calling from MassTransit state machine, a transaction is already running
+    }
+
+    /// <summary>
+    /// The declaration this job runs against, as one value. The saga holds the declaration itself
+    /// and is deleted when the job finishes, so the row is the only place the fact survives.
+    /// </summary>
+    public async Task RecordDeclarationHash(Guid id, Guid organizationId, string declarationHash)
+    {
+        var job = await Get(id, organizationId);
+        job.DeclarationHash = declarationHash;
+
+        await ExecuteUpdate(job);
+    }
+
     public async Task<string?> GetActualDefinitiveRevision(Guid moduleId, Guid organizationId)
     {
         return await DbContext.ModuleJobs
@@ -256,7 +279,8 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         int? planCreateCount = null,
         int? planModifyCount = null,
         int? planDestroyCount = null,
-        int? planRecreateCount = null)
+        int? planRecreateCount = null,
+        string? outputSignalsJson = null)
     {
         var job = await Get(id, organizationId);
         job.OutputsUnchangedList = Truncate(unchangedList, 4000);
@@ -269,6 +293,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         job.PlanModifyCount = planModifyCount;
         job.PlanDestroyCount = planDestroyCount;
         job.PlanRecreateCount = planRecreateCount;
+        job.OutputSignalsJson = Truncate(outputSignalsJson, 16000);
         await ExecuteUpdate(job);
     }
 }

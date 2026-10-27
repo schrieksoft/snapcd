@@ -21,7 +21,7 @@ namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 /// this half has parked, and nothing publishes it a second time.
 /// </summary>
 public class CheckConsentDecidedActivity(
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     ILogger<CheckConsentDecidedActivity> logger)
     : IStateMachineActivity<TransferMigrateSaga>
 {
@@ -45,8 +45,6 @@ public class CheckConsentDecidedActivity(
     private async Task Check(TransferMigrateSaga saga, PipeContext context)
     {
         if (saga.TransferId is not { } transferId) return;
-
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
         var status = await dbContext.Transfers.AsNoTracking()
             .Where(t => t.Id == transferId && t.OrganizationId == saga.OrganizationId)

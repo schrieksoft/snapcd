@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Middleware;
 using SnapCd.Server.Core.Misc.Configuration;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.RippleProbes;
 using SnapCd.Server.Core.Services.MaintenanceMode;
 using SnapCd.Server.Core.Services.Dashboard;
 using SnapCd.Server.Core.Services.DataSeeder;

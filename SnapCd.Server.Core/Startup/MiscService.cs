@@ -71,6 +71,7 @@ public static class MiscService
         services.AddSingleton<JobCreatedNotificationService>();
         services.AddSingleton<JobUpdatedNotificationService>();
         services.AddSingleton<StateMigrationUpdatedNotificationService>();
+        services.AddSingleton<ProbeWaveUpdatedNotificationService>();
         services.AddSingleton<LogReceivedNotificationService>();
         services.AddSingleton<RunnerAvailabilityModifiedNotificationService>();
         services.AddSingleton<AgentAvailabilityModifiedNotificationService>();
@@ -102,7 +103,9 @@ public static class MiscService
         services.AddScoped<SourceRefreshJob>();
         services.AddScoped<SourceRefreshDispatcher>();
 
-        services.AddScoped<LogService>();
+        services.AddScoped<SnapCd.Server.Core.Services.Logs.JobLogWriterFactory>();
+        services.AddScoped(typeof(SnapCd.Server.Core.Services.Logs.JobLogReader<,,>));
+        services.AddScoped<SnapCd.Server.Core.Services.Logs.SecuredLogReaderFactory>();
 
         // Other services
         services.AddScoped<IPrincipalProvider, HttpContextPrincipalProvider>();
@@ -128,6 +131,32 @@ public static class MiscService
         services.AddScoped<RunnerConnectionStateMigrationService>();
         services.AddScoped<QuiescenceProbeService>();
         services.AddScoped<TransportProbeService>();
+
+        // The probe step's query, inputs document and signal recording. RippleProbeConsumerLookup
+        // is the output-to-variable map the inputs document is keyed by.
+        services.AddScoped<Services.RippleProbes.RippleProbeConsumerLookupFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeInputsBuilderFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeReadinessReaderFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeWaveProgressReaderFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeWaveReadServiceFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeRerunServiceFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeWaveStarterFactory>();
+        services.AddScoped<Services.RippleProbes.SignalEdgeResolverFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeSignalRecorderFactory>();
+        // The services themselves, for anything resolved per scope: an activity, a consumer, the
+        // harness. The factories above stay for a page that wants an instance it controls.
+        services.AddScoped<Services.RippleProbes.RippleProbeConsumerLookup>();
+        services.AddScoped<Services.RippleProbes.ProbeReadinessReader>();
+        services.AddScoped<Services.RippleProbes.ProbeInputsBuilder>();
+        services.AddScoped<Services.RippleProbes.ProbeWaveProgressReader>();
+        services.AddScoped<Services.RippleProbes.ProbeWaveReadService>();
+        services.AddScoped<Services.RippleProbes.ProbeRerunService>();
+        services.AddScoped<Services.RippleProbes.ProbeWaveStarter>();
+        services.AddScoped<Services.RippleProbes.SignalEdgeResolver>();
+        services.AddScoped<Services.RippleProbes.ProbeSignalRecorder>();
+
+        services.AddScoped<Services.RippleProbes.ISignalSecretReader, Services.RippleProbes.SignalSecretReader>();
+        services.AddScoped<Services.RippleProbes.ISignalSecretWriter, Services.RippleProbes.SignalSecretWriter>();
         services.AddScoped<Services.MaintenanceMode.MaintenanceOperationsService>();
         services.AddScoped<TransportReconciliationJob>();
         services.AddScoped<Services.MaintenanceMode.MaintenancePhaseService>();

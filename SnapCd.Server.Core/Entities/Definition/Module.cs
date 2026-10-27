@@ -61,6 +61,8 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public List<ModuleEnvVarFromSecret> ModuleEnvVarFromSecrets { get; set; } = new();
 
     public List<OutputSet> OutputSets { get; set; } = new();
+    public List<Signals.SignalOutputSet> SignalOutputSets { get; set; } = new();
+    public List<ProbeWaves.ModuleProbeAttempt> ModuleProbeAttempts { get; set; } = new();
     public List<VariableSet> VariableSets { get; set; } = new();
     public List<ApplyJobSaga> ApplyModuleSaga { get; set; } = new();
     public List<DestroyJobSaga> DestroyModuleSaga { get; set; } = new();

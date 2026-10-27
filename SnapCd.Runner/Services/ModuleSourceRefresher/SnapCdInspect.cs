@@ -131,6 +131,9 @@ public class SnapCdInspect
         public List<string> DanglingPaths { get; set; } = new();
     }
 
+    /// <summary>Path to the binary, for callers that run it as part of a larger shell command.</summary>
+    public string BinaryPath => _binaryPath.Value;
+
     public List<ModuleClosure> Discover(string cloneDir, string commitSha, IReadOnlyCollection<string> roots)
     {
         var result = Run<InspectResult>(["--repo", cloneDir, "--commit", commitSha, "--roots", string.Join(',', roots)]);

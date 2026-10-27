@@ -33,6 +33,8 @@ public interface IApplyEndpoints
 
     Task ApplyOutput(OutputRequestBase request);
 
+    Task ApplyProbe(ProbeRequestBase request);
+
     Task ApplyPlan(PlanRequestBase request);
 
     Task ApplyPolicyValidate(PolicyValidateRequestBase request);

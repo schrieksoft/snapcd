@@ -35,12 +35,10 @@
 @inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
 @inject IOrganizationSwitchingPolicy OrganizationSwitchingPolicy
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
-@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IOrganizationContext OrganizationContext
 @inject IOptions<SecretStoreSettings> SecretStoreSettings
 @inject IOrganizationActivationService OrganizationActivation
 @inject OrganizationMembershipCacheService MembershipCache
-@inject UserManager<User> UserManager
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 @inject UserFavoriteSecuredRepositoryFactory FavoriteRepoFactory
 @inject ModuleSecuredRepositoryFactory ModuleRepoFactory
@@ -505,11 +503,13 @@
         if (attr.AnyOf.Length == 0) return true;
         if (orgId == Guid.Empty) return true;
 
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = await UserManager.GetUserAsync(authState.User);
-        if (user is null) return false;
+        if (HttpContextPrincipalProvider.GetPrincipalDiscriminatorOrDefault() != PrincipalDiscriminator.User)
+            return false;
 
-        return await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, orgId, attr.AnyOf);
+        var userId = HttpContextPrincipalProvider.GetSubjectOrDefault(orgId);
+        if (userId == Guid.Empty) return false;
+
+        return await MembershipCache.HasAnyOrganizationRoleAsync(userId, orgId, attr.AnyOf);
     }
 
 

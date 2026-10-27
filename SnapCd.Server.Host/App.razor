@@ -43,6 +43,24 @@
 <body>
 
 <Routes @rendermode="RenderModeForPage"/>
+
+@* Supplying this element keeps the reconnect UI in the page: without one, Blazor builds its own
+   inside a shadow root, where the site's stylesheet cannot reach it. The ids are the ones it
+   writes the attempt counts into. *@
+<div id="components-reconnect-modal" style="display: none">
+    <div class="components-reconnect-dialog">
+        <p class="components-reconnect-dialog-text components-reconnect-first-attempt" style="display: none">Connection lost. Trying to reconnect.</p>
+        <p class="components-reconnect-dialog-text components-reconnect-retry" style="display: none">
+            Connection lost. Attempt <span id="components-reconnect-current-attempt"></span>
+            of <span id="components-reconnect-max-retries"></span>,
+            retrying in <span id="components-seconds-to-next-attempt"></span> seconds.
+        </p>
+        <p class="components-reconnect-dialog-text components-reconnect-give-up" style="display: none">
+            Could not reconnect to the server.
+        </p>
+        <button type="button" onclick="location.reload()" style="display: none">Reload</button>
+    </div>
+</div>
 <script src="_content/BlazorMonaco/jsInterop.js"></script>
 <script src="_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"></script>
 <script src="_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.js"></script>

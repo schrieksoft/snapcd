@@ -345,7 +345,6 @@ else
                 TimestampEnd = status == ExecutionStatus.Running ? null : now,
                 Status = status,
                 JobType = nameof(ApplyJobSaga),
-                Logs = JsonSerializer.Serialize(new List<LogEntryDto>()),
                 WaitingForApproval = _selectedTrigger == IntegrationTrigger.JobAwaitingApproval
             });
             await db.SaveChangesAsync();
@@ -396,7 +395,6 @@ else
                 TimestampStart = now,
                 Status = ExecutionStatus.Running,
                 JobType = nameof(ApplyJobSaga),
-                Logs = JsonSerializer.Serialize(new List<LogEntryDto>()),
             });
             await db.SaveChangesAsync();
 

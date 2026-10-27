@@ -37,7 +37,7 @@ public partial class Tasks
             request.JobId,
             nameof(SplitMigrateRun),
             logger,
-            _jobLogStream,
+            _jobLogStreams.StateMigrations,
             request.Metadata
         );
 

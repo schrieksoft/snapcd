@@ -6,15 +6,18 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Events.Steps.Base;
+namespace SnapCd.Server.Core.Events.System;
 
-namespace SnapCd.Server.Core.Events.Steps;
-
-public class HeartbeatRequested : StepResponseBase
+/// <summary>
+/// Something in a wave changed: a contribution resolved, or a participant recorded its signals. A
+/// wave moves while someone is looking at it, and a view that only updates on reload makes a
+/// working wave look stuck.
+/// </summary>
+public class ProbeWaveUpdatedEvent
 {
-    public string? RunnerInstanceName { get; set; }
-    public Guid RunnerId { get; set; }
+    public Guid ProbeWaveId { get; set; }
+    public Guid OrganizationId { get; set; }
 
-    /// <summary>CorrelationId is a StateMigrationJob rather than a ModuleJob, so liveness is read from the parallel table.</summary>
-    public bool IsStateMigration { get; set; }
+    /// <summary>The Module whose participation changed, where one did.</summary>
+    public Guid? ModuleId { get; set; }
 }

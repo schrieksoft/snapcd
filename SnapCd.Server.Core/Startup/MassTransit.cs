@@ -263,6 +263,7 @@ public static class MassTransit
         typeof(SplitMigrateVerifyConsumer),
         typeof(PlanDestroyConsumer),
         typeof(ApplyFromPlanConsumer),
+        typeof(ApplyProbeConsumer),
         typeof(DestroyFromPlanConsumer),
         typeof(ApplyOutputConsumer),
         typeof(DestroyOutputConsumer),
@@ -322,8 +323,12 @@ public static class MassTransit
         typeof(MoveSelectRunnerInstanceConsumer),
         typeof(ImportSelectRunnerInstanceConsumer),
         typeof(RemoveSelectRunnerInstanceConsumer),
+        // A request the saga could not handle at all, so the job it was created for is closed here.
+        typeof(SnapCd.Server.Core.Consumers.Jobs.StateMigrationRequestFaultConsumer),
+
         // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
-        typeof(HeartbeatConsumer),
+        typeof(ModuleJobHeartbeatConsumer),
+        typeof(StateMigrationHeartbeatConsumer),
 
         // Acts on nothing; it gives a warm-up somewhere to land.
         typeof(WarmupCompetingConsumer),
@@ -362,6 +367,7 @@ public static class MassTransit
 
         // Handler consumers (offloaded from SignalR handlers)
         typeof(ApplyOutputCompletedInvokedConsumer),
+        typeof(ApplyProbeCompletedInvokedConsumer),
         typeof(DestroyOutputCompletedInvokedConsumer),
         typeof(ApplyVariablesCompletedInvokedConsumer),
         typeof(DestroyVariablesCompletedInvokedConsumer),
@@ -378,6 +384,7 @@ public static class MassTransit
         typeof(JobCreatedFanoutConsumer),
         typeof(JobUpdatedFanoutConsumer),
         typeof(StateMigrationUpdatedFanoutConsumer),
+        typeof(ProbeWaveUpdatedFanoutConsumer),
         typeof(LogReceivedFanoutConsumer),
         typeof(RunnerAvailabilityModifiedFanoutConsumer),
         typeof(AgentAvailabilityModifiedFanoutConsumer),
@@ -428,6 +435,8 @@ public static class MassTransit
         services.AddScoped(typeof(TerraformStateMigrationNeedsApprovalActivity<,>));
         services.AddScoped(typeof(RunnerConnectedActivity<,>));
         services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));
+        services.AddScoped(typeof(RecordSelectedRunnerActivity<,>));
+        services.AddScoped(typeof(RecordSelectedStateMigrationRunnerActivity<,>));
         services.AddScoped(typeof(NotWaitingForRunnerActivity<,>));
         services.AddScoped(typeof(WaitingForRunnerActivity<,>));
         services.AddScoped(typeof(WaitingForConsentActivity<,>));
@@ -511,6 +520,10 @@ public static class MassTransit
                 ApplyFromPlanRequested,
                 ApplyFromPlanCompleted,
                 ApplyFromPlanCancelled,
+                ApplyProbeRequested,
+                ApplyProbeCompleted,
+                ApplyProbeCancelled,
+                ApplyProbeFaulted,
                 ApplyFromPlanFaulted,
                 ApplyCancelKillRequested,
                 DummyApplyCancelKillCompleted,
@@ -560,6 +573,10 @@ public static class MassTransit
                 DestroyFromPlanRequested,
                 DestroyFromPlanCompleted,
                 DestroyFromPlanCancelled,
+                DummyDestroyProbeRequested,
+                DummyDestroyProbeCompleted,
+                DummyDestroyProbeCancelled,
+                DummyDestroyProbeFaulted,
                 DestroyFromPlanFaulted,
                 DestroyCancelKillRequested,
                 DummyDestroyCancelKillCompleted,

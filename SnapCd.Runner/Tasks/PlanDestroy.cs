@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using System.Text.Json;
+using SnapCd.Runner.Logging;
 using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
@@ -18,7 +19,15 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task PlanDestroy(PlanDestroyRequestBase request, HubConnection connection)
+    /// <summary>
+    /// Plans the destroy. The callbacks say which endpoints to answer on, as every other step's do.
+    /// </summary>
+    public async Task PlanDestroy(
+        PlanDestroyRequestBase request,
+        HubConnection connection,
+        Func<Guid, PlanCompletedData, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, PolicyOutcome?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -38,7 +47,7 @@ public partial class Tasks
             request.JobId,
             nameof(PlanDestroy),
             logger,
-            _jobLogStream,
+            _jobLogStreams.ModuleJobs,
             request.Metadata
         );
 
@@ -77,8 +86,8 @@ public partial class Tasks
                     "State holds no resources — this module is already destroyed. Reporting an empty destroy plan.");
 
                 await InvokeWithRetryAsync(
-                    () => runnerHubClient.InvokeDestroyPlanCompleted(request.JobId, new PlanCompletedData()),
-                    nameof(runnerHubClient.InvokeDestroyPlanCompleted),
+                    () => completed(request.JobId, new PlanCompletedData()),
+                    nameof(completed),
                     request.JobId,
                     connection);
 
@@ -152,12 +161,15 @@ public partial class Tasks
                 OutputsCreateList = planDestroy.GetOutputChange(PlanAction.Create).Select(o => o.Name).ToList(),
                 OutputsModifyList = planDestroy.GetOutputChange(PlanAction.Update).Select(o => o.Name).ToList(),
                 OutputsDestroyList = planDestroy.GetOutputChange(PlanAction.Delete).Select(o => o.Name).ToList(),
-                OutputsRecreateList = planDestroy.GetOutputChange(PlanAction.Replace).Select(o => o.Name).ToList()
+                OutputsRecreateList = planDestroy.GetOutputChange(PlanAction.Replace).Select(o => o.Name).ToList(),
+                // Every output with its value, so a consumer can be planned against the inputs it
+                // is about to lose rather than the ones it has now.
+                OutputSignalsJson = await engine.ReadDestroyPlanSignals(killCts.Token)
             };
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeDestroyPlanCompleted(request.JobId, planData),
-                nameof(runnerHubClient.InvokeDestroyPlanCompleted),
+                () => completed(request.JobId, planData),
+                nameof(completed),
                 request.JobId,
                 connection);
 
@@ -167,8 +179,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("Destroy plan process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeDestroyPlanCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeDestroyPlanCancelled),
+                () => cancelled(request.JobId),
+                nameof(cancelled),
                 request.JobId,
                 connection);
         }
@@ -177,13 +189,13 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling PlanDestroy for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeDestroyPlanFaulted(
+                () => faulted(
                     request.JobId,
                     ex.Message,
                     ex.StackTrace,
                     ClassifyFaultPolicyOutcome(request.Policies.Count, ex, planOutput)
                 ),
-                nameof(runnerHubClient.InvokeDestroyPlanFaulted),
+                nameof(faulted),
                 request.JobId,
                 connection);
         }

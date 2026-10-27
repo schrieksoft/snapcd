@@ -53,6 +53,7 @@ public static class TaskHandlers
         services.AddScoped<ApplyFromPlanHandler>();
         services.AddScoped<DestroyFromPlanHandler>();
         services.AddScoped<ApplyOutputHandler>();
+        services.AddScoped<ApplyProbeHandler>();
         services.AddScoped<DestroyOutputHandler>();
         services.AddScoped<SourceRefreshHandler>();
         services.AddScoped<ReportRunningTaskHandler>();

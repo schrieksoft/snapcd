@@ -40,7 +40,7 @@ public partial class Tasks
             request.JobId,
             nameof(SplitRefactorDiff),
             logger,
-            _jobLogStream,
+            _jobLogStreams.StateMigrations,
             request.Metadata
         );
 

@@ -48,6 +48,19 @@ public class RunOptions
 
     public static readonly Guid SeededModuleId = new("99999999-9999-9999-9999-999999999910");
 
+    /// <summary>The debug seeder's diamond: a feeds b and c, and d reads both.</summary>
+    public static readonly Guid DiamondAModuleId = new("99999999-9999-9999-9999-999999999940");
+    public static readonly Guid DiamondBModuleId = new("99999999-9999-9999-9999-999999999941");
+    public static readonly Guid DiamondCModuleId = new("99999999-9999-9999-9999-999999999942");
+    public static readonly Guid DiamondDModuleId = new("99999999-9999-9999-9999-999999999943");
+
+    /// <summary>The two consumers the change under test does not reach.</summary>
+    public static readonly Guid DiamondEModuleId = new("99999999-9999-9999-9999-999999999944");
+    public static readonly Guid DiamondFModuleId = new("99999999-9999-9999-9999-999999999945");
+
+    /// <summary>A second origin, which b also reads, so b is owed a probe by two waves at once.</summary>
+    public static readonly Guid DiamondGModuleId = new("99999999-9999-9999-9999-999999999946");
+
     public required string MasterConnectionString { get; init; }
     public required string DatabaseName { get; init; }
     public Guid OrganizationId { get; init; } = SeededOrganizationId;
@@ -100,6 +113,27 @@ public class RunOptions
     public string? ServiceBusConnectionString { get; init; }
 
     public bool Keep { get; init; }
+
+    /// <summary>
+    /// Answer the runner's steps with the runner's own code rather than a canned reply, so the
+    /// engine really plans. Minutes rather than seconds, and it needs tofu on PATH.
+    /// </summary>
+    public bool RealRunner { get; init; }
+
+    /// <summary>
+    /// Hold the approval until the wave has settled. A wave ends when the approval decision is
+    /// made, so approving as soon as the job asks stops it after one hop.
+    /// </summary>
+    public bool ApproveAfterWave { get; init; }
+
+    /// <summary>
+    /// A second Module to apply alongside the first, so two waves are open at once. With
+    /// --real-runner this defaults to the diamond's second origin.
+    /// </summary>
+    public Guid SecondModuleId { get; init; }
+
+    /// <summary>Where a real run checks out its Modules and keeps its engine state.</summary>
+    public string WorkingDirectory { get; init; } = string.Empty;
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
 
     /// <summary>Seconds to wait after every endpoint reports ready, before publishing.</summary>
@@ -220,7 +254,8 @@ public class RunOptions
                   --target        <string>  what each address becomes, for a move or an import
                   --root          <path>    a split's root within the checkout
                   --force                   let a split proceed over its own doubts
-                  --module        <guid>    default: the seeder's mock Module
+                  --module        <guid>    default: the seeder's mock Module, or the
+                                            diamond's origin with --real-runner
                   --principal     <guid>    default: the seeder's debug user
                   --appsettings   <path>    the server's appsettings.json
                   --bus           <kind>    SqlServer (default) or AzureServiceBus
@@ -228,10 +263,21 @@ public class RunOptions
                                             AzureServiceBus
                   --timeout       <seconds> default 300
                   --keep                    leave the database behind to inspect
+                  --approve-after-wave      hold the approval until the wave settles, so every
+                                            hop probes before the decision ends it
+                  --two-origins             apply a second Module too, so one consumer is owed a
+                                            probe by two waves at once
+                  --real-runner             run the runner's own code, so the engine really
+                                            plans; needs tofu on PATH and is minutes slower
+                  --working-dir   <path>    where a real run checks out Modules
                   --quiet-transport         drop MassTransit to Information (trace is on by default)
                 """);
             return null;
         }
+
+        // The only Modules a real-runner run has code for are the diamond's, so the generic mock
+        // Module would place no fixture and exercise no wave while still reporting a healthy apply.
+        var defaultModuleId = args.Contains("--real-runner") ? DiamondAModuleId : SeededModuleId;
 
         return new RunOptions
         {
@@ -256,10 +302,15 @@ public class RunOptions
             Addresses = Get("addresses")?.Split(',', StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.Trim()).ToList()
                         ?? ["null_resource.example"],
-            ModuleId = Guid.TryParse(Get("module"), out var m) ? m : SeededModuleId,
+            ModuleId = Guid.TryParse(Get("module"), out var m) ? m : defaultModuleId,
             PrincipalId = Guid.TryParse(Get("principal"), out var p) ? p : SeededUserId,
             RunnerId = Guid.TryParse(Get("runner"), out var r) ? r : Guid.Empty,
             Keep = args.Contains("--keep"),
+            RealRunner = args.Contains("--real-runner"),
+            ApproveAfterWave = args.Contains("--approve-after-wave"),
+            SecondModuleId = args.Contains("--two-origins") ? DiamondGModuleId : Guid.Empty,
+            WorkingDirectory = Get("working-dir")
+                ?? Path.Combine(Path.GetTempPath(), "snapcd-jobrun", DateTime.Now.ToString("yyyyMMdd_HHmmss")),
             TransportTrace = !args.Contains("--quiet-transport"),
             Timeout = ParseTimeout(Get("timeout")),
             SettleSeconds = int.TryParse(Get("settle"), out var st) ? st : 0,

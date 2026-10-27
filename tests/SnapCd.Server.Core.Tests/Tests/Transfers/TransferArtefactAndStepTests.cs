@@ -316,12 +316,12 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
     }
 
     private TransferArtefactService ArtefactService() =>
-        new(DbContextFactory(), new StateEncryptionService(Options.Create(new StateStoreSettings
+        new(DbContextFactory().CreateDbContext(), new StateEncryptionService(Options.Create(new StateStoreSettings
         {
             EncryptionKey = Convert.ToBase64String(new byte[32])
         })));
 
-    private StateMigrationStepService StepService() => new(DbContextFactory());
+    private StateMigrationStepService StepService() => new(DbContextFactory().CreateDbContext());
 
     private IDbContextFactory<SnapCdDbContext> DbContextFactory()
     {

@@ -6,23 +6,14 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using MassTransit;
-using SnapCd.Contracts.Dto.Misc;
-using SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Entities.Definition.Signals;
 
-namespace SnapCd.Server.Core.Consumers.Logging;
-
-public class LogConsumer : IConsumer<LogEntryDto>
+/// <summary>A signal whose upstream did not declare the output sensitive.</summary>
+public class LiteralSignalOutput : SignalOutput
 {
-    private readonly LogService _logService;
-
-    public LogConsumer(LogService logService)
-    {
-        _logService = logService;
-    }
-
-    public async Task Consume(ConsumeContext<LogEntryDto> context)
-    {
-        await _logService.AddLogEntries(new List<LogEntryDto> { context.Message });
-    }
+    /// <summary>
+    /// planwalker's value object as emitted: action, type, and the base64 msgpack before and
+    /// after. Never decoded here; the server moves it, planwalker reads it.
+    /// </summary>
+    public string SignalJson { get; set; } = null!;
 }

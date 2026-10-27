@@ -141,7 +141,7 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
         var secured = new ModuleSecuredRepository(
             new ModuleRepository(_fixture.CreateDbContext(), principalProvider, _fixture.CreateMockBus(), _fixture.CreateModuleSettings()),
             principalProvider);
-        using var service = new StateMigrationService(_dbContextFactory, secured);
+        using var service = new StateMigrationService(_dbContextFactory.CreateDbContext(), secured);
         return await service.GetBlockedReason(_moduleId, _organizationId);
     }
 

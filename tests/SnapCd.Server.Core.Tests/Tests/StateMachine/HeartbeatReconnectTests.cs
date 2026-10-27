@@ -69,6 +69,10 @@ using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyProbeRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyProbeCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyProbeCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyProbeFaulted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanFaulted,
     SnapCd.Server.Core.Events.Steps.ApplyCancelKillRequested,
     SnapCd.Server.Core.Events.Steps.DummyApplyCancelKillCompleted,
@@ -162,8 +166,8 @@ public class HeartbeatReconnectTests : IAsyncLifetime
     {
         object? response = null;
 
-        var contextMock = new Mock<ConsumeContext<HeartbeatRequested>>();
-        contextMock.SetupGet(c => c.Message).Returns(new HeartbeatRequested
+        var contextMock = new Mock<ConsumeContext<ModuleJobHeartbeatRequested>>();
+        contextMock.SetupGet(c => c.Message).Returns(new ModuleJobHeartbeatRequested
         {
             CorrelationId = Guid.NewGuid(),
             OrganizationId = _module.OrganizationId,
@@ -177,7 +181,7 @@ public class HeartbeatReconnectTests : IAsyncLifetime
             .Callback<HeartbeatFailed>(m => response = m)
             .Returns(Task.CompletedTask);
 
-        var consumer = new HeartbeatConsumer(NullLogger<HeartbeatConsumer>.Instance,
+        var consumer = new ModuleJobHeartbeatConsumer(NullLogger<ModuleJobHeartbeatConsumer>.Instance,
             _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>());
         await consumer.Consume(contextMock.Object);
 

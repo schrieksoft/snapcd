@@ -42,6 +42,8 @@ public static class StepMapper
             _ when name.Contains("RemoveDryRun") => ServerSideStep.RemoveDryRun,
             _ when name.Contains("ImportPreCheck") => ServerSideStep.ImportPreCheck,
             _ when name.Contains("LookupAddresses") => ServerSideStep.LookupAddresses,
+            _ when name.Contains("DestroyProbe") => ServerSideStep.DestroyProbe,
+            _ when name.Contains("ApplyProbe") => ServerSideStep.ApplyProbe,
             _ when name.Contains("PolicyValidate") => ServerSideStep.PolicyValidate,
             _ when name.Contains("SelectRunnerInstance") => ServerSideStep.SelectRunnerInstance,
             _ when name.Contains("GetDefinitiveRevision") => ServerSideStep.GetDefinitiveRevision,
