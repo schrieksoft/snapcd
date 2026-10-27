@@ -24,18 +24,18 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
     where TSaga : JobSagaBase
     where TMessage : class
 {
-    private readonly SnapCdDbContext _dbContext;
+    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly Services.MaintenanceMode.IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<CheckRunnerConnectionActivity<TSaga, TMessage>> _logger;
 
     public CheckRunnerConnectionActivity(
-        SnapCdDbContext dbContext,
+        IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IPublishEndpoint publishEndpoint,
         Services.MaintenanceMode.IMaintenanceModeService maintenanceMode,
         ILogger<CheckRunnerConnectionActivity<TSaga, TMessage>> logger)
     {
-        _dbContext = dbContext;
+        _dbContextFactory = dbContextFactory;
         _publishEndpoint = publishEndpoint;
         _maintenanceMode = maintenanceMode;
         _logger = logger;
@@ -100,8 +100,11 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
                 "CheckRunnerConnectionActivity: Performing check attempt {Attempt} for RunnerId={RunnerId}, InstanceName={InstanceName}",
                 attempt + 1, saga.RunnerId, saga.RunnerInstanceName);
 
-            // Create new DbContext for this check (activities can't share contexts across threads)
-            var connection = await _dbContext.RunnerConnections
+            // A context per attempt, not the scope's: this polls for a row another connection is
+            // about to write, and a context that has already answered the question keeps its answer.
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+            var connection = await dbContext.RunnerConnections
                 .FirstOrDefaultAsync(rc =>
                     rc.RunnerId == saga.RunnerId &&
                     rc.OrganizationId == saga.OrganizationId &&
