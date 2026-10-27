@@ -164,7 +164,7 @@ public class ProbeWaveStarterTests : IAsyncLifetime
     [Fact]
     public async Task A_Consumer_That_Has_Never_Applied_Gets_No_Edge()
     {
-        var neverApplied = _fixture.Modules["0002"].Id;
+        var neverApplied = await AddModuleWithoutOutputs();
         await AddParamFromOutput(neverApplied, "vpc_id", "network_id");
 
         var waveId = await Start(["vpc_id"]);
@@ -373,6 +373,32 @@ public class ProbeWaveStarterTests : IAsyncLifetime
     private sealed class FixtureDbContextFactory(Fixture fixture) : IDbContextFactory<SnapCdDbContext>
     {
         public SnapCdDbContext CreateDbContext() => fixture.CreateDbContext();
+    }
+
+    /// <summary>
+    /// A Module in the origin's Namespace with no output set, which is how a Module that has never
+    /// applied looks. The fixture's Modules in this Namespace all have one.
+    /// </summary>
+    private async Task<Guid> AddModuleWithoutOutputs()
+    {
+        var module = new Module
+        {
+            Id = Guid.NewGuid(),
+            Name = $"never-applied-{Guid.NewGuid():N}",
+            NamespaceId = _fixture.Modules["0000"].NamespaceId,
+            RunnerId = _fixture.Modules["0000"].RunnerId,
+            OrganizationId = _organizationId,
+            SourceUrl = "https://github.com/test/never-applied",
+            SourceRevision = "main",
+            SourceSubdirectory = "terraform",
+            CreatedDateTime = DateTime.UtcNow
+        };
+
+        await using var db = _fixture.CreateDbContext();
+        db.Modules.Add(module);
+        await db.SaveChangesAsync();
+
+        return module.Id;
     }
 
     private async Task AddParamFromOutput(
