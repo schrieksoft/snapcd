@@ -8,6 +8,10 @@
 
 @implements IAsyncDisposable
 
+@typeparam TJob where TJob : class, SnapCd.Server.Core.Entities.Interfaces.IJobWithLogs, SnapCd.Server.Core.Entities.Interfaces.IModuleChild
+@typeparam TChunk where TChunk : SnapCd.Server.Core.Entities.Definition.JobLogChunk
+@typeparam TLogEntry where TLogEntry : class, SnapCd.Contracts.Dto.Misc.IJobLogEntry, new()
+
 @using System.Text
 @using System.Text.Json
 @using System.Text.RegularExpressions
@@ -15,8 +19,12 @@
 @using SnapCd.Contracts.Dto.Misc
 @using Microsoft.Extensions.Options
 @using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Logs
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Contracts
 @using SnapCd.Server.Core.Settings
-@inject LogService LogService
+@inject SecuredLogReaderFactory LogReaderFactory
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 @inject IOptions<JobLogSettings> JobLogSettings
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
@@ -130,7 +138,7 @@ else
 }
 
 @code {
-    [Parameter] public Guid ModuleJobId { get; set; }
+    [Parameter] public Guid JobId { get; set; }
     [Parameter] public string? InitialTask { get; set; }
     [Parameter] public string[]? TaskFilter { get; set; }
 
@@ -145,10 +153,13 @@ else
     [Parameter] public EventCallback<string?> OnTaskChanged { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
+    private Guid _principalId;
+    private PrincipalDiscriminator _principalDiscriminator;
+
     private readonly SemaphoreSlim _loadLock = new(1, 1);
     private bool _loaded;
     private List<LogChunkSummary> _summaries = [];
-    private readonly SortedDictionary<long, List<LogEntryDto>> _chunks = new();
+    private readonly SortedDictionary<long, List<TLogEntry>> _chunks = new();
     private readonly List<string> _tasks = [];
     private readonly Dictionary<string, string> _htmlLogs = new();
     private readonly HashSet<string> _revealed = [];
@@ -158,6 +169,9 @@ else
 
     protected override void OnInitialized()
     {
+        _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+
         _expandedTask = InitialTask;
         _previousInitialTask = InitialTask;
     }
@@ -254,31 +268,32 @@ else
         _downloadModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import", "./_content/SnapCd.Server.Core/snapcd-download.js");
 
-    private async Task<List<LogEntryDto>> EntriesFor(string? taskName)
+    private async Task<List<TLogEntry>> EntriesFor(string? taskName)
     {
         // A chunk is indexed by the bare task name, while a panel is keyed by that name qualified
         // by its correlation, so the chunk filter takes the part before the qualifier.
         string[]? tasks = taskName is not null ? [BareTask(taskName)] : TaskFilter;
-        var summaries = await LogService.GetChunkSummaries(ModuleJobId, ModuleId);
+        using var reader = Reader();
+        var summaries = await reader.GetChunkSummaries(JobId, OrganizationId, ModuleId);
         var sequences = summaries
             .Where(s => tasks is null || tasks.Any(s.HasTask))
             .Select(s => s.Sequence)
             .ToList();
-        var entries = await LogService.ReadChunks(ModuleJobId, sequences, ModuleId);
+        var entries = await reader.ReadChunks(JobId, OrganizationId, sequences, ModuleId);
 
         if (taskName is not null)
-            return entries.Where(e => LogService.LogKey(e) == taskName).ToList();
+            return entries.Where(e => JobLogReader<TJob, TChunk, TLogEntry>.LogKey(e) == taskName).ToList();
 
         if (TaskFilter is not null)
-            return entries.Where(e => Matches(LogService.LogKey(e))).ToList();
+            return entries.Where(e => Matches(JobLogReader<TJob, TChunk, TLogEntry>.LogKey(e))).ToList();
 
         return entries;
     }
 
     private string FileNameFor(string? taskName, string extension)
         => taskName is null
-            ? $"job-{ModuleJobId}-logs.{extension}"
-            : $"job-{ModuleJobId}-{taskName}.{extension}";
+            ? $"job-{JobId}-logs.{extension}"
+            : $"job-{JobId}-{taskName}.{extension}";
 
     private async Task DownloadText(string? taskName)
     {
@@ -360,14 +375,15 @@ else
         if (sequences.Count == 0)
             return;
 
-        var entries = await LogService.ReadChunks(ModuleJobId, sequences, ModuleId);
+        using var reader = Reader();
+        var entries = await reader.ReadChunks(JobId, OrganizationId, sequences, ModuleId);
 
         // A page is contiguous and older or newer than everything loaded, so its lines file under its lowest sequence.
         foreach (var sequence in sequences)
             _chunks[sequence] = [];
         _chunks[sequences.Min()] = entries;
 
-        RenderTasks(entries.Select(LogService.LogKey).Distinct());
+        RenderTasks(entries.Select(JobLogReader<TJob, TChunk, TLogEntry>.LogKey).Distinct());
         SortTasks();
         await LoadWaveOrigins();
     }
@@ -413,7 +429,8 @@ else
 
         if (waveIds.Count == 0) return;
 
-        foreach (var (id, origin) in await LogService.ProbeWaveOrigins(waveIds, OrganizationId))
+        using var reader = Reader();
+        foreach (var (id, origin) in await reader.ProbeWaveOrigins(waveIds, OrganizationId))
             _waveOrigins[id] = origin;
     }
 
@@ -439,9 +456,9 @@ else
             if (!_tasks.Contains(task))
                 InsertTask(task);
 
-            var text = string.Join(Environment.NewLine, LogService.InWrittenOrder(_chunks.Values
+            var text = string.Join(Environment.NewLine, JobLogReader<TJob, TChunk, TLogEntry>.InWrittenOrder(_chunks.Values
                     .SelectMany(lines => lines)
-                    .Where(e => LogService.LogKey(e) == task))
+                    .Where(e => JobLogReader<TJob, TChunk, TLogEntry>.LogKey(e) == task))
                 .Select(e => e.Message));
 
             _htmlLogs[task] = string.IsNullOrEmpty(text) ? string.Empty : ConvertToWrappedHtml(text);
@@ -494,6 +511,14 @@ else
         _htmlLogs.Remove(bare);
     }
 
+    /// <summary>
+    /// The signed-in principal, from the identity captured while the HTTP context was still in
+    /// scope. A log refresh also arrives from a notification, which carries no HTTP context.
+    /// </summary>
+    private SecuredLogReader<TJob, TChunk, TLogEntry> Reader() =>
+        LogReaderFactory.Create<TJob, TChunk, TLogEntry>(
+            new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+
     private void AddKnownTasks()
     {
         foreach (var task in _summaries.SelectMany(s => s.TaskNames ?? []))
@@ -504,11 +529,12 @@ else
     private async Task ReloadLogs()
     {
         await _loadLock.WaitAsync();
+        using var reader = Reader();
         try
         {
             if (!_loaded)
             {
-                _summaries = await LogService.GetChunkSummaries(ModuleJobId, ModuleId);
+                _summaries = await reader.GetChunkSummaries(JobId, OrganizationId, ModuleId);
                 AddKnownTasks();
                 SortTasks();
                 await Load(NewestPage(_summaries));
@@ -516,7 +542,7 @@ else
                 return;
             }
 
-            var added = await LogService.GetChunkSummaries(ModuleJobId, ModuleId, LastSequence);
+            var added = await reader.GetChunkSummaries(JobId, OrganizationId, ModuleId, LastSequence);
             if (added.Count == 0)
                 return;
 

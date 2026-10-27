@@ -103,7 +103,9 @@ public static class MiscService
         services.AddScoped<SourceRefreshJob>();
         services.AddScoped<SourceRefreshDispatcher>();
 
-        services.AddScoped<LogService>();
+        services.AddScoped<SnapCd.Server.Core.Services.Logs.JobLogWriterFactory>();
+        services.AddScoped(typeof(SnapCd.Server.Core.Services.Logs.JobLogReader<,,>));
+        services.AddScoped<SnapCd.Server.Core.Services.Logs.SecuredLogReaderFactory>();
 
         // Other services
         services.AddScoped<IPrincipalProvider, HttpContextPrincipalProvider>();

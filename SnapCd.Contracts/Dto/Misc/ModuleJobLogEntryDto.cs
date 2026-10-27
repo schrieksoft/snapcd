@@ -10,7 +10,8 @@ using Serilog.Events;
 
 namespace SnapCd.Contracts.Dto.Misc;
 
-public class LogEntryDto
+/// <summary>One line of a deployment job's log, as the runner reports it.</summary>
+public class ModuleJobLogEntryDto : IJobLogEntry
 {
     public Guid JobId { get; set; }
     public DateTimeOffset Timestamp { get; set; }

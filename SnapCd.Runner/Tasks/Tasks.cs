@@ -23,7 +23,7 @@ namespace SnapCd.Runner.Tasks;
 public partial class Tasks
 {
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IJobLogStream _jobLogStream;
+    private readonly IJobLogStreams _jobLogStreams;
     private readonly ProcessRegistry _processRegistry;
     private readonly RunnerSettings _settings;
     private readonly ModuleGetterFactory _moduleGetterFactory;
@@ -59,7 +59,7 @@ public partial class Tasks
         ProcessRegistry processRegistry,
         IOptions<RunnerSettings> settings,
         ILoggerFactory loggerFactory,
-        IJobLogStream jobLogStream,
+        IJobLogStreams jobLogStreams,
         ModuleGetterFactory moduleGetterFactory,
         EngineFactory engineFactory,
         VariableDiscoveryServiceFactory discoveryServiceFactory,
@@ -74,7 +74,7 @@ public partial class Tasks
         _processRegistry = processRegistry;
         _runningTaskReporter = runningTaskReporter;
         _loggerFactory = loggerFactory;
-        _jobLogStream = jobLogStream;
+        _jobLogStreams = jobLogStreams;
         _settings = settings.Value;
         _moduleGetterFactory = moduleGetterFactory;
         _engineFactory = engineFactory;
@@ -86,6 +86,12 @@ public partial class Tasks
         _policyEvaluationService = policyEvaluationService;
         _policyEvaluationSettings = policyEvaluationSettings.Value;
     }
+
+    /// <summary>Where a deployment job's lines go. A step shared across families is handed one of these.</summary>
+    public IJobLogStream ModuleJobLogs => _jobLogStreams.ModuleJobs;
+
+    /// <summary>Where a manual job's lines go.</summary>
+    public IJobLogStream StateMigrationLogs => _jobLogStreams.StateMigrations;
 
     /// <summary>How long to give WithAutomaticReconnect before giving up on a reply.</summary>
     private static readonly TimeSpan ReconnectWait = TimeSpan.FromSeconds(30);
@@ -114,8 +120,12 @@ public partial class Tasks
         int maxRetries = HubInvocationRetry.DefaultMaxRetries,
         TimeSpan? initialDelay = null)
     {
+        // A job id exists in one table, so the stream that does not hold it has nothing to drain.
         if (jobId != Guid.Empty)
-            await _jobLogStream.DrainAsync(jobId);
+        {
+            await _jobLogStreams.ModuleJobs.DrainAsync(jobId);
+            await _jobLogStreams.StateMigrations.DrainAsync(jobId);
+        }
 
         await RetryHubInvocationAsync(invocation, operationName, jobId, connection, maxRetries, initialDelay);
     }

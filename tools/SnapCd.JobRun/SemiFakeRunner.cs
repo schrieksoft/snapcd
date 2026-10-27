@@ -63,6 +63,7 @@ public class SemiFakeRunner(
             case nameof(IApplyEndpoints.ApplyInit):
                 await tasks.Init(
                     (InitRequestBase)payload, _unconnected,
+                    tasks.ModuleJobLogs,
                     id => hub.ApplyInitCompleted(id),
                     id => hub.ApplyInitCancelled(id),
                     (id, error, stack) => hub.ApplyInitFaulted(id, error, stack));
@@ -71,6 +72,7 @@ public class SemiFakeRunner(
             case nameof(IApplyEndpoints.ApplyValidate):
                 await tasks.Validate(
                     (ValidateRequestBase)payload, _unconnected,
+                    tasks.ModuleJobLogs,
                     id => hub.ApplyValidateCompleted(id),
                     id => hub.ApplyValidateCancelled(id),
                     (id, error, stack) => hub.ApplyValidateFaulted(id, error, stack));
@@ -89,6 +91,7 @@ public class SemiFakeRunner(
             case nameof(IApplyEndpoints.ApplyPlan):
                 await tasks.Plan(
                     (PlanRequestBase)payload, _unconnected,
+                    tasks.ModuleJobLogs,
                     (id, data) => hub.ApplyPlanCompleted(id, data),
                     id => hub.ApplyPlanCancelled(id),
                     (id, error, stack, outcome) => hub.ApplyPlanFaulted(id, error, stack, outcome));
@@ -127,6 +130,7 @@ public class SemiFakeRunner(
             case nameof(IDestroyEndpoints.DestroyInit):
                 await tasks.Init(
                     (InitRequestBase)payload, _unconnected,
+                    tasks.ModuleJobLogs,
                     id => hub.DestroyInitCompleted(id),
                     id => hub.DestroyInitCancelled(id),
                     (id, error, stack) => hub.DestroyInitFaulted(id, error, stack));
@@ -135,6 +139,7 @@ public class SemiFakeRunner(
             case nameof(IDestroyEndpoints.DestroyValidate):
                 await tasks.Validate(
                     (ValidateRequestBase)payload, _unconnected,
+                    tasks.ModuleJobLogs,
                     id => hub.DestroyValidateCompleted(id),
                     id => hub.DestroyValidateCancelled(id),
                     (id, error, stack) => hub.DestroyValidateFaulted(id, error, stack));

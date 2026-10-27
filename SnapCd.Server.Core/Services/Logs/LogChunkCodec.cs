@@ -23,7 +23,7 @@ public static class LogChunkCodec
     };
 
     /// <summary>Fills a chunk's payload and summary columns from one Module's lines of one batch.</summary>
-    public static void Encode(JobLogChunk chunk, IReadOnlyList<LogEntryDto> entries)
+    public static void Encode(JobLogChunk chunk, IReadOnlyList<IJobLogEntry> entries)
     {
         var lines = entries.Select(e => new StoredLogLine
         {
@@ -49,7 +49,7 @@ public static class LogChunkCodec
         chunk.LineCount = lines.Count;
         chunk.FirstTimestamp = lines.Min(l => l.Timestamp);
         chunk.LastTimestamp = lines.Max(l => l.Timestamp);
-        chunk.TaskNames = string.Join('\n', lines.Select(l => l.TaskName ?? LogService.DefaultTaskName).Distinct());
+        chunk.TaskNames = string.Join('\n', lines.Select(l => l.TaskName ?? JobLogs.DefaultTaskName).Distinct());
     }
 
     public static List<StoredLogLine> Decode(byte[] payload)

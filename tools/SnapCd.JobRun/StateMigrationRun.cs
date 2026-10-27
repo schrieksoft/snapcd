@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Services.Logs;
+using SnapCd.Contracts.Dto.Misc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Database;
@@ -200,7 +202,7 @@ public static class StateMigrationRun
             Console.WriteLine("  !! no logs reached the page, so a running job shows nothing");
 
         using var scope = services.CreateScope();
-        var logged = (await scope.ServiceProvider.GetRequiredService<LogService>().GetLogEntries(jobId)).Count;
+        var logged = (await scope.ServiceProvider.GetRequiredService<JobLogReader<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>>().GetLogEntries(jobId)).Count;
 
         Console.WriteLine($"Log entries {logged}");
 

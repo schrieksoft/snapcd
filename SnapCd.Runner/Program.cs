@@ -68,7 +68,7 @@ builder.Services.AddSingleton<SnapCdInspect>();
 builder.Services.AddSingleton<ProcessRegistry>();
 
 // Register unified task handler. Also expose as Lazy<Tasks> to let RunnerHubConnection break
-// the DI cycle: Tasks -> IJobLogStream -> HubJobLogStream -> RunnerHubConnection -> Tasks.
+// the DI cycle: Tasks -> IJobLogStreams -> JobLogStreams -> RunnerHubConnection -> Tasks.
 // The hub only dereferences Tasks inside .On<>() handlers fired after StartAsync, by which
 // time the graph is fully built.
 builder.Services.AddSingleton<IRunningTaskReporter, RunningTaskReporter>();
@@ -107,8 +107,9 @@ builder.Services.AddQuartz(q =>
 // Terminal logging — vanilla MEL via the host default (Console + Debug providers configured from
 // the standard "Logging" section in appsettings.json). Matches SnapCd.Server.Host + SnapCd.Agent.
 
-// Server-shipping: IJobLogStream is the explicit "this log ships" producer surface; HubJobLogStream batches per job.
-builder.Services.AddSingleton<IJobLogStream, HubJobLogStream>();
+// Server-shipping: one stream per table that stores logs, each bound to the endpoint that writes it.
+builder.Services.AddSingleton<JobLogStreams>();
+builder.Services.AddSingleton<IJobLogStreams>(sp => sp.GetRequiredService<JobLogStreams>());
 
 builder.Services.AddHttpClient<ServicePrincipalTokenService>();
 builder.Services.AddSingleton<TokenInitializationService>();

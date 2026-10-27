@@ -13,17 +13,21 @@ using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
+using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Services.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Services.RippleProbes;
 
 public class ProbeRerunServiceFactory(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
     ProbeWaveStarterFactory starterFactory,
+    ModuleJobSecuredRepositoryFactory jobsFactory,
     IPublishEndpoint bus,
     ILoggerFactory loggerFactory)
 {
-    public ProbeRerunService Create() =>
-        new(dbContextFactory.CreateDbContext(), starterFactory, bus,
+    public ProbeRerunService Create(IPrincipalProvider? principalProvider = null) =>
+        new(dbContextFactory.CreateDbContext(), starterFactory,
+            jobsFactory.Create(principalProvider), bus,
             loggerFactory.CreateLogger<ProbeRerunService>());
 }
 
@@ -38,9 +42,25 @@ public class ProbeRerunServiceFactory(
 public class ProbeRerunService(
     SnapCdDbContext dbContext,
     ProbeWaveStarterFactory starterFactory,
+    ModuleJobSecuredRepository jobs,
     IPublishEndpoint bus,
     ILogger<ProbeRerunService> logger) : IDisposable
 {
+    /// <summary>
+    /// Both asks start an Apply on the Module, so they take the same permission as running one
+    /// directly. Reading the panel is a weaker bar than running what it offers.
+    /// </summary>
+    public bool MayAsk(Guid moduleId, Guid organizationId) =>
+        jobs.CanRunJob(moduleId, organizationId);
+
+    /// <summary>The Module whose permission governs a retry, or null where the job is gone.</summary>
+    public async Task<Guid?> OriginModuleOf(Guid originModuleJobId, Guid organizationId) =>
+        await dbContext.ModuleJobs
+            .AsNoTracking()
+            .Where(j => j.Id == originModuleJobId && j.OrganizationId == organizationId)
+            .Select(j => (Guid?)j.ModuleId)
+            .FirstOrDefaultAsync();
+
     /// <summary>
     /// Starts the propagation a job's plan should have started. The plan is already recorded, so
     /// what runs again is the asking, from what that plan reported.
@@ -63,6 +83,9 @@ public class ProbeRerunService(
             .FirstOrDefaultAsync();
 
         if (job == null) return "that job no longer exists";
+
+        if (!MayAsk(job.ModuleId, organizationId))
+            return "you are not allowed to run jobs on this Module";
 
         if (job.Status != ExecutionStatus.Running || job.WaitingForApproval != true)
             return "the approval this would inform has already been decided";
@@ -120,10 +143,13 @@ public class ProbeRerunService(
         var wave = await dbContext.ProbeWaves
             .AsNoTracking()
             .Where(w => w.Id == probeWaveId && w.OrganizationId == organizationId)
-            .Select(w => new { w.OriginModuleJobId })
+            .Select(w => new { w.OriginModuleJobId, OriginModuleId = w.OriginModuleJob.ModuleId })
             .FirstOrDefaultAsync();
 
         if (wave == null) return "that propagation no longer exists";
+
+        if (!MayAsk(wave.OriginModuleId, organizationId))
+            return "you are not allowed to run jobs on this Module";
 
         // A wave informs one approval decision and ends when that decision is made. Asking a
         // Module to predict again for a decision already taken would answer nothing.
@@ -160,5 +186,9 @@ public class ProbeRerunService(
         return null;
     }
 
-    public void Dispose() => dbContext.Dispose();
+    public void Dispose()
+    {
+        jobs.Dispose();
+        dbContext.Dispose();
+    }
 }

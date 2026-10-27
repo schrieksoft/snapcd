@@ -84,7 +84,7 @@
 
         <MudPaper Elevation="0" Class="pa-4">
             <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
-            <ListLogs ModuleJobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
+            <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
         </MudPaper>
     }
 }
@@ -103,7 +103,7 @@
     [Inject] private ModuleJobApprovalSecuredRepositoryFactory ModuleJobApprovalRepoFactory { get; set; } = null!;
 
     private ModuleJob? _moduleJob;
-    private ListLogs? _inlineLogsRef;
+    private ListLogs<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>? _inlineLogsRef;
     private ListProbes? _probesRef;
     private DownstreamImpact? _impact;
     private ApprovalPanel? _panelRef;

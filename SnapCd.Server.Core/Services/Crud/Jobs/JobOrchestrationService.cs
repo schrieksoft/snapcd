@@ -12,10 +12,12 @@ using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Jobs;
 using SnapCd.Contracts.Dto.ModuleJobApprovals;
 using SnapCd.Server.Core.Database;
+using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Logging;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Services.Logs;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Services.Crud.Jobs;
@@ -33,7 +35,7 @@ public class JobOrchestrationService
     private readonly ModuleJobSecuredRepositoryFactory _moduleJobRepoFactory;
     private readonly IPrincipalProvider _principalProvider;
     private readonly ILogRedactor _logRedactor;
-    private readonly LogService _logService;
+    private readonly SecuredLogReaderFactory _logReaderFactory;
 
     public JobOrchestrationService(
         SecuredJobServiceFactory securedJobServiceFactory,
@@ -42,7 +44,7 @@ public class JobOrchestrationService
         ModuleJobSecuredRepositoryFactory moduleJobRepoFactory,
         IPrincipalProvider principalProvider,
         ILogRedactor logRedactor,
-        LogService logService)
+        SecuredLogReaderFactory logReaderFactory)
     {
         _securedJobServiceFactory = securedJobServiceFactory;
         _dbContextFactory = dbContextFactory;
@@ -50,7 +52,7 @@ public class JobOrchestrationService
         _moduleJobRepoFactory = moduleJobRepoFactory;
         _principalProvider = principalProvider;
         _logRedactor = logRedactor;
-        _logService = logService;
+        _logReaderFactory = logReaderFactory;
     }
 
     public async Task<Guid> Apply(Guid moduleId, Guid organizationId, Guid? correlationId)
@@ -98,8 +100,12 @@ public class JobOrchestrationService
             .AnyAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
 
         if (!exists) throw new EntityNotFoundException($"Job '{jobId}' not found");
-        EnsureCanReadJob(jobId, organizationId);
-        return _logRedactor.Redact(JsonSerializer.Serialize(await _logService.GetLogEntries(jobId)));
+
+        using var reader = _logReaderFactory
+            .Create<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>(_principalProvider);
+
+        return _logRedactor.Redact(
+            JsonSerializer.Serialize(await reader.GetLogEntries(jobId, organizationId)));
     }
 
     public async Task<ModuleJobStatusDto> GetStatus(Guid jobId, Guid organizationId)

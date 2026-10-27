@@ -23,14 +23,14 @@ public class JobLogQueueTests
         return settings;
     }
 
-    private static LogEntryDto Line(Guid jobId, string message) => new() { JobId = jobId, Message = message };
+    private static ModuleJobLogEntryDto Line(Guid jobId, string message) => new() { JobId = jobId, Message = message };
 
     private sealed class Recorder
     {
-        public ConcurrentQueue<(Guid JobId, List<LogEntryDto> Batch)> Sent { get; } = new();
+        public ConcurrentQueue<(Guid JobId, List<ModuleJobLogEntryDto> Batch)> Sent { get; } = new();
         public TimeSpan Delay { get; init; }
 
-        public async Task Send(List<LogEntryDto> batch)
+        public async Task Send(List<ModuleJobLogEntryDto> batch)
         {
             if (Delay > TimeSpan.Zero)
                 await Task.Delay(Delay);
@@ -48,8 +48,8 @@ public class JobLogQueueTests
         var settings = Settings(s => s.BatchSizeLimit = 50);
         var large = Guid.NewGuid();
         var small = Guid.NewGuid();
-        var largeQueue = new JobLogQueue(large, recorder.Send, settings, NullLogger.Instance);
-        var smallQueue = new JobLogQueue(small, recorder.Send, settings, NullLogger.Instance);
+        var largeQueue = new JobLogQueue<ModuleJobLogEntryDto>(large, recorder.Send, settings, NullLogger.Instance);
+        var smallQueue = new JobLogQueue<ModuleJobLogEntryDto>(small, recorder.Send, settings, NullLogger.Instance);
 
         for (var i = 0; i < 20_000; i++)
             largeQueue.TryEnqueue(Line(large, $"large {i}"));
@@ -70,7 +70,7 @@ public class JobLogQueueTests
     {
         var recorder = new Recorder();
         var job = Guid.NewGuid();
-        var queue = new JobLogQueue(job, recorder.Send, Settings(s => s.BatchBytesLimit = 250), NullLogger.Instance);
+        var queue = new JobLogQueue<ModuleJobLogEntryDto>(job, recorder.Send, Settings(s => s.BatchBytesLimit = 250), NullLogger.Instance);
 
         for (var i = 0; i < 6; i++)
             queue.TryEnqueue(Line(job, new string('x', 100)));
@@ -85,7 +85,7 @@ public class JobLogQueueTests
     {
         var recorder = new Recorder();
         var job = Guid.NewGuid();
-        var queue = new JobLogQueue(job, recorder.Send, Settings(s => s.BatchSizeLimit = 3), NullLogger.Instance);
+        var queue = new JobLogQueue<ModuleJobLogEntryDto>(job, recorder.Send, Settings(s => s.BatchSizeLimit = 3), NullLogger.Instance);
 
         for (var i = 0; i < 9; i++)
             queue.TryEnqueue(Line(job, $"line {i}"));
@@ -101,7 +101,7 @@ public class JobLogQueueTests
     {
         var recorder = new Recorder();
         var job = Guid.NewGuid();
-        var queue = new JobLogQueue(job, recorder.Send, Settings(), NullLogger.Instance);
+        var queue = new JobLogQueue<ModuleJobLogEntryDto>(job, recorder.Send, Settings(), NullLogger.Instance);
 
         queue.TryEnqueue(Line(job, "one"));
         queue.TryEnqueue(Line(job, "two"));
@@ -114,9 +114,9 @@ public class JobLogQueueTests
     public async Task Lines_beyond_the_queue_limit_are_dropped_and_the_job_log_says_how_many()
     {
         var release = new TaskCompletionSource();
-        var sent = new ConcurrentQueue<LogEntryDto>();
+        var sent = new ConcurrentQueue<ModuleJobLogEntryDto>();
         var job = Guid.NewGuid();
-        var queue = new JobLogQueue(job, async batch =>
+        var queue = new JobLogQueue<ModuleJobLogEntryDto>(job, async batch =>
         {
             await release.Task;
             foreach (var line in batch)
@@ -139,7 +139,7 @@ public class JobLogQueueTests
     {
         var recorder = new Recorder();
         var job = Guid.NewGuid();
-        var queue = new JobLogQueue(job, recorder.Send, Settings(s => s.IdleSeconds = 1), NullLogger.Instance);
+        var queue = new JobLogQueue<ModuleJobLogEntryDto>(job, recorder.Send, Settings(s => s.IdleSeconds = 1), NullLogger.Instance);
 
         queue.TryEnqueue(Line(job, "only"));
         Assert.True(await queue.DrainAsync(TimeSpan.FromSeconds(5)));

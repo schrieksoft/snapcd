@@ -7,6 +7,7 @@
    for terms covering either use. *@
 
 @implements IDisposable
+@using SnapCd.Contracts
 @using SnapCd.Contracts.Dto.Misc
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
@@ -188,8 +189,9 @@
                                     @if (attempt.ProbeModuleJobId != null)
                                     {
                                         <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
-                                        <ListLogs @ref="_logRefs[attempt.ProbeModuleJobId.Value]"
-                                                  ModuleJobId="@attempt.ProbeModuleJobId.Value"
+                                        <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto"
+                                                  @ref="_logRefs[attempt.ProbeModuleJobId.Value]"
+                                                  JobId="@attempt.ProbeModuleJobId.Value"
                                                   ModuleId="@module.ModuleId"
                                                   TaskFilter="@(new[] { "Probe" })"
                                                   IncludeCorrelated="true"/>
@@ -216,6 +218,9 @@
 
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
+    private Guid _principalId;
+    private PrincipalDiscriminator _principalDiscriminator;
+
     private ProbeWaveView? _wave;
     private List<ProbeWaveModuleView> _relevant = [];
     private Guid? _expandedId;
@@ -224,6 +229,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+
         await Reload();
         Resubscribe();
     }
@@ -257,11 +265,16 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>
+    /// The signed-in principal, from the identity captured while the HTTP context was still in
+    /// scope. A reload also arrives from a notification, which carries no HTTP context.
+    /// </summary>
+    private LiteralPrincipalProvider Principal() =>
+        new(_principalId, _principalDiscriminator, [OrganizationId]);
+
     public async Task Reload()
     {
-        var principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
-        var discriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
-        var principalProvider = new LiteralPrincipalProvider(principalId, discriminator, [OrganizationId]);
+        var principalProvider = Principal();
 
         using var moduleRepo = ModuleRepoFactory.Create(principalProvider);
         using var service = ProbeWaveReadServiceFactory.Create();
@@ -372,7 +385,7 @@
                 (SnapCdIcons.HourglassEmpty, Color.Default, "waiting on an upstream")
         };
 
-    private readonly Dictionary<Guid, ListLogs> _logRefs = new();
+    private readonly Dictionary<Guid, ListLogs<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>> _logRefs = new();
     private readonly HashSet<Guid> _loadedLogs = [];
 
     private string? _propagationFailure;
@@ -385,11 +398,32 @@
     private async Task RetryPropagation()
     {
         if (_retryingPropagation) return;
+
+        using var service = ProbeRerunServiceFactory.Create(Principal());
+
+        var originModuleId = await service.OriginModuleOf(ModuleJobId, OrganizationId);
+
+        var refusal = originModuleId is { } id && service.MayAsk(id, OrganizationId)
+            ? null
+            : "You are not allowed to run jobs on this Module.";
+
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, "This asks the Modules downstream of this one to predict their outputs again." },
+            { x => x.ButtonText, "Ask again" },
+            { x => x.RefusalReason, refusal }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Ask the downstream Modules again", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false }) return;
+
         _retryingPropagation = true;
 
         try
         {
-            using var service = ProbeRerunServiceFactory.Create();
             var refused = await service.RetryPropagation(ModuleJobId, OrganizationId);
 
             if (refused is null)
@@ -418,10 +452,17 @@
     {
         if (_wave is null || _rerunning.Contains(module.ModuleId)) return;
 
+        using var service = ProbeRerunServiceFactory.Create(Principal());
+
+        var refusal = service.MayAsk(_wave.OriginModuleId, OrganizationId)
+            ? null
+            : $"You are not allowed to run jobs on {_wave.OriginModuleName}.";
+
         var parameters = new DialogParameters<ConfirmDialog>
         {
             { x => x.ContentText, $"This runs a plan on \"{module.NamespaceName}/{module.ModuleName}\" to predict its outputs again. The earlier prediction stays on the record." },
-            { x => x.ButtonText, "Probe again" }
+            { x => x.ButtonText, "Probe again" },
+            { x => x.RefusalReason, refusal }
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
@@ -434,7 +475,6 @@
 
         try
         {
-            using var service = ProbeRerunServiceFactory.Create();
             var refused = await service.Rerun(_wave.Id, module.ModuleId, OrganizationId);
 
             if (refused is null)

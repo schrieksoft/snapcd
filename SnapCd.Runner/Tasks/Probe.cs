@@ -49,7 +49,7 @@ public partial class Tasks
             request.JobId,
             nameof(Probe),
             logger,
-            _jobLogStream,
+            _jobLogStreams.ModuleJobs,
             request.Metadata,
             request.ProbeWaveId,
             LogCorrelationDiscriminator.ProbeWave

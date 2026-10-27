@@ -42,7 +42,7 @@ public partial class Tasks
             request.JobId,
             nameof(ApplyFromPlan),
             logger,
-            _jobLogStream,
+            _jobLogStreams.ModuleJobs,
             request.Metadata
         );
 

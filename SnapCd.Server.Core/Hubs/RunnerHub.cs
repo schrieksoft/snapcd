@@ -39,6 +39,7 @@ using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.Logs;
 using SnapCd.Server.Core.Services.RunnerConnectionValidator;
 using SnapCd.Server.Core.Settings;
 
@@ -52,7 +53,7 @@ namespace SnapCd.Server.Core.Hubs;
 public class RunnerHub : Hub
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
-    private readonly LogService _logService;
+    private readonly JobLogWriterFactory _jobLogWriterFactory;
     private readonly JobServiceFactory _jobServiceFactory;
     private readonly IBus _bus;
     private readonly ILogger<RunnerHub> _logger;
@@ -106,7 +107,7 @@ public class RunnerHub : Hub
 
     public RunnerHub(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
-        LogService logService,
+        JobLogWriterFactory jobLogWriterFactory,
         JobServiceFactory jobServiceFactory,
         IBus bus,
         ILogger<RunnerHub> logger,
@@ -159,7 +160,7 @@ public class RunnerHub : Hub
         CancelKillHandler cancelKillHandler)
     {
         _dbContextFactory = dbContextFactory;
-        _logService = logService;
+        _jobLogWriterFactory = jobLogWriterFactory;
         _jobServiceFactory = jobServiceFactory;
         _bus = bus;
         _logger = logger;
@@ -445,17 +446,80 @@ public class RunnerHub : Hub
         }
     }
 
+    /// <summary>Receive a batch of log entries from a runner working on a deployment job.</summary>
+    public Task AddModuleJobLogs(List<ModuleJobLogEntryDto> logEntries) =>
+        AddLogs<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>(logEntries);
+
+    /// <summary>Receive a batch of log entries from a runner working on a manual job.</summary>
+    public Task AddStateMigrationLogs(List<StateMigrationLogEntryDto> logEntries) =>
+        AddLogs<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>(logEntries);
+
     /// <summary>
-    /// Receive a batch of log entries from the runner
+    /// Stores a batch from a runner that does not name the table it means, by finding which table
+    /// holds the job. Superseded by the endpoints above; kept so a runner older than them keeps
+    /// logging rather than buffering batches no method accepts.
     /// </summary>
-    public async Task AddLogs(List<LogEntryDto> logEntries)
+    [Obsolete("A runner names the table it means: AddModuleJobLogs or AddStateMigrationLogs.")]
+    public async Task AddLogs(List<ModuleJobLogEntryDto> logEntries)
+    {
+        if (logEntries == null || logEntries.Count == 0)
+            return;
+
+        var jobId = logEntries.First().JobId;
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        if (await dbContext.ModuleJobs.AnyAsync(j => j.Id == jobId))
+        {
+            await AddLogs<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>(logEntries);
+            return;
+        }
+
+        if (await dbContext.StateMigrationJobs.AnyAsync(j => j.Id == jobId))
+        {
+            // The payloads are the same shape, so the batch is re-read as the type that table takes.
+            await AddLogs<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>(
+                logEntries.Select(Retype).ToList());
+            return;
+        }
+
+        _logger.LogWarning("Discarding a log batch for unknown job {JobId}", jobId);
+    }
+
+    private static StateMigrationLogEntryDto Retype(ModuleJobLogEntryDto entry) => new()
+    {
+        JobId = entry.JobId,
+        Timestamp = entry.Timestamp,
+        BatchTimeStamp = entry.BatchTimeStamp,
+        StackId = entry.StackId,
+        NamespaceId = entry.NamespaceId,
+        ModuleId = entry.ModuleId,
+        StackName = entry.StackName,
+        NamespaceName = entry.NamespaceName,
+        ModuleName = entry.ModuleName,
+        Level = entry.Level,
+        Message = entry.Message,
+        TaskName = entry.TaskName,
+        Tags = entry.Tags,
+        Source = entry.Source,
+        LogCorrelationId = entry.LogCorrelationId,
+        LogCorrelationDiscriminator = entry.LogCorrelationDiscriminator
+    };
+
+    /// <summary>
+    /// The batch handling every table shares. Which endpoint the runner invoked is what names the
+    /// table, so nothing here looks a job id up across tables.
+    /// </summary>
+    private async Task AddLogs<TJob, TChunk, TLogEntry>(List<TLogEntry> logEntries)
+        where TJob : class, IJobWithLogs
+        where TChunk : JobLogChunk, new()
+        where TLogEntry : class, IJobLogEntry
     {
         if (logEntries == null || logEntries.Count == 0)
             return;
 
         try
         {
-            // Query database to get connection info
             using var connectionRepository = _connectionRepositoryFactory.Create();
             var connection = await connectionRepository.GetBySignalRConnectionIdAsync(Context.ConnectionId, _authorizationService.GetValidatedOrganizationId(Context));
 
@@ -465,13 +529,26 @@ public class RunnerHub : Hub
                 return;
             }
 
-            // TODO: Add permission checking here (like LogsController.CheckHasPermission)
-            // For now, skip permission checking
+            // Same question every step method asks: is the caller the runner this job was given to.
+            // SelectedRunnerId is null only on a row written before it existed, and null is not a
+            // match, so those are refused rather than trusted.
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+            var jobId = logEntries.First().JobId;
+            var selectedRunnerId = await dbContext.Set<TJob>().AsNoTracking()
+                .Where(j => j.Id == jobId && j.OrganizationId == connection.OrganizationId)
+                .Select(j => j.SelectedRunnerId)
+                .FirstOrDefaultAsync();
 
-            // Add log entries to database
-            await _logService.AddLogEntries(logEntries);
+            if (selectedRunnerId != connection.RunnerId)
+            {
+                _logger.LogWarning(
+                    "Authorization failed: logs for job {JobId} require Runner {RequiredRunnerId}, but the caller is {CallerRunnerId}",
+                    jobId, selectedRunnerId, connection.RunnerId);
+                throw new HubException($"Unauthorized: not the runner for job {jobId}.");
+            }
 
-            // Publish LogReceivedEvent for the first correlation ID
+            await _jobLogWriterFactory.Create<TJob, TChunk, TLogEntry>().AddLogEntries(logEntries, connection.OrganizationId);
+
             var firstEntry = logEntries.First();
             await _bus.Publish(new LogReceivedEvent
             {

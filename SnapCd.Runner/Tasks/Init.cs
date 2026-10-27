@@ -24,6 +24,7 @@ public partial class Tasks
     public async Task Init(
         InitRequestBase request,
         HubConnection connection,
+        IJobLogStream logStream,
         Func<Guid, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)
@@ -46,7 +47,7 @@ public partial class Tasks
             request.JobId,
             nameof(Init),
             logger,
-            _jobLogStream,
+            logStream,
             request.Metadata
         );
         

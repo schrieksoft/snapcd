@@ -47,7 +47,7 @@ public partial class Tasks
             request.JobId,
             nameof(PlanDestroy),
             logger,
-            _jobLogStream,
+            _jobLogStreams.ModuleJobs,
             request.Metadata
         );
 

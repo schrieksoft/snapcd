@@ -46,7 +46,7 @@ public partial class Tasks
             request.JobId,
             nameof(GetDefinitiveRevision),
             logger,
-            _jobLogStream,
+            _jobLogStreams.ModuleJobs,
             request.Metadata
         );
 

@@ -299,7 +299,7 @@ else
                             }
                             else
                             {
-                                <ListLogs ModuleJobId="@job.Id" @key="job.Id"
+                                <ListLogs TJob="StateMigrationJob" TChunk="StateMigrationJobLogChunk" TLogEntry="StateMigrationLogEntryDto" JobId="@job.Id" @key="job.Id"
                                           @ref="_listLogsRefs[job.Id]"/>
                             }
                         </MudTabPanel>
@@ -458,7 +458,7 @@ else
             .GroupBy(a => a.JobId)
             .ToDictionary(g => g.Key, g => g.ToList());
     }
-    private readonly Dictionary<Guid, ListLogs> _listLogsRefs = new();
+    private readonly Dictionary<Guid, ListLogs<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>> _listLogsRefs = new();
     private readonly HashSet<Guid> _loadedLogs = [];
     private Guid? _subscribedModuleId;
     private StateMigrationJob? _selected;

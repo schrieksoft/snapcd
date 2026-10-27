@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Services.Logs;
+using SnapCd.Contracts.Dto.Misc;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -477,7 +479,7 @@ public static class Run
             Console.WriteLine($"  {step}");
 
         using var scope = services.CreateScope();
-        var logs = await scope.ServiceProvider.GetRequiredService<LogService>().GetLogEntries(jobId);
+        var logs = await scope.ServiceProvider.GetRequiredService<JobLogReader<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>().GetLogEntries(jobId);
         if (logs.Count > 0)
         {
             Console.WriteLine();

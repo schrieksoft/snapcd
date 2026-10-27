@@ -60,7 +60,8 @@ public class RunnerHubContractTests
         // through its own path rather than a generated wrapper.
         var notCalledByWrapper = new HashSet<string>
         {
-            "OnConnectedAsync", "OnDisconnectedAsync", "AddLogs"
+            "OnConnectedAsync", "OnDisconnectedAsync",
+            "AddLogs", "AddModuleJobLogs", "AddStateMigrationLogs"
         };
 
         var hubMethods = typeof(RunnerHub)

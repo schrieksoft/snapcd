@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Services.Logs;
 using SnapCd.Contracts.Endpoints;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using System.Reflection;
@@ -510,7 +512,8 @@ public class FakeRunner(
     private static HashSet<string> EndpointNamesOf<T>() =>
         typeof(T).GetMethods().Select(m => m.Name).ToHashSet(StringComparer.Ordinal);
 
-    private LogEntryDto Entry(Guid jobId, string task) =>
+    private TLogEntry Entry<TLogEntry>(Guid jobId, string task)
+        where TLogEntry : class, IJobLogEntry, new() =>
         new()
         {
             JobId = jobId,
@@ -526,13 +529,16 @@ public class FakeRunner(
 
     /// <summary>
     /// One line per step, which is what the page's log panel reads and what raises the event that
-    /// tells an open page to look again. The server resolves which table from the job id.
+    /// tells an open page to look again. The endpoint names the table, as a real runner's does.
     /// </summary>
     private async Task SendLog(RunnerHub hub, Guid jobId, string task)
     {
         try
         {
-            await hub.AddLogs([Entry(jobId, task)]);
+            if (StateMigrationEndpoints.Contains(task))
+                await hub.AddStateMigrationLogs([Entry<StateMigrationLogEntryDto>(jobId, task)]);
+            else
+                await hub.AddModuleJobLogs([Entry<ModuleJobLogEntryDto>(jobId, task)]);
         }
         catch (Exception ex)
         {
