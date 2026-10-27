@@ -27,7 +27,7 @@
 @inject IOptions<TelemetrySettings> TelemetrySettings
 @inject GitHubReleasesClient Releases
 @inject ProtectedLocalStorage LocalStorage
-@inject CapAlertService CapAlerts
+@inject CapAlertServiceFactory CapAlertsFactory
 @inject ModuleCountChangedNotificationService CapAlertNotifications
 @inject IOrganizationContext OrganizationContext
 @inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
@@ -239,7 +239,8 @@ else
         _releases = await Releases.NewerThanRunningAsync();
         _releasesUnavailable = !Releases.LastFetchSucceeded;
         _canActOnLicence = await CanActOnLicenceAsync();
-        _capAlert = _canActOnLicence ? await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty) : null;
+        using var capAlertsGate = CapAlertsFactory.Create();
+        _capAlert = _canActOnLicence ? await capAlertsGate.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty) : null;
         _subscription = CapAlertNotifications.Subscribe(OnModuleCountChanged);
         _loading = false;
     }
@@ -247,7 +248,8 @@ else
     private async Task OnModuleCountChanged()
     {
         if (!_canActOnLicence) return;
-        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        using var capAlerts = CapAlertsFactory.Create();
+        _capAlert = await capAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
         await InvokeAsync(StateHasChanged);
     }
 

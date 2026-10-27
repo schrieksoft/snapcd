@@ -25,32 +25,31 @@ public record StuckJob(Guid JobId, string JobType, Guid OrganizationId, Guid Mod
 /// </summary>
 public class StuckJobDetectionService
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly StuckJobDetectionSettings _settings;
 
-    public StuckJobDetectionService(IDbContextFactory<SnapCdDbContext> dbContextFactory, IOptions<StuckJobDetectionSettings> settings)
+    public StuckJobDetectionService(SnapCdDbContext dbContext, IOptions<StuckJobDetectionSettings> settings)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _settings = settings.Value;
     }
 
     public async Task<List<StuckJob>> FindStuckJobsAsync()
     {
         var now = DateTime.UtcNow;
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
 
         var candidates =
-            (await db.ApplyJobSagas.AsNoTracking()
+            (await _dbContext.ApplyJobSagas.AsNoTracking()
                 .Where(s => s.WaitingSince != null)
                 .Select(s => new { s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince })
                 .ToListAsync())
             .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "Apply"))
-            .Concat((await db.DestroyJobSagas.AsNoTracking()
+            .Concat((await _dbContext.DestroyJobSagas.AsNoTracking()
                     .Where(s => s.WaitingSince != null)
                     .Select(s => new { s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince })
                     .ToListAsync())
                 .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "Destroy")))
-            .Concat((await db.Set<SplitMigrateSaga>().AsNoTracking()
+            .Concat((await _dbContext.Set<SplitMigrateSaga>().AsNoTracking()
                     .Where(s => s.WaitingSince != null)
                     .Select(s => new { s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince })
                     .ToListAsync())
@@ -67,7 +66,7 @@ public class StuckJobDetectionService
                 stuck.Add(new StuckJob(saga.CorrelationId, saga.JobType, saga.OrganizationId, saga.ModuleId, saga.CurrentState, saga.WaitingSince.Value, stalled));
         }
 
-        stuck.AddRange(await FindStateMigrationsWithoutProgressAsync(db, now));
+        stuck.AddRange(await FindStateMigrationsWithoutProgressAsync(_dbContext, now));
 
         return stuck;
     }
@@ -82,7 +81,7 @@ public class StuckJobDetectionService
         var threshold = TimeSpan.FromMinutes(_settings.StateMigrationNoProgressThresholdMinutes);
         var cutoff = new DateTimeOffset(now, TimeSpan.Zero) - threshold;
 
-        var running = await db.StateMigrationJobs.AsNoTracking()
+        var running = await _dbContext.StateMigrationJobs.AsNoTracking()
             .Where(j => j.Status == ExecutionStatus.Running && j.TimestampStart < cutoff)
             .Select(j => new { j.Id, j.OrganizationId, j.ModuleId, j.JobType, j.TimestampStart })
             .ToListAsync();
@@ -90,7 +89,7 @@ public class StuckJobDetectionService
         if (running.Count == 0) return [];
 
         var ids = running.Select(j => j.Id).ToList();
-        var sagaStates = await db.Set<SplitMigrateSaga>().AsNoTracking()
+        var sagaStates = await _dbContext.Set<SplitMigrateSaga>().AsNoTracking()
             .Where(s => ids.Contains(s.CorrelationId))
             .Select(s => new { s.CorrelationId, s.CurrentState, s.WaitingSince })
             .ToListAsync();

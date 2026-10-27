@@ -27,7 +27,7 @@
 @inject TelemetryClient Client
 @inject TelemetryReportJob Job
 @inject GitHubReleasesClient Releases
-@inject CapAlertService CapAlerts
+@inject CapAlertServiceFactory CapAlertsFactory
 @inject ModuleCountChangedNotificationService CapAlertNotifications
 @inject IOrganizationContext OrganizationContext
 @inject IVersionService VersionService
@@ -158,7 +158,8 @@ else
 
     private Task EvaluateCapAsync() => RunAsync(async () =>
     {
-        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        using var capAlerts = CapAlertsFactory.Create();
+        _capAlert = await capAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
         _capEvaluated = true;
     });
 

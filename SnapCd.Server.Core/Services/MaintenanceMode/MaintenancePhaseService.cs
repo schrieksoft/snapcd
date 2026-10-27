@@ -36,16 +36,25 @@ public record PhaseReadiness(MaintenancePhase Phase, IReadOnlyList<PhaseCriterio
 /// The waiting phases (Draining, Parked, Silent) converge on their own; the acting phases
 /// (Reconciling, Resuming) are driven by the operator or the automatic advance.
 /// </summary>
-public class MaintenancePhaseService
+public class MaintenancePhaseServiceFactory(
+    IDbContextFactory<SnapCdDbContext> dbFactory,
+    TransportProbeService transportProbe)
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    public MaintenancePhaseService Create() => new(dbFactory.CreateDbContext(), transportProbe);
+}
+
+public class MaintenancePhaseService : IDisposable
+{
+    private readonly SnapCdDbContext _dbContext;
     private readonly TransportProbeService _transportProbe;
 
-    public MaintenancePhaseService(IDbContextFactory<SnapCdDbContext> dbContextFactory, TransportProbeService transportProbe)
+    public MaintenancePhaseService(SnapCdDbContext dbContext, TransportProbeService transportProbe)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _transportProbe = transportProbe;
     }
+
+    public void Dispose() => _dbContext.Dispose();
 
     public async Task<PhaseReadiness> EvaluateAsync(MaintenancePhase phase, Entities.Definition.MaintenanceMode? window = null)
         => new(phase, phase switch
@@ -71,10 +80,9 @@ public class MaintenancePhaseService
 
     private async Task<IReadOnlyList<PhaseCriterion>> DrainingCriteriaAsync()
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var inFlight = await JobsInStatesAsync(db, s => s.EndsWith("Pending"));
-        var cancelling = await JobsInStatesAsync(db, s => s.StartsWith("Cancelling"));
-        var missions = await RunningMissionsAsync(db);
+        var inFlight = await JobsInStatesAsync(_dbContext, s => s.EndsWith("Pending"));
+        var cancelling = await JobsInStatesAsync(_dbContext, s => s.StartsWith("Cancelling"));
+        var missions = await RunningMissionsAsync(_dbContext);
 
         return
         [

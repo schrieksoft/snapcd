@@ -16,20 +16,19 @@ namespace SnapCd.Server.Core.Services.Integrations;
 /// <c>Integration.IsSuppliedToAllModules</c> is true OR a matching per-scope
 /// <c>Integration{Scope}Assignment</c> row exists. Phase 4's dispatch uses this for supply ∩ demand.
 /// </summary>
-public class IntegrationSupplyResolver(IDbContextFactory<SnapCdDbContext> dbContextFactory)
+public class IntegrationSupplyResolver(SnapCdDbContext dbContext)
 {
     public async Task<bool> IsIntegrationSuppliedToModule(Guid integrationId, Guid moduleId, Guid organizationId)
     {
-        await using var db = await dbContextFactory.CreateDbContextAsync();
 
-        var moduleInfo = await db.Modules
+        var moduleInfo = await dbContext.Modules
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new { m.Id, m.NamespaceId, StackId = m.Namespace.StackId })
             .FirstOrDefaultAsync();
         if (moduleInfo == null)
             return false;
 
-        return await db.Integrations
+        return await dbContext.Integrations
             .Where(i => i.Id == integrationId && i.OrganizationId == organizationId)
             .AnyAsync(i =>
                 i.IsSuppliedToAllModules ||
@@ -40,16 +39,15 @@ public class IntegrationSupplyResolver(IDbContextFactory<SnapCdDbContext> dbCont
 
     public async Task<bool> IsIntegrationSuppliedToNamespace(Guid integrationId, Guid namespaceId, Guid organizationId)
     {
-        await using var db = await dbContextFactory.CreateDbContextAsync();
 
-        var nsInfo = await db.Namespaces
+        var nsInfo = await dbContext.Namespaces
             .Where(n => n.Id == namespaceId && n.OrganizationId == organizationId)
             .Select(n => new { n.Id, n.StackId })
             .FirstOrDefaultAsync();
         if (nsInfo == null)
             return false;
 
-        return await db.Integrations
+        return await dbContext.Integrations
             .Where(i => i.Id == integrationId && i.OrganizationId == organizationId)
             .AnyAsync(i =>
                 i.IsSuppliedToAllModules ||
@@ -59,9 +57,8 @@ public class IntegrationSupplyResolver(IDbContextFactory<SnapCdDbContext> dbCont
 
     public async Task<bool> IsIntegrationSuppliedToStack(Guid integrationId, Guid stackId, Guid organizationId)
     {
-        await using var db = await dbContextFactory.CreateDbContextAsync();
 
-        return await db.Integrations
+        return await dbContext.Integrations
             .Where(i => i.Id == integrationId && i.OrganizationId == organizationId)
             .AnyAsync(i =>
                 i.IsSuppliedToAllModules ||
@@ -72,8 +69,7 @@ public class IntegrationSupplyResolver(IDbContextFactory<SnapCdDbContext> dbCont
     /// provides it (there is deliberately no org-scope assignment sibling).</summary>
     public async Task<bool> IsIntegrationSuppliedOrgWide(Guid integrationId, Guid organizationId)
     {
-        await using var db = await dbContextFactory.CreateDbContextAsync();
-        return await db.Integrations
+        return await dbContext.Integrations
             .Where(i => i.Id == integrationId && i.OrganizationId == organizationId)
             .AnyAsync(i => i.IsSuppliedToAllModules);
     }

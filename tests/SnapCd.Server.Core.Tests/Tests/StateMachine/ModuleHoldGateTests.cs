@@ -424,7 +424,7 @@ public class ModuleHoldGateTests : IAsyncLifetime
 
         var before = ConsumedCount<ModuleHoldCheck>();
         var job = new TransportReconciliationJob(
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             _provider.GetRequiredService<IBus>(),
             Mock.Of<IMessageScheduler>(),
             new QuotaService(Mock.Of<IQuotaGatingService>()),

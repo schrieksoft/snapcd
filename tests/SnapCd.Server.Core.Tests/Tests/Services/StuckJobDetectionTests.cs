@@ -134,7 +134,7 @@ public class StuckJobDetectionTests : IAsyncLifetime
 
     private StuckJobDetectionService CreateService()
         => new(
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             Options.Create(new StuckJobDetectionSettings()));
 
     private async Task<Guid> SeedSaga(string state, DateTime? waitingSince)

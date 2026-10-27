@@ -34,20 +34,20 @@ public class TransportReconciliationJob
     // An alive agent pushes DeadlineAt forward within seconds of reconnecting.
     private static readonly TimeSpan MissionReconnectGrace = TimeSpan.FromMinutes(5);
 
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IBus _bus;
     private readonly IMessageScheduler _scheduler;
     private readonly QuotaService _quotaService;
     private readonly ILogger<TransportReconciliationJob> _logger;
 
     public TransportReconciliationJob(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IBus bus,
         IMessageScheduler scheduler,
         QuotaService quotaService,
         ILogger<TransportReconciliationJob> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _bus = bus;
         _scheduler = scheduler;
         _quotaService = quotaService;
@@ -57,7 +57,7 @@ public class TransportReconciliationJob
     public async Task ExecuteJob()
     {
         using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var dbContext = _dbContext;
 
         var heartbeats = await RearmHeartbeats(dbContext);
         var approvals = await RearmApprovalTimeouts(dbContext);

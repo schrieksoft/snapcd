@@ -241,6 +241,10 @@ public static class Factories
         services.AddScoped<SnapCd.Server.Core.Services.Crud.StateMigrations.StateMigrationAddressService>();
         services.AddScoped<SourceChangedServiceFactory>();
         services.AddScoped<AccessTokenServiceFactory>();
+        services.AddScoped<Services.Admin.SystemRoleServiceFactory>();
+        services.AddScoped<Services.MaintenanceMode.MaintenancePhaseServiceFactory>();
+        services.AddScoped<Services.MaintenanceMode.MaintenanceOperationsServiceFactory>();
+        services.AddScoped<QuiescenceProbeServiceFactory>();
         services.AddScoped<UserManagerFactory>();
         services.AddScoped<UserManagerFactory<User, IdentityRole<Guid>, SnapCdDbContext>>();
         services.AddScoped<OrganizationRoleAssignmentServiceFactory>();
@@ -305,6 +309,7 @@ public static class Factories
         services.AddScoped<ModuleIntegrationEventRepositoryFactory>();
         services.AddScoped<ModuleIntegrationEventSecuredRepositoryFactory>();
         services.AddScoped<Services.Integrations.IntegrationEventMatcher>();
+        services.AddScoped<Services.Integrations.IntegrationEventMatcherFactory>();
 
         // Mission family (4 scopes, raw + secured)
         services.AddScoped<OrganizationMissionRepositoryFactory>();
@@ -326,6 +331,7 @@ public static class Factories
         services.AddScoped<GroupAgentRoleAssignmentRepositoryFactory>();
         services.AddScoped<GroupAgentRoleAssignmentSecuredRepositoryFactory>();
         services.AddScoped<AgentRoleAssignmentServiceFactory>();
+        services.AddScoped<Services.Ai.Missions.AgentSupplyResolverFactory>();
 
         // StateStore + StateFile
         services.AddScoped<StateStoreRepositoryFactory>();

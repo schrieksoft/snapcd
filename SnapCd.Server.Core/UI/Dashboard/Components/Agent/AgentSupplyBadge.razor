@@ -8,7 +8,7 @@
 
 @using SnapCd.Server.Core.Services.Ai.Missions
 
-@inject AgentSupplyResolver SupplyResolver
+@inject AgentSupplyResolverFactory SupplyResolverFactory
 
 @if (_loaded)
 {
@@ -103,12 +103,13 @@
     protected override async Task OnParametersSetAsync()
     {
         _loaded = false;
+        using var supplyResolver = SupplyResolverFactory.Create();
         _assigned = Scope switch
         {
-            SupplyScope.Organization => await SupplyResolver.IsAgentSuppliedOrgWide(AgentId, OrganizationId),
-            SupplyScope.Stack       => await SupplyResolver.IsAgentSuppliedToStack(AgentId, ScopeId ?? Guid.Empty, OrganizationId),
-            SupplyScope.Namespace   => await SupplyResolver.IsAgentSuppliedToNamespace(AgentId, ScopeId ?? Guid.Empty, OrganizationId),
-            SupplyScope.Module      => await SupplyResolver.IsAgentSuppliedToModule(AgentId, ScopeId ?? Guid.Empty, OrganizationId),
+            SupplyScope.Organization => await supplyResolver.IsAgentSuppliedOrgWide(AgentId, OrganizationId),
+            SupplyScope.Stack       => await supplyResolver.IsAgentSuppliedToStack(AgentId, ScopeId ?? Guid.Empty, OrganizationId),
+            SupplyScope.Namespace   => await supplyResolver.IsAgentSuppliedToNamespace(AgentId, ScopeId ?? Guid.Empty, OrganizationId),
+            SupplyScope.Module      => await supplyResolver.IsAgentSuppliedToModule(AgentId, ScopeId ?? Guid.Empty, OrganizationId),
             _ => false
         };
         _loaded = true;

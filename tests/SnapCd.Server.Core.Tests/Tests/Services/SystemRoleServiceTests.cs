@@ -63,7 +63,7 @@ public class SystemRoleServiceTests : IAsyncLifetime
         }
 
         var factory = _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>();
-        var service = new SystemRoleService(factory, Mock.Of<IPrincipalProvider>());
+        var service = new SystemRoleService(factory.CreateDbContext(), Mock.Of<IPrincipalProvider>());
 
         Assert.True(await service.UserIsSystemAdministratorAsync(adminUserId));
         Assert.False(await service.UserIsSystemAdministratorAsync(plainUserId));

@@ -18,22 +18,30 @@ namespace SnapCd.Server.Core.Services.Admin;
 /// <summary>
 /// System-level (organization-free) role checks. The Command Center is gated on these.
 /// </summary>
-public class SystemRoleService
+public class SystemRoleServiceFactory(
+    IDbContextFactory<SnapCdDbContext> dbFactory,
+    IPrincipalProvider principalProvider)
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    public SystemRoleService Create() => new(dbFactory.CreateDbContext(), principalProvider);
+}
+
+public class SystemRoleService : IDisposable
+{
+    private readonly SnapCdDbContext _dbContext;
     private readonly IPrincipalProvider _principalProvider;
 
-    public SystemRoleService(IDbContextFactory<SnapCdDbContext> dbContextFactory, IPrincipalProvider principalProvider)
+    public SystemRoleService(SnapCdDbContext dbContext, IPrincipalProvider principalProvider)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _principalProvider = principalProvider;
     }
+
+    public void Dispose() => _dbContext.Dispose();
 
     public async Task<bool> UserIsSystemAdministratorAsync(Guid userId)
     {
         if (userId == Guid.Empty) return false;
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        return await db.Set<UserSystemRoleAssignment>()
+        return await _dbContext.Set<UserSystemRoleAssignment>()
             .AnyAsync(r => r.UserId == userId && r.RoleName == SystemRole.Administrator);
     }
 

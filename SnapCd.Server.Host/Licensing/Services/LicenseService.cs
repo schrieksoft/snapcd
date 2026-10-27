@@ -26,16 +26,34 @@ using SnapCd.Server.Core.Licensing.Protocol;
 
 namespace SnapCd.Server.Host.Licensing.Services;
 
-public class LicenseService(
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+public class LicenseServiceFactory(
+    IDbContextFactory<SnapCdDbContext> dbFactory,
     IMemoryCache memoryCache,
     IRemoteLicenseClient remoteLicenseClient,
     ILicensePublicKeyService publicKeyService,
     IOptions<DebuggingOptions> debuggingOptions,
     IPrincipalProvider principalProvider,
     SnapCd.Server.Host.CapAlerts.ModuleCountChangedNotificationService capAlertNotifications,
-    ILogger<LicenseService> logger) : ILicenseInfoProvider
+    ILoggerFactory loggerFactory)
 {
+    public LicenseService Create() =>
+        new(dbFactory.CreateDbContext(), memoryCache, remoteLicenseClient, publicKeyService,
+            debuggingOptions, principalProvider, capAlertNotifications,
+            loggerFactory.CreateLogger<LicenseService>());
+}
+
+public class LicenseService(
+    SnapCdDbContext dbContext,
+    IMemoryCache memoryCache,
+    IRemoteLicenseClient remoteLicenseClient,
+    ILicensePublicKeyService publicKeyService,
+    IOptions<DebuggingOptions> debuggingOptions,
+    IPrincipalProvider principalProvider,
+    SnapCd.Server.Host.CapAlerts.ModuleCountChangedNotificationService capAlertNotifications,
+    ILogger<LicenseService> logger) : ILicenseInfoProvider, IDisposable
+{
+    public void Dispose() => dbContext.Dispose();
+
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(8);
     private const string CacheKeyPrefix = "license_info_";
 
@@ -61,7 +79,6 @@ public class LicenseService(
             return cached;
         }
 
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var licenseToken = await dbContext.Set<SelfHostedOrganizationLicense>()
             .Where(l => l.OrganizationId == organizationId)
             .Select(l => l.LicenseToken)
@@ -83,7 +100,6 @@ public class LicenseService(
             return info;
         }
 
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var orgExists = await dbContext.Organizations.AnyAsync(o => o.Id == organizationId);
 
         if (!orgExists)
@@ -111,7 +127,6 @@ public class LicenseService(
         var info = await ValidateLicenseTokenAsync(jwt, organizationId);
         if (!info.IsValid) return info;
 
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var orgExists = await dbContext.Organizations.AnyAsync(o => o.Id == organizationId);
 
         if (!orgExists)
@@ -143,7 +158,6 @@ public class LicenseService(
     {
         await EnsureHasLicenseManagementPermissionAsync(organizationId);
 
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var row = await dbContext.Set<SelfHostedOrganizationLicense>()
             .FirstOrDefaultAsync(l => l.OrganizationId == organizationId);
 
@@ -165,7 +179,6 @@ public class LicenseService(
     {
         await EnsureHasLicenseManagementPermissionAsync(organizationId);
 
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var license = await dbContext.Set<SelfHostedOrganizationLicense>()
             .FirstOrDefaultAsync(l => l.OrganizationId == organizationId);
 
@@ -184,7 +197,6 @@ public class LicenseService(
         var discriminator = principalProvider.GetPrincipalDiscriminator();
         var principalId = principalProvider.GetSubject(organizationId);
 
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
         var hasRole = discriminator switch
         {

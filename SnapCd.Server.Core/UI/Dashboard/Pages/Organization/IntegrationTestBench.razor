@@ -30,7 +30,7 @@
 
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject IBus Bus
-@inject IntegrationEventMatcher Matcher
+@inject IntegrationEventMatcherFactory MatcherFactory
 @inject IOrganizationContext OrganizationContext
 @inject IHostEnvironment HostEnvironment
 @inject ISnackbar Snackbar
@@ -296,7 +296,8 @@ else
         _dryRunning = true;
         try
         {
-            _dryRunResults = await Matcher.MatchAsync(DebugModuleId, CurrentOrgId, _selectedTrigger);
+            using var matcher = MatcherFactory.Create();
+            _dryRunResults = await matcher.MatchAsync(DebugModuleId, CurrentOrgId, _selectedTrigger);
         }
         catch (Exception ex)
         {
@@ -359,7 +360,8 @@ else
             };
             await Bus.Publish(evt);
 
-            var matches = await Matcher.MatchAsync(DebugModuleId, orgId, _selectedTrigger);
+            using var matcher = MatcherFactory.Create();
+            var matches = await matcher.MatchAsync(DebugModuleId, orgId, _selectedTrigger);
             _lastMatchCount = matches.Count;
             _lastTriggeredJobId = jobId;
 
@@ -410,7 +412,8 @@ else
                 ReportedAt = DateTime.UtcNow
             });
 
-            var matches = await Matcher.MatchAsync(DebugModuleId, orgId, IntegrationTrigger.MissionMilestoneReported);
+            using var matcher = MatcherFactory.Create();
+            var matches = await matcher.MatchAsync(DebugModuleId, orgId, IntegrationTrigger.MissionMilestoneReported);
             _lastMatchCount = matches.Count;
             _lastTriggeredJobId = jobId;
 

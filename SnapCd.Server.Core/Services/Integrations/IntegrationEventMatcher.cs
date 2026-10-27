@@ -17,17 +17,28 @@ namespace SnapCd.Server.Core.Services.Integrations;
 /// the supply ∩ demand rule: an event matches only if its target integration is also *supplied* to the
 /// event's scope. Mirrors <c>MissionMatcher</c>'s gather step; Phase-5 dispatch consumes the result.
 /// </summary>
-public class IntegrationEventMatcher(IDbContextFactory<SnapCdDbContext> dbFactory, IntegrationSupplyResolver supply)
+public class IntegrationEventMatcherFactory(
+    IDbContextFactory<SnapCdDbContext> dbFactory)
 {
+    public IntegrationEventMatcher Create()
+    {
+        var dbContext = dbFactory.CreateDbContext();
+        return new IntegrationEventMatcher(dbContext, new IntegrationSupplyResolver(dbContext));
+    }
+}
+
+public class IntegrationEventMatcher(SnapCdDbContext dbContext, IntegrationSupplyResolver supply) : IDisposable
+{
+    public void Dispose() => dbContext.Dispose();
+
     public readonly record struct IntegrationEventMatch(
         Guid EventId, IntegrationEventScope Scope, Guid IntegrationId, IntegrationTrigger Trigger, string? Template, string? Filter);
 
     public async Task<List<IntegrationEventMatch>> MatchAsync(
         Guid moduleId, Guid organizationId, IntegrationTrigger trigger, CancellationToken ct = default)
     {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
 
-        var scope = await db.Modules
+        var scope = await dbContext.Modules
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new { m.NamespaceId, m.Namespace.StackId })
             .FirstOrDefaultAsync(ct);
@@ -35,16 +46,16 @@ public class IntegrationEventMatcher(IDbContextFactory<SnapCdDbContext> dbFactor
 
         var candidates = new List<IntegrationEventMatch>();
 
-        candidates.AddRange(await db.OrganizationIntegrationEvents
+        candidates.AddRange(await dbContext.OrganizationIntegrationEvents
             .Where(x => x.OrganizationId == organizationId && !x.IsDisabled && x.Trigger == trigger)
             .Select(x => new IntegrationEventMatch(x.Id, IntegrationEventScope.Organization, x.IntegrationId, x.Trigger, x.Template, x.Filter)).ToListAsync(ct));
-        candidates.AddRange(await db.StackIntegrationEvents
+        candidates.AddRange(await dbContext.StackIntegrationEvents
             .Where(x => x.OrganizationId == organizationId && x.StackId == scope.StackId && !x.IsDisabled && x.Trigger == trigger)
             .Select(x => new IntegrationEventMatch(x.Id, IntegrationEventScope.Stack, x.IntegrationId, x.Trigger, x.Template, x.Filter)).ToListAsync(ct));
-        candidates.AddRange(await db.NamespaceIntegrationEvents
+        candidates.AddRange(await dbContext.NamespaceIntegrationEvents
             .Where(x => x.OrganizationId == organizationId && x.NamespaceId == scope.NamespaceId && !x.IsDisabled && x.Trigger == trigger)
             .Select(x => new IntegrationEventMatch(x.Id, IntegrationEventScope.Namespace, x.IntegrationId, x.Trigger, x.Template, x.Filter)).ToListAsync(ct));
-        candidates.AddRange(await db.ModuleIntegrationEvents
+        candidates.AddRange(await dbContext.ModuleIntegrationEvents
             .Where(x => x.OrganizationId == organizationId && x.ModuleId == moduleId && !x.IsDisabled && x.Trigger == trigger)
             .Select(x => new IntegrationEventMatch(x.Id, IntegrationEventScope.Module, x.IntegrationId, x.Trigger, x.Template, x.Filter)).ToListAsync(ct));
 

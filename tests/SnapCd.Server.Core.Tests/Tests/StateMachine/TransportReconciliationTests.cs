@@ -332,7 +332,7 @@ public class TransportReconciliationTests : IAsyncLifetime
 
     private TransportReconciliationJob CreateJob(IMessageScheduler scheduler, ILogger<TransportReconciliationJob>? logger = null)
         => new(
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             _provider.GetRequiredService<IBus>(),
             scheduler,
             new QuotaService(Mock.Of<IQuotaGatingService>()),

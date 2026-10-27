@@ -7,9 +7,11 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Services;
 
@@ -42,24 +44,35 @@ public record DrainStatus(
 /// The transport half of the probe (queue depths) is a separate concern — a job saga row is
 /// authoritative for what the job is doing; the transport only carries how it moves.
 /// </summary>
-public class QuiescenceProbeService
+public class QuiescenceProbeServiceFactory(
+    IDbContextFactory<SnapCdDbContext> dbFactory,
+    IOptions<StuckJobDetectionSettings> stuckJobSettings)
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    public QuiescenceProbeService Create()
+    {
+        var dbContext = dbFactory.CreateDbContext();
+        return new QuiescenceProbeService(dbContext, new StuckJobDetectionService(dbContext, stuckJobSettings));
+    }
+}
+
+public class QuiescenceProbeService : IDisposable
+{
+    private readonly SnapCdDbContext _dbContext;
     private readonly StuckJobDetectionService _stuckJobDetection;
 
-    public QuiescenceProbeService(IDbContextFactory<SnapCdDbContext> dbContextFactory, StuckJobDetectionService stuckJobDetection)
+    public QuiescenceProbeService(SnapCdDbContext dbContext, StuckJobDetectionService stuckJobDetection)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _stuckJobDetection = stuckJobDetection;
     }
 
+    public void Dispose() => _dbContext.Dispose();
+
     public async Task<DrainStatus> GetDrainStatusAsync()
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-
         var jobStates =
-            (await db.ApplyJobSagas.AsNoTracking().Select(s => s.CurrentState).ToListAsync())
-            .Concat(await db.DestroyJobSagas.AsNoTracking().Select(s => s.CurrentState).ToListAsync())
+            (await _dbContext.ApplyJobSagas.AsNoTracking().Select(s => s.CurrentState).ToListAsync())
+            .Concat(await _dbContext.DestroyJobSagas.AsNoTracking().Select(s => s.CurrentState).ToListAsync())
             .ToList();
 
         var pending = jobStates.Count(s => s.EndsWith("Pending"));
@@ -67,20 +80,20 @@ public class QuiescenceProbeService
         var approval = jobStates.Count(s => s == "WaitingForApproval");
         var cancelling = jobStates.Count(s => s.StartsWith("Cancelling"));
 
-        var queuedReasons = await db.ModuleSagas.AsNoTracking()
+        var queuedReasons = await _dbContext.ModuleSagas.AsNoTracking()
             .Where(s => s.QueuedDesiredStateHeadline != null)
             .Select(s => s.QueuedReason)
             .ToListAsync();
         var queuedMaintenance = queuedReasons.Count(r => r == QueuedReason.Maintenance);
         var queuedOther = queuedReasons.Count - queuedMaintenance;
 
-        var activeMissions = await db.ModuleJobMissionRuns.AsNoTracking()
+        var activeMissions = await _dbContext.ModuleJobMissionRuns.AsNoTracking()
             .CountAsync(r => r.Status != MissionStatus.Succeeded
                              && r.Status != MissionStatus.Failed
                              && r.Status != MissionStatus.Cancelled
                              && r.Status != MissionStatus.TimedOut);
 
-        var missionBreakdown = (await db.ModuleJobMissionRuns.AsNoTracking()
+        var missionBreakdown = (await _dbContext.ModuleJobMissionRuns.AsNoTracking()
                 .Where(r => r.Status != MissionStatus.Succeeded
                             && r.Status != MissionStatus.Failed
                             && r.Status != MissionStatus.Cancelled

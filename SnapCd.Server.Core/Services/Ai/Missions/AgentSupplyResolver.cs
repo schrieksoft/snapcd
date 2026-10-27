@@ -17,27 +17,32 @@ namespace SnapCd.Server.Core.Services.Ai.Missions;
 /// per-scope <c>Agent{Scope}Assignment</c> row exists. Used by the Mission-create gate to enforce
 /// the supply/demand duality on top of the existing scope-role authorization.
 /// </summary>
-public class AgentSupplyResolver
+public class AgentSupplyResolverFactory(IDbContextFactory<SnapCdDbContext> dbFactory)
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    public AgentSupplyResolver Create() => new(dbFactory.CreateDbContext());
+}
 
-    public AgentSupplyResolver(IDbContextFactory<SnapCdDbContext> dbContextFactory)
+public class AgentSupplyResolver : IDisposable
+{
+    private readonly SnapCdDbContext _dbContext;
+
+    public AgentSupplyResolver(SnapCdDbContext dbContext)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
     }
+
+    public void Dispose() => _dbContext.Dispose();
 
     public async Task<bool> IsAgentSuppliedToModule(Guid agentId, Guid moduleId, Guid organizationId)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-
-        var moduleInfo = await db.Modules
+        var moduleInfo = await _dbContext.Modules
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new { m.Id, m.NamespaceId, StackId = m.Namespace.StackId })
             .FirstOrDefaultAsync();
         if (moduleInfo == null)
             return false;
 
-        return await db.Agents
+        return await _dbContext.Agents
             .Where(a => a.Id == agentId && a.OrganizationId == organizationId)
             .AnyAsync(a =>
                 a.IsSuppliedToAllModules ||
@@ -48,16 +53,14 @@ public class AgentSupplyResolver
 
     public async Task<bool> IsAgentSuppliedToNamespace(Guid agentId, Guid namespaceId, Guid organizationId)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-
-        var nsInfo = await db.Namespaces
+        var nsInfo = await _dbContext.Namespaces
             .Where(n => n.Id == namespaceId && n.OrganizationId == organizationId)
             .Select(n => new { n.Id, n.StackId })
             .FirstOrDefaultAsync();
         if (nsInfo == null)
             return false;
 
-        return await db.Agents
+        return await _dbContext.Agents
             .Where(a => a.Id == agentId && a.OrganizationId == organizationId)
             .AnyAsync(a =>
                 a.IsSuppliedToAllModules ||
@@ -67,9 +70,7 @@ public class AgentSupplyResolver
 
     public async Task<bool> IsAgentSuppliedToStack(Guid agentId, Guid stackId, Guid organizationId)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-
-        return await db.Agents
+        return await _dbContext.Agents
             .Where(a => a.Id == agentId && a.OrganizationId == organizationId)
             .AnyAsync(a =>
                 a.IsSuppliedToAllModules ||
@@ -83,8 +84,7 @@ public class AgentSupplyResolver
     /// </summary>
     public async Task<bool> IsAgentSuppliedOrgWide(Guid agentId, Guid organizationId)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        return await db.Agents
+        return await _dbContext.Agents
             .Where(a => a.Id == agentId && a.OrganizationId == organizationId)
             .AnyAsync(a => a.IsSuppliedToAllModules);
     }

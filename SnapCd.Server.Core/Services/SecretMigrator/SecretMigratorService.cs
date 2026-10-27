@@ -20,6 +20,8 @@ using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Services.SecretMigrator;
 
+/// A context per read and per audit write: the migration runs its items through
+/// Parallel.ForEachAsync, and a DbContext serves one thread at a time.
 public class SecretMigratorService(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
     AzureVaultFactory azureVaultFactory,

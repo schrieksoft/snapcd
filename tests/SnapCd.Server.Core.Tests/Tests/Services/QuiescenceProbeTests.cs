@@ -53,7 +53,8 @@ public class QuiescenceProbeTests : IAsyncLifetime
     private QuiescenceProbeService CreateService()
     {
         var factory = _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>();
-        return new QuiescenceProbeService(factory, new StuckJobDetectionService(factory, Options.Create(new StuckJobDetectionSettings())));
+        var dbContext = factory.CreateDbContext();
+        return new QuiescenceProbeService(dbContext, new StuckJobDetectionService(dbContext, Options.Create(new StuckJobDetectionSettings())));
     }
 
     private async Task<Guid> SeedSaga(string state, DateTime? waitingSince = null)

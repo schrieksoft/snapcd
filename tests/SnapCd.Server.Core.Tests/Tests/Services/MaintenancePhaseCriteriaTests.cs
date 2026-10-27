@@ -64,7 +64,7 @@ public class MaintenancePhaseCriteriaTests : IAsyncLifetime
     }
 
     private MaintenancePhaseService CreateService() =>
-        new(_provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+        new(_provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             new TransportProbeService(
                 Options.Create(new ServiceBusSettings()),
                 new ConfigurationBuilder().Build()));
@@ -115,7 +115,7 @@ public class MaintenancePhaseCriteriaTests : IAsyncLifetime
     }
 
     private MaintenanceOperationsService CreateOperations() =>
-        new(_provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+        new(_provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             _provider.GetRequiredService<IBus>(),
             null!,
             // CancelHoldingMissionsAsync touches neither the reconciler nor the mode service.

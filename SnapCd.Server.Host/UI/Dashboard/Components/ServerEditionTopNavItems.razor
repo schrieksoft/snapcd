@@ -22,7 +22,7 @@
 @inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
 @inject InstallationService Installation
 @inject ProtectedLocalStorage LocalStorage
-@inject CapAlertService CapAlerts
+@inject CapAlertServiceFactory CapAlertsFactory
 @inject ModuleCountChangedNotificationService CapAlertNotifications
 @inject IOrganizationContext OrganizationContext
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -87,7 +87,11 @@
         _isAllowed = true;
         _canActOnLicence = await CanActOnLicenceAsync();
         _subscription = CapAlertNotifications.Subscribe(OnModuleCountChanged);
-        if (_canActOnLicence) _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        if (_canActOnLicence)
+        {
+            using var capAlerts = CapAlertsFactory.Create();
+            _capAlert = await capAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        }
         try
         {
             var row = await Installation.GetAsync();
@@ -122,7 +126,8 @@
     private async Task OnModuleCountChanged()
     {
         if (!_canActOnLicence) return;
-        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        using var capAlerts = CapAlertsFactory.Create();
+        _capAlert = await capAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
         await InvokeAsync(RefreshIndicatorsAsync);
     }
 

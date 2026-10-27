@@ -129,7 +129,6 @@ public static class MiscService
         services.AddScoped<QuotaService>();
         services.AddScoped<StuckJobDetectionService>();
         services.AddScoped<RunnerConnectionStateMigrationService>();
-        services.AddScoped<QuiescenceProbeService>();
         services.AddScoped<TransportProbeService>();
 
         // The probe step's query, inputs document and signal recording. RippleProbeConsumerLookup
@@ -157,10 +156,7 @@ public static class MiscService
 
         services.AddScoped<Services.RippleProbes.ISignalSecretReader, Services.RippleProbes.SignalSecretReader>();
         services.AddScoped<Services.RippleProbes.ISignalSecretWriter, Services.RippleProbes.SignalSecretWriter>();
-        services.AddScoped<Services.MaintenanceMode.MaintenanceOperationsService>();
         services.AddScoped<TransportReconciliationJob>();
-        services.AddScoped<Services.MaintenanceMode.MaintenancePhaseService>();
-        services.AddScoped<Services.Admin.SystemRoleService>();
         services.AddSingleton<Services.MaintenanceMode.IMaintenanceModeService, Services.MaintenanceMode.MaintenanceModeService>();
         services.AddScoped<QuotaEnforcementService>();
 

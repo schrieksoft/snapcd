@@ -113,6 +113,7 @@ builder.Services.AddSnapCdMiscServices(builder.Configuration, builder.Environmen
 // Self-Hosted licensing services (moved out of Server.Core because they query the
 // SelfHostedOrganizationLicense entity that only the self-hosted DbContext registers).
 builder.Services.AddScoped<LicenseService>();
+builder.Services.AddScoped<LicenseServiceFactory>();
 builder.Services.AddScoped<LicenseRefreshJob>();
 builder.Services.AddScoped<LicensePublicKeyRefreshJob>();
 builder.Services.AddSingleton<ILicensePublicKeyService, LicensePublicKeyService>();
@@ -121,7 +122,7 @@ builder.Services.AddSingleton<InstallationService>();
 builder.Services.AddSingleton<TelemetrySnapshotProvider>();
 builder.Services.AddSingleton<GitHubReleasesClient>();
 builder.Services.AddSingleton<ModuleCountChangedNotificationService>();
-builder.Services.AddScoped<CapAlertService>();
+builder.Services.AddScoped<CapAlertServiceFactory>();
 builder.Services.AddScoped<TelemetryClient>();
 builder.Services.AddScoped<TelemetryReportJob>();
 builder.Services.AddScoped<VerifyLicenseActionFilter>();
@@ -175,6 +176,15 @@ builder.Services.AddSingleton<OrganizationMembershipCacheService>();
 builder.Services.AddScoped<IEditionNavProvider, ServerEditionNavProvider>();
 builder.Services.AddScoped<IMemberAdminService, SelfHostedMemberAdminService>();
 builder.Services.AddScoped<IOrganizationMemberAdminActionsProvider, ServerOrganizationMemberAdminActionsProvider>();
+
+// ValidateOnBuild walks every registration at startup, so a missing one fails the deploy rather
+// than the first request that needs it. Scope validation checks every resolve, so it is a
+// development-only cost.
+builder.Host.UseDefaultServiceProvider((context, options) =>
+{
+    options.ValidateOnBuild = true;
+    options.ValidateScopes = context.HostingEnvironment.IsDevelopment();
+});
 
 var app = builder.Build();
 

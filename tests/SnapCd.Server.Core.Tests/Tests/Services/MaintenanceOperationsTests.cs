@@ -156,10 +156,10 @@ public class MaintenanceOperationsTests : IAsyncLifetime
 
     private MaintenanceOperationsService CreateService()
         => new(
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             _provider.GetRequiredService<IBus>(),
             new SnapCd.Server.Core.Services.TransportReconciliationJob(
-                _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+                _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
                 _provider.GetRequiredService<IBus>(),
                 Mock.Of<IMessageScheduler>(),
                 new SnapCd.Server.Core.Services.QuotaService(Mock.Of<SnapCd.Server.Core.Licensing.Services.IQuotaGatingService>()),
@@ -197,10 +197,10 @@ public class MaintenanceOperationsTests : IAsyncLifetime
     {
         var spy = new DisableOrderSpy(_provider.GetRequiredService<IMaintenanceModeService>());
         var operations = new MaintenanceOperationsService(
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             _provider.GetRequiredService<IBus>(),
             new SnapCd.Server.Core.Services.TransportReconciliationJob(
-                _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+                _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
                 _provider.GetRequiredService<IBus>(),
                 Mock.Of<IMessageScheduler>(),
                 new SnapCd.Server.Core.Services.QuotaService(Mock.Of<SnapCd.Server.Core.Licensing.Services.IQuotaGatingService>()),

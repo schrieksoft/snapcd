@@ -83,7 +83,28 @@ public record CancelMissionsResult(int Requested, int MarkedCancelled, IReadOnly
 /// re-drives queued modules after a window closes, and the failsafe that cancels everything
 /// non-terminal. Both are idempotent — republishing wake or cancel events is harmless.
 /// </summary>
-public class MaintenanceOperationsService
+public class MaintenanceOperationsServiceFactory(
+    IDbContextFactory<SnapCdDbContext> dbFactory,
+    IBus bus,
+    IMessageScheduler scheduler,
+    QuotaService quotaService,
+    IMaintenanceModeService maintenanceMode,
+    ILoggerFactory loggerFactory)
+{
+    public MaintenanceOperationsService Create()
+    {
+        var dbContext = dbFactory.CreateDbContext();
+        return new MaintenanceOperationsService(
+            dbContext,
+            bus,
+            new TransportReconciliationJob(dbContext, bus, scheduler, quotaService,
+                loggerFactory.CreateLogger<TransportReconciliationJob>()),
+            maintenanceMode,
+            loggerFactory.CreateLogger<MaintenanceOperationsService>());
+    }
+}
+
+public class MaintenanceOperationsService : IDisposable
 {
     // The reconnect event is a broadcast correlated by runner and instance: one saga in a state
     // the machine does not define faults the delivery for every saga of that runner. Groups
@@ -92,25 +113,27 @@ public class MaintenanceOperationsService
         new JobMachine(NullLogger<JobMachine>.Instance)
             .States.Select(s => s.Name).ToHashSet());
 
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IBus _bus;
     private readonly TransportReconciliationJob _reconciliationJob;
     private readonly IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<MaintenanceOperationsService> _logger;
 
     public MaintenanceOperationsService(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IBus bus,
         TransportReconciliationJob reconciliationJob,
         IMaintenanceModeService maintenanceMode,
         ILogger<MaintenanceOperationsService> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _bus = bus;
         _reconciliationJob = reconciliationJob;
         _maintenanceMode = maintenanceMode;
         _logger = logger;
     }
+
+    public void Dispose() => _dbContext.Dispose();
 
     /// <summary>
     /// Performs the work an acting phase is defined by, and records the outcome on the window so
@@ -155,14 +178,13 @@ public class MaintenanceOperationsService
 
     public async Task<ResumeSweepResult> RunResumeSweepAsync()
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
         var warnings = new List<string>();
 
         var allSagas =
-            (await db.ApplyJobSagas.AsNoTracking()
+            (await _dbContext.ApplyJobSagas.AsNoTracking()
                 .Select(s => new { s.CorrelationId, s.OrganizationId, s.RunnerId, s.RunnerInstanceName, s.CurrentState })
                 .ToListAsync())
-            .Concat(await db.DestroyJobSagas.AsNoTracking()
+            .Concat(await _dbContext.DestroyJobSagas.AsNoTracking()
                 .Select(s => new { s.CorrelationId, s.OrganizationId, s.RunnerId, s.RunnerInstanceName, s.CurrentState })
                 .ToListAsync())
             .ToList();
@@ -187,7 +209,7 @@ public class MaintenanceOperationsService
                 continue;
             }
 
-            var connection = await db.RunnerConnections.AsNoTracking()
+            var connection = await _dbContext.RunnerConnections.AsNoTracking()
                 .FirstOrDefaultAsync(rc => rc.RunnerId == group.Key.RunnerId
                                            && rc.OrganizationId == group.Key.OrganizationId
                                            && rc.InstanceName == group.Key.RunnerInstanceName);
@@ -208,7 +230,7 @@ public class MaintenanceOperationsService
             runnersWoken++;
         }
 
-        var queued = await db.ModuleSagas.AsNoTracking()
+        var queued = await _dbContext.ModuleSagas.AsNoTracking()
             .Where(s => s.QueuedDesiredStateHeadline != null)
             .Select(s => new { s.CorrelationId, s.OrganizationId })
             .ToListAsync();
@@ -232,18 +254,17 @@ public class MaintenanceOperationsService
     /// </summary>
     public async Task<CancelMissionsResult> CancelHoldingMissionsAsync()
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
         var skipped = new List<string>();
         var requested = 0;
         var marked = 0;
 
-        var runs = await db.ModuleJobMissionRuns
+        var runs = await _dbContext.ModuleJobMissionRuns
             .Where(r => r.Status == MissionStatus.Running || r.Status == MissionStatus.AwaitingReconnect)
             .ToListAsync();
 
         // A run keeps the connection id it was dispatched on, so the id outlives the agent. Only a
         // row in AgentConnections proves the agent is still there to be asked.
-        var liveConnections = await db.AgentConnections.AsNoTracking()
+        var liveConnections = await _dbContext.AgentConnections.AsNoTracking()
             .Select(c => c.SignalRConnectionId)
             .ToListAsync();
         var live = liveConnections.ToHashSet();
@@ -285,7 +306,7 @@ public class MaintenanceOperationsService
         // A run that timed out parks its parent mission at WaitingForAgent, where it waits for an
         // agent that may never return. Those hold no phase open, but they are outstanding work with
         // nothing else to resolve them.
-        var stranded = await db.ModuleJobMissions
+        var stranded = await _dbContext.ModuleJobMissions
             .Where(m => m.Status == MissionStatus.WaitingForAgent
                         || m.Status == MissionStatus.BlockedAgentNotAssigned)
             .ToListAsync();
@@ -296,7 +317,7 @@ public class MaintenanceOperationsService
             marked++;
         }
 
-        await db.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
 
         _logger.LogWarning(
             "Maintenance: cancellation requested for {Requested} mission run(s), {Marked} marked cancelled with no live agent, {Skipped} skipped",
@@ -307,12 +328,11 @@ public class MaintenanceOperationsService
 
     public async Task<CancelAllResult> CancelAllJobsAsync(CancellationType cancellationType)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
         var skipped = new List<string>();
 
         var sagas =
-            (await db.ApplyJobSagas.AsNoTracking().Select(s => new { s.CorrelationId, s.OrganizationId, s.CurrentState }).ToListAsync())
-            .Concat(await db.DestroyJobSagas.AsNoTracking().Select(s => new { s.CorrelationId, s.OrganizationId, s.CurrentState }).ToListAsync())
+            (await _dbContext.ApplyJobSagas.AsNoTracking().Select(s => new { s.CorrelationId, s.OrganizationId, s.CurrentState }).ToListAsync())
+            .Concat(await _dbContext.DestroyJobSagas.AsNoTracking().Select(s => new { s.CorrelationId, s.OrganizationId, s.CurrentState }).ToListAsync())
             .ToList();
 
         var cancelled = 0;
