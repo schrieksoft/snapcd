@@ -105,105 +105,97 @@
                             </MudStack>
                         </TitleContent>
                         <ChildContent>
-                            <MudText Typo="Typo.overline" Class="mud-text-secondary">Waiting on</MudText>
-                            <MudText Typo="Typo.body2" Class="mb-3">@Upstreams(module)</MudText>
-
                             @if (module.Attempts.Count == 0)
                             {
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary">No probe has run yet, so there are no logs.</MudText>
                             }
                             else
                             {
-                                @foreach (var (attempt, index) in module.Attempts.Select((a, i) => (a, i)))
+                                <MudExpansionPanels Elevation="0" Class="mb-3">
+                                    @foreach (var (attempt, index) in module.Attempts.Select((a, i) => (a, i)))
+                                    {
+                                        <MudExpansionPanel Dense="true">
+                                            <TitleContent>
+                                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-grow-1">
+                                                    @if (JobLink(module, attempt) is { } href)
+                                                    {
+                                                        <MudLink Href="@href" Typo="Typo.body2" @onclick:stopPropagation="true">@JobLabel(attempt)</MudLink>
+                                                    }
+                                                    else
+                                                    {
+                                                        <MudText Typo="Typo.body2">@JobLabel(attempt)</MudText>
+                                                    }
+                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@Probed(attempt)</MudText>
+                                                    <MudSpacer/>
+                                                    @if (index == 0)
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">latest</MudChip>
+                                                    }
+                                                </MudStack>
+                                            </TitleContent>
+                                            <ChildContent>
+                                                @Attempt(module, attempt)
+                                            </ChildContent>
+                                        </MudExpansionPanel>
+                                    }
+                                </MudExpansionPanels>
+
+                                @if (_wave?.IsLive == true)
                                 {
-                                    @* A Module probed once reads as it always did; only a repeat gets a heading. *@
-                                    @if (module.Attempts.Count > 1)
-                                    {
-                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3 mb-1">
-                                            <MudText Typo="Typo.overline" Class="mud-text-secondary">
-                                                @(index == 0 ? "Latest probe" : $"Probe {module.Attempts.Count - index}")
-                                            </MudText>
-                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@Probed(attempt)</MudText>
-                                        </MudStack>
-                                    }
-
-                                    @if (attempt.IsStale)
-                                    {
-                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
-                                            <MudIcon Icon="@SnapCdIcons.Warning" Color="Color.Warning" Size="Size.Small"/>
-                                            <MudText Typo="Typo.body2" Color="Color.Warning">
-                                                @StaleSummary(attempt)
-                                            </MudText>
-                                        </MudStack>
-                                    }
-
-                                    @if (index == 0 && _wave?.IsLive == true)
-                                    {
-                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
-                                            <MudButton Variant="Variant.Filled"
-                                                       Color="Color.Secondary"
-                                                       Size="Size.Small"
-                                                       Disabled="@_rerunning.Contains(module.ModuleId)"
-                                                       OnClick="@(() => Rerun(module))">
-                                                probe again
-                                            </MudButton>
-                                        </MudStack>
-                                    }
-
-                                    @if (attempt.Signals.Count > 0)
-                                    {
-                                        <MudText Typo="Typo.overline" Class="mud-text-secondary">Predicted output changes</MudText>
-                                        <MudSimpleTable Dense="true" Class="mb-3">
-                                            <tbody>
-                                            @foreach (var signal in attempt.Signals)
-                                            {
-                                                <tr>
-                                                    <td style="font-family: var(--snap-font-mono);">@signal.Name</td>
-                                                    <td>
-                                                        <MudText Typo="Typo.body2" Color="@ActionColor(signal)">@(signal.Action ?? "unknown")</MudText>
-                                                    </td>
-                                                    <td>
-                                                        @if (signal.Sensitive)
-                                                        {
-                                                            <MudText Typo="Typo.body2" Class="mud-text-secondary">sensitive</MudText>
-                                                        }
-                                                        else if (signal.AfterIsUnknown)
-                                                        {
-                                                            <MudText Typo="Typo.body2" Color="Color.Warning">value not knowable until applied</MudText>
-                                                        }
-                                                        else if (!signal.HasBefore)
-                                                        {
-                                                            <MudText Typo="Typo.body2" Class="mud-text-secondary">new</MudText>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            }
-                                            </tbody>
-                                        </MudSimpleTable>
-                                    }
-                                    else if (!attempt.HasProbed)
-                                    {
-                                        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">This probe ended without reporting a prediction. Its log says why.</MudText>
-                                    }
-
-                                    @if (attempt.ProbeModuleJobId != null)
-                                    {
-                                        <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
-                                        <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto"
-                                                  @ref="_logRefs[attempt.ProbeModuleJobId.Value]"
-                                                  JobId="@attempt.ProbeModuleJobId.Value"
-                                                  ModuleId="@module.ModuleId"
-                                                  TaskFilter="@(new[] { "Probe" })"
-                                                  IncludeCorrelated="true"/>
-                                    }
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Secondary"
+                                                   Size="Size.Small"
+                                                   Disabled="@_rerunning.Contains(module.ModuleId)"
+                                                   OnClick="@(() => Rerun(module))">
+                                            probe again
+                                        </MudButton>
+                                    </MudStack>
                                 }
                             }
+
                         </ChildContent>
                     </MudExpansionPanel>
                 }
             </MudExpansionPanels>
         }
     </MudPaper>
+}
+
+@* One attempt: what it found, or why it has nothing to show, and the log it wrote. *@
+@{
+    RenderFragment Attempt(ProbeWaveModuleView module, ProbeAttemptView attempt) =>
+        @<div class="mb-2">
+            @if (attempt.IsStale)
+            {
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudIcon Icon="@SnapCdIcons.Warning" Color="Color.Warning" Size="Size.Small"/>
+                    <MudText Typo="Typo.body2" Color="Color.Warning">@StaleSummary(attempt)</MudText>
+                </MudStack>
+            }
+
+            @if (attempt.ProbeModuleJobId == null)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">Another prediction has been asked for. This Module has not been dispatched a probe for it yet.</MudText>
+            }
+            else
+            {
+                @if (!attempt.HasProbed)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">This probe ended without reporting a prediction. Its log says why.</MudText>
+                }
+
+                <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto"
+                          @ref="_logRefs[attempt.ProbeModuleJobId.Value]"
+                          JobId="@attempt.ProbeModuleJobId.Value"
+                          ModuleId="@module.ModuleId"
+                          TaskFilter="@(new[] { "Probe" })"
+                          IncludeCorrelated="true"
+                          OnlyCorrelation="@_wave?.Id"
+                          ShowWholeJobDownload="false"
+                          Flat="true"/>
+            }
+        </div>;
 }
 
 @code {
@@ -348,8 +340,35 @@
             .Select(c => $"{c.UpstreamModuleName} ({c.Status.ToString().ToLowerInvariant()})"));
     }
 
-    private static string Probed(ProbeAttemptView attempt) =>
-        DateTimeOffset.FromUnixTimeMilliseconds(attempt.Timestamp).DateTime.ToString("yyyy-MM-dd HH:mm:ss");
+    /// <summary>How a reader refers to the job that carried a probe, or that none has yet.</summary>
+    private static string JobLabel(ProbeAttemptView attempt) =>
+        attempt.ProbeJobNumber is { } number ? $"Job #{number}" : "Not dispatched yet";
+
+    /// <summary>
+    /// The probe's own job, opened on the task that ran it. The task is named by its correlation,
+    /// which is how one job's several probes are told apart.
+    /// </summary>
+    private string? JobLink(ProbeWaveModuleView module, ProbeAttemptView attempt)
+    {
+        if (attempt.ProbeModuleJobId is not { } jobId || _wave is null) return null;
+
+        var task = Uri.EscapeDataString($"Probe (ProbeWave {_wave.Id})");
+
+        return $"/Module/{module.StackName}/{module.NamespaceName}/{module.ModuleName}"
+               + $"?action=Jobs&job={jobId}&tab=logs&task={task}";
+    }
+
+    /// <summary>How long ago the probe was recorded, in the same shape the job lists use.</summary>
+    private static string Probed(ProbeAttemptView attempt)
+    {
+        var elapsed = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeMilliseconds(attempt.Timestamp);
+
+        return elapsed.TotalMinutes < 1 ? "just now"
+            : elapsed.TotalMinutes < 60 ? $"{(int)elapsed.TotalMinutes}m ago"
+            : elapsed.TotalHours < 24 ? $"{(int)elapsed.TotalHours}h ago"
+            : elapsed.TotalHours < 48 ? "yesterday"
+            : $"{(int)elapsed.TotalDays}d ago";
+    }
 
     private static Color ActionColor(SignalOutputView signal)
     {

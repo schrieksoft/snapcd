@@ -71,15 +71,33 @@ public class ProbeSignalRecorder : IDisposable
     /// </summary>
     public async Task RecordAttempt(Guid probeWaveId, Guid moduleId, Guid organizationId, Guid moduleJobId)
     {
-        _dbContext.ModuleProbeAttempts.Add(new ModuleProbeAttempt
+        // An ask for another prediction already wrote the attempt that owes it, so this claims
+        // that row for the job carrying the probe rather than adding a second one beside it.
+        var claimed = await _dbContext.ModuleProbeAttempts
+            .Where(a => a.ProbeWaveId == probeWaveId &&
+                        a.ModuleId == moduleId &&
+                        a.OrganizationId == organizationId &&
+                        a.ProbeModuleJobId == null &&
+                        a.SignalOutputSetId == null)
+            .OrderByDescending(a => a.Timestamp)
+            .FirstOrDefaultAsync();
+
+        if (claimed != null)
         {
-            Id = Guid.NewGuid(),
-            OrganizationId = organizationId,
-            ProbeWaveId = probeWaveId,
-            ModuleId = moduleId,
-            ProbeModuleJobId = moduleJobId,
-            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        });
+            claimed.ProbeModuleJobId = moduleJobId;
+        }
+        else
+        {
+            _dbContext.ModuleProbeAttempts.Add(new ModuleProbeAttempt
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                ProbeWaveId = probeWaveId,
+                ModuleId = moduleId,
+                ProbeModuleJobId = moduleJobId,
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+        }
 
         await _dbContext.SaveChangesAsync();
 

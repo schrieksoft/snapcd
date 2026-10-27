@@ -202,6 +202,9 @@ public class ProbeAttemptView
     /// <summary>When the probe was recorded, as the attempt row stores it.</summary>
     public long Timestamp { get; set; }
 
+    /// <summary>The probe job's number, which is how a reader refers to it.</summary>
+    public int? ProbeJobNumber { get; set; }
+
     /// <summary>True once the probe reported a prediction, as opposed to ending without one.</summary>
     public bool HasProbed { get; set; }
 

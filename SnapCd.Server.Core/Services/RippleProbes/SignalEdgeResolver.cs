@@ -69,10 +69,14 @@ public class SignalEdgeResolver : IDisposable
     /// </summary>
     public async Task ResolveAfterSignals(Guid probeWaveId, Guid moduleId, Guid organizationId)
     {
+        // A Module can hold several attempts in one wave, so this reads the newest result rather
+        // than whichever row comes back first.
         var signalOutputSetId = await _dbContext.ModuleProbeAttempts
             .AsNoTracking()
             .Where(a => a.ProbeWaveId == probeWaveId && a.ModuleId == moduleId &&
-                        a.OrganizationId == organizationId)
+                        a.OrganizationId == organizationId &&
+                        a.SignalOutputSetId != null)
+            .OrderByDescending(a => a.Timestamp)
             .Select(a => a.SignalOutputSetId)
             .FirstOrDefaultAsync();
 

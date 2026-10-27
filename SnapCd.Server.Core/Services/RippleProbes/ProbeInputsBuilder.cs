@@ -67,6 +67,10 @@ public class ProbeInputsBuilder : IDisposable
     /// once, from different origins, and each predicts different values for its inputs, so each
     /// is owed its own probe rather than one answer shared between them.
     ///
+    /// A wave counts as answered when the Module's latest attempt in it carries a result. Asking
+    /// for another prediction adds an attempt with no result, which owes the wave an answer again
+    /// while leaving the earlier result on the record.
+    ///
     /// <paramref name="exceptAttemptedByJob"/> also drops the waves that job has already tried,
     /// answered or not: a faulted probe records no signals, so the wave it tried stays owed on
     /// the signal test alone.
@@ -76,14 +80,19 @@ public class ProbeInputsBuilder : IDisposable
         Guid organizationId,
         Guid? exceptAttemptedByJob = null)
     {
-        var settled = await _dbContext.ModuleProbeAttempts
+        var attempts = await _dbContext.ModuleProbeAttempts
             .AsNoTracking()
-            .Where(a => a.ModuleId == moduleId &&
-                        a.OrganizationId == organizationId &&
-                        (a.SignalOutputSetId != null ||
-                         (exceptAttemptedByJob != null && a.ProbeModuleJobId == exceptAttemptedByJob)))
-            .Select(a => a.ProbeWaveId)
+            .Where(a => a.ModuleId == moduleId && a.OrganizationId == organizationId)
+            .Select(a => new { a.ProbeWaveId, a.Timestamp, a.SignalOutputSetId, a.ProbeModuleJobId })
             .ToListAsync();
+
+        var settled = attempts
+            .GroupBy(a => a.ProbeWaveId)
+            .Where(g => g.OrderByDescending(a => a.Timestamp).First().SignalOutputSetId != null ||
+                        (exceptAttemptedByJob != null &&
+                         g.Any(a => a.ProbeModuleJobId == exceptAttemptedByJob)))
+            .Select(g => g.Key)
+            .ToList();
 
         return await _dbContext.SignalEdges
             .AsNoTracking()

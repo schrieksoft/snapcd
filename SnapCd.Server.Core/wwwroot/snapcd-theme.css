@@ -356,10 +356,16 @@ body.dark-mode .scalar-card {
   font-family: var(--snap-font-sans);
 }
 
+/* The element carries an inline display:none so it stays hidden before this sheet loads, which
+   is what these overrides are declared against. */
 #components-reconnect-modal.components-reconnect-show,
 #components-reconnect-modal.components-reconnect-failed,
 #components-reconnect-modal.components-reconnect-rejected {
-  display: flex;
+  display: flex !important;
+}
+
+#components-reconnect-modal.components-reconnect-hide {
+  display: none !important;
 }
 
 #components-reconnect-modal > div {
@@ -377,6 +383,23 @@ body.dark-mode .scalar-card {
 #components-reconnect-modal svg circle {
   stroke: var(--snap-accent);
 }
+
+/* Which sentence applies is the dialog's own state, so each is shown only for its state. */
+#components-reconnect-modal .components-reconnect-dialog-text {
+  display: none;
+}
+
+#components-reconnect-modal.components-reconnect-show .components-reconnect-first-attempt,
+#components-reconnect-modal.components-reconnect-retrying .components-reconnect-retry,
+#components-reconnect-modal.components-reconnect-failed .components-reconnect-give-up,
+#components-reconnect-modal.components-reconnect-rejected .components-reconnect-give-up {
+  display: block !important;
+}
+
+#components-reconnect-modal.components-reconnect-retrying .components-reconnect-first-attempt {
+  display: none !important;
+}
+
 
 #components-reconnect-modal .components-reconnect-dialog-text {
   color: var(--snap-text);
@@ -403,6 +426,17 @@ body.dark-mode .scalar-card {
 #components-reconnect-modal a:hover,
 #components-reconnect-modal button:hover {
   background: var(--snap-accent-hover);
+}
+
+/* Reloading is the only way out of a failure, so the button is offered only then. Declared after
+   the rules that style it, which set a display of their own. */
+#components-reconnect-modal button {
+  display: none;
+}
+
+#components-reconnect-modal.components-reconnect-failed button,
+#components-reconnect-modal.components-reconnect-rejected button {
+  display: inline-block !important;
 }
 
 #blazor-error-ui {

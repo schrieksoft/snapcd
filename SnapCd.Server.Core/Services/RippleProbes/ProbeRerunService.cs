@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
@@ -172,6 +173,20 @@ public class ProbeRerunService(
 
         logger.LogInformation(
             "Re-probe asked for on Module {ModuleId} in wave {ProbeWaveId}", moduleId, probeWaveId);
+
+        // The attempt that owes the new answer, with no result and no job yet. A Module's latest
+        // attempt in a wave is what decides whether it still owes one, so this is what reopens
+        // the question the earlier attempt closed. The probe's dispatch claims this row.
+        dbContext.ModuleProbeAttempts.Add(new ModuleProbeAttempt
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            ProbeWaveId = probeWaveId,
+            ModuleId = moduleId,
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        });
+
+        await dbContext.SaveChangesAsync();
 
         // The same ask the wave makes of a Module it reaches: the gate decides whether it can run
         // now, and queues it against its dependencies where it cannot.

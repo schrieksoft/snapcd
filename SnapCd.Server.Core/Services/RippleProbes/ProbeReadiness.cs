@@ -54,15 +54,18 @@ public class ProbeReadinessReader : IDisposable
 
     public async Task<ProbeReadiness> Read(Guid moduleId, Guid organizationId)
     {
-        // A wave this Module has already reported in has had its answer, so a later apply is not
-        // that wave's business.
-        var reported = await _dbContext.ModuleProbeAttempts
-            .AsNoTracking()
-            .Where(a => a.ModuleId == moduleId &&
-                        a.OrganizationId == organizationId &&
-                        a.SignalOutputSetId != null)
-            .Select(a => a.ProbeWaveId)
-            .ToListAsync();
+        // A Module's latest attempt in a wave is what says whether it still owes that wave an
+        // answer: an earlier attempt's result is a record of what was predicted, and asking again
+        // adds an attempt with no result rather than clearing the one that has it.
+        var reported = (await _dbContext.ModuleProbeAttempts
+                .AsNoTracking()
+                .Where(a => a.ModuleId == moduleId && a.OrganizationId == organizationId)
+                .Select(a => new { a.ProbeWaveId, a.Timestamp, a.SignalOutputSetId })
+                .ToListAsync())
+            .GroupBy(a => a.ProbeWaveId)
+            .Where(g => g.OrderByDescending(a => a.Timestamp).First().SignalOutputSetId != null)
+            .Select(g => g.Key)
+            .ToList();
 
         var statuses = await _dbContext.SignalEdges
             .AsNoTracking()

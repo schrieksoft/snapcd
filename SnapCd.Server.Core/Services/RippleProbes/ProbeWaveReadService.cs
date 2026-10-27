@@ -231,6 +231,13 @@ public class ProbeWaveReadService : IDisposable
 
         var probeJobStatuses = probeJobs.ToDictionary(j => j.Key, j => j.Value.Status);
 
+        var probeJobNumbers = probeJobIds.Count == 0
+            ? new Dictionary<Guid, int>()
+            : await _dbContext.ModuleJobs
+                .AsNoTracking()
+                .Where(j => probeJobIds.Contains(j.Id) && j.OrganizationId == organizationId)
+                .ToDictionaryAsync(j => j.Id, j => j.JobNumber);
+
         // A wave informs one approval decision and ends when that decision is made, so a prediction
         // it carries stops being a claim about the present and becomes a record of what was
         // predicted. Only a live wave's answers can go stale. Probes still in flight when the
@@ -314,6 +321,10 @@ public class ProbeWaveReadService : IDisposable
                     {
                         ProbeModuleJobId = a.ProbeModuleJobId,
                         Timestamp = a.Timestamp,
+                        ProbeJobNumber = a.ProbeModuleJobId is { } numberedJobId &&
+                                         probeJobNumbers.TryGetValue(numberedJobId, out var jobNumber)
+                            ? jobNumber
+                            : null,
                         HasProbed = a.SignalOutputSetId != null,
                         ProbeJobStatus = a.ProbeModuleJobId is { } probeJobId &&
                                          probeJobStatuses.TryGetValue(probeJobId, out var probeStatus)
