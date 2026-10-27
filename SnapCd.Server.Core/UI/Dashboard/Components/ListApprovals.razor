@@ -79,13 +79,13 @@
             }
         </MudStack>
 
-        <ListProbes @ref="_probesRef" ModuleJobId="@ModuleJobId" ModuleId="@ModuleId"
-                    OnImpactChanged="HandleImpactChanged"/>
-
         <MudPaper Elevation="0" Class="pa-4">
             <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
             <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
         </MudPaper>
+
+        <ListProbes @ref="_probesRef" ModuleJobId="@ModuleJobId" ModuleId="@ModuleId"
+                    OnImpactChanged="HandleImpactChanged"/>
     }
 }
 

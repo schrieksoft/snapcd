@@ -442,11 +442,26 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_Wave_Whose_Consumers_All_Reported_Harmlessly_Is_Cleared()
+    public async Task A_Wave_Whose_Consumers_All_Reported_An_Update_Reports_Changes()
     {
         var wave = await AddWave();
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
         var set = await AddSignalSet(wave, _consumerModuleId, ("id", KnownUpdate, false));
+        await AddAttempt(wave, _consumerModuleId, set);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Changes, view!.Impact);
+    }
+
+    /// <summary>A consumer that reported no signal at all is the only thing that clears a wave.</summary>
+    [Fact]
+    public async Task A_Wave_Whose_Consumers_Reported_Nothing_Is_Cleared()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+        var set = await AddSignalSet(wave, _consumerModuleId);
         await AddAttempt(wave, _consumerModuleId, set);
 
         using var service = Service();
@@ -607,7 +622,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         using var service = Service();
         var view = await service.Get(wave, _organizationId);
 
-        Assert.Equal(DownstreamImpact.Cleared, view!.Impact);
+        Assert.Equal(DownstreamImpact.Changes, view!.Impact);
         Assert.Equal(ProbeProgress.Reported, view.Modules.Single().Progress);
     }
 

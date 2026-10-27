@@ -54,6 +54,7 @@ public class ProbeWaveView
         Modules.Any(m => m.Progress == ProbeProgress.Faulted) ? DownstreamImpact.Failed
         : Modules.Any(m => m.HasDisruptiveSignal) ? DownstreamImpact.Impact
         : Modules.Any(m => m.IsOutstanding) ? DownstreamImpact.Pending
+        : Modules.Any(m => m.Signals.Count > 0) ? DownstreamImpact.Changes
         : DownstreamImpact.Cleared;
 }
 
@@ -73,7 +74,10 @@ public enum DownstreamImpact
     /// <summary>Everything answered and something downstream is destroyed or replaced.</summary>
     Impact,
 
-    /// <summary>Everything answered and nothing downstream is disrupted.</summary>
+    /// <summary>Everything answered and something downstream changes, but nothing is lost.</summary>
+    Changes,
+
+    /// <summary>Everything answered and nothing downstream changes at all.</summary>
     Cleared
 }
 
