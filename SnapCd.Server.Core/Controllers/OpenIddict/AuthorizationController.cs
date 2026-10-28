@@ -22,8 +22,8 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Misc.Utils.Helpers;
 using SnapCd.Server.Core.Misc.ViewModels.Authorization;
+using SnapCd.Server.Core.Services.Utils.Helpers;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using AsyncEnumerableExtensions = System.Linq.AsyncEnumerable;
 

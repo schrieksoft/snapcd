@@ -12,7 +12,8 @@ using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.Outputs;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;

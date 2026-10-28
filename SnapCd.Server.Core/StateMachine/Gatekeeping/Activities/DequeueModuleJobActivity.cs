@@ -12,8 +12,8 @@ using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Services.Crud.Jobs;
-using SnapCd.Server.Core.Services.MaintenanceMode;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 
 namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 

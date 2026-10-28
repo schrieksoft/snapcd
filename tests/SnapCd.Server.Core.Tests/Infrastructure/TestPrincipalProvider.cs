@@ -7,7 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Contracts;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Tests.Infrastructure;
 

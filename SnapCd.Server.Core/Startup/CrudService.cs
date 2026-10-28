@@ -7,10 +7,10 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.Crud;
-using SnapCd.Server.Core.Services.Crud.RoleAssignment;
-using SnapCd.Server.Core.Services.Crud.Secrets;
-using SnapCd.Server.Core.Services.Crud.Secrets.Scoped;
+using SnapCd.Server.Core.Services.Secured.Crud;
+using SnapCd.Server.Core.Services.Secured.Crud.RoleAssignment;
+using SnapCd.Server.Core.Services.Secured.Crud.Secrets;
+using SnapCd.Server.Core.Services.Secured.Crud.Secrets.Scoped;
 
 namespace SnapCd.Server.Core.Startup;
 

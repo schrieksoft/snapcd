@@ -13,6 +13,7 @@ using SnapCd.Server.Core.Dtos;
 using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Nonsecured;
 
 namespace SnapCd.Server.Core.Controllers.Hooks;
 

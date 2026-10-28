@@ -19,12 +19,23 @@ namespace SnapCd.Server.Host.CapAlerts;
 /// <summary>An organization near, at or over its module cap, with the text to show.</summary>
 public record CapAlert(Guid OrganizationId, WhatsNewKind Kind, int Cap, int Count, string Title, string Markdown);
 
-/// <summary>Decides locally which of the three cap texts an organization gets, if any. Near is 90% of the cap.</summary>
-public class CapAlertService(
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+public class CapAlertServiceFactory(
+    IDbContextFactory<SnapCdDbContext> dbFactory,
     ILicenseInfoProvider licenseInfoProvider,
     InstallationService installation)
 {
+    public CapAlertService Create() =>
+        new(dbFactory.CreateDbContext(), licenseInfoProvider, installation);
+}
+
+/// <summary>Decides locally which of the three cap texts an organization gets, if any. Near is 90% of the cap.</summary>
+public class CapAlertService(
+    SnapCdDbContext dbContext,
+    ILicenseInfoProvider licenseInfoProvider,
+    InstallationService installation) : IDisposable
+{
+    public void Dispose() => dbContext.Dispose();
+
     /// <summary>Used until the beacon has delivered texts, and whenever it never does.</summary>
     public static readonly IReadOnlyDictionary<WhatsNewKind, WhatsNewEntryDto> Defaults = new Dictionary<WhatsNewKind, WhatsNewEntryDto>
     {
@@ -43,8 +54,7 @@ public class CapAlertService(
         var license = await licenseInfoProvider.GetLicenseInfoAsync(organizationId);
         if (license.MaxModules is not { } cap || cap <= 0) return null;
 
-        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
-        var count = await db.Modules.CountAsync(m => m.OrganizationId == organizationId, ct);
+        var count = await dbContext.Modules.CountAsync(m => m.OrganizationId == organizationId, ct);
 
         var kind = Classify(count, cap);
         if (kind is null) return null;

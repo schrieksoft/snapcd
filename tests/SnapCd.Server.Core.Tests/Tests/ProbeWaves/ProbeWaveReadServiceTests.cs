@@ -11,7 +11,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Services.RippleProbes;
+using SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using SnapCd.Server.Core.Views;
 using Xunit;

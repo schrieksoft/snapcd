@@ -7,16 +7,15 @@
 // for terms covering either use.
 
 using MassTransit;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Jobs.Base;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.System;
-
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
-using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Contracts;
+
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -131,7 +130,7 @@ public partial class JobStateMachine<
                     .Then(context =>
                     {
                         context.Saga.WaitingSince = null;
-                        _logger.LogInformation($"Approved, continuing to Apply");
+                        LoggerExtensions.LogInformation(_logger, $"Approved, continuing to Apply");
                     })
                     .Activity(z => z.OfType<NotWaitingForApprovalModuleJobActivity<TSaga, TMessage>>())
                     // Use SendToRunnerActivity to target specific server instance
@@ -143,8 +142,7 @@ public partial class JobStateMachine<
                             .Then(context =>
                             {
                                 context.Saga.WaitingSince = DateTime.UtcNow;
-                                _logger.LogWarning(
-                                    "Approval: Runner disconnected for job {CorrelationId}, entering waiting state",
+                                LoggerExtensions.LogWarning(_logger, "Approval: Runner disconnected for job {CorrelationId}, entering waiting state",
                                     context.Saga.CorrelationId);
                             })
                             .TransitionTo(ApplyFromPlanWaitingForRunner),
@@ -165,7 +163,7 @@ public partial class JobStateMachine<
                         // Outright declined, finalize.
                         ///////////////////////////////////////////////////
                         z => z
-                            .Then(_ => { _logger.LogInformation($"Declined, continuing to Finalize"); })
+                            .Then(_ => { LoggerExtensions.LogInformation(_logger, $"Declined, continuing to Finalize"); })
                             .Publish(context => new TResponseCancelled
                             {
                                 ModuleId = context.Saga.ModuleId,
@@ -197,7 +195,7 @@ public partial class JobStateMachine<
                                     {
                                         // The approval timeout deadline is re-derivable as WaitingSince + ApprovalTimeoutMinutes.
                                         context.Saga.WaitingSince = DateTime.UtcNow;
-                                        _logger.LogInformation($"Not yet approved, transitioning to WaitForApproval");
+                                        LoggerExtensions.LogInformation(_logger, $"Not yet approved, transitioning to WaitForApproval");
                                     })
                                     .If(z2 => z2.Saga.ApprovalTimeoutMinutes > 0, z2 => z2
                                         .Schedule(ApprovalTimeoutScheduled,

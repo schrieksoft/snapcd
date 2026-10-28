@@ -17,8 +17,8 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Misc.Extensions;
-using SnapCd.Server.Core.Misc.Utils;
-using SnapCd.Server.Core.Services.IdentityAccess;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Nonsecured.IdentityAccess;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.ExternalLoginProviderSettings;
 

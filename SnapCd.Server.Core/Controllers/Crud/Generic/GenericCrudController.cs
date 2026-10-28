@@ -17,7 +17,7 @@ using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
-using SnapCd.Server.Core.Services.Crud.Generic;
+using SnapCd.Server.Core.Services.Secured.Crud.Generic;
 using SnapCd.Server.Core.Settings.Interfaces;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;

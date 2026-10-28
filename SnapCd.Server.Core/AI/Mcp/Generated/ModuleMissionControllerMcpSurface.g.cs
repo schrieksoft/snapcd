@@ -24,7 +24,7 @@ public static class ModuleMissionControllerMcpSurface
 
 Fires for events on the targeted Module.")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.ModuleMissionReadDto> ModuleMissionsCreate(
-        SnapCd.Server.Core.Services.Crud.ModuleMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The ModuleMission to create")] SnapCd.Contracts.Dto.Missions.ModuleMissionCreateDto dto)
         => service.Create(dto, organizationId);
@@ -32,7 +32,7 @@ Fires for events on the targeted Module.")]
     [McpServerTool(Name = "module_missions_list_by_agent")]
     [Description(@"List ModuleMissions assigned to a specific Agent")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.ModuleMissionReadDto>> ModuleMissionsListByAgent(
-        SnapCd.Server.Core.Services.Crud.ModuleMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Agent ID")] System.Guid agentId)
         => service.ListByAgent(agentId, organizationId);
@@ -40,7 +40,7 @@ Fires for events on the targeted Module.")]
     [McpServerTool(Name = "module_missions_list_by_module")]
     [Description(@"List ModuleMissions targeting a specific Module")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.ModuleMissionReadDto>> ModuleMissionsListByModule(
-        SnapCd.Server.Core.Services.Crud.ModuleMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Module ID")] System.Guid moduleId)
         => service.ListByModule(moduleId, organizationId);
@@ -48,14 +48,14 @@ Fires for events on the targeted Module.")]
     [McpServerTool(Name = "module_missions_list")]
     [Description(@"List all ModuleMissions")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.ModuleMissionReadDto>> ModuleMissionsList(
-        SnapCd.Server.Core.Services.Crud.ModuleMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "module_missions_get")]
     [Description(@"Get a single ModuleMission")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.ModuleMissionReadDto> ModuleMissionsGet(
-        SnapCd.Server.Core.Services.Crud.ModuleMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"ModuleMission ID")] System.Guid id)
         => service.Get(id, organizationId);
@@ -63,7 +63,7 @@ Fires for events on the targeted Module.")]
     [McpServerTool(Name = "module_missions_update")]
     [Description(@"Update an existing ModuleMission")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.ModuleMissionReadDto> ModuleMissionsUpdate(
-        SnapCd.Server.Core.Services.Crud.ModuleMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new ModuleMission values")] SnapCd.Contracts.Dto.Missions.ModuleMissionUpdateDto dto,
         [Description(@"ModuleMission ID")] System.Guid id)
@@ -72,7 +72,7 @@ Fires for events on the targeted Module.")]
     [McpServerTool(Name = "module_missions_delete")]
     [Description(@"Delete a ModuleMission")]
     public static System.Threading.Tasks.Task ModuleMissionsDelete(
-        SnapCd.Server.Core.Services.Crud.ModuleMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"ModuleMission ID")] System.Guid id)
         => service.Delete(id, organizationId);

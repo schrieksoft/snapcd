@@ -15,9 +15,8 @@ using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.Crud;
-
 using SnapCd.Server.Core.Dtos.OrganizationUsers;
+using SnapCd.Server.Core.Services.Secured.Crud;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 

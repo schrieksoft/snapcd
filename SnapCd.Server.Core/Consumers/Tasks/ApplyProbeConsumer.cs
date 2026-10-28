@@ -13,6 +13,7 @@ using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Nonsecured;
 using JobMetadata = SnapCd.Contracts.RunnerRequests.HelperClasses.JobMetadata;
 
 namespace SnapCd.Server.Core.Consumers.Tasks;

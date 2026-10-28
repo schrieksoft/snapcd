@@ -7,21 +7,18 @@
 // for terms covering either use.
 
 using MassTransit;
-using Microsoft.Extensions.DependencyInjection;
-using SnapCd.Server.Core.Entities.Sagas.Base;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Events.Jobs.Base;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-
-using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Contracts;
+
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -148,7 +145,7 @@ public partial class JobStateMachine<
         context => context.Message.CancellationType == inFlight;
 
     private void NoteRepeat(BehaviorContext<TSaga, CancelModuleRequested> context) =>
-        _logger.LogDebug("Cancel repeated for job {JobId} while its request is still outstanding; waiting for the timeout",
+        LoggerExtensions.LogDebug(_logger, "Cancel repeated for job {JobId} while its request is still outstanding; waiting for the timeout",
             context.Saga.CorrelationId);
 
     private void Configure_Cancel()
@@ -169,7 +166,7 @@ public partial class JobStateMachine<
                     _ => (ActualStateHeadline?)null
                 };
 
-                _logger.LogWarning("Saga missing for {EventType} on job {JobId}, finalizing directly",
+                LoggerExtensions.LogWarning(_logger, "Saga missing for {EventType} on job {JobId}, finalizing directly",
                     nameof(CancelModuleRequested), context.Message.CorrelationId);
 
                 // Published, so this reaches every job saga: an id belonging to another kind of job
@@ -223,7 +220,7 @@ public partial class JobStateMachine<
                     _ => (ActualStateHeadline?)null
                 };
 
-                _logger.LogWarning("Saga missing for {EventType} on job {JobId}, finalizing directly",
+                LoggerExtensions.LogWarning(_logger, "Saga missing for {EventType} on job {JobId}, finalizing directly",
                     typeof(TCancelKillCompleted).Name, context.Message.CorrelationId);
 
                 // Published, so this reaches every job saga: an id belonging to another kind of job

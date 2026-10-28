@@ -12,10 +12,10 @@
 @using SnapCd.Server.Core.Entities.Definition.Missions
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies
-@using SnapCd.Server.Core.Services.Ai.Missions
+@using SnapCd.Server.Core.Services.Nonsecured.Ai.Missions
 
 @inject ISnackbar Snackbar
-@inject AgentSupplyResolver AgentSupply
+@inject AgentSupplyResolverFactory AgentSupplyFactory
 
 <MudPaper Elevation="1" Class="pa-4">
     @if (_loading)
@@ -247,11 +247,12 @@
     {
         var rows = new List<MissionRow>();
 
+        using var agentSupply = AgentSupplyFactory.Create();
         using (var repo = OrgMissionRepoFactory.Create())
         {
             foreach (var m in await repo.ListByAgent(AgentId, OrganizationId))
             {
-                var supplied = await AgentSupply.IsAgentSuppliedOrgWide(AgentId, OrganizationId);
+                var supplied = await agentSupply.IsAgentSuppliedOrgWide(AgentId, OrganizationId);
                 rows.Add(new MissionRow
                 {
                     Id = m.Id,
@@ -269,7 +270,7 @@
         {
             foreach (var m in await repo.ListByAgent(AgentId, OrganizationId))
             {
-                var supplied = await AgentSupply.IsAgentSuppliedToStack(AgentId, m.StackId, OrganizationId);
+                var supplied = await agentSupply.IsAgentSuppliedToStack(AgentId, m.StackId, OrganizationId);
                 rows.Add(new MissionRow
                 {
                     Id = m.Id,
@@ -287,7 +288,7 @@
         {
             foreach (var m in await repo.ListByAgent(AgentId, OrganizationId))
             {
-                var supplied = await AgentSupply.IsAgentSuppliedToNamespace(AgentId, m.NamespaceId, OrganizationId);
+                var supplied = await agentSupply.IsAgentSuppliedToNamespace(AgentId, m.NamespaceId, OrganizationId);
                 rows.Add(new MissionRow
                 {
                     Id = m.Id,
@@ -305,7 +306,7 @@
         {
             foreach (var m in await repo.ListByAgent(AgentId, OrganizationId))
             {
-                var supplied = await AgentSupply.IsAgentSuppliedToModule(AgentId, m.ModuleId, OrganizationId);
+                var supplied = await agentSupply.IsAgentSuppliedToModule(AgentId, m.ModuleId, OrganizationId);
                 rows.Add(new MissionRow
                 {
                     Id = m.Id,

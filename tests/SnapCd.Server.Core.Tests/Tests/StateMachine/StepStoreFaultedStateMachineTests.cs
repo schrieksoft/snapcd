@@ -27,9 +27,11 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Variables;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Variables;
-using SnapCd.Server.Core.Services.Crud;
-using SnapCd.Server.Core.Services.PrincipalProvider;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Secured.Crud;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
@@ -169,7 +171,7 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
         services.AddScoped<SnapCdDbContext>(sp => sp.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext());
         services.AddScoped<IPrincipalProvider>(_ => new LiteralPrincipalProvider(Guid.Empty, PrincipalDiscriminator.User, [_module.OrganizationId]));
         services.AddDistributedMemoryCache();
-        services.AddSingleton<SnapCd.Server.Core.Services.MaintenanceMode.IMaintenanceModeService, SnapCd.Server.Core.Services.MaintenanceMode.MaintenanceModeService>();
+        services.AddSingleton<IMaintenanceModeService, MaintenanceModeService>();
         services.Configure<ModuleJobRepositorySettings>(_ => { });
         services.AddScoped<ModuleJobRepository>();
         services.AddScoped(sp =>
@@ -183,9 +185,9 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
 
         // The output store is not reached: the job lookup before it fails, which is the server-side error under test.
         services.AddScoped(sp => new ApplyOutputCompletedInvokedConsumer(
-            sp.GetRequiredService<ILogger<ApplyOutputCompletedInvokedConsumer>>(), new UnavailableDbContextFactory(), null!, sp.GetRequiredService<IBus>()));
+            sp.GetRequiredService<ILogger<ApplyOutputCompletedInvokedConsumer>>(), new UnavailableDbContext(), null!, sp.GetRequiredService<IBus>()));
         services.AddScoped(sp => new DestroyOutputCompletedInvokedConsumer(
-            sp.GetRequiredService<ILogger<DestroyOutputCompletedInvokedConsumer>>(), new UnavailableDbContextFactory(), null!, sp.GetRequiredService<IBus>()));
+            sp.GetRequiredService<ILogger<DestroyOutputCompletedInvokedConsumer>>(), new UnavailableDbContext(), null!, sp.GetRequiredService<IBus>()));
 
         services.AddMassTransitTestHarness(x =>
         {
@@ -352,13 +354,33 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
         Assert.Equal(ExecutionStatus.Failed, job.Status);
         Assert.Equal(ServerSideStep.Output, job.FailedOnServerSideStep);
         Assert.Equal("Server error during Output", job.ServerSideErrorHeader);
-        Assert.Contains(UnavailableDbContextFactory.Message, job.ServerSideError);
+        Assert.Contains(UnavailableDbContext.Message, job.ServerSideError);
     }
 
-    private sealed class UnavailableDbContextFactory : IDbContextFactory<SnapCdDbContext>
+    /// Stands in for a database that cannot be reached: the first query throws.
+    private sealed class UnavailableDbContext() : SnapCdDbContext(
+        new DbContextOptionsBuilder<SnapCdDbContext>()
+            .UseSqlServer("Server=unused", o => o.ExecutionStrategy(_ => new ThrowingStrategy()))
+            .Options)
     {
         public const string Message = "database unavailable";
 
-        public SnapCdDbContext CreateDbContext() => throw new InvalidOperationException(Message);
+        private sealed class ThrowingStrategy : Microsoft.EntityFrameworkCore.Storage.IExecutionStrategy
+        {
+            public bool RetriesOnFailure => false;
+
+            public TResult Execute<TState, TResult>(
+                TState state,
+                Func<DbContext, TState, TResult> operation,
+                Func<DbContext, TState, Microsoft.EntityFrameworkCore.Storage.ExecutionResult<TResult>>? verifySucceeded)
+                => throw new InvalidOperationException(Message);
+
+            public Task<TResult> ExecuteAsync<TState, TResult>(
+                TState state,
+                Func<DbContext, TState, CancellationToken, Task<TResult>> operation,
+                Func<DbContext, TState, CancellationToken, Task<Microsoft.EntityFrameworkCore.Storage.ExecutionResult<TResult>>>? verifySucceeded,
+                CancellationToken cancellationToken = default)
+                => throw new InvalidOperationException(Message);
+        }
     }
 }

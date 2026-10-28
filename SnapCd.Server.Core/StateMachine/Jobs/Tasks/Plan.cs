@@ -7,18 +7,18 @@
 // for terms covering either use.
 
 using MassTransit;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Jobs.Base;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.System;
-
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Contracts;
-using SnapCd.Server.Core.Events.Jobs.Module;
+
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -156,7 +156,7 @@ public partial class JobStateMachine<
                     // Nothing to apply: the probe decision, which reads the wave
                     ///////////////////////////////////////////////////
                     x => x
-                        .Then(_ => { _logger.LogDebug("Nothing to apply, checking whether a probe is owed."); })
+                        .Then(_ => { LoggerExtensions.LogDebug(_logger, "Nothing to apply, checking whether a probe is owed."); })
                         .TransitionTo(WaitingForProbeSignals),
                     ///////////////////////////////////////////////////
                     // Something to apply: policies first (if any), then approval
@@ -166,7 +166,7 @@ public partial class JobStateMachine<
                         .IfElse(
                             ctx => PolicyApplicability.Any(ctx.Saga.DeclaredJson, IsDestroyJob),
                             withPolicies => withPolicies
-                                .Then(_ => { _logger.LogDebug("Policies in scope, dispatching PolicyValidate."); })
+                                .Then(_ => { LoggerExtensions.LogDebug(_logger, "Policies in scope, dispatching PolicyValidate."); })
                                 .Activity(a => a.OfType<SendToRunnerActivity<TSaga, TPlanCompleted, TPolicyValidateRequested>>())
                                 .IfElse(
                                     ctx => ctx.Saga.PreviousStateBeforeWaiting != null,
@@ -174,8 +174,7 @@ public partial class JobStateMachine<
                                         .Then(ctx =>
                                         {
                                             ctx.Saga.WaitingSince = DateTime.UtcNow;
-                                            _logger.LogWarning(
-                                                "PolicyValidate: Runner disconnected for job {CorrelationId}, entering waiting state",
+                                            LoggerExtensions.LogWarning(_logger, "PolicyValidate: Runner disconnected for job {CorrelationId}, entering waiting state",
                                                 ctx.Saga.CorrelationId);
                                         })
                                         .TransitionTo(PolicyValidateWaitingForRunner),
@@ -238,8 +237,7 @@ public partial class JobStateMachine<
             When(RunnerReconnectedEvent)
                 .Then(context =>
                 {
-                    _logger.LogInformation(
-                        "Plan: Runner reconnected for job {CorrelationId}, retrying send",
+                    LoggerExtensions.LogInformation(_logger, "Plan: Runner reconnected for job {CorrelationId}, retrying send",
                         context.Saga.CorrelationId);
                 })
                 // Retry sending TPlanRequested
@@ -250,8 +248,7 @@ public partial class JobStateMachine<
                     whenTrue => whenTrue
                         .Then(context =>
                         {
-                            _logger.LogWarning(
-                                "Plan: Runner disconnected again for job {CorrelationId}, staying in waiting state",
+                            LoggerExtensions.LogWarning(_logger, "Plan: Runner disconnected again for job {CorrelationId}, staying in waiting state",
                                 context.Saga.CorrelationId);
                         }),
                     // Successfully sent - transition to pending
@@ -259,8 +256,7 @@ public partial class JobStateMachine<
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = null;
-                            _logger.LogDebug(
-                                "Plan: Successfully sent for job {CorrelationId}, transitioning to pending",
+                            LoggerExtensions.LogDebug(_logger, "Plan: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 context.Saga.CorrelationId);
                         })
                         .Schedule(HeartbeatScheduled,

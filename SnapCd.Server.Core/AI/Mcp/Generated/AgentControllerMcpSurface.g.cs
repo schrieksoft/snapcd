@@ -22,7 +22,7 @@ public static class AgentControllerMcpSurface
     [McpServerTool(Name = "agents_create")]
     [Description(@"Create a new Agent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Agents.AgentReadDto> AgentsCreate(
-        SnapCd.Server.Core.Services.Crud.AgentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.AgentService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The Agent to create")] SnapCd.Contracts.Dto.Agents.AgentCreateDto dto)
         => service.Create(dto, organizationId);
@@ -32,7 +32,7 @@ public static class AgentControllerMcpSurface
 
 The Agent's bound ServicePrincipal is not deleted.")]
     public static System.Threading.Tasks.Task AgentsDelete(
-        SnapCd.Server.Core.Services.Crud.AgentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.AgentService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Agent ID")] System.Guid id)
         => service.Delete(id, organizationId);
@@ -40,7 +40,7 @@ The Agent's bound ServicePrincipal is not deleted.")]
     [McpServerTool(Name = "agents_get_by_name")]
     [Description(@"Look up an Agent by name")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Agents.AgentReadDto> AgentsGetByName(
-        SnapCd.Server.Core.Services.Crud.AgentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.AgentService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"name")] string name)
         => service.GetByName(name, organizationId);
@@ -48,14 +48,14 @@ The Agent's bound ServicePrincipal is not deleted.")]
     [McpServerTool(Name = "agents_list")]
     [Description(@"List all Agents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Agents.AgentReadDto>> AgentsList(
-        SnapCd.Server.Core.Services.Crud.AgentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.AgentService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "agents_get")]
     [Description(@"Get a single Agent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Agents.AgentReadDto> AgentsGet(
-        SnapCd.Server.Core.Services.Crud.AgentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.AgentService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Agent ID")] System.Guid id)
         => service.Get(id, organizationId);
@@ -63,7 +63,7 @@ The Agent's bound ServicePrincipal is not deleted.")]
     [McpServerTool(Name = "agents_update")]
     [Description(@"Update an existing Agent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Agents.AgentReadDto> AgentsUpdate(
-        SnapCd.Server.Core.Services.Crud.AgentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.AgentService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new Agent values")] SnapCd.Contracts.Dto.Agents.AgentUpdateDto dto,
         [Description(@"Agent ID")] System.Guid id)

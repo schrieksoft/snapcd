@@ -6,13 +6,15 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Services.Utils.CallerContext;
+
 namespace SnapCd.Server.Host.Licensing.Services;
 
 public class LicensePublicKeyRefreshJob(ILicensePublicKeyService service)
 {
     public async Task ExecuteJob()
     {
-        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
+        using var _ = CallerContext.Begin(CallerKind.System);
         await service.RefreshFromRemoteAsync();
     }
 }

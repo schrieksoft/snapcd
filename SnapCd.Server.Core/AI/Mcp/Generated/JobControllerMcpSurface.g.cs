@@ -24,7 +24,7 @@ public static class JobControllerMcpSurface
 
 Returns the Job ID. If correlationId is provided, that ID is used; otherwise a new GUID is generated.")]
     public static System.Threading.Tasks.Task<System.Guid> JobsApply(
-        SnapCd.Server.Core.Services.Crud.Jobs.JobOrchestrationService service,
+        SnapCd.Server.Core.Services.Secured.Crud.Jobs.JobOrchestrationService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Module ID")] System.Guid moduleId,
         [Description(@"Correlation ID")] System.Guid? correlationId)
@@ -35,7 +35,7 @@ Returns the Job ID. If correlationId is provided, that ID is used; otherwise a n
 
 Returns the Job ID. If correlationId is provided, that ID is used; otherwise a new GUID is generated.")]
     public static System.Threading.Tasks.Task<System.Guid> JobsDestroy(
-        SnapCd.Server.Core.Services.Crud.Jobs.JobOrchestrationService service,
+        SnapCd.Server.Core.Services.Secured.Crud.Jobs.JobOrchestrationService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Module ID")] System.Guid moduleId,
         [Description(@"Correlation ID")] System.Guid? correlationId)
@@ -46,7 +46,7 @@ Returns the Job ID. If correlationId is provided, that ID is used; otherwise a n
 
 The Job must be pending approval. The calling principal is recorded as the approver.")]
     public static System.Threading.Tasks.Task JobsApprove(
-        SnapCd.Server.Core.Services.Crud.Jobs.JobOrchestrationService service,
+        SnapCd.Server.Core.Services.Secured.Crud.Jobs.JobOrchestrationService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Job ID")] System.Guid id,
         [Description(@"Request payload")] SnapCd.Contracts.Dto.Jobs.ApproveJobDto? dto)
@@ -57,7 +57,7 @@ The Job must be pending approval. The calling principal is recorded as the appro
 
 The Job must be pending approval. The calling principal is recorded as the decliner. A reason is required.")]
     public static System.Threading.Tasks.Task JobsDecline(
-        SnapCd.Server.Core.Services.Crud.Jobs.JobOrchestrationService service,
+        SnapCd.Server.Core.Services.Secured.Crud.Jobs.JobOrchestrationService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Job ID")] System.Guid id,
         [Description(@"Request payload")] SnapCd.Contracts.Dto.Jobs.DeclineJobDto dto)
@@ -68,7 +68,7 @@ The Job must be pending approval. The calling principal is recorded as the decli
 
 CancellationType: AfterCurrent (let current step finish), ImmediateKill (force terminate).")]
     public static System.Threading.Tasks.Task JobsCancel(
-        SnapCd.Server.Core.Services.Crud.Jobs.JobOrchestrationService service,
+        SnapCd.Server.Core.Services.Secured.Crud.Jobs.JobOrchestrationService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Job ID")] System.Guid id,
         [Description(@"cancellationType")] SnapCd.Contracts.CancellationType cancellationType)

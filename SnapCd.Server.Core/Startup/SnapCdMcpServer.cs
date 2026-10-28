@@ -7,7 +7,7 @@
 // for terms covering either use.
 
 using ModelContextProtocol.Protocol;
-using SnapCd.Server.Core.Services.Ai.Mcp;
+using SnapCd.Server.Core.Services.Utils.Ai.Mcp;
 
 namespace SnapCd.Server.Core.Startup;
 

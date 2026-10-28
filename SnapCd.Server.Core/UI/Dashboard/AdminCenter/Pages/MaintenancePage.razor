@@ -13,18 +13,20 @@
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Enums
-@using SnapCd.Server.Core.Services.Admin
-@using SnapCd.Server.Core.Services.MaintenanceMode
-@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.Services.Nonsecured
+@using SnapCd.Server.Core.Services.Nonsecured.Admin
+@using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode
+@using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
+@using SnapCd.Server.Core.Services.Utils
 @using SnapCd.Server.Core.UI.Dashboard.Layout
 @inject IMaintenanceModeService MaintenanceMode
 @inject HttpContextPrincipalProvider PrincipalProvider
-@inject SystemRoleService SystemRoleService
+@inject SystemRoleServiceFactory SystemRoleServiceFactory
 @inject NavigationManager NavigationManager
-@inject QuiescenceProbeService QuiescenceProbe
+@inject QuiescenceProbeServiceFactory QuiescenceProbeFactory
 @inject TransportProbeService TransportProbe
-@inject MaintenanceOperationsService Operations
-@inject MaintenancePhaseService PhaseService
+@inject MaintenanceOperationsServiceFactory OperationsFactory
+@inject MaintenancePhaseServiceFactory PhaseServiceFactory
 @inject IDialogService DialogService
 
 <PageTitle>Maintenance — Admin Center</PageTitle>
@@ -418,7 +420,8 @@ else
     protected override async Task OnInitializedAsync()
     {
         // System-role gate: without it the page is unreachable, not merely hidden.
-        if (!await SystemRoleService.CurrentUserIsSystemAdministratorAsync())
+        using var systemRoles = SystemRoleServiceFactory.Create();
+        if (!await systemRoles.CurrentUserIsSystemAdministratorAsync())
         {
             NavigationManager.NavigateTo("/", true);
             return;
@@ -462,10 +465,12 @@ else
         try
         {
             _status = await MaintenanceMode.GetStatusAsync();
+            using var phaseService = PhaseServiceFactory.Create();
+            using var quiescenceProbe = QuiescenceProbeFactory.Create();
             _readiness = _status.Database is { Enabled: true, Phase: { } phase }
-                ? await PhaseService.EvaluateAsync(phase, _status.Database)
+                ? await phaseService.EvaluateAsync(phase, _status.Database)
                 : null;
-            _drain = await QuiescenceProbe.GetDrainStatusAsync();
+            _drain = await quiescenceProbe.GetDrainStatusAsync();
             _transport = await TransportProbe.GetDepthsAsync();
             // Cleared on success: polling would otherwise leave a single transient failure on
             // screen for as long as the page stays open.
@@ -499,7 +504,8 @@ else
 
             // Resuming closes the window as it sweeps, so the finished run is held on the page:
             // without it the operator never sees the phase they just triggered land.
-            _completedResume = await Operations.RunPhaseActionAsync(next);
+            using var operations = OperationsFactory.Create();
+            _completedResume = await operations.RunPhaseActionAsync(next);
         });
     }
 
@@ -543,12 +549,17 @@ else
             yesText: "Cancel missions", cancelText: "Leave them");
         if (confirmed != true) return;
 
-        await Run(async () => _cancelMissionsResult = await Operations.CancelHoldingMissionsAsync());
+        await Run(async () =>
+        {
+            using var operations = OperationsFactory.Create();
+            _cancelMissionsResult = await operations.CancelHoldingMissionsAsync();
+        });
     }
 
     private async Task RunSweep()
     {
-        _sweepResult = await Operations.RunResumeSweepAsync();
+        using var operations = OperationsFactory.Create();
+        _sweepResult = await operations.RunResumeSweepAsync();
         await Refresh();
     }
 
@@ -560,7 +571,8 @@ else
             yesText: "Cancel all jobs", cancelText: "Keep jobs");
         if (confirmed != true) return;
 
-        _cancelResult = await Operations.CancelAllJobsAsync(_cancellationType);
+        using var operations = OperationsFactory.Create();
+        _cancelResult = await operations.CancelAllJobsAsync(_cancellationType);
         await Refresh();
     }
 

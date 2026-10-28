@@ -9,13 +9,12 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Jobs.Base;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
-
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.Events.Jobs.Module;
+
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -143,8 +142,7 @@ public partial class JobStateMachine<
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = DateTime.UtcNow;
-                            _logger.LogWarning(
-                                "SelectRunnerInstance: Runner disconnected for job {CorrelationId}, entering waiting state",
+                            LoggerExtensions.LogWarning(_logger, "SelectRunnerInstance: Runner disconnected for job {CorrelationId}, entering waiting state",
                                 context.Saga.CorrelationId);
                         })
                         .TransitionTo(GetDefinitiveRevisionWaitingForRunner),

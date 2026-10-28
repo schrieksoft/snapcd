@@ -10,7 +10,6 @@
 @using Microsoft.AspNetCore.Identity
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Definition
-@using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.Telemetry
 @using SnapCd.Server.Core.UI.Dashboard.Theme
 @using SnapCd.Server.Host.CapAlerts
@@ -18,11 +17,14 @@
 @implements IDisposable
 @using SnapCd.Server.Host.Telemetry
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
+@using SnapCd.Server.Core.Services.Nonsecured.Admin
+@using SnapCd.Server.Core.Services.Nonsecured.OrganizationContext
 @inject OrganizationMembershipCacheService MembershipCache
-@inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
+@inject SystemRoleServiceFactory SystemRoleServiceFactory
 @inject InstallationService Installation
 @inject ProtectedLocalStorage LocalStorage
-@inject CapAlertService CapAlerts
+@inject CapAlertServiceFactory CapAlertsFactory
 @inject ModuleCountChangedNotificationService CapAlertNotifications
 @inject IOrganizationContext OrganizationContext
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -87,7 +89,11 @@
         _isAllowed = true;
         _canActOnLicence = await CanActOnLicenceAsync();
         _subscription = CapAlertNotifications.Subscribe(OnModuleCountChanged);
-        if (_canActOnLicence) _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        if (_canActOnLicence)
+        {
+            using var capAlerts = CapAlertsFactory.Create();
+            _capAlert = await capAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        }
         try
         {
             var row = await Installation.GetAsync();
@@ -104,7 +110,8 @@
     // The module-limit marker is for the people who can act on it. The link and the unread dot are for everyone.
     private async Task<bool> CanActOnLicenceAsync()
     {
-        if (await SystemRoleService.CurrentUserIsSystemAdministratorAsync()) return true;
+        using var systemRoles = SystemRoleServiceFactory.Create();
+        if (await systemRoles.CurrentUserIsSystemAdministratorAsync()) return true;
         var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
         if (orgId == Guid.Empty) return false;
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -122,7 +129,8 @@
     private async Task OnModuleCountChanged()
     {
         if (!_canActOnLicence) return;
-        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        using var capAlerts = CapAlertsFactory.Create();
+        _capAlert = await capAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
         await InvokeAsync(RefreshIndicatorsAsync);
     }
 

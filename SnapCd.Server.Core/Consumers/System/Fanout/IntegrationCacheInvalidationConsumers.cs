@@ -8,7 +8,7 @@
 
 using MassTransit;
 using SnapCd.Server.Core.Events.Repository.Organization;
-using SnapCd.Server.Core.Services.Integrations;
+using SnapCd.Server.Core.Services.Utils.Integrations;
 
 namespace SnapCd.Server.Core.Consumers.System.Fanout;
 

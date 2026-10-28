@@ -8,20 +8,16 @@
 
 
 using MassTransit;
-using Microsoft.Extensions.Logging;
 using SnapCd.Contracts;
-using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.SplitMigrate;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
-using SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMigrate;
 
@@ -50,18 +46,18 @@ public partial class SplitMigrateStateMachine
         During(WaitingForApproval,
             // The threshold may already be answered by the time this job parks, and nothing
             // re-raises the answer. Entry prompts itself so the one arm below does the reading.
-            When(WaitingForApproval.Enter)
-                .Publish(context => new ApprovalReevaluationRequestedEvent
+            PublishExtensions
+                .Publish<SplitMigrateSaga, ApprovalReevaluationRequestedEvent>(When(WaitingForApproval.Enter), context => new ApprovalReevaluationRequestedEvent
                 {
                     ModuleJobId = context.Saga.CorrelationId,
                     ModuleId = context.Saga.ModuleId
                 }),
 
-            DealWithApprovalStatus(When(ApprovalModifiedEvent), false),
-            When(ApprovalTimeoutScheduled.Received)
-                .Then(context =>
+            DealWithApprovalStatus<ApprovalReevaluationRequestedEvent>(When(ApprovalModifiedEvent), false),
+            ThenExtensions
+                .Then<SplitMigrateSaga, ApprovalTimeoutReceived>(When(ApprovalTimeoutScheduled.Received), context =>
                 {
-                    _logger.LogInformation("SplitMigrate: approval timed out for job {JobId}", context.Saga.CorrelationId);
+                    LoggerExtensions.LogInformation(_logger, "SplitMigrate: approval timed out for job {JobId}", context.Saga.CorrelationId);
                 })
                 .Publish(context => new SplitMigrateCancelled
                 {
@@ -75,10 +71,10 @@ public partial class SplitMigrateStateMachine
                 .Finalize(),
             // Nothing is running on a runner here, so there is no step to kill or wait out: every
             // cancellation type ends the job immediately, as a decline does.
-            When(CancelStateMigrationJobRequested)
-                .Then(context =>
+            ThenExtensions
+                .Then<SplitMigrateSaga, CancelStateMigrationJobRequested>(When(CancelStateMigrationJobRequested), context =>
                 {
-                    _logger.LogInformation("SplitMigrate: cancelled while awaiting approval for job {JobId}", context.Saga.CorrelationId);
+                    LoggerExtensions.LogInformation(_logger, "SplitMigrate: cancelled while awaiting approval for job {JobId}", context.Saga.CorrelationId);
                 })
                 .Unschedule(ApprovalTimeoutScheduled)
                 .Publish(context => new SplitMigrateCancelled
@@ -115,7 +111,7 @@ public partial class SplitMigrateStateMachine
                     .Then(context =>
                     {
                         context.Saga.WaitingSince = null;
-                        _logger.LogInformation("SplitMigrate: approved, pushing state for job {JobId}", context.Saga.CorrelationId);
+                        LoggerExtensions.LogInformation(_logger, "SplitMigrate: approved, pushing state for job {JobId}", context.Saga.CorrelationId);
                     })
                     .Activity(z => z.OfType<NotWaitingForApprovalStateMigrationActivity<SplitMigrateSaga, TMessage>>())
                     .Activity(z => z.OfType<SendSplitStepToRunnerActivity<TMessage, SplitMigrateRunRequested>>())
@@ -135,7 +131,7 @@ public partial class SplitMigrateStateMachine
                         declined => declined
                             .Then(context =>
                             {
-                                _logger.LogInformation("SplitMigrate: declined for job {JobId}", context.Saga.CorrelationId);
+                                LoggerExtensions.LogInformation(_logger, "SplitMigrate: declined for job {JobId}", context.Saga.CorrelationId);
                             })
                             .Publish(context => new SplitMigrateCancelled
                             {
@@ -155,7 +151,7 @@ public partial class SplitMigrateStateMachine
                                     .Then(context =>
                                     {
                                         context.Saga.WaitingSince = DateTime.UtcNow;
-                                        _logger.LogInformation("SplitMigrate: awaiting approval for job {JobId}", context.Saga.CorrelationId);
+                                        LoggerExtensions.LogInformation(_logger, "SplitMigrate: awaiting approval for job {JobId}", context.Saga.CorrelationId);
                                     })
                                     .If(z2 => z2.Saga.ApprovalTimeoutMinutes > 0, z2 => z2
                                         .Schedule(ApprovalTimeoutScheduled,

@@ -9,14 +9,13 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Jobs.Base;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
-
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.Events.Jobs.Module;
+
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -141,8 +140,7 @@ public partial class JobStateMachine<
             When(RunnerReconnectedEvent)
                 .Then(context =>
                 {
-                    _logger.LogInformation(
-                        "GetDefinitiveRevision: Runner reconnected for job {CorrelationId}, retrying send",
+                    LoggerExtensions.LogInformation(_logger, "GetDefinitiveRevision: Runner reconnected for job {CorrelationId}, retrying send",
                         context.Saga.CorrelationId);
                 })
                 // Retry sending GetDefinitiveRevisionRequested
@@ -153,8 +151,7 @@ public partial class JobStateMachine<
                     whenTrue => whenTrue
                         .Then(context =>
                         {
-                            _logger.LogWarning(
-                                "GetDefinitiveRevision: Runner disconnected again for job {CorrelationId}, staying in waiting state",
+                            LoggerExtensions.LogWarning(_logger, "GetDefinitiveRevision: Runner disconnected again for job {CorrelationId}, staying in waiting state",
                                 context.Saga.CorrelationId);
                         }),
                     // Successfully sent - transition to pending
@@ -162,8 +159,7 @@ public partial class JobStateMachine<
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = null;
-                            _logger.LogDebug(
-                                "GetDefinitiveRevision: Successfully sent for job {CorrelationId}, transitioning to pending",
+                            LoggerExtensions.LogDebug(_logger, "GetDefinitiveRevision: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 context.Saga.CorrelationId);
                         })
                         .Schedule(HeartbeatScheduled,
@@ -195,8 +191,7 @@ public partial class JobStateMachine<
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = DateTime.UtcNow;
-                            _logger.LogWarning(
-                                "GetDefinitiveRevision: Runner disconnected for job {CorrelationId}, entering waiting state",
+                            LoggerExtensions.LogWarning(_logger, "GetDefinitiveRevision: Runner disconnected for job {CorrelationId}, entering waiting state",
                                 context.Saga.CorrelationId);
                         })
                         .TransitionTo(GetModuleWaitingForRunner),

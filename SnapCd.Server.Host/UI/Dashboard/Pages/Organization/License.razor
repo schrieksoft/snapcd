@@ -12,7 +12,7 @@
 @inject ISnackbar Snackbar
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject IOrganizationContext OrganizationContext
-@inject LicenseService LicenseService
+@inject LicenseServiceFactory LicenseServiceFactory
 @inject IRemoteLicenseClient RemoteLicenseClient
 @inject IQuotaGatingService QuotaGatingService
 @inject IOptions<DebuggingOptions> DebuggingOptions
@@ -26,7 +26,7 @@
 @using SnapCd.Server.Core.Licensing.Models
 @using SnapCd.Server.Host.Licensing.Services
 @using SnapCd.Server.Core.Licensing.Services
-@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
 @using SnapCd.Server.Core.Settings
 @using SnapCd.Server.Core.UI.Dashboard.Layout
 
@@ -246,7 +246,8 @@ else
 
         try
         {
-            _licenseInfo = await LicenseService.GetLicenseInfoAsync(OrganizationId);
+            using var licenseService = LicenseServiceFactory.Create();
+            _licenseInfo = await licenseService.GetLicenseInfoAsync(OrganizationId);
             _moduleQuota = _licenseInfo.MaxModules;
 
             await using var dbContext = await DbContextFactory.CreateDbContextAsync();
@@ -341,13 +342,14 @@ else
                 return;
             }
 
-            var result = await LicenseService.SaveIssuedLicenseAsync(OrganizationId, opaqueKey, issued.Token);
+            using var licenseService = LicenseServiceFactory.Create();
+            var result = await licenseService.SaveIssuedLicenseAsync(OrganizationId, opaqueKey, issued.Token);
 
             if (result.IsValid)
             {
                 // Chain a refresh so the stored state matches a full round-trip through
                 // SaaS's /refresh endpoint (exercises the same path the Hangfire job uses).
-                var refreshed = await LicenseService.RefreshFromSaaSAsync(OrganizationId);
+                var refreshed = await licenseService.RefreshFromSaaSAsync(OrganizationId);
                 _licenseInfo = refreshed.IsValid ? refreshed : result;
                 _newLicenseKey = null;
                 _replaceMode = false;
@@ -377,7 +379,8 @@ else
 
         try
         {
-            var refreshed = await LicenseService.RefreshFromSaaSAsync(OrganizationId);
+            using var licenseService = LicenseServiceFactory.Create();
+            var refreshed = await licenseService.RefreshFromSaaSAsync(OrganizationId);
             if (refreshed.IsValid)
                 Snackbar.Add("License refreshed.", Severity.Success);
             else
@@ -399,7 +402,8 @@ else
     {
         try
         {
-            await LicenseService.RemoveLicenseKeyAsync(OrganizationId);
+            using var licenseService = LicenseServiceFactory.Create();
+            await licenseService.RemoveLicenseKeyAsync(OrganizationId);
             Snackbar.Add("License key removed.", Severity.Success);
             _newLicenseKey = null;
             _replaceMode = false;

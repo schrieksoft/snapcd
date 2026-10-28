@@ -21,10 +21,11 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.Crud.Jobs;
-using SnapCd.Server.Core.Services.MaintenanceMode;
-using SnapCd.Server.Core.Services.ModuleHold;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Nonsecured.ModuleHold;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
@@ -395,7 +396,7 @@ public class PauseGateTests : IAsyncLifetime
     }
 
     private sealed class StubJobService(SnapCdDbContext dbContext, ConcurrentBag<Guid> applied)
-        : JobService(null!, dbContext, null!, null!, null!, null!, null!, null!, null!, null!)
+        : JobService(null!, dbContext, null!, null!, null!, null!, null!, null!, null!)
     {
         public override Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null, string? sourceRevisionOverride = null)
         {

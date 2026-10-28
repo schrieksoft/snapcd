@@ -9,7 +9,7 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.Crud.Transfers;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Transfers;
 
 namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 

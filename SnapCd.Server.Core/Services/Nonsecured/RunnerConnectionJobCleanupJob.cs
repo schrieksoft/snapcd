@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+using Microsoft.EntityFrameworkCore;
+using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
+
+namespace SnapCd.Server.Core.Services.Nonsecured;
+
+/// <summary>
+/// Hangfire recurring job that periodically cleans up old RunnerConnectionJob records.
+/// Deletes records that are older than 10 minutes (based on ModifiedDateTime).
+/// </summary>
+public class RunnerConnectionJobCleanupJob
+{
+    private readonly ILogger<RunnerConnectionJobCleanupJob> _logger;
+    private readonly SnapCdDbContext _dbContext;
+
+    public RunnerConnectionJobCleanupJob(
+        ILogger<RunnerConnectionJobCleanupJob> logger,
+        SnapCdDbContext dbContext)
+    {
+        _logger = logger;
+        _dbContext = dbContext;
+    }
+
+    public async Task ExecuteJob()
+    {
+        using var _ = CallerContext.Begin(CallerKind.System);
+        _logger.LogDebug("Starting RunnerConnectionJob cleanup job");
+
+        try
+        {
+
+            var cutoffTime = DateTime.UtcNow.AddMinutes(-10);
+
+            var oldStateMigrationRecords = await _dbContext.RunnerConnectionStateMigrations
+                .Where(r => r.ModifiedDateTime < cutoffTime)
+                .ToListAsync();
+
+            if (oldStateMigrationRecords.Count > 0)
+            {
+                _dbContext.RunnerConnectionStateMigrations.RemoveRange(oldStateMigrationRecords);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogDebug(
+                    "Cleaned up {Count} old RunnerConnectionStateMigration record(s)",
+                    oldStateMigrationRecords.Count);
+            }
+
+            // Find all RunnerConnectionJob records older than 10 minutes
+            var oldRecords = await _dbContext.RunnerConnectionJobs
+                .Where(rcj => rcj.ModifiedDateTime < cutoffTime)
+                .ToListAsync();
+
+            if (oldRecords.Count == 0)
+            {
+                _logger.LogTrace("No old RunnerConnectionJob records found");
+                return;
+            }
+
+            _logger.LogInformation(
+                "Found {Count} RunnerConnectionJob record(s) older than 10 minutes to clean up",
+                oldRecords.Count);
+
+            // Delete the old records
+            _dbContext.RunnerConnectionJobs.RemoveRange(oldRecords);
+            await _dbContext.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Successfully cleaned up {Count} old RunnerConnectionJob record(s)",
+                oldRecords.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during RunnerConnectionJob cleanup");
+        }
+
+        _logger.LogDebug("RunnerConnectionJob cleanup job completed");
+    }
+}

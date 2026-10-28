@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Runners;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
 
@@ -26,13 +27,13 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly IPublishEndpoint _publishEndpoint;
-    private readonly Services.MaintenanceMode.IMaintenanceModeService _maintenanceMode;
+    private readonly IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<CheckRunnerConnectionActivity<TSaga, TMessage>> _logger;
 
     public CheckRunnerConnectionActivity(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IPublishEndpoint publishEndpoint,
-        Services.MaintenanceMode.IMaintenanceModeService maintenanceMode,
+        IMaintenanceModeService maintenanceMode,
         ILogger<CheckRunnerConnectionActivity<TSaga, TMessage>> logger)
     {
         _dbContextFactory = dbContextFactory;

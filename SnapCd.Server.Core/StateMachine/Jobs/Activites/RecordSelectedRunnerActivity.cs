@@ -9,7 +9,7 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Services.RunInputs;
+using SnapCd.Server.Core.Services.Utils.RunInputs;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
 

@@ -24,14 +24,17 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Mappers.Repositories;
 using SnapCd.Server.Core.Mappers.RoleAssignments;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Misc.Utils;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.Edition;
-using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using System.Linq.Expressions;
+using SnapCd.Server.Core.Services.Interfaces;
+using SnapCd.Server.Core.Services.Interfaces.Edition;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
+using NameValidator = SnapCd.Server.Core.Services.Utils.NameValidator;
 
 namespace SnapCd.Server.Core.Repositories.System.Nonsecured;
 

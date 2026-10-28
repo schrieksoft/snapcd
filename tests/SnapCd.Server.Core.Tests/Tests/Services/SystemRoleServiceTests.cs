@@ -13,8 +13,8 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.System;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Services.Admin;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.Admin;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 
@@ -63,7 +63,7 @@ public class SystemRoleServiceTests : IAsyncLifetime
         }
 
         var factory = _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>();
-        var service = new SystemRoleService(factory, Mock.Of<IPrincipalProvider>());
+        var service = new SystemRoleService(factory.CreateDbContext(), Mock.Of<IPrincipalProvider>());
 
         Assert.True(await service.UserIsSystemAdministratorAsync(adminUserId));
         Assert.False(await service.UserIsSystemAdministratorAsync(plainUserId));

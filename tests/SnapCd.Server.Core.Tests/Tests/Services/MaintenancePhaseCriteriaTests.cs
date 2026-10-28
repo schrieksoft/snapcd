@@ -17,7 +17,8 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.MaintenanceMode;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
@@ -64,7 +65,7 @@ public class MaintenancePhaseCriteriaTests : IAsyncLifetime
     }
 
     private MaintenancePhaseService CreateService() =>
-        new(_provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+        new(_provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             new TransportProbeService(
                 Options.Create(new ServiceBusSettings()),
                 new ConfigurationBuilder().Build()));
@@ -115,7 +116,7 @@ public class MaintenancePhaseCriteriaTests : IAsyncLifetime
     }
 
     private MaintenanceOperationsService CreateOperations() =>
-        new(_provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+        new(_provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             _provider.GetRequiredService<IBus>(),
             null!,
             // CancelHoldingMissionsAsync touches neither the reconciler nor the mode service.

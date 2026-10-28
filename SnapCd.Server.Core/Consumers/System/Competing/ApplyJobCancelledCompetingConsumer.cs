@@ -9,7 +9,7 @@
 using MassTransit;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Events.Jobs.Module;
-using SnapCd.Server.Core.Services.Ai.Missions;
+using SnapCd.Server.Core.Services.Nonsecured.Ai.Missions;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;
 

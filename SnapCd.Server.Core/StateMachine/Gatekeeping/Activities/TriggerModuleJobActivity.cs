@@ -13,10 +13,9 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
-using SnapCd.Server.Core.Services.Crud.Jobs;
-using SnapCd.Server.Core.Services.RippleProbes;
-using SnapCd.Server.Core.Services.MaintenanceMode;
-using SnapCd.Server.Core.Services.ModuleHold;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Nonsecured.ModuleHold;
 
 namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 
@@ -27,14 +26,14 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
     private readonly IServiceProvider _serviceProvider;
     private readonly IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<TriggerModuleJobActivity<TGatekeepingJobRequested>> _logger;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
 
-    public TriggerModuleJobActivity(IServiceProvider serviceProvider, IMaintenanceModeService maintenanceMode, ILogger<TriggerModuleJobActivity<TGatekeepingJobRequested>> logger, IDbContextFactory<SnapCdDbContext> dbContextFactory)
+    public TriggerModuleJobActivity(IServiceProvider serviceProvider, IMaintenanceModeService maintenanceMode, ILogger<TriggerModuleJobActivity<TGatekeepingJobRequested>> logger, SnapCdDbContext dbContext)
     {
         _serviceProvider = serviceProvider;
         _maintenanceMode = maintenanceMode;
         _logger = logger;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
     }
 
     // Resolved lazily: the maintenance-gated path runs without the job-service dependency graph.
@@ -47,8 +46,6 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
     {
         try
         {
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
             var explicitRequest = context.Message.SetNewDesiredState;
             if (explicitRequest && context.Message.DesiredStateHeadline == null)
                 throw new InvalidOperationException("A request that sets a new desired state must say which state.");
@@ -120,7 +117,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
             }
 
             if (effectiveDesiredState == DesiredStateHeadline.Destroyed &&
-                await ModuleDestroyedCheck.IsDestroyedAsync(dbContext, context.Saga.CorrelationId, context.Saga.OrganizationId))
+                await ModuleDestroyedCheck.IsDestroyedAsync(_dbContext, context.Saga.CorrelationId, context.Saga.OrganizationId))
             {
                 if (context.Saga.QueuedDesiredStateHeadline == DesiredStateHeadline.Destroyed)
                 {
@@ -136,7 +133,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
             }
 
             // Check if there's already a current ModuleJob for this module
-            var currentJob = await dbContext.ModuleJobs
+            var currentJob = await _dbContext.ModuleJobs
                 .Where(j => j.ModuleId == context.Message.ModuleId && j.OrganizationId == context.Message.OrganizationId && j.IsCurrent == true)
                 .FirstOrDefaultAsync();
 

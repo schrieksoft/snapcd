@@ -17,9 +17,10 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.Crud;
-using SnapCd.Server.Core.Services.Edition;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.Edition;
+using SnapCd.Server.Core.Services.Secured.Crud;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Controllers;
 
@@ -29,10 +30,10 @@ namespace SnapCd.Server.Core.Controllers;
 [AllowAnonymous]
 [PermissionSource(Skip = true,
     Notes = "Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.")]
-[Services.CallerContext.CallerScope(Services.CallerContext.CallerKind.Runner)]
+[CallerScope(CallerKind.Runner)]
 public class StateController : ControllerBase
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IOpenIddictApplicationManager _applicationManager;
     private readonly StateFileServiceFactory _serviceFactory;
     private readonly IOrganizationActivationService _organizationActivation;
@@ -40,14 +41,14 @@ public class StateController : ControllerBase
     private readonly ILogger<StateController> _logger;
 
     public StateController(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IOpenIddictApplicationManager applicationManager,
         StateFileServiceFactory serviceFactory,
         IOrganizationActivationService organizationActivation,
         IOrganizationNotActivatedResultProvider notActivatedResultProvider,
         ILogger<StateController> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _applicationManager = applicationManager;
         _serviceFactory = serviceFactory;
         _organizationActivation = organizationActivation;
@@ -324,8 +325,7 @@ public class StateController : ControllerBase
         if (!isValid)
             return AuthResult.Fail(Unauthorized(new { error = "Invalid credentials." }));
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var sp = await dbContext.Set<ServicePrincipal>()
+        var sp = await _dbContext.Set<ServicePrincipal>()
             .FirstOrDefaultAsync(s => s.ClientId == clientId && s.OrganizationId == organizationId);
 
         if (sp == null || sp.IsDisabled)

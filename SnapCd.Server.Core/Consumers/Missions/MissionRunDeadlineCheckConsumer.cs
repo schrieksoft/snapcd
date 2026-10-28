@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Missions;
-using SnapCd.Server.Core.Services.Ai.Missions;
+using SnapCd.Server.Core.Services.Nonsecured.Ai.Missions;
 
 namespace SnapCd.Server.Core.Consumers.Missions;
 
@@ -26,18 +26,18 @@ public class MissionRunDeadlineCheckConsumer : IConsumer<MissionRunDeadlineCheck
 {
     public const int MaxAttempts = 3;
 
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly MissionDispatcher _dispatcher;
     private readonly IMessageScheduler _scheduler;
     private readonly ILogger<MissionRunDeadlineCheckConsumer> _logger;
 
     public MissionRunDeadlineCheckConsumer(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         MissionDispatcher dispatcher,
         IMessageScheduler scheduler,
         ILogger<MissionRunDeadlineCheckConsumer> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _dispatcher = dispatcher;
         _scheduler = scheduler;
         _logger = logger;
@@ -46,9 +46,8 @@ public class MissionRunDeadlineCheckConsumer : IConsumer<MissionRunDeadlineCheck
     public async Task Consume(ConsumeContext<MissionRunDeadlineCheck> context)
     {
         var ct = context.CancellationToken;
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct);
 
-        var run = await db.ModuleJobMissionRuns
+        var run = await _dbContext.ModuleJobMissionRuns
             .FirstOrDefaultAsync(r => r.Id == context.Message.RunId && r.OrganizationId == context.Message.OrganizationId, ct);
         if (run is null)
             return;
@@ -72,9 +71,9 @@ public class MissionRunDeadlineCheckConsumer : IConsumer<MissionRunDeadlineCheck
         run.Error = wasAwaitingReconnect
             ? "Agent did not reconnect within the grace window."
             : "No heartbeat within the timeout window.";
-        await db.SaveChangesAsync(ct); // frees the filtered-unique lock before any re-claim
+        await _dbContext.SaveChangesAsync(ct); // frees the filtered-unique lock before any re-claim
 
-        var mission = await db.ModuleJobMissions
+        var mission = await _dbContext.ModuleJobMissions
             .FirstOrDefaultAsync(m => m.Id == run.ModuleJobMissionId && m.OrganizationId == run.OrganizationId, ct);
         if (mission is null)
             return;
@@ -83,13 +82,13 @@ public class MissionRunDeadlineCheckConsumer : IConsumer<MissionRunDeadlineCheck
         {
             _logger.LogWarning("Run {RunId} timed out; retrying mission {MissionType} (attempt {Next}/{Max}).",
                 run.Id, run.MissionType, run.AttemptNumber + 1, MaxAttempts);
-            var outcome = await _dispatcher.DispatchAsync(db, mission, mission.AgentId, run.AttemptNumber + 1, ct);
+            var outcome = await _dispatcher.DispatchAsync(_dbContext, mission, mission.AgentId, run.AttemptNumber + 1, ct);
             if (outcome == MissionDispatchOutcome.NoLiveConnection)
             {
                 // Park instead of failing — AgentReconnectedMissionWakeConsumer will retry when a
                 // covering agent comes back online (the runner's XWaitingForRunner analogue).
                 mission.Status = MissionStatus.WaitingForAgent;
-                await db.SaveChangesAsync(ct);
+                await _dbContext.SaveChangesAsync(ct);
             }
             else if (outcome == MissionDispatchOutcome.AgentNotAssigned)
             {
@@ -97,7 +96,7 @@ public class MissionRunDeadlineCheckConsumer : IConsumer<MissionRunDeadlineCheck
                 // The wake path that picks this up is a future follow-up (an Agent{Scope}Assignment-created
                 // event consumer that re-attempts dispatch for parked missions referencing the affected Agent).
                 mission.Status = MissionStatus.BlockedAgentNotAssigned;
-                await db.SaveChangesAsync(ct);
+                await _dbContext.SaveChangesAsync(ct);
             }
         }
         else
@@ -106,7 +105,7 @@ public class MissionRunDeadlineCheckConsumer : IConsumer<MissionRunDeadlineCheck
                 run.Id, run.MissionType, MaxAttempts);
             mission.Status = MissionStatus.Failed;
             mission.Error = run.Error;
-            await db.SaveChangesAsync(ct);
+            await _dbContext.SaveChangesAsync(ct);
         }
     }
 }

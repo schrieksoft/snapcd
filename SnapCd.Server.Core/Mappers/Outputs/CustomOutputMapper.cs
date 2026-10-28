@@ -17,26 +17,26 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Outputs;
 using SnapCd.Server.Core.Factories.Vaults;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Mappers.Outputs;
 
 public class CustomOutputMapper
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IVaultFactory _vaultFactory;
     private readonly IPrincipalProvider _principalProvider;
     private readonly SecretStoreSettings _secretStoreSettings;
 
     public CustomOutputMapper(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IVaultFactory vaultFactory,
         IOptions<SecretStoreSettings> secretStoreSettings,
         IPrincipalProvider principalProvider
     )
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _vaultFactory = vaultFactory;
         _principalProvider = principalProvider;
         _secretStoreSettings = secretStoreSettings.Value;
@@ -171,7 +171,6 @@ public class CustomOutputMapper
 
     public Organization GetOrganization(Guid organizationId)
     {
-        using var dbContext = _dbContextFactory.CreateDbContext();
-        return dbContext.Organizations.Single(x => x.Id == organizationId);
+        return _dbContext.Organizations.Single(x => x.Id == organizationId);
     }
 }

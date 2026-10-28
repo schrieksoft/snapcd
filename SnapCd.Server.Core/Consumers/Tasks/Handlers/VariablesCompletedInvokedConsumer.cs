@@ -11,9 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Handlers;
 using SnapCd.Server.Core.Events.Steps;
-using SnapCd.Server.Core.Services.Crud;
-
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Services.Secured.Crud;
 
 namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 
@@ -28,17 +27,17 @@ public abstract class VariablesCompletedInvokedConsumer<TInvoked, TCompleted, TF
     where TFaulted : StepFaultedBase, new()
 {
     private readonly ILogger _logger;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly VariableSetService _variableSetService;
     private readonly IBus _bus;
 
     protected VariablesCompletedInvokedConsumer(
         ILogger logger,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         VariableSetService variableSetService, IBus bus)
     {
         _logger = logger;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _variableSetService = variableSetService;
         _bus = bus;
     }
@@ -54,8 +53,7 @@ public abstract class VariablesCompletedInvokedConsumer<TInvoked, TCompleted, TF
         {
             if (variableSet != null)
             {
-                await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-                var jobView = await dbContext.ModuleJobs
+                var jobView = await _dbContext.ModuleJobs
                     .Where(x => x.Id == jobId)
                     .Select(x => new { x.OrganizationId, x.ModuleId })
                     .FirstOrDefaultAsync();
@@ -98,16 +96,16 @@ public abstract class VariablesCompletedInvokedConsumer<TInvoked, TCompleted, TF
 
 public class ApplyVariablesCompletedInvokedConsumer(
     ILogger<ApplyVariablesCompletedInvokedConsumer> logger,
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     VariableSetService variableSetService,
     IBus bus)
     : VariablesCompletedInvokedConsumer<ApplyVariablesCompletedInvoked, ApplyVariablesCompleted, ApplyVariablesFaulted>(
-        logger, dbContextFactory, variableSetService, bus);
+        logger, dbContext, variableSetService, bus);
 
 public class DestroyVariablesCompletedInvokedConsumer(
     ILogger<DestroyVariablesCompletedInvokedConsumer> logger,
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     VariableSetService variableSetService,
     IBus bus)
     : VariablesCompletedInvokedConsumer<DestroyVariablesCompletedInvoked, DestroyVariablesCompleted, DestroyVariablesFaulted>(
-        logger, dbContextFactory, variableSetService, bus);
+        logger, dbContext, variableSetService, bus);

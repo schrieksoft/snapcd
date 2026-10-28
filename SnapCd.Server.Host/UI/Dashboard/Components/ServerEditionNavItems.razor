@@ -10,7 +10,8 @@
 @using Microsoft.AspNetCore.Identity
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Definition
-@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
+@using SnapCd.Server.Core.Services.Nonsecured.OrganizationContext
 @inject OrganizationMembershipCacheService MembershipCache
 @inject IOrganizationContext OrganizationContext
 @inject AuthenticationStateProvider AuthenticationStateProvider

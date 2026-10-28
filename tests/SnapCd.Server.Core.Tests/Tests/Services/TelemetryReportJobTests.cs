@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Interfaces;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Host.Database;
 using SnapCd.Server.Host.Installations;

@@ -8,9 +8,7 @@
 
 
 using MassTransit;
-using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.SplitMigrate;
-using SnapCd.Contracts.RunnerRequests;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMigrate;
 
@@ -41,7 +39,7 @@ public partial class SplitMigrateStateMachine
             {
                 context.Saga.RefactorMapHash = context.Message.RefactorMapHash;
                 context.Saga.CarvedModuleNames = context.Message.CarvedModuleNames.Count > 0
-                    ? string.Join(", ", context.Message.CarvedModuleNames)
+                    ? string.Join((string?)", ", (IEnumerable<string?>)context.Message.CarvedModuleNames)
                     : null;
             }
         );

@@ -23,9 +23,12 @@ using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.MaintenanceMode;
-using SnapCd.Server.Core.Services.PrincipalProvider;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
@@ -252,14 +255,14 @@ public class MaintenanceWindowScenarioTests : IAsyncLifetime
 
         await _maintenance.DisableAsync();
         var operations = new MaintenanceOperationsService(
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             _provider.GetRequiredService<IBus>(),
-            new SnapCd.Server.Core.Services.TransportReconciliationJob(
-                _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+            new TransportReconciliationJob(
+                _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
                 _provider.GetRequiredService<IBus>(),
                 Mock.Of<IMessageScheduler>(),
-                new SnapCd.Server.Core.Services.QuotaService(Mock.Of<SnapCd.Server.Core.Licensing.Services.IQuotaGatingService>()),
-                NullLogger<SnapCd.Server.Core.Services.TransportReconciliationJob>.Instance),
+                new QuotaService(Mock.Of<SnapCd.Server.Core.Licensing.Services.IQuotaGatingService>()),
+                NullLogger<TransportReconciliationJob>.Instance),
             _provider.GetRequiredService<IMaintenanceModeService>(),
             NullLogger<MaintenanceOperationsService>.Instance);
         await operations.RunResumeSweepAsync();
@@ -351,7 +354,8 @@ public class MaintenanceWindowScenarioTests : IAsyncLifetime
         await _maintenance.EnableAsync(Guid.NewGuid(), "scenario 4");
 
         var factory = _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>();
-        var probe = new QuiescenceProbeService(factory, new StuckJobDetectionService(factory, Options.Create(new StuckJobDetectionSettings())));
+        var probeDbContext = factory.CreateDbContext();
+        var probe = new QuiescenceProbeService(probeDbContext, new StuckJobDetectionService(probeDbContext, Options.Create(new StuckJobDetectionSettings())));
 
         var during = await probe.GetDrainStatusAsync();
         Assert.True(during.ActiveMissions >= 1);

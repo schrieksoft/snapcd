@@ -14,7 +14,9 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Entities.Sagas
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
-@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
+@using SnapCd.Server.Core.Services.Utils.Notification
+@using SnapCd.Server.Core.Services.Utils.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Approvals
 @using SnapCd.Server.Core.Views
 @using Color = MudBlazor.Color
@@ -22,7 +24,7 @@
 
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject SnapCd.Server.Core.Services.Notification.LogReceivedNotificationService LogReceivedNotificationService
+@inject LogReceivedNotificationService LogReceivedNotificationService
 
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 

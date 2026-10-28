@@ -7,12 +7,12 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.Transfer;
-using SnapCd.Server.Core.Services.MaintenanceMode;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Transfers;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 

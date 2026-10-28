@@ -11,19 +11,22 @@
 @using SnapCd.Contracts.Dto.Misc
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
-@using SnapCd.Server.Core.Services.PrincipalProvider
-@using SnapCd.Server.Core.Services.RippleProbes
+@using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
+@using SnapCd.Server.Core.Services.Nonsecured.RippleProbes
+@using SnapCd.Server.Core.Services.Secured.RippleProbes
+@using SnapCd.Server.Core.Services.Utils.Notification
+@using SnapCd.Server.Core.Services.Utils.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 @using SnapCd.Server.Core.UI.Dashboard.Theme
 @using SnapCd.Server.Core.Views
 @using Color = MudBlazor.Color
 
 @inject ProbeWaveReadServiceFactory ProbeWaveReadServiceFactory
-@inject SnapCd.Server.Core.Services.RippleProbes.ProbeRerunServiceFactory ProbeRerunServiceFactory
+@inject ProbeRerunServiceFactory ProbeRerunServiceFactory
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ModuleSecuredRepositoryFactory ModuleRepoFactory
-@inject SnapCd.Server.Core.Services.Notification.ProbeWaveUpdatedNotificationService ProbeWaveUpdatedNotificationService
+@inject ProbeWaveUpdatedNotificationService ProbeWaveUpdatedNotificationService
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 
 @if (_wave == null && _propagationFailure is { Length: > 0 })
@@ -421,9 +424,7 @@
 
         using var service = ProbeRerunServiceFactory.Create(Principal());
 
-        var originModuleId = await service.OriginModuleOf(ModuleJobId, OrganizationId);
-
-        var refusal = originModuleId is { } id && service.MayAsk(id, OrganizationId)
+        var refusal = await service.CanRetry(ModuleJobId, OrganizationId)
             ? null
             : "You are not allowed to run jobs on this Module.";
 
@@ -474,7 +475,7 @@
 
         using var service = ProbeRerunServiceFactory.Create(Principal());
 
-        var refusal = service.MayAsk(_wave.OriginModuleId, OrganizationId)
+        var refusal = service.CanRerun(_wave.OriginModuleId, OrganizationId)
             ? null
             : $"You are not allowed to run jobs on {_wave.OriginModuleName}.";
 

@@ -16,7 +16,8 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Secured.Crud.Jobs;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 
@@ -83,7 +84,7 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
     {
         var jobId = await SeedJob(withSaga: false, ended: false);
 
-        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedStateMigrations();
+        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory.CreateDbContext()).ListOrphanedStateMigrations();
 
         Assert.Contains(orphaned, j => j.Id == jobId && j.JobType == StateMigrationTypes.SplitMigrate && j.OrganizationId == _organizationId);
     }
@@ -93,7 +94,7 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
     {
         var jobId = await SeedJob(withSaga: true, ended: false);
 
-        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedStateMigrations();
+        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory.CreateDbContext()).ListOrphanedStateMigrations();
 
         Assert.DoesNotContain(orphaned, j => j.Id == jobId);
     }
@@ -103,7 +104,7 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
     {
         var jobId = await SeedJob(withSaga: false, ended: true);
 
-        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedStateMigrations();
+        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory.CreateDbContext()).ListOrphanedStateMigrations();
 
         Assert.DoesNotContain(orphaned, j => j.Id == jobId);
     }
@@ -116,7 +117,7 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
         Assert.Equal("A manual job is already running on this module.", await BlockedReason());
 
         var job = new OrphanedJobCleanupJob(
-            new OrphanedJobCleanupService(_dbContextFactory),
+            new OrphanedJobCleanupService(_dbContextFactory.CreateDbContext()),
             new StateMigrationJobRepositoryFactory(_dbContextFactory),
             _fixture.CreateMockBus(),
             NullLogger<OrphanedJobCleanupJob>.Instance);

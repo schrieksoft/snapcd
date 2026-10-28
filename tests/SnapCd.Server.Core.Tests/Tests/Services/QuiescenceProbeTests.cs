@@ -16,7 +16,8 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
@@ -53,7 +54,8 @@ public class QuiescenceProbeTests : IAsyncLifetime
     private QuiescenceProbeService CreateService()
     {
         var factory = _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>();
-        return new QuiescenceProbeService(factory, new StuckJobDetectionService(factory, Options.Create(new StuckJobDetectionSettings())));
+        var dbContext = factory.CreateDbContext();
+        return new QuiescenceProbeService(dbContext, new StuckJobDetectionService(dbContext, Options.Create(new StuckJobDetectionSettings())));
     }
 
     private async Task<Guid> SeedSaga(string state, DateTime? waitingSince = null)

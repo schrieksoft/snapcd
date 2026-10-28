@@ -34,11 +34,13 @@ using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Misc.Utils;
-using SnapCd.Server.Core.Services.Ai.Missions;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Nonsecured.Ai.Missions;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
 using SnapCd.Server.Core.StateMachine.Jobs;
+using SplitMigrateStateMachine = SnapCd.Server.Core.StateMachine.SplitMigrate.SplitMigrateStateMachine;
 
 namespace SnapCd.Server.Core.Startup;
 
@@ -81,6 +83,7 @@ public static class MassTransit
         }
 
         services.AddScoped<MissionDispatcher>();
+        services.AddScoped<MissionDispatcherFactory>();
         services.AddScoped<MissionMatcher>();
         services.AddScoped<AgentSupplyResolver>();
 
@@ -121,7 +124,7 @@ public static class MassTransit
 
                     {
                         // Every consumer-side write is machine-driven; see CallerContextConsumeFilter.
-                        cfg.UseConsumeFilter(typeof(Services.CallerContext.CallerContextConsumeFilter<>), context);
+                        cfg.UseConsumeFilter(typeof(CallerContextConsumeFilter<>), context);
 
                         var truncatedFormatter = new TruncatedKebabCaseEndpointNameFormatter(serviceBusSettings.EndpointsPrefix,
                             serviceBusSettings.EndpointsPrefixIncludeNameSpace, 255);
@@ -178,7 +181,7 @@ public static class MassTransit
                     x.UsingSqlServer((context, cfg) =>
                     {
                         // Every consumer-side write is machine-driven; see CallerContextConsumeFilter.
-                        cfg.UseConsumeFilter(typeof(Services.CallerContext.CallerContextConsumeFilter<>), context);
+                        cfg.UseConsumeFilter(typeof(CallerContextConsumeFilter<>), context);
 
                         var truncatedFormatter = new TruncatedKebabCaseEndpointNameFormatter(
                             serviceBusSettings.EndpointsPrefix,
@@ -478,8 +481,7 @@ public static class MassTransit
         AddSagaStateMachine<RemoveStateMachine, RemoveSaga>(x);
 
         // module sagas
-        AddSagaStateMachine<
-            JobStateMachine<
+        AddSagaStateMachine<StateMachine.Jobs.JobStateMachine<
                 ApplyJobSaga,
                 ApplyModuleRequested,
                 ApplyModuleFailed,
@@ -531,8 +533,7 @@ public static class MassTransit
             >,
             ApplyJobSaga>(x);
 
-        AddSagaStateMachine<
-            JobStateMachine<
+        AddSagaStateMachine<StateMachine.Jobs.JobStateMachine<
                 DestroyJobSaga,
                 DestroyModuleRequested,
                 DestroyModuleFailed,

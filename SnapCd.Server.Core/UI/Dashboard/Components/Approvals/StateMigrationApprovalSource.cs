@@ -10,9 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.Approvals;
-using SnapCd.Server.Core.Services.Crud.Jobs;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Secured.Crud.Jobs;
 
 namespace SnapCd.Server.Core.UI.Dashboard.Components.Approvals;
 
@@ -25,20 +24,17 @@ public class StateMigrationApprovalSource : IApprovalSource
     private readonly StateMigrationJobSecuredRepositoryFactory _jobRepoFactory;
     private readonly ModuleSecuredRepositoryFactory _moduleRepoFactory;
     private readonly StateMigrationServiceFactory _serviceFactory;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly IPrincipalProvider _principalProvider;
 
     public StateMigrationApprovalSource(
         StateMigrationJobSecuredRepositoryFactory jobRepoFactory,
         ModuleSecuredRepositoryFactory moduleRepoFactory,
         StateMigrationServiceFactory serviceFactory,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IPrincipalProvider principalProvider)
     {
         _jobRepoFactory = jobRepoFactory;
         _moduleRepoFactory = moduleRepoFactory;
         _serviceFactory = serviceFactory;
-        _dbContextFactory = dbContextFactory;
         _principalProvider = principalProvider;
     }
 
@@ -69,9 +65,15 @@ public class StateMigrationApprovalSource : IApprovalSource
 
     public async Task<int?> ResolveThreshold(Guid jobId, Guid moduleId, Guid organizationId)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
+        using var repo = _moduleRepoFactory.Create(_principalProvider);
 
-        return await StateMigrationApprovalThreshold.Resolve(moduleId, organizationId, db);
+        // The default is one, not none: a state migration's push is irreversible, so silence is
+        // not consent. StateMigrationApprovalThreshold holds the same rule for the gate.
+        return await repo.Get(moduleId, organizationId, x => x
+            .Include(m => m.Namespace)
+            .Select(y => y.StateMigrationApprovalThreshold
+                         ?? y.Namespace.DefaultStateMigrationApprovalThreshold
+                         ?? 1));
     }
 
     public async Task Approve(Guid jobId, Guid moduleId, Guid organizationId)

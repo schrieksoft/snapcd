@@ -24,7 +24,7 @@ public static class OrganizationMissionControllerMcpSurface
 
 Fires for any matching event in the organization.")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.OrganizationMissionReadDto> OrganizationMissionsCreate(
-        SnapCd.Server.Core.Services.Crud.OrganizationMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The OrganizationMission to create")] SnapCd.Contracts.Dto.Missions.OrganizationMissionCreateDto dto)
         => service.Create(dto, organizationId);
@@ -32,7 +32,7 @@ Fires for any matching event in the organization.")]
     [McpServerTool(Name = "organization_missions_list_by_agent")]
     [Description(@"List OrganizationMissions assigned to a specific Agent")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.OrganizationMissionReadDto>> OrganizationMissionsListByAgent(
-        SnapCd.Server.Core.Services.Crud.OrganizationMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Agent ID")] System.Guid agentId)
         => service.ListByAgent(agentId, organizationId);
@@ -40,14 +40,14 @@ Fires for any matching event in the organization.")]
     [McpServerTool(Name = "organization_missions_list")]
     [Description(@"List all OrganizationMissions")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.OrganizationMissionReadDto>> OrganizationMissionsList(
-        SnapCd.Server.Core.Services.Crud.OrganizationMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "organization_missions_get")]
     [Description(@"Get a single OrganizationMission")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.OrganizationMissionReadDto> OrganizationMissionsGet(
-        SnapCd.Server.Core.Services.Crud.OrganizationMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"OrganizationMission ID")] System.Guid id)
         => service.Get(id, organizationId);
@@ -55,7 +55,7 @@ Fires for any matching event in the organization.")]
     [McpServerTool(Name = "organization_missions_update")]
     [Description(@"Update an existing OrganizationMission")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.OrganizationMissionReadDto> OrganizationMissionsUpdate(
-        SnapCd.Server.Core.Services.Crud.OrganizationMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new OrganizationMission values")] SnapCd.Contracts.Dto.Missions.OrganizationMissionUpdateDto dto,
         [Description(@"OrganizationMission ID")] System.Guid id)
@@ -64,7 +64,7 @@ Fires for any matching event in the organization.")]
     [McpServerTool(Name = "organization_missions_delete")]
     [Description(@"Delete an OrganizationMission")]
     public static System.Threading.Tasks.Task OrganizationMissionsDelete(
-        SnapCd.Server.Core.Services.Crud.OrganizationMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"OrganizationMission ID")] System.Guid id)
         => service.Delete(id, organizationId);

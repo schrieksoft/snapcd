@@ -8,16 +8,15 @@
 
 
 using MassTransit;
-using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
+using SnapCd.Server.Core.StateMachine.SplitMigrate.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMigrate;
 
@@ -45,13 +44,12 @@ public partial class SplitMigrateStateMachine
         where TFaulted : StepResponseBase
     {
         During(waitingState,
-            When(waitingState.Enter)
-                .Activity(x => x.OfType<CheckRunnerConnectionActivity<SplitMigrateSaga, TCompleted>>()),
-            When(RunnerReconnectedEvent)
-                .Then(context =>
+            ContainerActivityExtensions
+                .Activity<SplitMigrateSaga>(When(waitingState.Enter), x => x.OfType<CheckRunnerConnectionActivity<SplitMigrateSaga, TCompleted>>()),
+            ThenExtensions
+                .Then<SplitMigrateSaga, RunnerReconnectedEvent>(When(RunnerReconnectedEvent), context =>
                 {
-                    _logger.LogInformation(
-                        "{StepName}: Runner reconnected for job {CorrelationId}, retrying send",
+                    LoggerExtensions.LogInformation(_logger, "{StepName}: Runner reconnected for job {CorrelationId}, retrying send",
                         typeof(TCompleted).Name.Replace("Completed", ""), context.Saga.CorrelationId);
                 })
                 .Activity(x => x.OfType<SendSplitStepToRunnerActivity<RunnerReconnectedEvent, TNextEvent>>())
@@ -60,24 +58,22 @@ public partial class SplitMigrateStateMachine
                     whenTrue => whenTrue
                         .Then(context =>
                         {
-                            _logger.LogWarning(
-                                "{StepName}: Runner disconnected again for job {CorrelationId}, staying in waiting state",
+                            LoggerExtensions.LogWarning(_logger, "{StepName}: Runner disconnected again for job {CorrelationId}, staying in waiting state",
                                 typeof(TCompleted).Name.Replace("Completed", ""), context.Saga.CorrelationId);
                         }),
                     whenFalse => whenFalse
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = null;
-                            _logger.LogDebug(
-                                "{StepName}: Successfully sent for job {CorrelationId}, transitioning to pending",
+                            LoggerExtensions.LogDebug(_logger, "{StepName}: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 typeof(TCompleted).Name.Replace("Completed", ""), context.Saga.CorrelationId);
                         })
                         .Schedule(HeartbeatScheduled,
                             context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
                         .TransitionTo(nextState)
                 ),
-            When(CancelStateMigrationJobRequested)
-                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+            JobExtensionMethods
+                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(When(CancelStateMigrationJobRequested), _logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<SplitMigrateSaga, CancelStateMigrationJobRequested>(_logger, CancellingAfterCurrent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
@@ -85,9 +81,9 @@ public partial class SplitMigrateStateMachine
         );
 
         During(duringState,
-            When(completedEvent)
+            ThenExtensions
                 // Lets a step record what it reported before the chain moves on.
-                .Then(context => onCompleted?.Invoke(context))
+                .Then<SplitMigrateSaga, TCompleted>(When(completedEvent), context => onCompleted?.Invoke(context))
                 .Activity(x => x.OfType<SendSplitStepToRunnerActivity<TCompleted, TNextEvent>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
@@ -95,8 +91,7 @@ public partial class SplitMigrateStateMachine
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = DateTime.UtcNow;
-                            _logger.LogWarning(
-                                "{StepName}: Runner disconnected for job {CorrelationId}, entering waiting state",
+                            LoggerExtensions.LogWarning(_logger, "{StepName}: Runner disconnected for job {CorrelationId}, entering waiting state",
                                 typeof(TCompleted).Name.Replace("Completed", ""), context.Saga.CorrelationId);
                         })
                         .TransitionTo(nextWaitingState),
@@ -105,19 +100,18 @@ public partial class SplitMigrateStateMachine
                             context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
                         .TransitionTo(nextState)
                 ),
-            When(HeartbeatScheduled.Received)
-                .ThenHeartbeatScheduled(HeartbeatRequested),
-            When(HeartbeatRequested.Completed)
-                .ThenHeartbeatCompleted(HeartbeatScheduled),
-            When(HeartbeatRequested.Completed2)
-                .ThenSplitTimedOut(Failed),
-            When(CancelStateMigrationJobRequested)
-                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+            JobExtensionMethods
+                .ThenHeartbeatScheduled<SplitMigrateSaga, StateMigrationHeartbeatRequested>(When(HeartbeatScheduled.Received), HeartbeatRequested),
+            JobExtensionMethods
+                .ThenHeartbeatCompleted<SplitMigrateSaga>(When(HeartbeatRequested.Completed), HeartbeatScheduled),
+            SplitMigrateExtensionMethods.ThenSplitTimedOut(When(HeartbeatRequested.Completed2), Failed),
+            JobExtensionMethods
+                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(When(CancelStateMigrationJobRequested), _logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<SplitMigrateSaga, CancelStateMigrationJobRequested>(_logger, CancellingAfterCurrent),
-            When(cancelledEvent)
-                .ThenSplitCancelled(Cancelled),
-            When(faultedEvent)
-                .ThenSplitFaulted(Failed, _logger),
+            SplitMigrateExtensionMethods
+                .ThenSplitCancelled<TCancelled>(When(cancelledEvent), Cancelled),
+            SplitMigrateExtensionMethods
+                .ThenSplitFaulted<TFaulted>(When(faultedEvent), Failed, _logger),
             Ignore(RunnerReconnectedEvent)
         );
     }

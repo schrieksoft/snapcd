@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+using SnapCd.Contracts.Dto.IntegrationModuleSupplies;
+using SnapCd.Server.Core.Entities.Definition.IntegrationSupplies;
+using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Mappers;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSupplies;
+using SnapCd.Server.Core.Services.Secured.Crud.Generic;
+using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views.Metadata;
+
+namespace SnapCd.Server.Core.Services.Secured.Crud;
+
+public class IntegrationModuleSupplyService : GenericCrudService<
+    IntegrationModuleSupply, IntegrationModuleSupplyMetadata,
+    IntegrationModuleSupplyCreateDto,
+    IntegrationModuleSupplyUpdateDto,
+    IntegrationModuleSupplyReadDto,
+    IntegrationModuleSupplyMetadataReadDto,
+    IntegrationModuleSupplySecuredRepository,
+    IntegrationModuleSupplyRepository,
+    IntegrationModuleSupplyCreatedEvent,
+    IntegrationModuleSupplyUpdatedEvent,
+    IntegrationModuleSupplyDeletedEvent,
+    IntegrationModuleSupplyRepositorySettings>
+{
+    public IntegrationModuleSupplyService(
+        IntegrationModuleSupplySecuredRepository securedRepository) : base(securedRepository)
+    {
+    }
+
+    protected override IntegrationModuleSupply MapToEntity(IntegrationModuleSupplyCreateDto dto, Guid organizationId)
+    {
+        return IntegrationModuleSupplyMapper.ToEntity(dto, organizationId);
+    }
+
+    protected override IntegrationModuleSupplyReadDto MapToDto(IntegrationModuleSupply entity)
+    {
+        return IntegrationModuleSupplyMapper.ToDto(entity);
+    }
+
+    protected override IntegrationModuleSupplyMetadataReadDto MapToMetadataDto(IntegrationModuleSupplyMetadata view)
+    {
+        return IntegrationModuleSupplyMapper.ToMetadataDto(view);
+    }
+
+    protected override void UpdateEntityFromDto(IntegrationModuleSupply entity, IntegrationModuleSupplyUpdateDto dto)
+    {
+        IntegrationModuleSupplyMapper.UpdateEntity(entity, dto);
+    }
+}

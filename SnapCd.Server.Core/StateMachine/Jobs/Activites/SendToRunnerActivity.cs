@@ -13,7 +13,8 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Misc.Helpers;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
 
@@ -28,12 +29,12 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
     where TOutgoingMessage : StepRequestBase, new()
 {
     private readonly SnapCdDbContext _dbContext;
-    private readonly Services.MaintenanceMode.IMaintenanceModeService _maintenanceMode;
+    private readonly IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>> _logger;
 
     public SendToRunnerActivity(
         SnapCdDbContext dbContext,
-        Services.MaintenanceMode.IMaintenanceModeService maintenanceMode,
+        IMaintenanceModeService maintenanceMode,
         ILogger<SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>> logger)
     {
         _dbContext = dbContext;

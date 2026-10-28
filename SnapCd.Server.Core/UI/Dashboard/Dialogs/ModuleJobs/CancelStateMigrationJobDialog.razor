@@ -6,10 +6,10 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 @using SnapCd.Contracts
-@using SnapCd.Server.Core.Services.Crud.Jobs
-@using SnapCd.Server.Core.Services.PrincipalProvider
 
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider
+@using SnapCd.Server.Core.Services.Secured.Crud.Jobs
 @inject ModuleJobSecuredRepositoryFactory JobSecuredRepoFactory
 @inject StateMigrationServiceFactory StateMigrationServiceFactory
 @inject ISnackbar Snackbar

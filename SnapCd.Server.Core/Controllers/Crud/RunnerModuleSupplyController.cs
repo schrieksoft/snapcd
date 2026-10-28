@@ -14,7 +14,7 @@ using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RunnerSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies;
-using SnapCd.Server.Core.Services.Crud;
+using SnapCd.Server.Core.Services.Secured.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;

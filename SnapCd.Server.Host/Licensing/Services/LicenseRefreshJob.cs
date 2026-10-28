@@ -10,21 +10,21 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.DataSeeder;
 
 namespace SnapCd.Server.Host.Licensing.Services;
 
 public class LicenseRefreshJob(
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     LicenseService licenseService,
     IOptions<LicenseSettings> settings,
     ILogger<LicenseRefreshJob> logger)
 {
     public async Task ExecuteJob()
     {
-        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+        using var _ = CallerContext.Begin(CallerKind.System);
 
         var orgIds = await dbContext.Set<SelfHostedOrganizationLicense>()
             .Where(l => l.LicenseToken != null

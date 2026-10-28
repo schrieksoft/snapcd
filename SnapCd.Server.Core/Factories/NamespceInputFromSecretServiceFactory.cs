@@ -8,8 +8,8 @@
 
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.Crud;
-using SnapCd.Server.Core.Services.Crud.Interfaces;
+using SnapCd.Server.Core.Services.Interfaces.Crud;
+using SnapCd.Server.Core.Services.Secured.Crud;
 
 namespace SnapCd.Server.Core.Factories;
 

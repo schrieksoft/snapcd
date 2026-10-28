@@ -24,7 +24,9 @@ using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.AgentConnectionValidator;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Hubs;
@@ -37,30 +39,30 @@ namespace SnapCd.Server.Core.Hubs;
 [Authorize(AuthenticationSchemes = "Bearer")]
 public class AgentHub : Hub
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IBus _bus;
     private readonly ILogger<AgentHub> _logger;
     private readonly ServerSettings _serverSettings;
     private readonly AgentConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly OpenConnections<AgentHub> _openConnections;
-    private readonly Services.AgentConnectionValidator.AgentConnectionValidator _connectionValidator;
+    private readonly AgentConnectionValidator _connectionValidator;
     private readonly ILicenseInfoProvider _licenseInfoProvider;
     private readonly ModuleJobMissionRunMilestoneRepositoryFactory _milestoneRepositoryFactory;
     private readonly ModuleJobMissionRunRepositoryFactory _runRepositoryFactory;
 
     public AgentHub(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IBus bus,
         ILogger<AgentHub> logger,
         OpenConnections<AgentHub> openConnections,
         IOptions<ServerSettings> serverSettings,
         AgentConnectionRepositoryFactory connectionRepositoryFactory,
-        Services.AgentConnectionValidator.AgentConnectionValidator connectionValidator,
+        AgentConnectionValidator connectionValidator,
         ILicenseInfoProvider licenseInfoProvider,
         ModuleJobMissionRunMilestoneRepositoryFactory milestoneRepositoryFactory,
         ModuleJobMissionRunRepositoryFactory runRepositoryFactory)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _bus = bus;
         _logger = logger;
         _openConnections = openConnections;
@@ -115,9 +117,8 @@ public class AgentHub : Hub
                 throw new HubException("AI Agents are not licensed for this organization. Upgrade to Enterprise to use this feature.");
             }
 
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-            var agent = await dbContext.Agents
+            var agent = await _dbContext.Agents
                 .FirstOrDefaultAsync(a => a.Id == agentId && a.OrganizationId == organizationId);
 
             if (agent == null)
@@ -181,7 +182,7 @@ public class AgentHub : Hub
                 return;
             }
 
-            var servicePrincipal = await dbContext.ServicePrincipals
+            var servicePrincipal = await _dbContext.ServicePrincipals
                 .FirstOrDefaultAsync(sp => sp.Id == principalId && sp.OrganizationId == organizationId);
 
             if (servicePrincipal == null)
@@ -343,8 +344,7 @@ public class AgentHub : Hub
     /// parked <c>AwaitingReconnect</c>.</summary>
     public async Task MissionHeartbeat(Guid invocationId, DateTime? lastEventAt)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var run = await ResolveRunAsync(db, invocationId);
+        var run = await ResolveRunAsync(_dbContext, invocationId);
         if (run is null) return;
         if (run.Status is MissionStatus.Succeeded or MissionStatus.Failed
             or MissionStatus.Cancelled or MissionStatus.TimedOut) return;
@@ -354,12 +354,12 @@ public class AgentHub : Hub
             run.Status = MissionStatus.Running;
             run.SignalRConnectionId = Context.ConnectionId; // re-bind to the resumed connection
             run.ServerInstanceId = _serverSettings.InstanceId;
-            await ProjectAsync(db, run);
+            await ProjectAsync(_dbContext, run);
         }
 
         run.DeadlineAt = DateTime.UtcNow.Add(ServerTimeout);
         if (lastEventAt is not null) run.LastEventAt = lastEventAt;
-        await db.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     public async Task AddMissionLogs(Guid invocationId, List<MissionLogLineDto> lines)
@@ -381,8 +381,7 @@ public class AgentHub : Hub
     public async Task AddMissionMilestone(Guid invocationId, MissionMilestoneDto milestone)
     {
         if (milestone is null || string.IsNullOrWhiteSpace(milestone.Message)) return;
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var run = await ResolveRunAsync(db, invocationId);
+        var run = await ResolveRunAsync(_dbContext, invocationId);
         if (run is null) return;
 
         var reportedAt = milestone.Timestamp == default ? DateTime.UtcNow : milestone.Timestamp.UtcDateTime;
@@ -406,7 +405,7 @@ public class AgentHub : Hub
 
         // Run-level progress + live UI refresh (a separate concern from the milestone row).
         run.LastEventAt = DateTime.UtcNow; // progress, not liveness — the heartbeat owns the deadline
-        await db.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
         await PublishRunModified(run);
 
         // Domain event the Integrations feature subscribes to (carries ModuleJobMissionId, which the
@@ -491,9 +490,9 @@ public class AgentHub : Hub
     }
 
     /// <summary>Project a run's status/result onto its parent ModuleJobMission (the latest run wins).</summary>
-    private static async Task ProjectAsync(SnapCdDbContext db, ModuleJobMissionRun run)
+    private static async Task ProjectAsync(SnapCdDbContext _dbContext, ModuleJobMissionRun run)
     {
-        var mission = await db.ModuleJobMissions
+        var mission = await _dbContext.ModuleJobMissions
             .FirstOrDefaultAsync(m => m.Id == run.ModuleJobMissionId && m.OrganizationId == run.OrganizationId);
         if (mission is null) return;
         mission.Status = run.Status;
@@ -506,14 +505,14 @@ public class AgentHub : Hub
     /// only if it belongs to the agent the JWT is attributed to. Pass <paramref name="track"/> = false to
     /// load it detached (so a subsequent repository update re-reads the unmodified row as the event's
     /// "previous" state).</summary>
-    private async Task<ModuleJobMissionRun?> ResolveRunAsync(SnapCdDbContext db, Guid invocationId, bool track = true)
+    private async Task<ModuleJobMissionRun?> ResolveRunAsync(SnapCdDbContext _dbContext, Guid invocationId, bool track = true)
     {
         var httpContext = Context.GetHttpContext();
         if (!Guid.TryParse(httpContext?.Request.Query["organization_id"].ToString(), out var organizationId))
             return null;
         Guid.TryParse(Context.User?.FindFirst("agent_id")?.Value, out var agentId);
 
-        var query = track ? db.ModuleJobMissionRuns : db.ModuleJobMissionRuns.AsNoTracking();
+        var query = track ? _dbContext.ModuleJobMissionRuns : _dbContext.ModuleJobMissionRuns.AsNoTracking();
         var run = await query
             .FirstOrDefaultAsync(r => r.InvocationId == invocationId && r.OrganizationId == organizationId);
         if (run is null)
@@ -569,9 +568,8 @@ public class AgentHub : Hub
             // than failing them: the orchestrator→sidecar stream is independent of the hub, so the
             // agent may still be running. A resumed heartbeat flips them back to Running; if the grace
             // lapses with no heartbeat, the deadline-check recovers them.
-            await using var db = await _dbContextFactory.CreateDbContextAsync();
             var graceDeadline = DateTime.UtcNow.Add(ReconnectGrace);
-            var parked = await db.ModuleJobMissionRuns
+            var parked = await _dbContext.ModuleJobMissionRuns
                 .Where(r => r.SignalRConnectionId == Context.ConnectionId
                             && r.OrganizationId == organizationId
                             && (r.Status == MissionStatus.Pending || r.Status == MissionStatus.Running))
@@ -583,7 +581,7 @@ public class AgentHub : Hub
             }
             if (parked.Count > 0)
             {
-                await db.SaveChangesAsync();
+                await _dbContext.SaveChangesAsync();
                 _logger.LogInformation("Parked {Count} in-flight run(s) AwaitingReconnect for connection {ConnectionId}.",
                     parked.Count, Context.ConnectionId);
             }

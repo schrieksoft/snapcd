@@ -13,9 +13,10 @@
 @using Microsoft.Extensions.Hosting
 @using Microsoft.Extensions.Options
 @using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Interfaces
+@using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
 @using SnapCd.Server.Core.Telemetry
 @using SnapCd.Server.Core.UI.Dashboard.Layout
-@using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Host.CapAlerts
 @using SnapCd.Server.Host.Installations
 @using SnapCd.Server.Host.Telemetry
@@ -27,7 +28,7 @@
 @inject TelemetryClient Client
 @inject TelemetryReportJob Job
 @inject GitHubReleasesClient Releases
-@inject CapAlertService CapAlerts
+@inject CapAlertServiceFactory CapAlertsFactory
 @inject ModuleCountChangedNotificationService CapAlertNotifications
 @inject IOrganizationContext OrganizationContext
 @inject IVersionService VersionService
@@ -158,7 +159,8 @@ else
 
     private Task EvaluateCapAsync() => RunAsync(async () =>
     {
-        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        using var capAlerts = CapAlertsFactory.Create();
+        _capAlert = await capAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
         _capEvaluated = true;
     });
 

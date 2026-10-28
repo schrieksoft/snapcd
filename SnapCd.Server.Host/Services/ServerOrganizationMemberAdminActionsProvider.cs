@@ -8,7 +8,7 @@
 
 using Microsoft.AspNetCore.Components;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.Admin;
+using SnapCd.Server.Core.Services.Interfaces.Admin;
 using SnapCd.Server.Host.UI.Dashboard.Components.Users;
 
 namespace SnapCd.Server.Host.Services;

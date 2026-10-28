@@ -9,8 +9,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Endpoints;
-using SnapCd.Server.Core.Services.Edition;
-using SnapCd.Server.Core.Services.OrganizationContext;
+using SnapCd.Server.Core.Services.Interfaces.Edition;
+using SnapCd.Server.Core.Services.Nonsecured.OrganizationContext;
+using SnapCd.Server.Core.Services.Utils.OrganizationContext;
 
 namespace SnapCd.Server.Core.Middleware;
 

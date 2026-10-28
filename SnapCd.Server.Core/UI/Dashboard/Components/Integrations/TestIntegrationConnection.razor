@@ -7,8 +7,9 @@
    for terms covering either use. *@
 
 @using SnapCd.Contracts
-@using SnapCd.Server.Core.Services.Integrations.Codecs
-@inject SnapCd.Server.Core.Services.Integrations.IntegrationService Service
+@using SnapCd.Server.Core.Services.Interfaces.Integrations.Codecs
+@using SnapCd.Server.Core.Services.Secured.Integrations
+@inject IntegrationServiceFactory ServiceFactory
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <MudText Typo="Typo.h6" GutterBottom="true">Test Connection</MudText>
@@ -57,7 +58,8 @@
 
         try
         {
-            _result = await Service.TestConnection(IntegrationId, OrganizationId);
+            using var scope = ServiceFactory.Create();
+            _result = await scope.Service.TestConnection(IntegrationId, OrganizationId);
         }
         catch (Exception e)
         {

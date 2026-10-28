@@ -8,16 +8,14 @@
 
 
 using MassTransit;
-using Microsoft.Extensions.Logging;
-using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Server.Core.Entities.Sagas;
-using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Jobs.Module;
+using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
-using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
-using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 using SnapCd.Server.Core.Events.Steps.SplitMigrate;
+using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
+using SnapCd.Server.Core.StateMachine.SplitMigrate.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMigrate;
 
@@ -40,11 +38,11 @@ public partial class SplitMigrateStateMachine
         Event(() => SelectRunnerInstanceFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         During(SplitSelectRunnerInstancePending,
-            When(CancelStateMigrationJobRequested)
-                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+            JobExtensionMethods
+                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(When(CancelStateMigrationJobRequested), _logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<SplitMigrateSaga, CancelStateMigrationJobRequested>(_logger, CancellingAfterCurrent),
-            When(SelectRunnerInstanceCompleted)
-                .Then(context => { context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName; })
+            ThenExtensions
+                .Then<SplitMigrateSaga, SelectRunnerInstanceCompleted>(When(SelectRunnerInstanceCompleted), context => { context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName; })
                 .Activity(x => x.OfType<SendSplitStepToRunnerActivity<SelectRunnerInstanceCompleted, SplitGetModuleRequested>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
@@ -52,8 +50,7 @@ public partial class SplitMigrateStateMachine
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = DateTime.UtcNow;
-                            _logger.LogWarning(
-                                "SelectRunnerInstance: Runner disconnected for job {CorrelationId}, entering waiting state",
+                            LoggerExtensions.LogWarning(_logger, "SelectRunnerInstance: Runner disconnected for job {CorrelationId}, entering waiting state",
                                 context.Saga.CorrelationId);
                         })
                         .TransitionTo(SplitGetModuleWaitingForRunner),
@@ -62,10 +59,10 @@ public partial class SplitMigrateStateMachine
                             context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
                         .TransitionTo(SplitGetModulePending)
                 ),
-            When(SelectRunnerInstanceCancelled)
-                .ThenSplitCancelled(Cancelled),
-            When(SelectRunnerInstanceFaulted)
-                .ThenSplitFaulted(Failed, _logger),
+            SplitMigrateExtensionMethods
+                .ThenSplitCancelled<SelectRunnerInstanceCancelled>(When(SelectRunnerInstanceCancelled), Cancelled),
+            SplitMigrateExtensionMethods
+                .ThenSplitFaulted<SelectRunnerInstanceFaulted>(When(SelectRunnerInstanceFaulted), Failed, _logger),
             Ignore(RunnerReconnectedEvent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),

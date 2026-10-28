@@ -7,17 +7,14 @@
 // for terms covering either use.
 
 using MassTransit;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Jobs.Base;
-using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Server.Core.Events.System;
-
-using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
-using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Contracts;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
+using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
@@ -157,7 +154,7 @@ public partial class JobStateMachine<
             Ignore(HeartbeatRequested.Completed),
             Ignore(HeartbeatRequested.Completed2),
             When(ApprovalTimeoutScheduled.Received)
-                .Then(_ => { _logger.LogInformation("Approval request timed out"); })
+                .Then(_ => { LoggerExtensions.LogInformation(_logger, "Approval request timed out"); })
                 .Publish(context => new TResponseFailed
                 {
                     ModuleId = context.Saga.ModuleId,
@@ -171,8 +168,7 @@ public partial class JobStateMachine<
             // Nothing is running on a runner here, so there is no step to kill or wait out: every
             // cancellation type ends the job immediately, as a decline does.
             When(CancelModuleRequested)
-                .Then(context => _logger.LogInformation(
-                    "Cancelled while awaiting approval for job {JobId}", context.Saga.CorrelationId))
+                .Then(context => LoggerExtensions.LogInformation(_logger, "Cancelled while awaiting approval for job {JobId}", context.Saga.CorrelationId))
                 .Unschedule(ApprovalTimeoutScheduled)
                 .Publish(context => new TResponseCancelled
                 {

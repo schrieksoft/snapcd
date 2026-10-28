@@ -12,7 +12,6 @@ using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -24,8 +23,8 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.Transfer;
-using SnapCd.Server.Core.Services.Crud;
-using SnapCd.Server.Core.Services.Crud.StateMigrations;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.StateMigrations;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Transfers;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;

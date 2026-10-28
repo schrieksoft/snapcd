@@ -24,7 +24,7 @@ public static class ModuleControllerMcpResourceSurface
 
 Returns SourceType, SourceUrl, SourceRevision and SourceSubdirectory. The actual file contents are not returned by SnapCd — clone the repo directly using these coordinates.")]
     public static async System.Threading.Tasks.Task<string> ModuleSource(
-        SnapCd.Server.Core.Services.Crud.ModuleService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Module ID")] System.Guid moduleId)
         => System.Text.Json.JsonSerializer.Serialize(await service.GetSource(moduleId, organizationId));
@@ -34,7 +34,7 @@ Returns SourceType, SourceUrl, SourceRevision and SourceSubdirectory. The actual
 
 Covers latest actual state, desired state, current execution status and last job. Does NOT return the underlying state file (may contain secrets).")]
     public static async System.Threading.Tasks.Task<string> ModuleState(
-        SnapCd.Server.Core.Services.Crud.ModuleService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Module ID")] System.Guid moduleId)
         => System.Text.Json.JsonSerializer.Serialize(await service.GetState(moduleId, organizationId));
@@ -44,7 +44,7 @@ Covers latest actual state, desired state, current execution status and last job
 
 The last few AutoDiagnose / ApprovalRecommend / SummarizeJob / AutoFix runs, newest first. Each entry carries MissionType, Status, DiagnosisCategory, ResultSummary (which contains that run's facts block, including any PR url), the job's DefinitiveRevision (resolved commit) and JobType, timestamps, and the milestone timeline. Read this first to learn what past missions found and did for this module — treat it as priors to verify against current state, not facts to trust.")]
     public static async System.Threading.Tasks.Task<string> ModuleHistory(
-        SnapCd.Server.Core.Services.Crud.ModuleService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Module ID")] System.Guid moduleId)
         => System.Text.Json.JsonSerializer.Serialize(await service.GetMissionHistory(moduleId, organizationId));

@@ -9,7 +9,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Services.Vaults;
+using SnapCd.Server.Core.Services.Interfaces.Vaults;
+using SnapCd.Server.Core.Services.Nonsecured.Vaults;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Factories.Vaults;

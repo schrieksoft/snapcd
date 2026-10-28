@@ -8,7 +8,7 @@
 
 using System.Text.Json;
 using SnapCd.Contracts;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Utils;
 

@@ -11,8 +11,8 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.Crud.StateMigrations;
 using SnapCd.Server.Core.Events.Steps;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.StateMigrations;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 

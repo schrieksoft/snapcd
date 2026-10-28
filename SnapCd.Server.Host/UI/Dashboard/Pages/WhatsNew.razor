@@ -13,9 +13,12 @@
 @using Microsoft.Extensions.Options
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Interfaces
+@using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
+@using SnapCd.Server.Core.Services.Nonsecured.Admin
+@using SnapCd.Server.Core.Services.Nonsecured.OrganizationContext
 @using SnapCd.Server.Core.Telemetry
 @using SnapCd.Server.Core.UI.Dashboard.Layout
-@using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Host.CapAlerts
 @using SnapCd.Server.Host.Installations
 @using SnapCd.Server.Host.Telemetry
@@ -27,10 +30,10 @@
 @inject IOptions<TelemetrySettings> TelemetrySettings
 @inject GitHubReleasesClient Releases
 @inject ProtectedLocalStorage LocalStorage
-@inject CapAlertService CapAlerts
+@inject CapAlertServiceFactory CapAlertsFactory
 @inject ModuleCountChangedNotificationService CapAlertNotifications
 @inject IOrganizationContext OrganizationContext
-@inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
+@inject SystemRoleServiceFactory SystemRoleServiceFactory
 @inject OrganizationMembershipCacheService MembershipCache
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject Microsoft.AspNetCore.Identity.UserManager<SnapCd.Server.Core.Entities.Definition.User> UserManager
@@ -239,7 +242,8 @@ else
         _releases = await Releases.NewerThanRunningAsync();
         _releasesUnavailable = !Releases.LastFetchSucceeded;
         _canActOnLicence = await CanActOnLicenceAsync();
-        _capAlert = _canActOnLicence ? await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty) : null;
+        using var capAlertsGate = CapAlertsFactory.Create();
+        _capAlert = _canActOnLicence ? await capAlertsGate.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty) : null;
         _subscription = CapAlertNotifications.Subscribe(OnModuleCountChanged);
         _loading = false;
     }
@@ -247,7 +251,8 @@ else
     private async Task OnModuleCountChanged()
     {
         if (!_canActOnLicence) return;
-        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        using var capAlerts = CapAlertsFactory.Create();
+        _capAlert = await capAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
         await InvokeAsync(StateHasChanged);
     }
 
@@ -269,7 +274,8 @@ else
 
     private async Task<bool> CanActOnLicenceAsync()
     {
-        if (await SystemRoleService.CurrentUserIsSystemAdministratorAsync()) return true;
+        using var systemRoles = SystemRoleServiceFactory.Create();
+        if (await systemRoles.CurrentUserIsSystemAdministratorAsync()) return true;
         var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
         if (orgId == Guid.Empty) return false;
         var user = await UserManager.GetUserAsync((await AuthenticationStateProvider.GetAuthenticationStateAsync()).User);

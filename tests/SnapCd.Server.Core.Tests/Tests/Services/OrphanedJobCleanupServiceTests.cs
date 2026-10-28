@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Tests.Infrastructure;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
@@ -31,7 +32,7 @@ public class OrphanedJobCleanupServiceTests : IAsyncLifetime
         // Create a mock IDbContextFactory that returns contexts from the fixture
         var dbContextFactory = new TestDbContextFactory(_fixture);
         _dbContextFactory = dbContextFactory;
-        _service = new OrphanedJobCleanupService(_dbContextFactory);
+        _service = new OrphanedJobCleanupService(_dbContextFactory.CreateDbContext());
         return Task.CompletedTask;
     }
 

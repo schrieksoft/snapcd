@@ -7,7 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.Extensions.DependencyInjection;
-using SnapCd.Server.Core.Services.Resilience;
+using SnapCd.Server.Core.Services.Interfaces.Resilience;
 
 namespace SnapCd.Server.Core.Middleware;
 

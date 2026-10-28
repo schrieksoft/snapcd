@@ -23,6 +23,8 @@ using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
@@ -138,7 +140,7 @@ public class RunnerConnectionLivenessTests : IAsyncLifetime
         var authorization = new RunnerJobAuthorizationService(
             Repositories(),
             null!,
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             NullLogger<RunnerJobAuthorizationService>.Instance);
         var context = new CallerContext(Guid.NewGuid().ToString("N"), _runner.OrganizationId);
 

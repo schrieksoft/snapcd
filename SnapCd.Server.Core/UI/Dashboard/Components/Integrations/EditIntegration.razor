@@ -9,7 +9,8 @@
 @using System.Text.Json
 @using SnapCd.Contracts
 @using SnapCd.Contracts.Dto.Integrations
-@inject SnapCd.Server.Core.Services.Integrations.IntegrationService Service
+@using SnapCd.Server.Core.Services.Secured.Integrations
+@inject IntegrationServiceFactory ServiceFactory
 @inject ISnackbar Snackbar
 
 @if (_model is null)
@@ -78,9 +79,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _canSave = Service.CanUpdate(IntegrationId, OrganizationId);
+        using var scope = ServiceFactory.Create();
+        _canSave = scope.Service.CanUpdate(IntegrationId, OrganizationId);
 
-        var detail = await Service.Get(IntegrationId, OrganizationId);
+        var detail = await scope.Service.Get(IntegrationId, OrganizationId);
         var model = new Model
         {
             Name = detail.Name,
@@ -109,7 +111,8 @@ else
 
         try
         {
-            await Service.Update(IntegrationId, OrganizationId, new IntegrationUpdateDto
+            using var scope = ServiceFactory.Create();
+            await scope.Service.Update(IntegrationId, OrganizationId, new IntegrationUpdateDto
             {
                 Name = _model.Name,
                 Enabled = _model.Enabled,

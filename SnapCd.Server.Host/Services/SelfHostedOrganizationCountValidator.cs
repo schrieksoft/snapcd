@@ -8,7 +8,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Services.Edition;
+using SnapCd.Server.Core.Services.Interfaces.Edition;
 using SnapCd.Server.Core.Settings.DataSeeder;
 
 namespace SnapCd.Server.Host.Services;

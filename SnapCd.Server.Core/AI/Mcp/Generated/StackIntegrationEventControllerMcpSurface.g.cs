@@ -22,7 +22,7 @@ public static class StackIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "stack_integration_events_create")]
     [Description(@"Create a new StackIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.StackIntegrationEventReadDto> StackIntegrationEventsCreate(
-        SnapCd.Server.Core.Services.Crud.StackIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The StackIntegrationEvent to create")] SnapCd.Contracts.Dto.IntegrationEvents.StackIntegrationEventCreateDto dto)
         => service.Create(dto, organizationId);
@@ -30,7 +30,7 @@ public static class StackIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "stack_integration_events_list_by_integration")]
     [Description(@"List all StackIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.StackIntegrationEventReadDto>> StackIntegrationEventsListByIntegration(
-        SnapCd.Server.Core.Services.Crud.StackIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Integration ID")] System.Guid integrationId)
         => service.ListByIntegration(integrationId, organizationId);
@@ -38,7 +38,7 @@ public static class StackIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "stack_integration_events_list_by_stack")]
     [Description(@"List all StackIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.StackIntegrationEventReadDto>> StackIntegrationEventsListByStack(
-        SnapCd.Server.Core.Services.Crud.StackIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Stack ID")] System.Guid stackId)
         => service.ListByStack(stackId, organizationId);
@@ -46,14 +46,14 @@ public static class StackIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "stack_integration_events_list")]
     [Description(@"List all StackIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.StackIntegrationEventReadDto>> StackIntegrationEventsList(
-        SnapCd.Server.Core.Services.Crud.StackIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "stack_integration_events_get")]
     [Description(@"Get a single StackIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.StackIntegrationEventReadDto> StackIntegrationEventsGet(
-        SnapCd.Server.Core.Services.Crud.StackIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"StackIntegrationEvent ID")] System.Guid id)
         => service.Get(id, organizationId);
@@ -61,7 +61,7 @@ public static class StackIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "stack_integration_events_update")]
     [Description(@"Update an existing StackIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.StackIntegrationEventReadDto> StackIntegrationEventsUpdate(
-        SnapCd.Server.Core.Services.Crud.StackIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new StackIntegrationEvent values")] SnapCd.Contracts.Dto.IntegrationEvents.StackIntegrationEventUpdateDto dto,
         [Description(@"StackIntegrationEvent ID")] System.Guid id)
@@ -70,7 +70,7 @@ public static class StackIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "stack_integration_events_delete")]
     [Description(@"Delete a StackIntegrationEvent")]
     public static System.Threading.Tasks.Task StackIntegrationEventsDelete(
-        SnapCd.Server.Core.Services.Crud.StackIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"StackIntegrationEvent ID")] System.Guid id)
         => service.Delete(id, organizationId);

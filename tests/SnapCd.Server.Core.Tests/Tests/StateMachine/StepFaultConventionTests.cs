@@ -114,6 +114,7 @@ using DestroyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.DestroyCancelKillRequested,
     SnapCd.Server.Core.Events.Steps.DummyDestroyCancelKillCompleted,
     SnapCd.Server.Core.Events.Steps.DestroyCancelKillCompleted>;
+using SplitMigrateStateMachine = SnapCd.Server.Core.StateMachine.SplitMigrate.SplitMigrateStateMachine;
 
 namespace SnapCd.Server.Core.Tests.Tests.StateMachine;
 

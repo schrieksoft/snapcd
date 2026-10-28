@@ -24,7 +24,7 @@ public static class AgentRoleAssignmentControllerMcpSurface
 
 PrincipalDiscriminator selects the variant (User / ServicePrincipal / Group).")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.RoleAssignments.Base.AgentRoleAssignmentReadDto> AgentRoleAssignmentsCreate(
-        SnapCd.Server.Core.Services.Crud.RoleAssignment.AgentRoleAssignmentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.RoleAssignment.AgentRoleAssignmentService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The AgentRoleAssignment to create")] SnapCd.Contracts.Dto.RoleAssignments.Base.AgentRoleAssignmentReadDto dto)
         => service.Create(dto, organizationId);
@@ -32,14 +32,14 @@ PrincipalDiscriminator selects the variant (User / ServicePrincipal / Group).")]
     [McpServerTool(Name = "agent_role_assignments_list")]
     [Description(@"List all AgentRoleAssignments")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.RoleAssignments.Base.AgentRoleAssignmentReadDto>> AgentRoleAssignmentsList(
-        SnapCd.Server.Core.Services.Crud.RoleAssignment.AgentRoleAssignmentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.RoleAssignment.AgentRoleAssignmentService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "agent_role_assignments_get")]
     [Description(@"Get a single AgentRoleAssignment")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.RoleAssignments.Base.AgentRoleAssignmentReadDto> AgentRoleAssignmentsGet(
-        SnapCd.Server.Core.Services.Crud.RoleAssignment.AgentRoleAssignmentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.RoleAssignment.AgentRoleAssignmentService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"AgentRoleAssignment ID")] System.Guid id)
         => service.Get(id, organizationId);
@@ -49,7 +49,7 @@ PrincipalDiscriminator selects the variant (User / ServicePrincipal / Group).")]
 
 PrincipalDiscriminator cannot be changed; delete and recreate to switch principal type.")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.RoleAssignments.Base.AgentRoleAssignmentReadDto> AgentRoleAssignmentsUpdate(
-        SnapCd.Server.Core.Services.Crud.RoleAssignment.AgentRoleAssignmentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.RoleAssignment.AgentRoleAssignmentService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new AgentRoleAssignment values")] SnapCd.Contracts.Dto.RoleAssignments.Base.AgentRoleAssignmentUpdateDto dto,
         [Description(@"AgentRoleAssignment ID")] System.Guid id)
@@ -58,7 +58,7 @@ PrincipalDiscriminator cannot be changed; delete and recreate to switch principa
     [McpServerTool(Name = "agent_role_assignments_delete")]
     [Description(@"Delete an AgentRoleAssignment")]
     public static System.Threading.Tasks.Task AgentRoleAssignmentsDelete(
-        SnapCd.Server.Core.Services.Crud.RoleAssignment.AgentRoleAssignmentService service,
+        SnapCd.Server.Core.Services.Secured.Crud.RoleAssignment.AgentRoleAssignmentService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"AgentRoleAssignment ID")] System.Guid id)
         => service.Delete(id, organizationId);

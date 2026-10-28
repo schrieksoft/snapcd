@@ -9,7 +9,7 @@
 using MassTransit;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.Crud.Transfers;
+using SnapCd.Server.Core.Services.Nonsecured;
 
 namespace SnapCd.Server.Core.Consumers.Tasks.Transfers;
 

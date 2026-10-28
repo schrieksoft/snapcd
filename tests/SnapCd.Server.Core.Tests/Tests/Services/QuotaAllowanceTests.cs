@@ -9,6 +9,7 @@
 using Moq;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;

@@ -8,13 +8,13 @@
 
 
 using MassTransit;
-using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.SplitMigrate;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Server.Core.StateMachine.SplitMigrate.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMigrate;
 
@@ -38,10 +38,10 @@ public partial class SplitMigrateStateMachine
         Event(() => SplitMigrateProveFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         During(SplitMigrateProveWaitingForRunner,
-            When(SplitMigrateProveWaitingForRunner.Enter)
-                .Activity(x => x.OfType<SnapCd.Server.Core.StateMachine.Jobs.Activites.CheckRunnerConnectionActivity<SplitMigrateSaga, SplitMigrateProveCompleted>>()),
-            When(CancelStateMigrationJobRequested)
-                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+            ContainerActivityExtensions
+                .Activity<SplitMigrateSaga>(When(SplitMigrateProveWaitingForRunner.Enter), x => x.OfType<SnapCd.Server.Core.StateMachine.Jobs.Activites.CheckRunnerConnectionActivity<SplitMigrateSaga, SplitMigrateProveCompleted>>()),
+            JobExtensionMethods
+                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(When(CancelStateMigrationJobRequested), _logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<SplitMigrateSaga, CancelStateMigrationJobRequested>(_logger, CancellingAfterCurrent),
             Ignore(RunnerReconnectedEvent),
             Ignore(HeartbeatScheduled.Received),
@@ -50,27 +50,26 @@ public partial class SplitMigrateStateMachine
         );
 
         During(SplitMigrateProvePending,
-            When(SplitMigrateProveCompleted)
-                .Then(context => { context.Saga.ProvenModuleCount = context.Message.ModulesProven; })
+            ThenExtensions
+                .Then<SplitMigrateSaga, SplitMigrateProveCompleted>(When(SplitMigrateProveCompleted), context => { context.Saga.ProvenModuleCount = context.Message.ModulesProven; })
                 .IfElse(
                     context => context.Saga.StopAfterProve,
                     prove => prove
-                        .Then(context => _logger.LogInformation("SplitProve: proof complete for job {JobId}", context.Saga.CorrelationId))
+                        .Then(context => LoggerExtensions.LogInformation(_logger, "SplitProve: proof complete for job {JobId}", context.Saga.CorrelationId))
                         .ThenSplitCompleted(Completed),
                     migrate => DealWithApprovalStatus(migrate, true)),
-            When(HeartbeatScheduled.Received)
-                .ThenHeartbeatScheduled(HeartbeatRequested),
-            When(HeartbeatRequested.Completed)
-                .ThenHeartbeatCompleted(HeartbeatScheduled),
-            When(HeartbeatRequested.Completed2)
-                .ThenSplitTimedOut(Failed),
-            When(CancelStateMigrationJobRequested)
-                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+            JobExtensionMethods
+                .ThenHeartbeatScheduled<SplitMigrateSaga, StateMigrationHeartbeatRequested>(When(HeartbeatScheduled.Received), HeartbeatRequested),
+            JobExtensionMethods
+                .ThenHeartbeatCompleted<SplitMigrateSaga>(When(HeartbeatRequested.Completed), HeartbeatScheduled),
+            SplitMigrateExtensionMethods.ThenSplitTimedOut(When(HeartbeatRequested.Completed2), Failed),
+            JobExtensionMethods
+                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(When(CancelStateMigrationJobRequested), _logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<SplitMigrateSaga, CancelStateMigrationJobRequested>(_logger, CancellingAfterCurrent),
-            When(SplitMigrateProveCancelled)
-                .ThenSplitCancelled(Cancelled),
-            When(SplitMigrateProveFaulted)
-                .ThenSplitFaulted(Failed, _logger),
+            SplitMigrateExtensionMethods
+                .ThenSplitCancelled<SplitMigrateProveCancelled>(When(SplitMigrateProveCancelled), Cancelled),
+            SplitMigrateExtensionMethods
+                .ThenSplitFaulted<SplitMigrateProveFaulted>(When(SplitMigrateProveFaulted), Failed, _logger),
             Ignore(RunnerReconnectedEvent)
         );
     }
