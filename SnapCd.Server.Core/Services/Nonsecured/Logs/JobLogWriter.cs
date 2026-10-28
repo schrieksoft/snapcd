@@ -16,14 +16,14 @@ using SnapCd.Server.Core.Entities.Interfaces;
 namespace SnapCd.Server.Core.Services.Logs;
 
 public class JobLogWriterFactory(
-    SnapCdDbContext dbContext,
+    IDbContextFactory<SnapCdDbContext> dbContextFactory,
     ILoggerFactory loggerFactory)
 {
     public JobLogWriter<TJob, TChunk, TLogEntry> Create<TJob, TChunk, TLogEntry>()
         where TJob : class, IJobWithLogs
         where TChunk : JobLogChunk, new()
         where TLogEntry : class, IJobLogEntry =>
-        new(dbContext, loggerFactory.CreateLogger<JobLogWriter<TJob, TChunk, TLogEntry>>());
+        new(dbContextFactory.CreateDbContext(), loggerFactory.CreateLogger<JobLogWriter<TJob, TChunk, TLogEntry>>());
 }
 
 /// <summary>

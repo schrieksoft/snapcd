@@ -30,7 +30,7 @@ namespace SnapCd.Server.Core.Services.Crud;
 public class StateFileServiceFactory(
     StateFileSecuredRepositoryFactory securedRepositoryFactory,
     IStateEncryptionService encryptionService,
-    SnapCdDbContext dbContext,
+    IDbContextFactory<SnapCdDbContext> dbContextFactory,
     IOptions<StateStoreSettings> stateStoreSettings)
 {
     public StateFileService Create(IPrincipalProvider principalProvider)
@@ -38,7 +38,7 @@ public class StateFileServiceFactory(
         return new StateFileService(
             securedRepositoryFactory.Create(principalProvider),
             encryptionService,
-            dbContext,
+            dbContextFactory.CreateDbContext(),
             principalProvider,
             stateStoreSettings);
     }

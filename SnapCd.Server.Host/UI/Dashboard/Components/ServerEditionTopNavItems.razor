@@ -19,7 +19,7 @@
 @using SnapCd.Server.Host.Telemetry
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject OrganizationMembershipCacheService MembershipCache
-@inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
+@inject SnapCd.Server.Core.Services.Admin.SystemRoleServiceFactory SystemRoleServiceFactory
 @inject InstallationService Installation
 @inject ProtectedLocalStorage LocalStorage
 @inject CapAlertServiceFactory CapAlertsFactory
@@ -108,7 +108,8 @@
     // The module-limit marker is for the people who can act on it. The link and the unread dot are for everyone.
     private async Task<bool> CanActOnLicenceAsync()
     {
-        if (await SystemRoleService.CurrentUserIsSystemAdministratorAsync()) return true;
+        using var systemRoles = SystemRoleServiceFactory.Create();
+        if (await systemRoles.CurrentUserIsSystemAdministratorAsync()) return true;
         var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
         if (orgId == Guid.Empty) return false;
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();

@@ -20,7 +20,7 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 namespace SnapCd.Server.Core.Services.Logs;
 
 public class SecuredLogReaderFactory(
-    SnapCdDbContext dbContext,
+    IDbContextFactory<SnapCdDbContext> dbContextFactory,
     ILoggerFactory loggerFactory,
     ModuleSecuredRepositoryFactory moduleSecuredRepositoryFactory)
 {
@@ -31,6 +31,9 @@ public class SecuredLogReaderFactory(
         where TLogEntry : class, IJobLogEntry, new()
     {
         principalProvider ??= new HttpContextPrincipalProvider(new HttpContextAccessor());
+
+        // One context per reader: a component builds several and uses them at the same time.
+        var dbContext = dbContextFactory.CreateDbContext();
 
         return new SecuredLogReader<TJob, TChunk, TLogEntry>(
             dbContext,

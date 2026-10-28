@@ -30,7 +30,7 @@
 @inject CapAlertServiceFactory CapAlertsFactory
 @inject ModuleCountChangedNotificationService CapAlertNotifications
 @inject IOrganizationContext OrganizationContext
-@inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
+@inject SnapCd.Server.Core.Services.Admin.SystemRoleServiceFactory SystemRoleServiceFactory
 @inject OrganizationMembershipCacheService MembershipCache
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject Microsoft.AspNetCore.Identity.UserManager<SnapCd.Server.Core.Entities.Definition.User> UserManager
@@ -271,7 +271,8 @@ else
 
     private async Task<bool> CanActOnLicenceAsync()
     {
-        if (await SystemRoleService.CurrentUserIsSystemAdministratorAsync()) return true;
+        using var systemRoles = SystemRoleServiceFactory.Create();
+        if (await systemRoles.CurrentUserIsSystemAdministratorAsync()) return true;
         var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
         if (orgId == Guid.Empty) return false;
         var user = await UserManager.GetUserAsync((await AuthenticationStateProvider.GetAuthenticationStateAsync()).User);

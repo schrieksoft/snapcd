@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Mappers.Outputs;
@@ -18,16 +19,16 @@ public class OutputParamResolverFactory
 {
     private readonly OutputRepositoryFactory _repositoryFactory;
     private readonly CustomOutputMapper _outputMapper;
-    private readonly SnapCdDbContext _dbContext;
+    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
     public OutputParamResolverFactory(
         OutputRepositoryFactory repositoryFactory,
         CustomOutputMapper outputMapper,
-        SnapCdDbContext dbContext)
+        IDbContextFactory<SnapCdDbContext> dbContextFactory)
     {
         _repositoryFactory = repositoryFactory;
         _outputMapper = outputMapper;
-        _dbContext = dbContext;
+        _dbContextFactory = dbContextFactory;
     }
 
     public virtual OutputParamResolver<ModuleParamFromOutput> CreateForParams()
@@ -35,7 +36,7 @@ public class OutputParamResolverFactory
         return new OutputParamResolver<ModuleParamFromOutput>(
             _repositoryFactory.Create(),
             _outputMapper,
-            _dbContext);
+            _dbContextFactory.CreateDbContext());
     }
 
     public virtual OutputParamResolver<ModuleEnvVarFromOutput> CreateForEnvVars()
@@ -43,6 +44,6 @@ public class OutputParamResolverFactory
         return new OutputParamResolver<ModuleEnvVarFromOutput>(
             _repositoryFactory.Create(),
             _outputMapper,
-            _dbContext);
+            _dbContextFactory.CreateDbContext());
     }
 }
