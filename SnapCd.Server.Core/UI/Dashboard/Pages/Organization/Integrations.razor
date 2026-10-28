@@ -9,7 +9,7 @@
 @page "/Integrations"
 @layout OrganizationMainLayout
 
-@inject IntegrationService Service
+@inject IntegrationServiceFactory ServiceFactory
 @inject SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSecuredRepositoryFactory RepoFactory
 @inject IOrganizationContext OrganizationContext
 @inject NavigationManager NavigationManager
@@ -232,7 +232,8 @@
     }
     private async Task LoadAsync()
     {
-        _integrations = await Service.List(OrganizationId);
+        using var scope = ServiceFactory.Create();
+        _integrations = await scope.Service.List(OrganizationId);
         using (var repo = RepoFactory.Create())
         {
         }
@@ -307,9 +308,11 @@
 
     private async Task Delete(Guid id)
     {
-        var refusal = Service.CanDelete(id, OrganizationId)
-            ? null
-            : "You do not have permission to delete this integration.";
+        string? refusal;
+        using (var permissionScope = ServiceFactory.Create())
+            refusal = permissionScope.Service.CanDelete(id, OrganizationId)
+                ? null
+                : "You do not have permission to delete this integration.";
 
         var parameters = new DialogParameters<ConfirmDialog>
         {
@@ -326,7 +329,8 @@
 
         try
         {
-            await Service.Delete(id, OrganizationId);
+            using var scope = ServiceFactory.Create();
+            await scope.Service.Delete(id, OrganizationId);
             Snackbar.Add("Deleted.", Severity.Success);
             await LoadAsync();
         }

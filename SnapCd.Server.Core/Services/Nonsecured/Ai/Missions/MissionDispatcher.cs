@@ -195,3 +195,37 @@ public class MissionDispatcher
         return MissionDispatchOutcome.Dispatched;
     }
 }
+
+public class MissionDispatcherFactory(
+    IBus bus,
+    IMessageScheduler scheduler,
+    ILogger<MissionDispatcher> logger,
+    ILicenseInfoProvider licenseInfoProvider,
+    AgentSupplyResolverFactory agentSupplyFactory,
+    ModuleJobMissionRunRepositoryFactory runRepositoryFactory,
+    OpenConnections<AgentHub> openConnections,
+    AgentConnectionRepositoryFactory agentConnectionRepositoryFactory,
+    IOptions<ServerSettings> serverSettings)
+{
+    public MissionDispatcherScope Create()
+    {
+        var agentSupply = agentSupplyFactory.Create();
+        var dispatcher = new MissionDispatcher(bus, scheduler, logger, licenseInfoProvider, agentSupply,
+            runRepositoryFactory, openConnections, agentConnectionRepositoryFactory, serverSettings);
+        return new MissionDispatcherScope(dispatcher, agentSupply);
+    }
+}
+
+public class MissionDispatcherScope : IDisposable
+{
+    public MissionDispatcher Service { get; }
+    private readonly AgentSupplyResolver _agentSupply;
+
+    internal MissionDispatcherScope(MissionDispatcher service, AgentSupplyResolver agentSupply)
+    {
+        Service = service;
+        _agentSupply = agentSupply;
+    }
+
+    public void Dispose() => _agentSupply?.Dispose();
+}

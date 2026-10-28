@@ -23,7 +23,7 @@
 
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject IBus Bus
-@inject MissionDispatcher Dispatcher
+@inject MissionDispatcherFactory DispatcherFactory
 @inject MissionRunModifiedNotificationService Notifications
 @inject ISnackbar Snackbar
 
@@ -340,7 +340,8 @@ else
                 .Where(r => r.ModuleJobMissionId == missionId && r.OrganizationId == mission.OrganizationId)
                 .Select(r => (int?)r.AttemptNumber).MaxAsync() ?? 0;
 
-            var outcome = await Dispatcher.DispatchAsync(db, mission, mission.AgentId, maxAttempt + 1, CancellationToken.None);
+            using var dispatcherScope = DispatcherFactory.Create();
+            var outcome = await dispatcherScope.Service.DispatchAsync(db, mission, mission.AgentId, maxAttempt + 1, CancellationToken.None);
             Snackbar.Add(outcome switch
             {
                 MissionDispatchOutcome.Dispatched => $"Rerun started (attempt {maxAttempt + 1}).",

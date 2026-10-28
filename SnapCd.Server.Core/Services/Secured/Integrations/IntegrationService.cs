@@ -265,3 +265,33 @@ public sealed class IntegrationService(
         connectionCache.Evict(id); // immediate on this instance; the fanout consumer covers the others
     }
 }
+
+public class IntegrationServiceFactory(
+    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    IntegrationRepositoryFactory repoFactory,
+    IntegrationSecuredRepositoryFactory securedFactory,
+    IIntegrationCodecRegistry codecs,
+    IntegrationSecretStore secrets,
+    IntegrationConnectionCache connectionCache)
+{
+    public IntegrationServiceScope Create()
+    {
+        var dbContext = dbContextFactory.CreateDbContext();
+        var service = new IntegrationService(repoFactory, securedFactory, codecs, secrets, connectionCache, dbContext);
+        return new IntegrationServiceScope(service, dbContext);
+    }
+}
+
+public class IntegrationServiceScope : IDisposable
+{
+    public IntegrationService Service { get; }
+    private readonly SnapCdDbContext _dbContext;
+
+    internal IntegrationServiceScope(IntegrationService service, SnapCdDbContext dbContext)
+    {
+        Service = service;
+        _dbContext = dbContext;
+    }
+
+    public void Dispose() => _dbContext?.Dispose();
+}

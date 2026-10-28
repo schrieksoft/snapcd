@@ -10,7 +10,7 @@
 @using SnapCd.Contracts
 @using SnapCd.Contracts.Dto.Integrations
 @using SnapCd.Server.Core.Services.Secured.Integrations
-@inject IntegrationService Service
+@inject IntegrationServiceFactory ServiceFactory
 @inject ISnackbar Snackbar
 
 <MudPaper Class="pa-4 mb-4" Elevation="1">
@@ -75,13 +75,18 @@
     private readonly Model _model = new();
     private bool _canCreate = true;
 
-    protected override void OnParametersSet() => _canCreate = Service.CanCreate(OrganizationId);
+    protected override void OnParametersSet()
+    {
+        using var scope = ServiceFactory.Create();
+        _canCreate = scope.Service.CanCreate(OrganizationId);
+    }
 
     private async Task Submit()
     {
         try
         {
-            await Service.Create(OrganizationId, new IntegrationCreateDto
+            using var scope = ServiceFactory.Create();
+            await scope.Service.Create(OrganizationId, new IntegrationCreateDto
             {
                 Name = _model.Name,
                 IntegrationType = _model.IntegrationType,

@@ -9,7 +9,7 @@
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Services.Interfaces.Integrations.Codecs
 @using SnapCd.Server.Core.Services.Secured.Integrations
-@inject IntegrationService Service
+@inject IntegrationServiceFactory ServiceFactory
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <MudText Typo="Typo.h6" GutterBottom="true">Test Connection</MudText>
@@ -58,7 +58,8 @@
 
         try
         {
-            _result = await Service.TestConnection(IntegrationId, OrganizationId);
+            using var scope = ServiceFactory.Create();
+            _result = await scope.Service.TestConnection(IntegrationId, OrganizationId);
         }
         catch (Exception e)
         {

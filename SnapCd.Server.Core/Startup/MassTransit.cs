@@ -83,6 +83,7 @@ public static class MassTransit
         }
 
         services.AddScoped<MissionDispatcher>();
+        services.AddScoped<MissionDispatcherFactory>();
         services.AddScoped<MissionMatcher>();
         services.AddScoped<AgentSupplyResolver>();
 

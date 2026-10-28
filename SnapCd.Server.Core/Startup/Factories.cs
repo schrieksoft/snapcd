@@ -287,6 +287,7 @@ public static class Factories
         services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSecuredRepositoryFactory>();
         services.AddScoped<IntegrationSecretStore>();
         services.AddScoped<IntegrationService>();
+        services.AddScoped<IntegrationServiceFactory>();
         services.AddSingleton<IIntegrationCodec, SlackCodec>();
         services.AddSingleton<IIntegrationCodecRegistry, IntegrationCodecRegistry>();
         // Phase 2 — per-instance display cache (IMemoryCache only, never distributed), invalidated by fanout consumers.

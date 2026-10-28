@@ -196,6 +196,132 @@ public class ServiceLayeringTests
         Assert.Empty(offenders);
     }
 
+    /// <summary>
+    /// Render mode is decided centrally, by matching the request path against the allow-list in
+    /// RenderModeHelper: on the list is static, everything else is interactive. A static page holds
+    /// nothing past the response, so injecting a service directly there is fine. An interactive
+    /// component is held for the life of the circuit, so a service it injects is held that long too,
+    /// and a context inside one outlives every request it was meant to serve.
+    ///
+    /// The context need not be the service's own field. A service holding another service that holds
+    /// one keeps it just as long, so this follows the chain.
+    /// </summary>
+    [Fact]
+    public void No_Interactive_Component_Injects_A_Context_Holding_Service()
+    {
+        var holders = ContextHoldingServices();
+
+        var offenders = InteractiveReachableComponents()
+            .SelectMany(file => Injections(file).Select(type => (file, type)))
+            .Where(x => holders.ContainsKey(x.type))
+            .Select(x => $"{Path.GetFileName(x.file)} injects {x.type} ({holders[x.type]})")
+            .Distinct()
+            .OrderBy(line => line)
+            .ToList();
+
+        Assert.Empty(offenders);
+    }
+
+    /// <summary>
+    /// Every service type that ends up holding a SnapCdDbContext, mapped to why. A type holding
+    /// IDbContextFactory is not one of these: it builds a context per operation, which is the
+    /// pattern being asked for.
+    /// </summary>
+    private static Dictionary<string, string> ContextHoldingServices()
+    {
+        var fields = new Dictionary<string, HashSet<string>>();
+        var direct = new Dictionary<string, string>();
+
+        foreach (var file in SourceFiles(ServicesDirectory))
+        {
+            var body = Strip(File.ReadAllText(file));
+
+            foreach (Match match in Regex.Matches(body,
+                         @"^\s*(?:public|internal)\s+(?:sealed\s+|abstract\s+|partial\s+)*class\s+(\w+)",
+                         RegexOptions.Multiline))
+            {
+                var name = match.Groups[1].Value;
+                if (name.EndsWith("Factory", StringComparison.Ordinal)) continue;
+
+                // the ctor parameters and fields this type keeps, primary constructor included
+                var held = Regex.Matches(body, @"\b([A-Z]\w*)\s+\w+\s*[,){;=]")
+                    .Select(m => m.Groups[1].Value)
+                    .ToHashSet();
+
+                if (held.Contains("SnapCdDbContext") && !body.Contains("IDbContextFactory<SnapCdDbContext>"))
+                    direct[name] = "holds SnapCdDbContext";
+
+                fields[name] = held;
+            }
+        }
+
+        // a service holding a service that holds a context keeps it just as long
+        var changed = true;
+        while (changed)
+        {
+            changed = false;
+            foreach (var (name, held) in fields)
+            {
+                if (direct.ContainsKey(name)) continue;
+                var via = held.FirstOrDefault(h => h != name && direct.ContainsKey(h));
+                if (via == null) continue;
+                direct[name] = $"holds {via}, which holds a context";
+                changed = true;
+            }
+        }
+
+        return direct;
+    }
+
+    /// <summary>
+    /// The components an interactive page can reach: the pages not on the static allow-list, plus
+    /// every component and layout they name, transitively.
+    /// </summary>
+    private static HashSet<string> InteractiveReachableComponents()
+    {
+        var staticRoutes = StaticRoutes();
+        var byName = RazorFiles()
+            .GroupBy(f => Path.GetFileNameWithoutExtension(f))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var interactive = RazorFiles().Where(file =>
+        {
+            var routes = Regex.Matches(File.ReadAllText(file), @"^@page\s+""([^""]+)""", RegexOptions.Multiline)
+                .Select(m => m.Groups[1].Value).ToList();
+            return routes.Count > 0
+                && !routes.Any(r => staticRoutes.Any(s => r.StartsWith(s, StringComparison.OrdinalIgnoreCase)));
+        }).ToList();
+
+        var reached = new HashSet<string>(interactive);
+        var pending = new Stack<string>(interactive);
+
+        while (pending.Count > 0)
+        {
+            var body = File.ReadAllText(pending.Pop());
+
+            var names = Regex.Matches(body, @"<([A-Z][A-Za-z0-9_]*)[\s/>]").Select(m => m.Groups[1].Value)
+                .Concat(Regex.Matches(body, @"^@layout\s+([A-Za-z0-9_]+)", RegexOptions.Multiline).Select(m => m.Groups[1].Value));
+
+            foreach (var name in names)
+            {
+                if (!byName.TryGetValue(name, out var candidates)) continue;
+                foreach (var candidate in candidates.Where(c => reached.Add(c)))
+                    pending.Push(candidate);
+            }
+        }
+
+        return reached;
+    }
+
+    /// <summary>The static allow-list, read from the helper that decides render mode.</summary>
+    private static List<string> StaticRoutes()
+    {
+        var helper = File.ReadAllText(Path.Combine(ServicesDirectory, "Utils", "Dashboard", "RenderModeHelper.cs"));
+        var block = helper.Split("IsStaticSsr =")[1].Split("};")[0];
+
+        return Regex.Matches(block, @"""([^""]+)""").Select(m => m.Groups[1].Value).ToList();
+    }
+
     private static readonly Regex InjectPattern =
         new(@"^@inject\s+([A-Za-z0-9_.<>]+)\s+\w+", RegexOptions.Multiline);
 
