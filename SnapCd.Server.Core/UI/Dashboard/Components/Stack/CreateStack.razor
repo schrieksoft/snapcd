@@ -8,6 +8,7 @@
 
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using NameValidator = SnapCd.Server.Core.Services.Utils.NameValidator
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     @if (!_canCreate)
     {

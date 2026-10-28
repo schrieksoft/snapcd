@@ -6,7 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-namespace SnapCd.Server.Core.Services.Vaults;
+namespace SnapCd.Server.Core.Services.Interfaces.Vaults;
 
 /// <summary>
 /// Result of a SetIfChanged operation, indicating the version and whether the value was changed.

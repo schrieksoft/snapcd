@@ -13,6 +13,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Utils;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;
 

@@ -8,7 +8,7 @@
 
 using Microsoft.JSInterop;
 
-namespace SnapCd.Server.Core.Services.Dashboard;
+namespace SnapCd.Server.Core.Services.Utils.Dashboard;
 
 public class ThemeService
 {

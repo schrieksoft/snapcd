@@ -24,7 +24,7 @@ public static class StackMissionControllerMcpSurface
 
 Fires for events on modules within the targeted Stack.")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.StackMissionReadDto> StackMissionsCreate(
-        SnapCd.Server.Core.Services.Crud.StackMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The StackMission to create")] SnapCd.Contracts.Dto.Missions.StackMissionCreateDto dto)
         => service.Create(dto, organizationId);
@@ -32,7 +32,7 @@ Fires for events on modules within the targeted Stack.")]
     [McpServerTool(Name = "stack_missions_list_by_agent")]
     [Description(@"List StackMissions assigned to a specific Agent")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.StackMissionReadDto>> StackMissionsListByAgent(
-        SnapCd.Server.Core.Services.Crud.StackMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Agent ID")] System.Guid agentId)
         => service.ListByAgent(agentId, organizationId);
@@ -40,7 +40,7 @@ Fires for events on modules within the targeted Stack.")]
     [McpServerTool(Name = "stack_missions_list_by_stack")]
     [Description(@"List StackMissions targeting a specific Stack")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.StackMissionReadDto>> StackMissionsListByStack(
-        SnapCd.Server.Core.Services.Crud.StackMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Stack ID")] System.Guid stackId)
         => service.ListByStack(stackId, organizationId);
@@ -48,14 +48,14 @@ Fires for events on modules within the targeted Stack.")]
     [McpServerTool(Name = "stack_missions_list")]
     [Description(@"List all StackMissions")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.StackMissionReadDto>> StackMissionsList(
-        SnapCd.Server.Core.Services.Crud.StackMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "stack_missions_get")]
     [Description(@"Get a single StackMission")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.StackMissionReadDto> StackMissionsGet(
-        SnapCd.Server.Core.Services.Crud.StackMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"StackMission ID")] System.Guid id)
         => service.Get(id, organizationId);
@@ -63,7 +63,7 @@ Fires for events on modules within the targeted Stack.")]
     [McpServerTool(Name = "stack_missions_update")]
     [Description(@"Update an existing StackMission")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.StackMissionReadDto> StackMissionsUpdate(
-        SnapCd.Server.Core.Services.Crud.StackMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new StackMission values")] SnapCd.Contracts.Dto.Missions.StackMissionUpdateDto dto,
         [Description(@"StackMission ID")] System.Guid id)
@@ -72,7 +72,7 @@ Fires for events on modules within the targeted Stack.")]
     [McpServerTool(Name = "stack_missions_delete")]
     [Description(@"Delete a StackMission")]
     public static System.Threading.Tasks.Task StackMissionsDelete(
-        SnapCd.Server.Core.Services.Crud.StackMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.StackMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"StackMission ID")] System.Guid id)
         => service.Delete(id, organizationId);

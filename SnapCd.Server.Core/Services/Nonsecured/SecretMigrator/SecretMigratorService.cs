@@ -8,17 +8,16 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.System;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Factories.Vaults;
-using SnapCd.Server.Core.Services.Vaults;
+using SnapCd.Server.Core.Services.Interfaces.Vaults;
+using SnapCd.Server.Core.Services.Utils.SecretMigrator;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.SecretMigrator;
+namespace SnapCd.Server.Core.Services.Nonsecured.SecretMigrator;
 
 /// A context per read and per audit write: the migration runs its items through
 /// Parallel.ForEachAsync, and a DbContext serves one thread at a time.

@@ -6,18 +6,18 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.Logs;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
 
-namespace SnapCd.Server.Core.Services.Logs;
+namespace SnapCd.Server.Core.Services.Secured.Logs;
 
 public class SecuredLogReaderFactory(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,

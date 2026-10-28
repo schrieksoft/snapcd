@@ -11,7 +11,7 @@ using System.Text;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Dtos;
 
-namespace SnapCd.Server.Core.Services.RunInputs;
+namespace SnapCd.Server.Core.Services.Utils.RunInputs;
 
 /// <summary>
 /// What a run was given, as one value, so a result computed from it can be judged still current.

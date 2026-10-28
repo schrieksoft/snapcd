@@ -10,7 +10,7 @@ using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.ModuleHold;
+using SnapCd.Server.Core.Services.Nonsecured.ModuleHold;
 
 namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 

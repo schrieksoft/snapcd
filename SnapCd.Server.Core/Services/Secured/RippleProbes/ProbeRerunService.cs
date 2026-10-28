@@ -8,16 +8,16 @@
 
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Secured.RippleProbes;
 
 public class ProbeRerunServiceFactory(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,

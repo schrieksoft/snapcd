@@ -8,7 +8,7 @@
 
 using System.Text.Json;
 
-namespace SnapCd.Server.Core.Services.Dashboard;
+namespace SnapCd.Server.Core.Services.Utils.Dashboard;
 
 public static class ApiReferenceEndpoints
 {

@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.ModuleHold;
+namespace SnapCd.Server.Core.Services.Nonsecured.ModuleHold;
 
 /// <summary>The cache key of one hold: on a module, on every module in a namespace, or on every module in a stack.</summary>
 public readonly record struct ModuleHoldKey(string Value)

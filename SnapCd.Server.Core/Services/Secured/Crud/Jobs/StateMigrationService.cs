@@ -7,24 +7,24 @@
 // for terms covering either use.
 
 
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Misc.Utils;
-using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.PrincipalProvider;
-using SnapCd.Server.Core.Services.ResolvedConfiguration;
-using MassTransit;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
+using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.ResolvedConfiguration;
+using SnapCd.Server.Core.Services.Utils;
 
-namespace SnapCd.Server.Core.Services.Crud.Jobs;
+namespace SnapCd.Server.Core.Services.Secured.Crud.Jobs;
 
 public class StateMigrationServiceFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,

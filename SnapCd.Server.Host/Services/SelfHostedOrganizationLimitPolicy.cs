@@ -7,7 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.Edition;
+using SnapCd.Server.Core.Services.Interfaces.Edition;
 
 namespace SnapCd.Server.Host.Services;
 

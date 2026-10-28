@@ -9,17 +9,15 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
-using SnapCd.Server.Core.Settings;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Events.Jobs.Module;
-using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Missions;
+using SnapCd.Server.Core.Events.Runners;
+using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Misc.Helpers;
-
+using SnapCd.Server.Core.Services.Utils;
 using JobMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Entities.Sagas.ApplyJobSaga,
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleRequested,
@@ -70,7 +68,7 @@ using JobMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.DummyApplyCancelKillCompleted,
     SnapCd.Server.Core.Events.Steps.ApplyCancelKillCompleted>;
 
-namespace SnapCd.Server.Core.Services.MaintenanceMode;
+namespace SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 
 public record ResumeSweepResult(int RunnersWoken, int ModulesRequeued, IReadOnlyList<string> Warnings);
 
@@ -110,8 +108,8 @@ public class MaintenanceOperationsService : IDisposable
     // the machine does not define faults the delivery for every saga of that runner. Groups
     // containing such sagas are skipped and reported instead of woken.
     private static readonly Lazy<HashSet<string>> ValidJobStates = new(() =>
-        new JobMachine(NullLogger<JobMachine>.Instance)
-            .States.Select(s => s.Name).ToHashSet());
+        Enumerable.Select<State, string>(new JobMachine(NullLogger<JobMachine>.Instance)
+                .States, s => s.Name).ToHashSet());
 
     private readonly SnapCdDbContext _dbContext;
     private readonly IBus _bus;

@@ -16,8 +16,9 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Missions;
 using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
-using SnapCd.Server.Core.Services.Integrations;
-using SnapCd.Server.Core.Services.Integrations.Codecs;
+using SnapCd.Server.Core.Services.Interfaces.Integrations.Codecs;
+using SnapCd.Server.Core.Services.Nonsecured.Integrations;
+using SnapCd.Server.Core.Services.Utils.Integrations;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;

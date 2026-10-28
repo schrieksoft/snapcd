@@ -8,24 +8,23 @@
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
+using SnapCd.Server.Core.Entities.Definition.IntegrationEvents;
 using SnapCd.Server.Core.Entities.Definition.Missions;
+using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Services.Nonsecured.Integrations;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.DataSeeder;
 using SnapCd.Server.Core.Settings.DataSeeder.ToSeed;
-using SnapCd.Server.Core.Entities.Definition.IntegrationEvents;
-using SnapCd.Server.Core.Services.Integrations;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
 
-namespace SnapCd.Server.Core.Services.DataSeeder;
+namespace SnapCd.Server.Core.Services.Nonsecured.DataSeeder;
 
 public class DebugDataSeeder : ProductionDataSeeder
 {

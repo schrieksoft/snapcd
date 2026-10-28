@@ -9,7 +9,7 @@
 using Microsoft.AspNetCore.Identity;
 using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Server.Core.Services.IdentityAccess;
+namespace SnapCd.Server.Core.Services.Nonsecured.IdentityAccess;
 
 public class UserManagerFactory
 {

@@ -10,9 +10,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Factories.Vaults;
+using SnapCd.Server.Core.Services.Interfaces.Vaults;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.Integrations;
+namespace SnapCd.Server.Core.Services.Nonsecured.Integrations;
 
 /// <summary>
 /// Reads/writes/deletes an integration's connection blob in the org's input vault, at
@@ -29,7 +30,7 @@ public sealed class IntegrationSecretStore(
     public static string SecretName(Guid organizationId, Guid integrationId)
         => $"integration--{organizationId}--{integrationId}";
 
-    private async Task<Services.Vaults.IVault> CreateVaultAsync(Guid organizationId)
+    private async Task<IVault> CreateVaultAsync(Guid organizationId)
     {
         var url = await dbContext.Organizations
             .Where(o => o.Id == organizationId)

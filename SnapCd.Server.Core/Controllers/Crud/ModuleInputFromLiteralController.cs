@@ -14,8 +14,8 @@ using SnapCd.Contracts.Dto.ModuleInputs;
 using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Misc.Attributes;
+using SnapCd.Server.Core.Services.Secured.Crud;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 

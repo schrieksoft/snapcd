@@ -21,15 +21,16 @@ using SnapCd.Server.Core.Licensing;
 using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Services.DependencyGraph;
-using SnapCd.Server.Core.Services.PrincipalProvider;
-using SnapCd.Server.Core.Services.ResolvedConfiguration;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
-using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Misc.Helpers;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.DependencyGraph;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.ResolvedConfiguration;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Settings.Repositories;
 
-namespace SnapCd.Server.Core.Services.Crud.Jobs;
+namespace SnapCd.Server.Core.Services.Nonsecured.Crud.Jobs;
 
 public class JobServiceFactory
 {

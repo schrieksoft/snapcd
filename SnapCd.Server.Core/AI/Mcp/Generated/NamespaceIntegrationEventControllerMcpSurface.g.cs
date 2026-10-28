@@ -22,7 +22,7 @@ public static class NamespaceIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "namespace_integration_events_create")]
     [Description(@"Create a new NamespaceIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.NamespaceIntegrationEventReadDto> NamespaceIntegrationEventsCreate(
-        SnapCd.Server.Core.Services.Crud.NamespaceIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The NamespaceIntegrationEvent to create")] SnapCd.Contracts.Dto.IntegrationEvents.NamespaceIntegrationEventCreateDto dto)
         => service.Create(dto, organizationId);
@@ -30,7 +30,7 @@ public static class NamespaceIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "namespace_integration_events_list_by_integration")]
     [Description(@"List all NamespaceIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.NamespaceIntegrationEventReadDto>> NamespaceIntegrationEventsListByIntegration(
-        SnapCd.Server.Core.Services.Crud.NamespaceIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Integration ID")] System.Guid integrationId)
         => service.ListByIntegration(integrationId, organizationId);
@@ -38,7 +38,7 @@ public static class NamespaceIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "namespace_integration_events_list_by_namespace")]
     [Description(@"List all NamespaceIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.NamespaceIntegrationEventReadDto>> NamespaceIntegrationEventsListByNamespace(
-        SnapCd.Server.Core.Services.Crud.NamespaceIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Namespace ID")] System.Guid namespaceId)
         => service.ListByNamespace(namespaceId, organizationId);
@@ -46,14 +46,14 @@ public static class NamespaceIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "namespace_integration_events_list")]
     [Description(@"List all NamespaceIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.NamespaceIntegrationEventReadDto>> NamespaceIntegrationEventsList(
-        SnapCd.Server.Core.Services.Crud.NamespaceIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "namespace_integration_events_get")]
     [Description(@"Get a single NamespaceIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.NamespaceIntegrationEventReadDto> NamespaceIntegrationEventsGet(
-        SnapCd.Server.Core.Services.Crud.NamespaceIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"NamespaceIntegrationEvent ID")] System.Guid id)
         => service.Get(id, organizationId);
@@ -61,7 +61,7 @@ public static class NamespaceIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "namespace_integration_events_update")]
     [Description(@"Update an existing NamespaceIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.NamespaceIntegrationEventReadDto> NamespaceIntegrationEventsUpdate(
-        SnapCd.Server.Core.Services.Crud.NamespaceIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new NamespaceIntegrationEvent values")] SnapCd.Contracts.Dto.IntegrationEvents.NamespaceIntegrationEventUpdateDto dto,
         [Description(@"NamespaceIntegrationEvent ID")] System.Guid id)
@@ -70,7 +70,7 @@ public static class NamespaceIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "namespace_integration_events_delete")]
     [Description(@"Delete a NamespaceIntegrationEvent")]
     public static System.Threading.Tasks.Task NamespaceIntegrationEventsDelete(
-        SnapCd.Server.Core.Services.Crud.NamespaceIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"NamespaceIntegrationEvent ID")] System.Guid id)
         => service.Delete(id, organizationId);

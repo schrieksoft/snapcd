@@ -12,7 +12,7 @@ using SnapCd.Contracts.Dto.ModuleInputs;
 using SnapCd.Contracts.Dto.NamespaceInputs;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 
-namespace SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+namespace SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 
 public class ResolvedModule
 {

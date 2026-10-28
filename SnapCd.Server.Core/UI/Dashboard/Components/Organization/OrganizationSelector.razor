@@ -13,7 +13,8 @@
 @inject IOrganizationContext OrganizationContext
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Services
-@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
+@using SnapCd.Server.Core.Services.Secured
 @using Organization = SnapCd.Server.Core.Entities.Definition.Organization
 
 @if (userOrganizations?.Any() == true)

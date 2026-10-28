@@ -11,19 +11,22 @@
 @using SnapCd.Contracts.Dto.Misc
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
-@using SnapCd.Server.Core.Services.PrincipalProvider
-@using SnapCd.Server.Core.Services.RippleProbes
+@using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
+@using SnapCd.Server.Core.Services.Nonsecured.RippleProbes
+@using SnapCd.Server.Core.Services.Secured.RippleProbes
+@using SnapCd.Server.Core.Services.Utils.Notification
+@using SnapCd.Server.Core.Services.Utils.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 @using SnapCd.Server.Core.UI.Dashboard.Theme
 @using SnapCd.Server.Core.Views
 @using Color = MudBlazor.Color
 
 @inject ProbeWaveReadServiceFactory ProbeWaveReadServiceFactory
-@inject SnapCd.Server.Core.Services.RippleProbes.ProbeRerunServiceFactory ProbeRerunServiceFactory
+@inject ProbeRerunServiceFactory ProbeRerunServiceFactory
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ModuleSecuredRepositoryFactory ModuleRepoFactory
-@inject SnapCd.Server.Core.Services.Notification.ProbeWaveUpdatedNotificationService ProbeWaveUpdatedNotificationService
+@inject ProbeWaveUpdatedNotificationService ProbeWaveUpdatedNotificationService
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 
 @if (_wave == null && _propagationFailure is { Length: > 0 })

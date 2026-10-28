@@ -10,8 +10,10 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Services.Interfaces.ViewManagement;
+using SnapCd.Server.Core.Services.Utils.ViewManagement;
 
-namespace SnapCd.Server.Core.Services.ViewManagement;
+namespace SnapCd.Server.Core.Services.Nonsecured.ViewManagement;
 
 public class IdempotentSqlManager : IIdempotentSqlManager
 {

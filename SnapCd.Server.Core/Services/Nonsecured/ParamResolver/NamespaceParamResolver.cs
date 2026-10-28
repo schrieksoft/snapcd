@@ -13,9 +13,9 @@ using SnapCd.Contracts.Dto.ModuleInputs;
 using SnapCd.Contracts.Dto.NamespaceInputs;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Server.Core.Dtos;
-using SnapCd.Server.Core.Services.ParamResolver.Helpers;
+using SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 
-namespace SnapCd.Server.Core.Services.ParamResolver;
+namespace SnapCd.Server.Core.Services.Nonsecured.ParamResolver;
 
 public class NamespaceParamResolver
 {

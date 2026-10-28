@@ -8,7 +8,7 @@
 
 using SnapCd.Contracts.Dto.ModuleInputs;
 
-namespace SnapCd.Server.Core.Services.Crud.Interfaces;
+namespace SnapCd.Server.Core.Services.Interfaces.Crud;
 
 public interface IModuleInputFromLiteralService
 {

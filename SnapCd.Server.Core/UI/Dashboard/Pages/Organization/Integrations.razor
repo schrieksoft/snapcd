@@ -9,9 +9,9 @@
 @page "/Integrations"
 @layout OrganizationMainLayout
 
-@inject SnapCd.Server.Core.Services.Integrations.IntegrationService Service
+@inject IntegrationService Service
 @inject SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSecuredRepositoryFactory RepoFactory
-@inject SnapCd.Server.Core.Services.OrganizationContext.IOrganizationContext OrganizationContext
+@inject IOrganizationContext OrganizationContext
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -22,6 +22,8 @@
 @using SnapCd.Contracts.Dto.Integrations
 @using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Licensing.Models
+@using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
+@using SnapCd.Server.Core.Services.Secured.Integrations
 @using SnapCd.Server.Core.UI.Dashboard.Components.Integrations
 @using SnapCd.Server.Core.UI.Dashboard.Components.IntegrationSupplies
 @using SnapCd.Server.Core.UI.Dashboard.Components.Licensing

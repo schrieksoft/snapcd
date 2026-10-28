@@ -11,9 +11,9 @@ using SnapCd.Contracts.Dto.GroupMembers.Base;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Mappers.GroupMembers.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.GroupMembers;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
-namespace SnapCd.Server.Core.Services.Crud;
+namespace SnapCd.Server.Core.Services.Secured.Crud;
 
 public class GroupMemberServiceFactory(
     GroupMemberSecuredRepositoryFactory groupMemberSecuredRepositoryFactory,

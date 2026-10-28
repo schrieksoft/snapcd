@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.System;
 using SnapCd.Server.Core.Enums;
 
-namespace SnapCd.Server.Core.Services.OrganizationContext;
+namespace SnapCd.Server.Core.Services.Nonsecured.OrganizationContext;
 
 public class OrganizationMembershipCacheService
 {

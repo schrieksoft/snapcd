@@ -8,7 +8,7 @@
 
 using System.Reflection;
 using Microsoft.Data.SqlClient;
-using SnapCd.Server.Core.Services.Resilience;
+using SnapCd.Server.Core.Services.Utils.Resilience;
 
 namespace SnapCd.Server.Core.Tests.Tests.Resilience;
 

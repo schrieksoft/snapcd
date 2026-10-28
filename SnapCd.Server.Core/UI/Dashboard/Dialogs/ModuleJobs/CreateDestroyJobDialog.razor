@@ -16,10 +16,10 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Events.Gatekeeping
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
-@using SnapCd.Server.Core.Services.Crud.Jobs
-@using SnapCd.Server.Core.Services.DependencyGraph
 
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Nonsecured.DependencyGraph
+@using SnapCd.Server.Core.Services.Secured.Crud.Jobs
 @inject ModuleJobSecuredRepositoryFactory JobSecuredRepoFactory
 @inject ISnackbar Snackbar
 @inject ILogger<CreateDestroyJobDialog> Logger

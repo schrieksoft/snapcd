@@ -8,8 +8,9 @@
 
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
-namespace SnapCd.Server.Core.Services.PrincipalProvider;
+namespace SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 
 public class LiteralPrincipalProvider : IPrincipalProvider
 {

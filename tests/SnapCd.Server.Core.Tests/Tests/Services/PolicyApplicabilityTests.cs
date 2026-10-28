@@ -7,7 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Contracts;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 using Xunit;
 

@@ -11,14 +11,13 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MassTransit;
-using SnapCd.Server.Core.Events.System;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
+using SnapCd.Server.Core.Events.System;
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
 public class ProbeSignalRecorderFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,

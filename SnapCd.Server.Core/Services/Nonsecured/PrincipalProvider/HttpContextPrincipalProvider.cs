@@ -13,8 +13,9 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
-namespace SnapCd.Server.Core.Services.PrincipalProvider;
+namespace SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
 
 public class HttpContextPrincipalProvider : IPrincipalProvider
 {

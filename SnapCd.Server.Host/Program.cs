@@ -15,13 +15,6 @@ using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Middleware;
 using SnapCd.Server.Core.Misc.Configuration;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.RippleProbes;
-using SnapCd.Server.Core.Services.MaintenanceMode;
-using SnapCd.Server.Core.Services.Dashboard;
-using SnapCd.Server.Core.Services.DataSeeder;
-using SnapCd.Server.Core.Services.OrganizationContext;
-using SnapCd.Server.Core.Services.QuotaUsage;
-using SnapCd.Server.Core.Services.ViewManagement;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.DataSeeder;
 using SnapCd.Server.Core.Licensing.Models;
@@ -31,9 +24,21 @@ using SnapCd.Server.Host.Licensing.Services;
 using SnapCd.Server.Host.CapAlerts;
 using SnapCd.Server.Host.Installations;
 using SnapCd.Server.Host.Telemetry;
-using SnapCd.Server.Core.Services.Admin;
-using SnapCd.Server.Core.Services.Edition;
 using SnapCd.Contracts.Logging;
+using SnapCd.Server.Core.Services.Interfaces;
+using SnapCd.Server.Core.Services.Interfaces.Admin;
+using SnapCd.Server.Core.Services.Interfaces.DataSeeder;
+using SnapCd.Server.Core.Services.Interfaces.Edition;
+using SnapCd.Server.Core.Services.Interfaces.OrganizationContext;
+using SnapCd.Server.Core.Services.Interfaces.ViewManagement;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Nonsecured.OrganizationContext;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
+using SnapCd.Server.Core.Services.Utils.Dashboard;
+using SnapCd.Server.Core.Services.Utils.Edition;
+using SnapCd.Server.Core.Services.Utils.OrganizationContext;
 using SnapCd.Server.Core.Startup;
 using SnapCd.Server.Host.Database;
 using SnapCd.Server.Host.Services;
@@ -232,7 +237,7 @@ using (var scope = app.Services.CreateScope())
     await idempotentSqlManager.ApplyIdempotentSqlAsync();
 
     var dataSeeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
-    using (SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System))
+    using (CallerContext.Begin(CallerKind.System))
     {
         await dataSeeder.SeedAsync();
     }

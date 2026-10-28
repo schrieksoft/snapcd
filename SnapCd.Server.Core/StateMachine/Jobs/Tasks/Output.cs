@@ -9,14 +9,14 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Jobs.Base;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
-
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.Events.Jobs.Module;
+
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -143,8 +143,7 @@ public partial class JobStateMachine<
             When(RunnerReconnectedEvent)
                 .Then(context =>
                 {
-                    _logger.LogInformation(
-                        "Plan: Runner reconnected for job {CorrelationId}, retrying send",
+                    LoggerExtensions.LogInformation(_logger, "Plan: Runner reconnected for job {CorrelationId}, retrying send",
                         context.Saga.CorrelationId);
                 })
                 // Retry sending OutputRequested
@@ -155,8 +154,7 @@ public partial class JobStateMachine<
                     whenTrue => whenTrue
                         .Then(context =>
                         {
-                            _logger.LogWarning(
-                                "Plan: Runner disconnected again for job {CorrelationId}, staying in waiting state",
+                            LoggerExtensions.LogWarning(_logger, "Plan: Runner disconnected again for job {CorrelationId}, staying in waiting state",
                                 context.Saga.CorrelationId);
                         }),
                     // Successfully sent - transition to pending
@@ -164,8 +162,7 @@ public partial class JobStateMachine<
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = null;
-                            _logger.LogDebug(
-                                "Plan: Successfully sent for job {CorrelationId}, transitioning to pending",
+                            LoggerExtensions.LogDebug(_logger, "Plan: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 context.Saga.CorrelationId);
                         })
                         .Schedule(HeartbeatScheduled,
@@ -182,7 +179,7 @@ public partial class JobStateMachine<
 
         During(OutputPending,
             When(OutputCompleted)
-                .Then(context => { _logger.LogInformation($"Job completed for Module {context.Saga.ModuleId}"); })
+                .Then(context => { LoggerExtensions.LogInformation(_logger, $"Job completed for Module {context.Saga.ModuleId}"); })
                 .Publish(context => new TResponseCompleted
                 {
                     ModuleId = context.Saga.ModuleId,

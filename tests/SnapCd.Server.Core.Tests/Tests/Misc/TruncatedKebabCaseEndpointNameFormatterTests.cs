@@ -6,7 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Misc.Utils;
+using SnapCd.Server.Core.Services.Utils;
 
 namespace SnapCd.Server.Core.Tests.Tests.Misc;
 

@@ -15,7 +15,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 
-namespace SnapCd.Server.Core.Misc.Utils.Helpers;
+namespace SnapCd.Server.Core.Services.Utils.Helpers;
 
 public static class ClaimsIdentityExtensions
 {

@@ -10,7 +10,7 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace SnapCd.Server.Core.Misc.Utils;
+namespace SnapCd.Server.Core.Services.Utils;
 
 public static class JsonNodeUtils
 {

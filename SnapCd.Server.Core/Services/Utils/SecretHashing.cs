@@ -9,7 +9,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 
-namespace SnapCd.Server.Core.Misc.Utils;
+namespace SnapCd.Server.Core.Services.Utils;
 
 public static class SecretHashingHelper
 // NOTE, the below code was copied from the "ObfuscateClientSecretAsync" method (and the methods it depends on) as used in the OpenIddictApplicationManager class

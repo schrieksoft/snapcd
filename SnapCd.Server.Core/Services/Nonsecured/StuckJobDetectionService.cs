@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 public record StuckJob(Guid JobId, string JobType, Guid OrganizationId, Guid ModuleId, string State, DateTime WaitingSince, TimeSpan Stalled);
 

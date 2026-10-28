@@ -6,7 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-namespace SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
+
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 public class StuckJobDetectionJob
 {
@@ -21,7 +23,7 @@ public class StuckJobDetectionJob
 
     public async Task ExecuteJob()
     {
-        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
+        using var _ = CallerContext.Begin(CallerKind.System);
 
         var stuck = await _detectionService.FindStuckJobsAsync();
         foreach (var job in stuck)

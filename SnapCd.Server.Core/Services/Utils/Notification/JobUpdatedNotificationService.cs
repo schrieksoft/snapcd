@@ -9,7 +9,7 @@
 using System.Collections.Concurrent;
 using SnapCd.Server.Core.Enums;
 
-namespace SnapCd.Server.Core.Services.Notification;
+namespace SnapCd.Server.Core.Services.Utils.Notification;
 
 public class JobUpdatedNotificationService
 {

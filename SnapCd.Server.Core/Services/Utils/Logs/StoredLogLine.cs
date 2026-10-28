@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 using Serilog.Events;
 using SnapCd.Contracts;
 
-namespace SnapCd.Server.Core.Services.Logs;
+namespace SnapCd.Server.Core.Services.Utils.Logs;
 
 /// <summary>
 /// What a stored log line keeps: only what varies per line. The job, Module, Namespace, Stack and batch are

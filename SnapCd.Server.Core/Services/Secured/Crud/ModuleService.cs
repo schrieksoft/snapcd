@@ -14,16 +14,15 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Repositories.Custom.Secured;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Repositories.Custom.Secured;
-using SnapCd.Server.Core.Services.Crud.Generic;
+using SnapCd.Server.Core.Services.Secured.Crud.Generic;
+using SnapCd.Server.Core.Services.Secured.ModuleHold;
 using SnapCd.Server.Core.Settings.Repositories;
-using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
-using SnapCd.Server.Core.Services.ModuleHold;
 
-namespace SnapCd.Server.Core.Services.Crud;
+namespace SnapCd.Server.Core.Services.Secured.Crud;
 
 public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCreateDto, ModuleUpdateDto, ModuleReadDto, ModuleMetadataReadDto, ModuleSecuredRepository, ModuleRepository, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
 {

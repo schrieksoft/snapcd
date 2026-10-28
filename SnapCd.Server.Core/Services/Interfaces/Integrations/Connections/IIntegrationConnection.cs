@@ -6,7 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-namespace SnapCd.Server.Core.Services.Integrations.Connections;
+namespace SnapCd.Server.Core.Services.Interfaces.Integrations.Connections;
 
 /// <summary>
 /// Marker for a typed integration connection (credentials + config). The whole object is serialized as one

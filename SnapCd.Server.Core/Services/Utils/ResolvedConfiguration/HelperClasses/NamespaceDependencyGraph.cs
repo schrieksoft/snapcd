@@ -6,7 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-namespace SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+namespace SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 
 public class NamespaceDependencyGraph
 {

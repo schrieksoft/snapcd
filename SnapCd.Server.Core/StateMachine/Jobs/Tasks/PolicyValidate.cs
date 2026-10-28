@@ -10,13 +10,13 @@ using MassTransit;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Jobs.Base;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.Events.Jobs.Module;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
@@ -147,7 +147,7 @@ public partial class JobStateMachine<
                     // Hard deny: refuse the job. Not a failure.
                     ///////////////////////////////////////////////////
                     x => x
-                        .Then(_ => { _logger.LogInformation("Policy validation denied the job, finalizing as PolicyDenied."); })
+                        .Then(_ => { LoggerExtensions.LogInformation(_logger, "Policy validation denied the job, finalizing as PolicyDenied."); })
                         .Publish(context => new TResponseCancelled
                         {
                             ModuleId = context.Saga.ModuleId,
@@ -186,8 +186,7 @@ public partial class JobStateMachine<
             When(RunnerReconnectedEvent)
                 .Then(context =>
                 {
-                    _logger.LogInformation(
-                        "PolicyValidate: Runner reconnected for job {CorrelationId}, retrying send",
+                    LoggerExtensions.LogInformation(_logger, "PolicyValidate: Runner reconnected for job {CorrelationId}, retrying send",
                         context.Saga.CorrelationId);
                 })
                 .Activity(x => x.OfType<SendToRunnerActivity<TSaga, RunnerReconnectedEvent, TPolicyValidateRequested>>())
@@ -196,16 +195,14 @@ public partial class JobStateMachine<
                     whenTrue => whenTrue
                         .Then(context =>
                         {
-                            _logger.LogWarning(
-                                "PolicyValidate: Runner disconnected again for job {CorrelationId}, staying in waiting state",
+                            LoggerExtensions.LogWarning(_logger, "PolicyValidate: Runner disconnected again for job {CorrelationId}, staying in waiting state",
                                 context.Saga.CorrelationId);
                         }),
                     whenFalse => whenFalse
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = null;
-                            _logger.LogDebug(
-                                "PolicyValidate: Successfully sent for job {CorrelationId}, transitioning to pending",
+                            LoggerExtensions.LogDebug(_logger, "PolicyValidate: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 context.Saga.CorrelationId);
                         })
                         .Schedule(HeartbeatScheduled,

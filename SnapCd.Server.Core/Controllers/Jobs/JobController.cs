@@ -17,7 +17,7 @@ using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.Secured.Crud.Jobs;
 
 namespace SnapCd.Server.Core.Controllers.Jobs;
 

@@ -8,7 +8,7 @@
 
 using SnapCd.Server.Core.Events.Steps.Base;
 
-namespace SnapCd.Server.Core.Misc.Utils;
+namespace SnapCd.Server.Core.Services.Utils;
 
 public static class DefinitionParamsHelper
 {

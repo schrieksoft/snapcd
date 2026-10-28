@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.Notification;
+using SnapCd.Server.Core.Services.Utils.Notification;
 
 namespace SnapCd.Server.Core.Consumers.System.Fanout;
 

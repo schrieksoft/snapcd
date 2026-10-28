@@ -13,7 +13,7 @@ using SnapCd.Contracts.Dto.ModuleHolds;
 using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.ModuleHold;
+using SnapCd.Server.Core.Services.Secured.ModuleHold;
 
 namespace SnapCd.Server.Core.Controllers.ModuleHolds;
 

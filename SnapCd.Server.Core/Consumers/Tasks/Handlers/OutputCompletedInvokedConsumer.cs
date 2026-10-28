@@ -11,9 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Handlers;
 using SnapCd.Server.Core.Events.Steps;
-using SnapCd.Server.Core.Services.Crud;
-
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Services.Secured.Crud;
 
 namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 

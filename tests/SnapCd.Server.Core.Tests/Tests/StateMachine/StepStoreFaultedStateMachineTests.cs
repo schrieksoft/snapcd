@@ -27,9 +27,11 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Variables;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Variables;
-using SnapCd.Server.Core.Services.Crud;
-using SnapCd.Server.Core.Services.PrincipalProvider;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Secured.Crud;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
@@ -169,7 +171,7 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
         services.AddScoped<SnapCdDbContext>(sp => sp.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext());
         services.AddScoped<IPrincipalProvider>(_ => new LiteralPrincipalProvider(Guid.Empty, PrincipalDiscriminator.User, [_module.OrganizationId]));
         services.AddDistributedMemoryCache();
-        services.AddSingleton<SnapCd.Server.Core.Services.MaintenanceMode.IMaintenanceModeService, SnapCd.Server.Core.Services.MaintenanceMode.MaintenanceModeService>();
+        services.AddSingleton<IMaintenanceModeService, MaintenanceModeService>();
         services.Configure<ModuleJobRepositorySettings>(_ => { });
         services.AddScoped<ModuleJobRepository>();
         services.AddScoped(sp =>

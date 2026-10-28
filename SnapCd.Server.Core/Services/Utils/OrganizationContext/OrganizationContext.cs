@@ -6,7 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-namespace SnapCd.Server.Core.Services.OrganizationContext;
+using SnapCd.Server.Core.Services.Interfaces.OrganizationContext;
+
+namespace SnapCd.Server.Core.Services.Utils.OrganizationContext;
 
 public class OrganizationContext : IOrganizationContext
 {

@@ -22,7 +22,7 @@ public static class OrganizationIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "organization_integration_events_create")]
     [Description(@"Create a new OrganizationIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.OrganizationIntegrationEventReadDto> OrganizationIntegrationEventsCreate(
-        SnapCd.Server.Core.Services.Crud.OrganizationIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The OrganizationIntegrationEvent to create")] SnapCd.Contracts.Dto.IntegrationEvents.OrganizationIntegrationEventCreateDto dto)
         => service.Create(dto, organizationId);
@@ -30,7 +30,7 @@ public static class OrganizationIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "organization_integration_events_list_by_integration")]
     [Description(@"List all OrganizationIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.OrganizationIntegrationEventReadDto>> OrganizationIntegrationEventsListByIntegration(
-        SnapCd.Server.Core.Services.Crud.OrganizationIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Integration ID")] System.Guid integrationId)
         => service.ListByIntegration(integrationId, organizationId);
@@ -38,14 +38,14 @@ public static class OrganizationIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "organization_integration_events_list")]
     [Description(@"List all OrganizationIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.OrganizationIntegrationEventReadDto>> OrganizationIntegrationEventsList(
-        SnapCd.Server.Core.Services.Crud.OrganizationIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "organization_integration_events_get")]
     [Description(@"Get a single OrganizationIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.OrganizationIntegrationEventReadDto> OrganizationIntegrationEventsGet(
-        SnapCd.Server.Core.Services.Crud.OrganizationIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"OrganizationIntegrationEvent ID")] System.Guid id)
         => service.Get(id, organizationId);
@@ -53,7 +53,7 @@ public static class OrganizationIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "organization_integration_events_update")]
     [Description(@"Update an existing OrganizationIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.OrganizationIntegrationEventReadDto> OrganizationIntegrationEventsUpdate(
-        SnapCd.Server.Core.Services.Crud.OrganizationIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new OrganizationIntegrationEvent values")] SnapCd.Contracts.Dto.IntegrationEvents.OrganizationIntegrationEventUpdateDto dto,
         [Description(@"OrganizationIntegrationEvent ID")] System.Guid id)
@@ -62,7 +62,7 @@ public static class OrganizationIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "organization_integration_events_delete")]
     [Description(@"Delete an OrganizationIntegrationEvent")]
     public static System.Threading.Tasks.Task OrganizationIntegrationEventsDelete(
-        SnapCd.Server.Core.Services.Crud.OrganizationIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.OrganizationIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"OrganizationIntegrationEvent ID")] System.Guid id)
         => service.Delete(id, organizationId);

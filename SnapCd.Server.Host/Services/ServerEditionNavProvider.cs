@@ -7,7 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.Components;
-using SnapCd.Server.Core.Services.Edition;
+using SnapCd.Server.Core.Services.Interfaces.Edition;
 using SnapCd.Server.Host.UI.Dashboard.Components;
 
 namespace SnapCd.Server.Host.Services;

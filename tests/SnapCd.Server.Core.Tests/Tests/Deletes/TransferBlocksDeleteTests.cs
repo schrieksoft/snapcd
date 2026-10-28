@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
 using SnapCd.Server.Core.Tests.Infrastructure;

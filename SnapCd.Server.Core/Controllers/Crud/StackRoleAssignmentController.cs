@@ -13,7 +13,7 @@ using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.RoleAssignments.Base;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.Crud.RoleAssignment;
+using SnapCd.Server.Core.Services.Secured.Crud.RoleAssignment;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 

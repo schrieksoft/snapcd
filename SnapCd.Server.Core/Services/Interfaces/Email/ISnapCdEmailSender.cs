@@ -9,7 +9,7 @@
 using Microsoft.AspNetCore.Identity;
 using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Server.Core.Services.Email;
+namespace SnapCd.Server.Core.Services.Interfaces.Email;
 
 public interface ISnapCdEmailSender : IEmailSender<User>
 {

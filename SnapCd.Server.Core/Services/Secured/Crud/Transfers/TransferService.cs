@@ -8,19 +8,18 @@
 
 
 using MassTransit;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.Crud.Jobs;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
+using SnapCd.Server.Core.Services.Secured.Crud.Jobs;
 
-namespace SnapCd.Server.Core.Services.Crud.Transfers;
+namespace SnapCd.Server.Core.Services.Secured.Crud.Transfers;
 
 public class TransferServiceFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,

@@ -24,7 +24,7 @@ public static class JobControllerMcpResourceSurface
 
 Returned as a JSON array of LogEntryDto. Partition by TaskName (Init / Validate / Variables / Plan / ApplyFromPlan / DestroyFromPlan etc.) to focus on a single phase. Secrets and likely-credential patterns are replaced with [REDACTED:type] markers.")]
     public static async System.Threading.Tasks.Task<string> ModuleJobLogs(
-        SnapCd.Server.Core.Services.Crud.Jobs.JobOrchestrationService service,
+        SnapCd.Server.Core.Services.Secured.Crud.Jobs.JobOrchestrationService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Job ID")] System.Guid jobId)
         => await service.GetLogs(jobId, organizationId);
@@ -34,7 +34,7 @@ Returned as a JSON array of LogEntryDto. Partition by TaskName (Init / Validate 
 
 Covers JobType (Apply/Destroy), DefinitiveRevision (the resolved commit SHA the job ran against), WaitingForApproval, ActualStateHeadline, server-side error fields, and output deltas (OutputsCreate/Modify/Destroy/Recreate/Unchanged lists). Does NOT contain the resource-action plan body or the apply output — those are in module_job_logs filtered by TaskName.")]
     public static async System.Threading.Tasks.Task<string> ModuleJobStatus(
-        SnapCd.Server.Core.Services.Crud.Jobs.JobOrchestrationService service,
+        SnapCd.Server.Core.Services.Secured.Crud.Jobs.JobOrchestrationService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Job ID")] System.Guid jobId)
         => System.Text.Json.JsonSerializer.Serialize(await service.GetStatus(jobId, organizationId));
@@ -44,7 +44,7 @@ Covers JobType (Apply/Destroy), DefinitiveRevision (the resolved commit SHA the 
 
 Shows who decided, when, and whether they declined. Returns an empty array if no decisions have been recorded (i.e. the job either auto-applied or is still awaiting approval). The principal-resolution details (name/email) are not returned — only the principal id and discriminator (User / ServicePrincipal).")]
     public static async System.Threading.Tasks.Task<string> ModuleJobApprovals(
-        SnapCd.Server.Core.Services.Crud.Jobs.JobOrchestrationService service,
+        SnapCd.Server.Core.Services.Secured.Crud.Jobs.JobOrchestrationService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Job ID")] System.Guid jobId)
         => System.Text.Json.JsonSerializer.Serialize(await service.GetApprovals(jobId, organizationId));

@@ -12,7 +12,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Dtos;
 using SnapCd.Server.Core.Views;
 
-namespace SnapCd.Server.Core.Services.DependencyGraph;
+namespace SnapCd.Server.Core.Services.Nonsecured.DependencyGraph;
 
 public class ApplyModuleGraphServiceFactory(IDbContextFactory<SnapCdDbContext> dbContextFactory)
 {

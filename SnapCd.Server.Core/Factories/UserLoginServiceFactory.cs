@@ -7,7 +7,8 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.IdentityAccess;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.IdentityAccess;
 
 namespace SnapCd.Server.Core.Factories;
 

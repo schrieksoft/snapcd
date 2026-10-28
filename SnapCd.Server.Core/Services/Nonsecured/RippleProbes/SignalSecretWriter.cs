@@ -12,7 +12,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Factories.Vaults;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
 /// <summary>
 /// Puts a sensitive signal's value object in the secret store, so the row holds a reference rather

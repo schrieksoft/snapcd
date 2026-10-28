@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Factories.Vaults;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
 /// <summary>
 /// Reads a sensitive signal's value object back out of the secret store so it can be written into

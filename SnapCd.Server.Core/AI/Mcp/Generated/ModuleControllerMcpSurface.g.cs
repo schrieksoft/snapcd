@@ -22,7 +22,7 @@ public static class ModuleControllerMcpSurface
     [McpServerTool(Name = "modules_create")]
     [Description(@"Create a new Module")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Modules.ModuleReadDto> ModulesCreate(
-        SnapCd.Server.Core.Services.Crud.ModuleService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The Module to create")] SnapCd.Contracts.Dto.Modules.ModuleCreateDto dto)
         => service.Create(dto, organizationId);
@@ -30,14 +30,14 @@ public static class ModuleControllerMcpSurface
     [McpServerTool(Name = "modules_list")]
     [Description(@"List all Modules")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Modules.ModuleReadDto>> ModulesList(
-        SnapCd.Server.Core.Services.Crud.ModuleService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "modules_update")]
     [Description(@"Update an existing Module")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Modules.ModuleReadDto> ModulesUpdate(
-        SnapCd.Server.Core.Services.Crud.ModuleService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new Module values")] SnapCd.Contracts.Dto.Modules.ModuleUpdateDto dto,
         [Description(@"Module ID")] System.Guid id)
@@ -46,7 +46,7 @@ public static class ModuleControllerMcpSurface
     [McpServerTool(Name = "modules_delete")]
     [Description(@"Delete a Module")]
     public static System.Threading.Tasks.Task ModulesDelete(
-        SnapCd.Server.Core.Services.Crud.ModuleService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Module ID")] System.Guid id)
         => service.Delete(id, organizationId);

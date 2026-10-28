@@ -12,7 +12,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.UI.Dashboard.Theme;
 using SnapCd.Server.Core.Views;
 
-namespace SnapCd.Server.Core.Services.DependencyGraph;
+namespace SnapCd.Server.Core.Services.Nonsecured.DependencyGraph;
 
 public abstract class ModuleGraphServiceBase
 {

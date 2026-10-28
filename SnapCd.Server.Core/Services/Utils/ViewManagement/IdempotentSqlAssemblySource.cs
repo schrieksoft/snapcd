@@ -8,7 +8,7 @@
 
 using System.Reflection;
 
-namespace SnapCd.Server.Core.Services.ViewManagement;
+namespace SnapCd.Server.Core.Services.Utils.ViewManagement;
 
 public class IdempotentSqlAssemblySource(Assembly assembly, string resourcePrefix)
 {

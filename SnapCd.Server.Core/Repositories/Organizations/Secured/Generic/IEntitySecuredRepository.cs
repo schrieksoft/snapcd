@@ -7,8 +7,8 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Entities.Interfaces;
-using SnapCd.Server.Core.Services.PrincipalProvider;
 using System.Linq.Expressions;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 

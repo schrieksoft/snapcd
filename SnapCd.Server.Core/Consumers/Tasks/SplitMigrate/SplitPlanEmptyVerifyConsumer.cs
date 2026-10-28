@@ -15,6 +15,7 @@ using SnapCd.Contracts.RunnerRequests.SplitMigrate;
 using SnapCd.Server.Core.Events.Steps.SplitMigrate;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 using JobMetadata = SnapCd.Contracts.RunnerRequests.HelperClasses.JobMetadata;

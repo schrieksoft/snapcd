@@ -9,7 +9,7 @@
 @typeparam TEntity where TEntity : SnapCd.Server.Core.Entities.Definition.Base.ModuleInput, new()
 @typeparam TSecuredRepositoryFactory where TSecuredRepositoryFactory : IEntitySecuredRepositoryFactory<TEntity>
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic
-@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider
 
 <MudTabPanel Text="@Title" OnClick="@OnTabClick" Style="text-transform: none">
     @if (_items == null)

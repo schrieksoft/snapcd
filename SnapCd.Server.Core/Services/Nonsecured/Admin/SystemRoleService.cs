@@ -11,9 +11,9 @@ using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.System;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
-namespace SnapCd.Server.Core.Services.Admin;
+namespace SnapCd.Server.Core.Services.Nonsecured.Admin;
 
 /// <summary>
 /// System-level (organization-free) role checks. The Command Center is gated on these.

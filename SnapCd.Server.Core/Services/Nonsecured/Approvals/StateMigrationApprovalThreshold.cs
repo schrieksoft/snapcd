@@ -9,7 +9,7 @@
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 
-namespace SnapCd.Server.Core.Services.Approvals;
+namespace SnapCd.Server.Core.Services.Nonsecured.Approvals;
 
 /// <summary>
 /// Approvals a state migration needs, from the Module then its Namespace. The gate that holds the

@@ -9,7 +9,7 @@
 using System.Text.RegularExpressions;
 using SnapCd.Server.Core.Misc.Exceptions;
 
-namespace SnapCd.Server.Core.Misc.Utils;
+namespace SnapCd.Server.Core.Services.Utils;
 
 /// <summary>
 /// Validates entity names that end up in URL path segments (/Stack/{name},

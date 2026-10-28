@@ -9,7 +9,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SnapCd.Server.Core.Services.RunInputs;
+namespace SnapCd.Server.Core.Services.Utils.RunInputs;
 
 /// <summary>
 /// What a job's declaration amounts to, as one value, so a result computed under it can be judged

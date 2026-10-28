@@ -9,7 +9,8 @@
 using Microsoft.AspNetCore.Identity;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.Dashboard;
+using SnapCd.Server.Core.Services.Nonsecured.Dashboard;
+using SnapCd.Server.Core.Services.Utils.Dashboard;
 
 namespace SnapCd.Server.Core.Factories;
 

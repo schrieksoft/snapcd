@@ -23,8 +23,10 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Middleware;
-using SnapCd.Server.Core.Services.MaintenanceMode;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 
@@ -158,12 +160,12 @@ public class MaintenanceOperationsTests : IAsyncLifetime
         => new(
             _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             _provider.GetRequiredService<IBus>(),
-            new SnapCd.Server.Core.Services.TransportReconciliationJob(
+            new TransportReconciliationJob(
                 _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
                 _provider.GetRequiredService<IBus>(),
                 Mock.Of<IMessageScheduler>(),
-                new SnapCd.Server.Core.Services.QuotaService(Mock.Of<SnapCd.Server.Core.Licensing.Services.IQuotaGatingService>()),
-                NullLogger<SnapCd.Server.Core.Services.TransportReconciliationJob>.Instance),
+                new QuotaService(Mock.Of<SnapCd.Server.Core.Licensing.Services.IQuotaGatingService>()),
+                NullLogger<TransportReconciliationJob>.Instance),
             _provider.GetRequiredService<IMaintenanceModeService>(),
             NullLogger<MaintenanceOperationsService>.Instance);
 
@@ -199,12 +201,12 @@ public class MaintenanceOperationsTests : IAsyncLifetime
         var operations = new MaintenanceOperationsService(
             _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             _provider.GetRequiredService<IBus>(),
-            new SnapCd.Server.Core.Services.TransportReconciliationJob(
+            new TransportReconciliationJob(
                 _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
                 _provider.GetRequiredService<IBus>(),
                 Mock.Of<IMessageScheduler>(),
-                new SnapCd.Server.Core.Services.QuotaService(Mock.Of<SnapCd.Server.Core.Licensing.Services.IQuotaGatingService>()),
-                NullLogger<SnapCd.Server.Core.Services.TransportReconciliationJob>.Instance),
+                new QuotaService(Mock.Of<SnapCd.Server.Core.Licensing.Services.IQuotaGatingService>()),
+                NullLogger<TransportReconciliationJob>.Instance),
             spy,
             NullLogger<MaintenanceOperationsService>.Instance);
 

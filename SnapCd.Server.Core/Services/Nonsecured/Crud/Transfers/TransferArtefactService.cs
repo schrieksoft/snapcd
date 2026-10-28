@@ -11,8 +11,9 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Services.Interfaces;
 
-namespace SnapCd.Server.Core.Services.Crud.Transfers;
+namespace SnapCd.Server.Core.Services.Nonsecured.Crud.Transfers;
 
 /// <summary>
 /// What the source produces for the receiver. demonolith runs one root at a time and the two halves

@@ -9,6 +9,7 @@
 using Serilog.Events;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Misc;
+using SnapCd.Server.Core.Services.Nonsecured.Logs;
 
 namespace SnapCd.Server.Core.UI.Dashboard.Pages.Organization;
 
@@ -314,7 +315,7 @@ public static class MissionTestBenchScenarios
 
     /// <summary>Render the scenario as a flat list of log entries. Timestamps run forward; entries
     /// within a phase are 100 ms apart, phases 1 s apart, close enough to realistic that
-    /// <see cref="SnapCd.Server.Core.Services.Logs.JobLogReader{TJob,TChunk,TLogEntry}.GetLogStrings"/>'s ordering-by-Timestamp works correctly.</summary>
+    /// <see cref="JobLogReader{TJob,TChunk,TLogEntry}.GetLogStrings"/>'s ordering-by-Timestamp works correctly.</summary>
     public static List<ModuleJobLogEntryDto> BuildEntries(
         Scenario scenario,
         Guid jobId,

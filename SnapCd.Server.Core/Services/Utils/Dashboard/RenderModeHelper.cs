@@ -9,7 +9,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
-namespace SnapCd.Server.Core.Services.Dashboard;
+namespace SnapCd.Server.Core.Services.Utils.Dashboard;
 
 public static class RenderModeHelper
 {

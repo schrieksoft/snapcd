@@ -12,7 +12,7 @@ using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Server.Core.Services.Ai.Missions;
+namespace SnapCd.Server.Core.Services.Nonsecured.Ai.Missions;
 
 /// <summary>
 /// Shared Layer-1 mission match-and-dispatch logic. Each event-specific Layer-1 competing consumer

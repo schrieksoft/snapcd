@@ -5,7 +5,10 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
-namespace SnapCd.Server.Core.Services.Edition;
+
+using SnapCd.Server.Core.Services.Interfaces.Edition;
+
+namespace SnapCd.Server.Core.Services.Utils.Edition;
 
 /// <summary>
 /// Default implementation for a deployment that registers no override. Treats every organization as activated.

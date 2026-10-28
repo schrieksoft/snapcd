@@ -7,8 +7,9 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
 
-namespace SnapCd.Server.Core.Services.MaintenanceMode;
+namespace SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 
 /// <summary>
 /// Static write gate consulted by GenericRepository. Static because repositories are frequently
@@ -26,7 +27,7 @@ public static class MaintenanceGate
 
     public static async Task EnsureWriteAllowedAsync()
     {
-        if (_service == null || CallerContext.CallerContext.IsExempt) return;
+        if (_service == null || CallerContext.IsExempt) return;
 
         if (await _service.IsActiveAsync())
             throw new MaintenanceModeException("A maintenance window is open; changes cannot be saved until it closes.");

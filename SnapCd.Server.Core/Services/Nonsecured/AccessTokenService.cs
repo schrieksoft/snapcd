@@ -18,7 +18,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Views;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 public class AccessTokenServiceFactory
 {

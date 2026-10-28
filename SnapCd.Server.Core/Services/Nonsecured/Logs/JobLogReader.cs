@@ -14,8 +14,9 @@ using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Interfaces;
+using SnapCd.Server.Core.Services.Utils.Logs;
 
-namespace SnapCd.Server.Core.Services.Logs;
+namespace SnapCd.Server.Core.Services.Nonsecured.Logs;
 
 /// <summary>
 /// A summary of one stored part of a job's log, read without decompressing it. Sequence 0 is the log a job

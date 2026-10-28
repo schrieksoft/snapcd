@@ -8,7 +8,7 @@
 
 using MassTransit;
 
-namespace SnapCd.Server.Core.Services.CallerContext;
+namespace SnapCd.Server.Core.Services.Utils.CallerContext;
 
 /// <summary>
 /// Opens a System caller scope around every bus message consumption. Humans act over HTTP and

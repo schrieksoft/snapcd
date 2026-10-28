@@ -6,7 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-namespace SnapCd.Server.Core.Services.Admin;
+namespace SnapCd.Server.Core.Services.Interfaces.Admin;
 
 /// <summary>
 /// Self-Hosted-only admin operations on org members (reset password, force-confirm email).

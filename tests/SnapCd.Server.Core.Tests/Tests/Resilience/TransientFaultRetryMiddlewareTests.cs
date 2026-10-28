@@ -16,7 +16,8 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SnapCd.Server.Core.Middleware;
-using SnapCd.Server.Core.Services.Resilience;
+using SnapCd.Server.Core.Services.Interfaces.Resilience;
+using SnapCd.Server.Core.Services.Utils.Resilience;
 
 namespace SnapCd.Server.Core.Tests.Tests.Resilience;
 

@@ -14,7 +14,7 @@ using SnapCd.Server.Core.Events.Server;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.AgentConnectionValidator;
+namespace SnapCd.Server.Core.Services.Nonsecured.AgentConnectionValidator;
 
 /// <summary>
 /// Validates agent connection attempts, handling duplicate detection and rate limiting.

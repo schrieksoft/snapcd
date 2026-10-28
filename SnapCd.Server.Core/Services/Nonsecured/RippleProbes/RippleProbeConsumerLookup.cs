@@ -8,11 +8,11 @@
 
 
 using Microsoft.EntityFrameworkCore;
-using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Services.Utils.RippleProbes;
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
 public class RippleProbeConsumerLookupFactory(IDbContextFactory<SnapCdDbContext> dbFactory)
 {

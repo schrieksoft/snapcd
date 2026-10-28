@@ -18,13 +18,13 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Services.CallerContext;
-using SnapCd.Server.Core.Services.MaintenanceMode;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
-using CallerCtx = SnapCd.Server.Core.Services.CallerContext.CallerContext;
+using CallerCtx = SnapCd.Server.Core.Services.Utils.CallerContext.CallerContext;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 

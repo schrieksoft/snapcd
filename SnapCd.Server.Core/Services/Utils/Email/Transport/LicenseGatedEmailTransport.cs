@@ -7,10 +7,10 @@
 // for terms covering either use.
 
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Licensing.Services;
+using SnapCd.Server.Core.Services.Interfaces.Email.Transport;
 
-namespace SnapCd.Server.Core.Services.Email.Transport;
+namespace SnapCd.Server.Core.Services.Utils.Email.Transport;
 
 /// <summary>
 /// Decorates the configured premium <see cref="IEmailTransport"/> with a licence check.

@@ -9,7 +9,7 @@
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 
-namespace SnapCd.Server.Core.Services.Integrations;
+namespace SnapCd.Server.Core.Services.Nonsecured.Integrations;
 
 /// <summary>
 /// Mirrors <c>AgentSupplyResolver</c>: an integration is "supplied" to a scope when

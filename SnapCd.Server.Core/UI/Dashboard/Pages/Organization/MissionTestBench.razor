@@ -28,9 +28,9 @@
 @using SnapCd.Server.Core.Events.Missions
 @using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Misc.Helpers
-@using SnapCd.Server.Core.Services.Ai.Missions
-@using SnapCd.Server.Core.Services.Notification
-@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
+@using SnapCd.Server.Core.Services.Nonsecured.Ai.Missions
+@using SnapCd.Server.Core.Services.Utils.Notification
 
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject IBus Bus

@@ -7,11 +7,11 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
-using SnapCd.Server.Core.Database;
 using SnapCd.Contracts;
+using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Enums;
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
 /// <summary>What an apply should do when it reaches the probe decision.</summary>
 public enum ProbeReadiness

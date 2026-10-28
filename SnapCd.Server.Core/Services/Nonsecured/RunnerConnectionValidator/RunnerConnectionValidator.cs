@@ -14,7 +14,7 @@ using SnapCd.Server.Core.Events.Server;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.RunnerConnectionValidator;
+namespace SnapCd.Server.Core.Services.Nonsecured.RunnerConnectionValidator;
 
 /// <summary>
 /// Validates runner connection attempts, handling duplicate detection and rate limiting.

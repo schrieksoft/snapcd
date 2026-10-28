@@ -13,9 +13,9 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.QuotaUsage;
+using SnapCd.Server.Core.Services.Interfaces.QuotaUsage;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 public class EmailConfirmationService
 {

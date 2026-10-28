@@ -6,20 +6,19 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using MassTransit;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using SnapCd.Contracts;
-using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
 public class SignalEdgeResolverFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,

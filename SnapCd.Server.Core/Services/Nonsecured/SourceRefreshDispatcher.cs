@@ -6,14 +6,13 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Contracts.Endpoints;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts;
-using SnapCd.Contracts.Constants;
+using SnapCd.Contracts.Endpoints;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Server.Core.Hubs;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 /// <summary>
 /// Dispatches a SourceRefreshRequest for one refresh group to a least-loaded runner instance. Shared by the

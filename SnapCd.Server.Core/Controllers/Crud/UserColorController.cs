@@ -16,8 +16,8 @@ using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Custom.Secured;
-using SnapCd.Server.Core.Services.Notification;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Utils.Notification;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 

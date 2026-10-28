@@ -10,8 +10,9 @@ using System.Security.Claims;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
-namespace SnapCd.Server.Core.Services.PrincipalProvider;
+namespace SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 
 /// <summary>
 /// <see cref="IPrincipalProvider"/> backed by an explicit <see cref="ClaimsPrincipal"/> rather than

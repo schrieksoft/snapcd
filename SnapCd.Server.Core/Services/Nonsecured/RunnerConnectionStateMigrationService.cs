@@ -5,11 +5,12 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
+
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 /// <summary>
 /// Records which task a manual job is running on which connection, and how recently. The heartbeat

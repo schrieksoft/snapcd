@@ -8,7 +8,7 @@
 
 using System.Collections.Concurrent;
 
-namespace SnapCd.Server.Core.Services.Notification;
+namespace SnapCd.Server.Core.Services.Utils.Notification;
 
 /// <summary>
 /// Open pages waiting on one wave. Keyed on the wave rather than the Module, because a wave is what

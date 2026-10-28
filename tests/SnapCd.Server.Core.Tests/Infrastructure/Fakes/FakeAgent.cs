@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.CallerContext;
-using CallerCtx = SnapCd.Server.Core.Services.CallerContext.CallerContext;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
+using CallerCtx = SnapCd.Server.Core.Services.Utils.CallerContext.CallerContext;
 
 namespace SnapCd.Server.Core.Tests.Infrastructure.Fakes;
 

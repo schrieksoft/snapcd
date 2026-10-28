@@ -8,18 +8,16 @@
 
 using MassTransit;
 using SnapCd.Contracts.Dto.Outputs;
-using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Mappers.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
-using SnapCd.Server.Core.Services.Crud.Generic;
+using SnapCd.Server.Core.Services.Secured.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
-using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 
-namespace SnapCd.Server.Core.Services.Crud;
+namespace SnapCd.Server.Core.Services.Secured.Crud;
 
 public class OutputServiceFactory(
     OutputSecuredRepositoryFactory securedRepositoryFactory,

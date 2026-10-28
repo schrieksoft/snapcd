@@ -15,6 +15,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Interfaces;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using SnapCd.Server.Host.Database;
 using SnapCd.Server.Host.Installations;

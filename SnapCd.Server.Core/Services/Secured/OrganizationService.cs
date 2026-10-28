@@ -10,9 +10,9 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.System.Nonsecured;
 using SnapCd.Server.Core.Repositories.System.Secured;
-using SnapCd.Server.Core.Services.IdentityAccess;
+using SnapCd.Server.Core.Services.Nonsecured.IdentityAccess;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Secured;
 
 public class OrganizationServiceFactory
 {

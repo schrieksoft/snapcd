@@ -8,7 +8,7 @@
 
 using SnapCd.Contracts;
 
-namespace SnapCd.Server.Core.Services.PrincipalProvider;
+namespace SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
 public interface IPrincipalProvider
 {

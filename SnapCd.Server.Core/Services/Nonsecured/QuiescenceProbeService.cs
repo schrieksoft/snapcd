@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 /// <summary>
 /// Unfinished mission runs grouped by type and status. <see cref="HoldsDrainOpen"/> marks the

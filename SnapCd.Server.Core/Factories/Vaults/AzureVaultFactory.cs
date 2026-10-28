@@ -11,7 +11,8 @@ using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Options;
-using SnapCd.Server.Core.Services.Vaults;
+using SnapCd.Server.Core.Services.Interfaces.Vaults;
+using SnapCd.Server.Core.Services.Utils.Vaults;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Factories.Vaults;

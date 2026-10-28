@@ -5,9 +5,11 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
-using Microsoft.AspNetCore.Mvc;
 
-namespace SnapCd.Server.Core.Services.Edition;
+using Microsoft.AspNetCore.Mvc;
+using SnapCd.Server.Core.Services.Interfaces.Edition;
+
+namespace SnapCd.Server.Core.Services.Utils.Edition;
 
 /// <summary>
 /// For editions where organizations are always activated.

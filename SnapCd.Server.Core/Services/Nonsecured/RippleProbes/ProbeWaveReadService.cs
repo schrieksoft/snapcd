@@ -14,7 +14,7 @@ using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Views;
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
 /// <summary>What a job ran against, for judging whether a prediction made from it still holds.</summary>
 public record JobFingerprint(

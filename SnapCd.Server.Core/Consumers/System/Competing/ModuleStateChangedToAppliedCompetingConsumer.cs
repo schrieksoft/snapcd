@@ -8,7 +8,7 @@
 
 using MassTransit;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.DependencyGraph;
+using SnapCd.Server.Core.Services.Nonsecured.DependencyGraph;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;
 

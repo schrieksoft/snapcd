@@ -7,8 +7,9 @@
 // for terms covering either use.
 
 using SnapCd.Contracts;
+using SnapCd.Server.Core.Services.Interfaces.Integrations.Codecs;
 
-namespace SnapCd.Server.Core.Services.Integrations.Codecs;
+namespace SnapCd.Server.Core.Services.Utils.Integrations.Codecs;
 
 public sealed class IntegrationCodecRegistry : IIntegrationCodecRegistry
 {

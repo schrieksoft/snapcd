@@ -15,9 +15,10 @@ using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Mappers.GroupMembers.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
-using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using System.Linq.Expressions;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 

@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Enums;
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
 /// <summary>What an upstream's apply should do when it reaches the point of waiting for its wave.</summary>
 public enum ProbeWaveSettlement

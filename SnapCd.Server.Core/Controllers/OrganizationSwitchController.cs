@@ -11,7 +11,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Misc.Attributes;
-using SnapCd.Server.Core.Services.OrganizationContext;
+using SnapCd.Server.Core.Services.Nonsecured.OrganizationContext;
+using SnapCd.Server.Core.Services.Utils.OrganizationContext;
 
 namespace SnapCd.Server.Core.Controllers;
 

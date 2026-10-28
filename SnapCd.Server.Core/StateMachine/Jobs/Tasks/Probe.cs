@@ -6,23 +6,20 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 using System.Diagnostics;
 using MassTransit;
-using Microsoft.EntityFrameworkCore;
-using SnapCd.Server.Core.Database;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Sagas.Base;
-using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Base;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
-using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.RippleProbes;
 using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Contracts;
+using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
-using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.Events.Jobs.Module;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
@@ -173,13 +170,12 @@ public partial class JobStateMachine<
                     ModuleJobId = context.Saga.CorrelationId
                 }),
 
-            DealWithProbeReadiness(When(ProbeSignalsModifiedEvent)),
+            DealWithProbeReadiness<ProbeSignalsReevaluationRequestedEvent>(When(ProbeSignalsModifiedEvent)),
 
             // Reached only if the prompt is still in flight when a cancel arrives. Nothing is
             // running on a runner here, so the cancel ends the job at once.
             When(CancelModuleRequested)
-                .Then(context => _logger.LogInformation(
-                    "Cancelled while awaiting probe signals for job {JobId}", context.Saga.CorrelationId))
+                .Then(context => LoggerExtensions.LogInformation(_logger, "Cancelled while awaiting probe signals for job {JobId}", context.Saga.CorrelationId))
                 .Publish(context => new TResponseCancelled
                 {
                     ModuleId = context.Saga.ModuleId,
@@ -202,8 +198,7 @@ public partial class JobStateMachine<
             When(RunnerReconnectedEvent)
                 .Then(context =>
                 {
-                    _logger.LogInformation(
-                        "Probe: Runner reconnected for job {CorrelationId}, retrying send",
+                    LoggerExtensions.LogInformation(_logger, "Probe: Runner reconnected for job {CorrelationId}, retrying send",
                         context.Saga.CorrelationId);
                 })
                 .Activity(x => x.OfType<SendProbeStepToRunnerActivity<TSaga, RunnerReconnectedEvent, TProbeRequested>>())
@@ -212,16 +207,14 @@ public partial class JobStateMachine<
                     whenTrue => whenTrue
                         .Then(context =>
                         {
-                            _logger.LogWarning(
-                                "Probe: Runner disconnected again for job {CorrelationId}, staying in waiting state",
+                            LoggerExtensions.LogWarning(_logger, "Probe: Runner disconnected again for job {CorrelationId}, staying in waiting state",
                                 context.Saga.CorrelationId);
                         }),
                     whenFalse => whenFalse
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = null;
-                            _logger.LogDebug(
-                                "Probe: Successfully sent for job {CorrelationId}, transitioning to pending",
+                            LoggerExtensions.LogDebug(_logger, "Probe: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 context.Saga.CorrelationId);
                         })
                         .Schedule(HeartbeatScheduled,
@@ -255,8 +248,7 @@ public partial class JobStateMachine<
             When(ProbeFaulted)
                 .Then(context =>
                 {
-                    _logger.LogWarning(
-                        "Probe: faulted for job {CorrelationId}. The apply itself succeeded.",
+                    LoggerExtensions.LogWarning(_logger, "Probe: faulted for job {CorrelationId}. The apply itself succeeded.",
                         context.Saga.CorrelationId);
                 })
                 .IfElseAsync(
@@ -304,8 +296,7 @@ public partial class JobStateMachine<
                             .Then(context =>
                             {
                                 context.Saga.WaitingSince = DateTime.UtcNow;
-                                _logger.LogWarning(
-                                    "Probe: Runner disconnected for job {CorrelationId}, entering waiting state",
+                                LoggerExtensions.LogWarning(_logger, "Probe: Runner disconnected for job {CorrelationId}, entering waiting state",
                                     context.Saga.CorrelationId);
                             })
                             .TransitionTo(ProbeWaitingForRunner),
@@ -322,8 +313,7 @@ public partial class JobStateMachine<
                             .Then(context =>
                             {
                                 context.Saga.WaitingSince = DateTime.UtcNow;
-                                _logger.LogWarning(
-                                    "Probe: Runner disconnected for job {CorrelationId}, entering waiting state",
+                                LoggerExtensions.LogWarning(_logger, "Probe: Runner disconnected for job {CorrelationId}, entering waiting state",
                                     context.Saga.CorrelationId);
                             })
                             .TransitionTo(OutputWaitingForRunner),

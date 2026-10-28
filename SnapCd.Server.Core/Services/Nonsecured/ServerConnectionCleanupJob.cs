@@ -10,9 +10,10 @@ using MassTransit;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Events.Server;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 /// <summary>
 /// Background job that periodically checks all server instances for connectivity.
@@ -45,7 +46,7 @@ public class ServerConnectionCleanupJob
 
     public async Task ExecuteJob()
     {
-        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
+        using var _ = CallerContext.Begin(CallerKind.System);
         _logger.LogDebug("Starting server connection cleanup job");
 
         try

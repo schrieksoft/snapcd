@@ -17,7 +17,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Outputs;
 using SnapCd.Server.Core.Factories.Vaults;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Mappers.Outputs;

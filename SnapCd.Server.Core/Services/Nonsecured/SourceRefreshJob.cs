@@ -9,9 +9,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 /// <summary>
 /// Hangfire recurring job that periodically refreshes source revisions (resolves git references to commit SHAs).
@@ -24,14 +27,14 @@ public class SourceRefreshJob
     private readonly SnapCdDbContext _dbContext;
     private readonly SourceRefreshSettings _settings;
 
-    private readonly Services.MaintenanceMode.IMaintenanceModeService _maintenanceModeService;
+    private readonly IMaintenanceModeService _maintenanceModeService;
 
     public SourceRefreshJob(
         ILogger<SourceRefreshJob> logger,
         SourceRefreshDispatcher dispatcher,
         SnapCdDbContext dbContext,
         IOptions<SourceRefreshSettings> settings,
-        Services.MaintenanceMode.IMaintenanceModeService maintenanceModeService
+        IMaintenanceModeService maintenanceModeService
     )
     {
         _logger = logger;
@@ -43,7 +46,7 @@ public class SourceRefreshJob
 
     public async Task ExecuteJob()
     {
-        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
+        using var _ = CallerContext.Begin(CallerKind.System);
         if (await _maintenanceModeService.IsActiveAsync())
         {
             _logger.LogInformation("Maintenance mode active: skipping source refresh cycle");

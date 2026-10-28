@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 
-namespace SnapCd.Server.Core.Services.Integrations;
+namespace SnapCd.Server.Core.Services.Nonsecured.Integrations;
 
 /// <summary>
 /// Resolves which integration-event subscriptions fire for a trigger on a module's scope chain, applying

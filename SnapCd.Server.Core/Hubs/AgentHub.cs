@@ -24,7 +24,9 @@ using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.AgentConnectionValidator;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Hubs;
@@ -43,7 +45,7 @@ public class AgentHub : Hub
     private readonly ServerSettings _serverSettings;
     private readonly AgentConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly OpenConnections<AgentHub> _openConnections;
-    private readonly Services.AgentConnectionValidator.AgentConnectionValidator _connectionValidator;
+    private readonly AgentConnectionValidator _connectionValidator;
     private readonly ILicenseInfoProvider _licenseInfoProvider;
     private readonly ModuleJobMissionRunMilestoneRepositoryFactory _milestoneRepositoryFactory;
     private readonly ModuleJobMissionRunRepositoryFactory _runRepositoryFactory;
@@ -55,7 +57,7 @@ public class AgentHub : Hub
         OpenConnections<AgentHub> openConnections,
         IOptions<ServerSettings> serverSettings,
         AgentConnectionRepositoryFactory connectionRepositoryFactory,
-        Services.AgentConnectionValidator.AgentConnectionValidator connectionValidator,
+        AgentConnectionValidator connectionValidator,
         ILicenseInfoProvider licenseInfoProvider,
         ModuleJobMissionRunMilestoneRepositoryFactory milestoneRepositoryFactory,
         ModuleJobMissionRunRepositoryFactory runRepositoryFactory)

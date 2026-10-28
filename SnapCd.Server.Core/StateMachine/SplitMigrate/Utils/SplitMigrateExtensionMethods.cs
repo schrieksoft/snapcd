@@ -10,15 +10,13 @@
 using MassTransit;
 using MassTransit.Contracts;
 using SnapCd.Contracts;
-using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 
-namespace SnapCd.Server.Core.StateMachine.SplitMigrate;
+namespace SnapCd.Server.Core.StateMachine.SplitMigrate.Utils;
 
 /// <summary>
 /// Terminal transitions for a split job. Parallel to JobExtensionMethods rather than shared,

@@ -9,14 +9,13 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Jobs.Base;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
-
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.Events.Jobs.Module;
+
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -134,13 +133,12 @@ public partial class JobStateMachine<
         // Handle waiting state when runner is disconnected
         During(waitingState,
             // Execute self-healing checks when entering this state
-            When(waitingState.Enter)
-                .Activity(x => x.OfType<CheckRunnerConnectionActivity<TSaga, TCompleted>>()),
-            When(RunnerReconnectedEvent)
-                .Then(context =>
+            ContainerActivityExtensions
+                .Activity<TSaga>(When(waitingState.Enter), x => x.OfType<CheckRunnerConnectionActivity<TSaga, TCompleted>>()),
+            ThenExtensions
+                .Then<TSaga, RunnerReconnectedEvent>(When(RunnerReconnectedEvent), context =>
                 {
-                    _logger.LogInformation(
-                        "{StepName}: Runner reconnected for job {CorrelationId}, retrying send",
+                    LoggerExtensions.LogInformation(_logger, "{StepName}: Runner reconnected for job {CorrelationId}, retrying send",
                         typeof(TCompleted).Name.Replace("Completed", ""), context.Saga.CorrelationId);
                 })
                 // Retry sending TNextEvent
@@ -151,8 +149,7 @@ public partial class JobStateMachine<
                     whenTrue => whenTrue
                         .Then(context =>
                         {
-                            _logger.LogWarning(
-                                "{StepName}: Runner disconnected again for job {CorrelationId}, staying in waiting state",
+                            LoggerExtensions.LogWarning(_logger, "{StepName}: Runner disconnected again for job {CorrelationId}, staying in waiting state",
                                 typeof(TCompleted).Name.Replace("Completed", ""), context.Saga.CorrelationId);
                         }),
                     // Successfully sent - transition to pending
@@ -160,16 +157,15 @@ public partial class JobStateMachine<
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = null;
-                            _logger.LogDebug(
-                                "{StepName}: Successfully sent for job {CorrelationId}, transitioning to pending",
+                            LoggerExtensions.LogDebug(_logger, "{StepName}: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 typeof(TCompleted).Name.Replace("Completed", ""), context.Saga.CorrelationId);
                         })
                         .Schedule(HeartbeatScheduled,
                             context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
                         .TransitionTo(nextState)
                 ),
-            When(CancelModuleRequested)
-                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested, TCancelKillRequested, TDummyCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+            JobExtensionMethods
+                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested, TCancelKillRequested, TDummyCancelKillCompleted>(When(CancelModuleRequested), _logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
@@ -177,9 +173,9 @@ public partial class JobStateMachine<
         );
 
         During(duringState,
-            When(completedEvent)
+            ContainerActivityExtensions
                 // Use SendToRunnerActivity to target specific server instance
-                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, TCompleted, TNextEvent>>())
+                .Activity<TSaga, TCompleted>(When(completedEvent), x => x.OfType<SendToRunnerActivity<TSaga, TCompleted, TNextEvent>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
                     // Runner is disconnected - transition to waiting state
@@ -187,8 +183,7 @@ public partial class JobStateMachine<
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = DateTime.UtcNow;
-                            _logger.LogWarning(
-                                "{StepName}: Runner disconnected for job {CorrelationId}, entering waiting state",
+                            LoggerExtensions.LogWarning(_logger, "{StepName}: Runner disconnected for job {CorrelationId}, entering waiting state",
                                 typeof(TCompleted).Name.Replace("Completed", ""), context.Saga.CorrelationId);
                         })
                         .TransitionTo(nextWaitingState),
@@ -198,19 +193,19 @@ public partial class JobStateMachine<
                             context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
                         .TransitionTo(nextState)
                 ),
-            When(HeartbeatScheduled.Received)
-                .ThenHeartbeatScheduled(HeartbeatRequested),
-            When(HeartbeatRequested.Completed)
-                .ThenHeartbeatCompleted(HeartbeatScheduled),
-            When(HeartbeatRequested.Completed2)
-                .ThenJobTimedOut<TSaga, TResponseFailed>(Failed),
-            When(CancelModuleRequested)
-                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested, TCancelKillRequested, TDummyCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+            JobExtensionMethods
+                .ThenHeartbeatScheduled<TSaga, ModuleJobHeartbeatRequested>(When(HeartbeatScheduled.Received), HeartbeatRequested),
+            JobExtensionMethods
+                .ThenHeartbeatCompleted<TSaga>(When(HeartbeatRequested.Completed), HeartbeatScheduled),
+            JobExtensionMethods
+                .ThenJobTimedOut<TSaga, TResponseFailed>(When(HeartbeatRequested.Completed2), Failed),
+            JobExtensionMethods
+                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested, TCancelKillRequested, TDummyCancelKillCompleted>(When(CancelModuleRequested), _logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
-            When(cancelledEvent)
-                .ThenCancelled<TSaga, TResponseCancelled, TCancelled>(Cancelled),
-            When(faultedEvent)
-                .ThenFaulted<TSaga, TResponseFailed, TFaulted>(Failed, _logger),
+            JobExtensionMethods
+                .ThenCancelled<TSaga, TResponseCancelled, TCancelled>(When(cancelledEvent), Cancelled),
+            JobExtensionMethods
+                .ThenFaulted<TSaga, TResponseFailed, TFaulted>(When(faultedEvent), Failed, _logger),
             Ignore(RunnerReconnectedEvent)
         );
     }

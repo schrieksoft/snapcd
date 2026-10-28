@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Licensing;
 using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
-using SnapCd.Server.Core.Services.Vaults;
+using SnapCd.Server.Core.Services.Interfaces.Vaults;
 
 namespace SnapCd.Server.Core.Factories.Vaults;
 

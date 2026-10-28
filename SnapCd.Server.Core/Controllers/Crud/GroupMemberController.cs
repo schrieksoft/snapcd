@@ -14,7 +14,7 @@ using SnapCd.Contracts.Dto.GroupMembers.Base;
 using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.Crud;
+using SnapCd.Server.Core.Services.Secured.Crud;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 

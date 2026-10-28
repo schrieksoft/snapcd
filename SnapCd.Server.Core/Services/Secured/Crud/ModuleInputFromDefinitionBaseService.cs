@@ -12,7 +12,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 
-namespace SnapCd.Server.Core.Services.Crud;
+namespace SnapCd.Server.Core.Services.Secured.Crud;
 
 public class ModuleInputFromDefinitionBaseService
 {

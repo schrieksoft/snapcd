@@ -9,7 +9,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Utils;
 
 public static class ChecksumHelper
 {

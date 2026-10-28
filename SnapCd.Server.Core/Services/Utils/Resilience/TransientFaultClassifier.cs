@@ -7,8 +7,9 @@
 // for terms covering either use.
 
 using Microsoft.Data.SqlClient;
+using SnapCd.Server.Core.Services.Interfaces.Resilience;
 
-namespace SnapCd.Server.Core.Services.Resilience;
+namespace SnapCd.Server.Core.Services.Utils.Resilience;
 
 public class TransientFaultClassifier : ITransientFaultClassifier
 {

@@ -9,7 +9,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
-using SnapCd.Server.Core.Services.OrganizationContext;
+using SnapCd.Server.Core.Services.Utils.OrganizationContext;
 
 namespace SnapCd.Server.Core.Startup;
 

@@ -22,9 +22,7 @@ using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.Crud.StateMigrations;
-using SnapCd.Server.Core.Services.Crud.Transfers;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.StateMigrations;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 

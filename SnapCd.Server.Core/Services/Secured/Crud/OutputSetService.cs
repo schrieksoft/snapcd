@@ -10,7 +10,6 @@ using System.Collections.Concurrent;
 using MassTransit;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts.Dto.OutputSets;
-using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Dtos;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Outputs;
@@ -20,13 +19,12 @@ using SnapCd.Server.Core.Mappers.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
-using SnapCd.Server.Core.Services.Crud.Generic;
-using SnapCd.Server.Core.Services.Outputs;
+using SnapCd.Server.Core.Services.Secured.Crud.Generic;
+using SnapCd.Server.Core.Services.Utils.Outputs;
 using SnapCd.Server.Core.Settings.Repositories;
-using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 
-namespace SnapCd.Server.Core.Services.Crud;
+namespace SnapCd.Server.Core.Services.Secured.Crud;
 
 public class
     OutputSetService : GenericCrudService<OutputSet, OutputSetMetadata, OutputSetCreateDto, OutputSetUpdateDto, OutputSetReadDto, OutputSetMetadataReadDto, OutputSetSecuredRepository, OutputSetRepository, OutputSetCreatedEvent, OutputSetUpdatedEvent, OutputSetDeletedEvent,

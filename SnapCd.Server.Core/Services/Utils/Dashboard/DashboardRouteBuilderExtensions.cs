@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Server.Core.Services.Dashboard;
+namespace SnapCd.Server.Core.Services.Utils.Dashboard;
 
 public static class DashboardRouteBuilderExtensions
 {

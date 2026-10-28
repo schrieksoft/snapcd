@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Startup;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Utils;
 
 public sealed record RoleCapabilityOperation(
     string Method,

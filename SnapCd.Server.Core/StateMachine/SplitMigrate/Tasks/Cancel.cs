@@ -8,19 +8,17 @@
 
 
 using MassTransit;
-using Microsoft.Extensions.Logging;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
-using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Contracts;
-using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Events.Steps.SplitMigrate;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Events.Steps.SplitMigrate;
-using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Server.Core.StateMachine.SplitMigrate.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMigrate;
 
@@ -59,14 +57,14 @@ public partial class SplitMigrateStateMachine
         During(CancellingImmediateKill,
             [
                 .. CancelHandlers(),
-                When(CancelStateMigrationJobRequested, TimeoutIsOverdue).ThenSplitCancelForced(_logger, Cancelled),
+                SplitMigrateExtensionMethods.ThenSplitCancelForced(When(CancelStateMigrationJobRequested, TimeoutIsOverdue), _logger, Cancelled),
                 Ignore(CancelStateMigrationJobRequested),
-                When(CancelKillRequested.TimeoutExpired).ThenSplitCancelTimedOut(_logger, Cancelled)
+                SplitMigrateExtensionMethods.ThenSplitCancelTimedOut<SplitCancelKillRequested>(When(CancelKillRequested.TimeoutExpired), _logger, Cancelled)
             ]);
         During(CancellingAfterCurrent,
             [
                 .. CancelHandlers(),
-                When(CancelStateMigrationJobRequested, TimeoutIsOverdue).ThenSplitCancelForced(_logger, Cancelled),
+                SplitMigrateExtensionMethods.ThenSplitCancelForced(When(CancelStateMigrationJobRequested, TimeoutIsOverdue), _logger, Cancelled),
                 Ignore(CancelStateMigrationJobRequested)
             ]);
 
@@ -97,7 +95,7 @@ public partial class SplitMigrateStateMachine
         var repository = serviceProvider.GetRequiredService<StateMigrationJobRepository>();
         var publishEndpoint = serviceProvider.GetRequiredService<IPublishEndpoint>();
 
-        _logger.LogWarning("Saga missing for {EventType} on manual job {JobId}, finalizing directly", eventName, jobId);
+        LoggerExtensions.LogWarning(_logger, "Saga missing for {EventType} on manual job {JobId}, finalizing directly", eventName, jobId);
 
         // Published, so this reaches every saga: an id belonging to an ordinary job is not ours to
         // finalize. The repository throws rather than returning null.
@@ -124,43 +122,43 @@ public partial class SplitMigrateStateMachine
 
     private EventActivities<SplitMigrateSaga>[] CancelHandlers() =>
     [
-        When(SelectRunnerInstanceCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitGetModuleCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitInitCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitValidateCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitPlanCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitPlanEmptyVerifyCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitRefactorValidateCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitRefactorDiffCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitMigrateMapCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitMigrateProveCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitMigrateRunCompleted).ThenSplitCancelled(Cancelled),
-        When(SplitMigrateVerifyCompleted).ThenSplitCancelled(Cancelled),
-        When(CancelKillCompleted).ThenSplitCancelled(Cancelled),
-        When(SelectRunnerInstanceFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SelectRunnerInstanceCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitGetModuleFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitGetModuleCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitInitFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitInitCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitValidateFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitValidateCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitPlanFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitPlanCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitPlanEmptyVerifyFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitPlanEmptyVerifyCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitRefactorValidateFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitRefactorValidateCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitRefactorDiffFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitRefactorDiffCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitMigrateMapFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitMigrateMapCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitMigrateProveFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitMigrateProveCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitMigrateRunFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitMigrateRunCancelled).ThenSplitCancelled(Cancelled),
-        When(SplitMigrateVerifyFaulted).ThenSplitCancelledAfterFault(Cancelled),
-        When(SplitMigrateVerifyCancelled).ThenSplitCancelled(Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SelectRunnerInstanceCompleted>(When(SelectRunnerInstanceCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitGetModuleCompleted>(When(SplitGetModuleCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitInitCompleted>(When(SplitInitCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitValidateCompleted>(When(SplitValidateCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitPlanCompleted>(When(SplitPlanCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitPlanEmptyVerifyCompleted>(When(SplitPlanEmptyVerifyCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitRefactorValidateCompleted>(When(SplitRefactorValidateCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitRefactorDiffCompleted>(When(SplitRefactorDiffCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitMigrateMapCompleted>(When(SplitMigrateMapCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitMigrateProveCompleted>(When(SplitMigrateProveCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitMigrateRunCompleted>(When(SplitMigrateRunCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitMigrateVerifyCompleted>(When(SplitMigrateVerifyCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitCancelKillCompleted>(When(CancelKillCompleted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SelectRunnerInstanceFaulted>(When(SelectRunnerInstanceFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SelectRunnerInstanceCancelled>(When(SelectRunnerInstanceCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitGetModuleFaulted>(When(SplitGetModuleFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitGetModuleCancelled>(When(SplitGetModuleCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitInitFaulted>(When(SplitInitFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitInitCancelled>(When(SplitInitCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitValidateFaulted>(When(SplitValidateFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitValidateCancelled>(When(SplitValidateCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitPlanFaulted>(When(SplitPlanFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitPlanCancelled>(When(SplitPlanCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitPlanEmptyVerifyFaulted>(When(SplitPlanEmptyVerifyFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitPlanEmptyVerifyCancelled>(When(SplitPlanEmptyVerifyCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitRefactorValidateFaulted>(When(SplitRefactorValidateFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitRefactorValidateCancelled>(When(SplitRefactorValidateCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitRefactorDiffFaulted>(When(SplitRefactorDiffFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitRefactorDiffCancelled>(When(SplitRefactorDiffCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitMigrateMapFaulted>(When(SplitMigrateMapFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitMigrateMapCancelled>(When(SplitMigrateMapCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitMigrateProveFaulted>(When(SplitMigrateProveFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitMigrateProveCancelled>(When(SplitMigrateProveCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitMigrateRunFaulted>(When(SplitMigrateRunFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitMigrateRunCancelled>(When(SplitMigrateRunCancelled), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelledAfterFault<SplitMigrateVerifyFaulted>(When(SplitMigrateVerifyFaulted), Cancelled),
+        SplitMigrateExtensionMethods.ThenSplitCancelled<SplitMigrateVerifyCancelled>(When(SplitMigrateVerifyCancelled), Cancelled),
         Ignore(RunnerReconnectedEvent),
         Ignore(HeartbeatScheduled.Received),
         Ignore(HeartbeatRequested.Completed),

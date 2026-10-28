@@ -19,7 +19,9 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
@@ -104,7 +106,7 @@ public class StuckJobDetectionTests : IAsyncLifetime
         services.AddDistributedMemoryCache();
         services.AddDbContextFactory<SnapCdDbContext>(o => o.UseSqlServer(_fixture.ConnectionString));
         services.AddScoped<SnapCdDbContext>(sp => sp.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext());
-        services.AddSingleton<SnapCd.Server.Core.Services.MaintenanceMode.IMaintenanceModeService, SnapCd.Server.Core.Services.MaintenanceMode.MaintenanceModeService>();
+        services.AddSingleton<IMaintenanceModeService, MaintenanceModeService>();
         services.AddMassTransitTestHarness(x =>
         {
             x.AddSagaStateMachine<ApplyMachine, ApplyJobSaga>()

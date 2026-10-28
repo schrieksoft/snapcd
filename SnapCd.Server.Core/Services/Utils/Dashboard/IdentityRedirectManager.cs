@@ -9,7 +9,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 
-namespace SnapCd.Server.Core.Services.Dashboard;
+namespace SnapCd.Server.Core.Services.Utils.Dashboard;
 
 public class IdentityRedirectManager(NavigationManager navigationManager)
 {

@@ -8,7 +8,8 @@
 
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
-@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider
+@using NameValidator = SnapCd.Server.Core.Services.Utils.NameValidator
 <EditForm Model="Stack" OnValidSubmit="SaveStack">
     <DataAnnotationsValidator/>
 <MudForm ReadOnly="@(!_canSave)">

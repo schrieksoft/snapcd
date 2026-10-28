@@ -10,10 +10,9 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 
-namespace SnapCd.Server.Core.Services.MaintenanceMode;
+namespace SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 
 public interface IMaintenanceModeService
 {

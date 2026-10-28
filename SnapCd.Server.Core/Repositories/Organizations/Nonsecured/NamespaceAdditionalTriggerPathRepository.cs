@@ -15,11 +15,12 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Misc.Utils;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
-using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using System.Linq.Expressions;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 

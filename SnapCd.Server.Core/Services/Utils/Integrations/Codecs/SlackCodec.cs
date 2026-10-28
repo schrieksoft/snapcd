@@ -10,9 +10,10 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using SnapCd.Contracts;
-using SnapCd.Server.Core.Services.Integrations.Connections;
+using SnapCd.Server.Core.Services.Interfaces.Integrations.Codecs;
+using SnapCd.Server.Core.Services.Interfaces.Integrations.Connections;
 
-namespace SnapCd.Server.Core.Services.Integrations.Codecs;
+namespace SnapCd.Server.Core.Services.Utils.Integrations.Codecs;
 
 public sealed class SlackCodec : IIntegrationCodec
 {

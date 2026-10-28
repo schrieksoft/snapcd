@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Missions;
-using SnapCd.Server.Core.Services.Ai.Missions;
+using SnapCd.Server.Core.Services.Nonsecured.Ai.Missions;
 
 namespace SnapCd.Server.Core.Consumers.Missions;
 

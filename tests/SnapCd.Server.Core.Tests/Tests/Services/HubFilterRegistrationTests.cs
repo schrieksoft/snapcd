@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Hubs.Filters;
-using SnapCd.Server.Core.Services.CallerContext;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
 using SnapCd.Server.Core.Startup;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;

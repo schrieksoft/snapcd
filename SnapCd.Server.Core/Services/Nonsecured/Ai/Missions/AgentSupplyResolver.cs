@@ -9,7 +9,7 @@
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 
-namespace SnapCd.Server.Core.Services.Ai.Missions;
+namespace SnapCd.Server.Core.Services.Nonsecured.Ai.Missions;
 
 /// <summary>
 /// Mirrors <c>ServicePrincipalRepository.CanRunModule()</c> shape for Agent supply checks.

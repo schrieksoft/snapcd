@@ -8,7 +8,7 @@
 
 using System.Collections.Concurrent;
 
-namespace SnapCd.Server.Core.Services.Notification;
+namespace SnapCd.Server.Core.Services.Utils.Notification;
 
 /// <summary>
 /// In-process pub/sub for mission-run status changes, keyed by <c>ModuleJobId</c>. The fanout consumer

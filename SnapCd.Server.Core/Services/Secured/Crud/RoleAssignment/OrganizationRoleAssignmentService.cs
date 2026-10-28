@@ -13,9 +13,9 @@ using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base;
 using SnapCd.Server.Core.Mappers.RoleAssignments.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.Base;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
-namespace SnapCd.Server.Core.Services.Crud.RoleAssignment;
+namespace SnapCd.Server.Core.Services.Secured.Crud.RoleAssignment;
 
 public class OrganizationRoleAssignmentServiceFactory(
     OrganizationRoleAssignmentSecuredRepositoryFactory organizationRoleAssignmentSecuredRepositoryFactory,

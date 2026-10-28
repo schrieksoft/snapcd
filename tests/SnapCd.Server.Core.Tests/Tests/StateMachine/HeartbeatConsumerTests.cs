@@ -17,6 +17,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 

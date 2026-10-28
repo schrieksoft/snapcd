@@ -7,17 +7,16 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR;
-using SnapCd.Contracts.Constants;
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Contracts.Constants;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 /// <summary>
 /// Provides authorization validation for runner SignalR hub method calls.

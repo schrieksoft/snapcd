@@ -10,7 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Utils;
 
 /// <summary>
 /// Pure functions for path-scoped triggering: which repo-root-relative directories a Module watches, and the

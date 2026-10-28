@@ -17,14 +17,13 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
-using SnapCd.Server.Core.Services.Crud.Generic;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Secured.Crud.Generic;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.Repositories;
-using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 
-namespace SnapCd.Server.Core.Services.Crud.Secrets;
+namespace SnapCd.Server.Core.Services.Secured.Crud.Secrets;
 
 public class SecretServiceFactory
 {

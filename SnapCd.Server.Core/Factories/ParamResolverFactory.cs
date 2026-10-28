@@ -11,7 +11,7 @@ using SnapCd.Contracts.Dto.ModuleInputs;
 using SnapCd.Contracts.Dto.NamespaceInputs;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.ParamResolver;
+using SnapCd.Server.Core.Services.Nonsecured.ParamResolver;
 
 namespace SnapCd.Server.Core.Factories;
 

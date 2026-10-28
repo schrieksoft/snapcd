@@ -11,7 +11,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas.Base;
-using SnapCd.Server.Core.Services.MaintenanceMode;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 

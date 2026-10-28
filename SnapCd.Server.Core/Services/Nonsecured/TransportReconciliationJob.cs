@@ -6,20 +6,21 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.Text.Json;
 using MassTransit;
-using SnapCd.Contracts;
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Events.Steps;
-using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.Missions;
+using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
-using System.Text.Json;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 /// <summary>
 /// Re-derives transport-resident timers from database state. Scheduled messages live in the
@@ -56,7 +57,7 @@ public class TransportReconciliationJob
 
     public async Task ExecuteJob()
     {
-        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
+        using var _ = CallerContext.Begin(CallerKind.System);
         var dbContext = _dbContext;
 
         var heartbeats = await RearmHeartbeats(dbContext);

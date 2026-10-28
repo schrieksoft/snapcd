@@ -20,9 +20,9 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Licensing.Protocol;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
 namespace SnapCd.Server.Host.Licensing.Services;
 

@@ -9,11 +9,10 @@
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.RoleAssignments;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
-using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Integration.Base;
 using SnapCd.Server.Core.Mappers.RoleAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments;
 
-namespace SnapCd.Server.Core.Services.Crud.RoleAssignment;
+namespace SnapCd.Server.Core.Services.Secured.Crud.RoleAssignment;
 
 /// <summary>
 /// Manages integration role assignments. Get/List/Delete go through the base (org-IAM gated) secured repo;

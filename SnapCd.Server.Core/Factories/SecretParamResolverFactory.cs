@@ -9,7 +9,7 @@
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Factories.Vaults;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
-using SnapCd.Server.Core.Services.ParamResolver.Helpers;
+using SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Factories;

@@ -16,8 +16,8 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.System;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.Admin;
-using SnapCd.Server.Core.Services.Email;
+using SnapCd.Server.Core.Services.Interfaces.Admin;
+using SnapCd.Server.Core.Services.Interfaces.Email;
 
 namespace SnapCd.Server.Host.Services;
 

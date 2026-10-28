@@ -11,8 +11,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Services.Utils.Logs;
 
-namespace SnapCd.Server.Core.Services.Logs;
+namespace SnapCd.Server.Core.Services.Nonsecured.Logs;
 
 public static class LogChunkCodec
 {

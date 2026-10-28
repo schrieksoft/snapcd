@@ -24,7 +24,7 @@ public static class NamespaceMissionControllerMcpSurface
 
 Fires for events on modules within the targeted Namespace.")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.NamespaceMissionReadDto> NamespaceMissionsCreate(
-        SnapCd.Server.Core.Services.Crud.NamespaceMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The NamespaceMission to create")] SnapCd.Contracts.Dto.Missions.NamespaceMissionCreateDto dto)
         => service.Create(dto, organizationId);
@@ -32,7 +32,7 @@ Fires for events on modules within the targeted Namespace.")]
     [McpServerTool(Name = "namespace_missions_list_by_agent")]
     [Description(@"List NamespaceMissions assigned to a specific Agent")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.NamespaceMissionReadDto>> NamespaceMissionsListByAgent(
-        SnapCd.Server.Core.Services.Crud.NamespaceMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Agent ID")] System.Guid agentId)
         => service.ListByAgent(agentId, organizationId);
@@ -40,7 +40,7 @@ Fires for events on modules within the targeted Namespace.")]
     [McpServerTool(Name = "namespace_missions_list_by_namespace")]
     [Description(@"List NamespaceMissions targeting a specific Namespace")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.NamespaceMissionReadDto>> NamespaceMissionsListByNamespace(
-        SnapCd.Server.Core.Services.Crud.NamespaceMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Namespace ID")] System.Guid namespaceId)
         => service.ListByNamespace(namespaceId, organizationId);
@@ -48,14 +48,14 @@ Fires for events on modules within the targeted Namespace.")]
     [McpServerTool(Name = "namespace_missions_list")]
     [Description(@"List all NamespaceMissions")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.Missions.NamespaceMissionReadDto>> NamespaceMissionsList(
-        SnapCd.Server.Core.Services.Crud.NamespaceMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "namespace_missions_get")]
     [Description(@"Get a single NamespaceMission")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.NamespaceMissionReadDto> NamespaceMissionsGet(
-        SnapCd.Server.Core.Services.Crud.NamespaceMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"NamespaceMission ID")] System.Guid id)
         => service.Get(id, organizationId);
@@ -63,7 +63,7 @@ Fires for events on modules within the targeted Namespace.")]
     [McpServerTool(Name = "namespace_missions_update")]
     [Description(@"Update an existing NamespaceMission")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.Missions.NamespaceMissionReadDto> NamespaceMissionsUpdate(
-        SnapCd.Server.Core.Services.Crud.NamespaceMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new NamespaceMission values")] SnapCd.Contracts.Dto.Missions.NamespaceMissionUpdateDto dto,
         [Description(@"NamespaceMission ID")] System.Guid id)
@@ -72,7 +72,7 @@ Fires for events on modules within the targeted Namespace.")]
     [McpServerTool(Name = "namespace_missions_delete")]
     [Description(@"Delete a NamespaceMission")]
     public static System.Threading.Tasks.Task NamespaceMissionsDelete(
-        SnapCd.Server.Core.Services.Crud.NamespaceMissionService service,
+        SnapCd.Server.Core.Services.Secured.Crud.NamespaceMissionService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"NamespaceMission ID")] System.Guid id)
         => service.Delete(id, organizationId);

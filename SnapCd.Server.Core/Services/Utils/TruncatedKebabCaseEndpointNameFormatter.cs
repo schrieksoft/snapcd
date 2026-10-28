@@ -10,7 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using MassTransit;
 
-namespace SnapCd.Server.Core.Misc.Utils;
+namespace SnapCd.Server.Core.Services.Utils;
 
 /// <summary>
 /// A custom endpoint name formatter that truncates queue names to a specified length.

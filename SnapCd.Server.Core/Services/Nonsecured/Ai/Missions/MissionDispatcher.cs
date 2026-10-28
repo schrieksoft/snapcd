@@ -8,20 +8,20 @@
 
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Missions;
+using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-
-using SnapCd.Server.Core.Hubs;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Settings;
-using Microsoft.Extensions.Options;
 
-namespace SnapCd.Server.Core.Services.Ai.Missions;
+namespace SnapCd.Server.Core.Services.Nonsecured.Ai.Missions;
 
 public enum MissionDispatchOutcome
 {

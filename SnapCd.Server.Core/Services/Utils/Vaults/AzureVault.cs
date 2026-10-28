@@ -8,8 +8,9 @@
 
 using Azure;
 using Azure.Security.KeyVault.Secrets;
+using SnapCd.Server.Core.Services.Interfaces.Vaults;
 
-namespace SnapCd.Server.Core.Services.Vaults;
+namespace SnapCd.Server.Core.Services.Utils.Vaults;
 
 public class AzureVault : IVault
 {

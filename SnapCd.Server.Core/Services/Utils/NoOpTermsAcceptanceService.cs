@@ -7,8 +7,9 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Services.Interfaces;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Utils;
 
 public class NoOpTermsAcceptanceService : ITermsAcceptanceService
 {

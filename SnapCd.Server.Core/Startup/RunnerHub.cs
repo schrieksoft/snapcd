@@ -9,7 +9,10 @@
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Server.Core.Hubs.Filters;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.RunnerConnectionValidator;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.RunnerConnectionValidator;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
 
 namespace SnapCd.Server.Core.Startup;
 
@@ -26,12 +29,12 @@ public static class RunnerHubExtensions
 
             // SignalR resolves filters from this list, not from IHubFilter registrations alone.
             options.AddFilter<TokenValidationFilter>();
-            options.AddFilter<Services.CallerContext.CallerContextHubFilter>();
+            options.AddFilter<CallerContextHubFilter>();
 
 
         });
         services.AddSingleton<IHubFilter, TokenValidationFilter>();
-        services.AddSingleton<IHubFilter, Services.CallerContext.CallerContextHubFilter>();
+        services.AddSingleton<IHubFilter, CallerContextHubFilter>();
         services.AddScoped<RunnerConnectionValidator>();
         services.AddSingleton<OpenConnections<Hubs.RunnerHub>>();
         services.AddSingleton<OpenConnections<Hubs.AgentHub>>();

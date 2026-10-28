@@ -8,7 +8,7 @@
 
 using SnapCd.Server.Core.Misc.Exceptions;
 
-namespace SnapCd.Server.Core.Misc.Utils;
+namespace SnapCd.Server.Core.Services.Utils;
 
 /// <summary>
 /// Validates Additional Trigger Path values: normalized repo-root-relative directories that can never escape the

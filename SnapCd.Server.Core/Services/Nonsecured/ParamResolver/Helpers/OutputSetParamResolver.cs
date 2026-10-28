@@ -17,7 +17,7 @@ using SnapCd.Server.Core.Mappers.Outputs;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
 
-namespace SnapCd.Server.Core.Services.ParamResolver.Helpers;
+namespace SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 
 /// <summary>
 /// Resolves inputs from OutputSets. This is only used for Params (not EnvVars)

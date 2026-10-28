@@ -9,7 +9,7 @@
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ActionConstraints;
 
-namespace SnapCd.Server.Core.Misc.Utils.Helpers;
+namespace SnapCd.Server.Core.Services.Utils.Helpers;
 
 public sealed class FormValueRequiredAttribute : ActionMethodSelectorAttribute
 {

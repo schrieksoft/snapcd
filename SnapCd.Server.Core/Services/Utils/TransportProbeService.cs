@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Utils;
 
 public record QueueDepth(string Queue, long Active, long Scheduled, long Error, long DeadLetter);
 

@@ -9,8 +9,9 @@
 using MassTransit;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 public class OrphanedJobCleanupJob
 {
@@ -59,7 +60,7 @@ public class OrphanedJobCleanupJob
 
     public async Task ExecuteJob()
     {
-        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
+        using var _ = CallerContext.Begin(CallerKind.System);
         try
         {
             var orphanedJobs = await _cleanupService.ListOrphanedJobs();

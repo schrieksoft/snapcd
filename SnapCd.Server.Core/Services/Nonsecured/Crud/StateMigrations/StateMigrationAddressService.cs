@@ -7,13 +7,12 @@
 // for terms covering either use.
 
 
-using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 
-namespace SnapCd.Server.Core.Services.Crud.StateMigrations;
+namespace SnapCd.Server.Core.Services.Nonsecured.Crud.StateMigrations;
 
 /// <summary>
 /// The per-address record of what a job did. Every job that moves or observes state writes these,

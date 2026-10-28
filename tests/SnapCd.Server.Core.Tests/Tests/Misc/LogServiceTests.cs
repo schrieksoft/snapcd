@@ -16,7 +16,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.Logs;
+using SnapCd.Server.Core.Services.Nonsecured.Logs;
 using SnapCd.Server.Core.Tests.Infrastructure;
 
 namespace SnapCd.Server.Core.Tests.Tests.Misc;

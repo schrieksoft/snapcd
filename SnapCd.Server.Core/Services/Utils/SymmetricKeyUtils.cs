@@ -8,7 +8,7 @@
 
 using System.Text.RegularExpressions;
 
-namespace SnapCd.Server.Core.Misc.Utils;
+namespace SnapCd.Server.Core.Services.Utils;
 
 public static class SymmetricKeyUtils
 {

@@ -12,7 +12,7 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.System;
 
-namespace SnapCd.Server.Core.Services.ModuleHold;
+namespace SnapCd.Server.Core.Services.Nonsecured.ModuleHold;
 
 /// <summary>Parks a held module's queued work and keeps one hold check scheduled for it until the hold lapses.</summary>
 public class ModuleHoldGate

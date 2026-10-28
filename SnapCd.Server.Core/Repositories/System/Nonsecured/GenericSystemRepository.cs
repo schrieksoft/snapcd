@@ -16,9 +16,9 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Repository.System.Base;
 using SnapCd.Server.Core.Mappers.Repositories;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Interfaces;
 using System.Linq.Expressions;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 

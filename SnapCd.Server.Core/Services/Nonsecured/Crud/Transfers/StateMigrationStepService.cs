@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Helpers;
 
-namespace SnapCd.Server.Core.Services.Crud.Transfers;
+namespace SnapCd.Server.Core.Services.Nonsecured.Crud.Transfers;
 
 /// <summary>How a stage stands once every participant has been accounted for.</summary>
 public enum StageOutcome

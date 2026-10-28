@@ -6,7 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-namespace SnapCd.Server.Core.Services.QuotaUsage;
+using SnapCd.Server.Core.Services.Interfaces.QuotaUsage;
+
+namespace SnapCd.Server.Core.Services.Utils.QuotaUsage;
 
 public class NoOpQuotaUsageForInvitationService : IQuotaUsageForInvitationService
 {

@@ -8,14 +8,13 @@
 
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Dtos;
+using SnapCd.Server.Core.Dtos.OrganizationUsers;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
-using SnapCd.Server.Core.Dtos.OrganizationUsers;
-
-namespace SnapCd.Server.Core.Services.Crud;
+namespace SnapCd.Server.Core.Services.Secured.Crud;
 
 public class OrganizationUserServiceFactory(
     OrganizationUserSecuredRepositoryFactory organizationUserSecuredRepositoryFactory)

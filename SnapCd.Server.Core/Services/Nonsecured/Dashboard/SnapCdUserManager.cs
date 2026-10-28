@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Server.Core.Services.Dashboard;
+namespace SnapCd.Server.Core.Services.Nonsecured.Dashboard;
 
 public class SnapCdUserManager : UserManager<User>
 {

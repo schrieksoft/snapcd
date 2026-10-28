@@ -11,9 +11,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 public class InvitationCleanupJob
 {
@@ -36,7 +37,7 @@ public class InvitationCleanupJob
 
     public async Task ExecuteJob()
     {
-        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
+        using var _ = CallerContext.Begin(CallerKind.System);
         if (!_settings.Value.AutoDeleteIncompleteUsers)
         {
             _logger.LogDebug("Auto-delete is disabled, skipping cleanup");

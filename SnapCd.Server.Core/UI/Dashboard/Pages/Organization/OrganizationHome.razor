@@ -17,9 +17,10 @@
 @using SnapCd.Server.Core.Repositories.Custom.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Nonsecured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
-@using SnapCd.Server.Core.Services.Notification
-@using SnapCd.Server.Core.Services.OrganizationContext
-@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
+@using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
+@using SnapCd.Server.Core.Services.Utils.Notification
+@using SnapCd.Server.Core.Services.Utils.PrincipalProvider
 
 @attribute [Authorize]
 @attribute [OrganizationScopedFeature]

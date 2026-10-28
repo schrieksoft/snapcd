@@ -11,12 +11,12 @@ using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Settings;
 
-using SnapCd.Server.Core.Hubs;
-
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 /// <summary>
 /// Thrown when a Runner has registered connections but none can be dispatched to from

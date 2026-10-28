@@ -9,7 +9,7 @@
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Outputs;
 
-namespace SnapCd.Server.Core.Services.Outputs;
+namespace SnapCd.Server.Core.Services.Utils.Outputs;
 
 /// <summary>
 /// Detects changes between OutputSets by comparing individual outputs.

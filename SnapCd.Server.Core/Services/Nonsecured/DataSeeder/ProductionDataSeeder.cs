@@ -21,12 +21,13 @@ using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Factories.Vaults;
-using SnapCd.Server.Core.Misc.Utils;
+using SnapCd.Server.Core.Services.Interfaces.DataSeeder;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.DataSeeder;
 using SnapCd.Server.Core.Settings.DataSeeder.ToSeed;
 
-namespace SnapCd.Server.Core.Services.DataSeeder;
+namespace SnapCd.Server.Core.Services.Nonsecured.DataSeeder;
 
 public class ProductionDataSeeder : IDataSeeder
 

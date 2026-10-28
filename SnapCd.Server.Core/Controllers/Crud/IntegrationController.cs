@@ -20,8 +20,8 @@ using SnapCd.Contracts.Mcp;
 using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.Integrations;
-using SnapCd.Server.Core.Services.Integrations.Codecs;
+using SnapCd.Server.Core.Services.Interfaces.Integrations.Codecs;
+using SnapCd.Server.Core.Services.Secured.Integrations;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 

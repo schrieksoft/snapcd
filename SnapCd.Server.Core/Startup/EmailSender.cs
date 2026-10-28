@@ -8,8 +8,10 @@
 
 using Microsoft.AspNetCore.Identity;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.Email;
-using SnapCd.Server.Core.Services.Email.Transport;
+using SnapCd.Server.Core.Services.Interfaces.Email;
+using SnapCd.Server.Core.Services.Interfaces.Email.Transport;
+using SnapCd.Server.Core.Services.Utils.Email;
+using SnapCd.Server.Core.Services.Utils.Email.Transport;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Startup;

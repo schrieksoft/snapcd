@@ -6,12 +6,14 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Services.Utils.Notification;
+
 namespace SnapCd.Server.Core.Events.Missions;
 
 /// <summary>
 /// Published by <c>AgentHub</c> when a <c>ModuleJobMissionRun</c> changes status (started, completed,
 /// faulted, cancelled). Fanned out so each server instance's local
-/// <see cref="Services.Notification.MissionRunModifiedNotificationService"/> can push live updates to
+/// <see cref="MissionRunModifiedNotificationService"/> can push live updates to
 /// subscribed Razor components (e.g. the Missions tab on a ModuleJob).
 /// </summary>
 public class MissionRunModifiedEvent

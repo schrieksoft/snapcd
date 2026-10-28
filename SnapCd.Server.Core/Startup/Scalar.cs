@@ -8,6 +8,7 @@
 
 using Microsoft.OpenApi;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Interfaces;
 
 namespace SnapCd.Server.Core.Startup;
 

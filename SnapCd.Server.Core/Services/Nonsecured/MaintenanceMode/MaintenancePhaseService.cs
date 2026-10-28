@@ -7,11 +7,12 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Contracts;
+using SnapCd.Server.Core.Services.Utils;
 
-namespace SnapCd.Server.Core.Services.MaintenanceMode;
+namespace SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 
 /// <summary>One thing that must be true before the current phase can be left.</summary>
 public record PhaseCriterion(string Name, string Detail, bool IsMet, int? Count = null, IReadOnlyList<PhaseBlocker>? Blockers = null);

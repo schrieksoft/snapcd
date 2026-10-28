@@ -16,9 +16,11 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.Integrations.Codecs;
+using SnapCd.Server.Core.Services.Interfaces.Integrations.Codecs;
+using SnapCd.Server.Core.Services.Nonsecured.Integrations;
+using SnapCd.Server.Core.Services.Utils.Integrations;
 
-namespace SnapCd.Server.Core.Services.Integrations;
+namespace SnapCd.Server.Core.Services.Secured.Integrations;
 
 /// <summary>
 /// CRUD for integrations: the row goes through the non-secured repo (auto audit + CRUD events), while the
@@ -139,7 +141,7 @@ public sealed class IntegrationService(
         };
     }
 
-    public async Task<Codecs.IntegrationTestResult> TestConnection(Guid id, Guid organizationId)
+    public async Task<IntegrationTestResult> TestConnection(Guid id, Guid organizationId)
     {
         using (var secured = securedFactory.Create())
         {
@@ -154,7 +156,7 @@ public sealed class IntegrationService(
         if (type is null) throw new EntityNotFoundException($"Integration '{id}' not found");
 
         var json = await secrets.ReadAsync(organizationId, id);
-        if (json is null) return new Codecs.IntegrationTestResult(false, "Connection secret missing.");
+        if (json is null) return new IntegrationTestResult(false, "Connection secret missing.");
 
         var codec = codecs.Get(type.Value);
         return await codec.TestConnectionAsync(codec.Deserialize(json), default);

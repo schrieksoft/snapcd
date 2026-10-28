@@ -9,12 +9,11 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Enums;
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
 public class ProbeInputsBuilderFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,

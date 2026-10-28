@@ -10,9 +10,10 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Licensing.Services;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 public class QuotaEnforcementService(
     SnapCdDbContext dbContext,

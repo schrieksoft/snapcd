@@ -8,9 +8,10 @@
 
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Services.Interfaces;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Utils;
 
 public class StateEncryptionService : IStateEncryptionService
 {

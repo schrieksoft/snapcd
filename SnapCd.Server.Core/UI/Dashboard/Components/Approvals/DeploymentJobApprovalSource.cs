@@ -12,7 +12,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using ModuleEntity = SnapCd.Server.Core.Entities.Definition.Module;
 using NamespaceEntity = SnapCd.Server.Core.Entities.Definition.Namespace;
 

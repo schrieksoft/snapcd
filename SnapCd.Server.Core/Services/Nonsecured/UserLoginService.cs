@@ -8,9 +8,9 @@
 
 using Microsoft.AspNetCore.Identity;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 public class UserLoginService
 {

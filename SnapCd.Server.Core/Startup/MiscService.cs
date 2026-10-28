@@ -13,17 +13,39 @@ using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Mappers.Outputs;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.Crud.Jobs;
-using SnapCd.Server.Core.Services.Dashboard;
-using SnapCd.Server.Core.Services.DataSeeder;
-using SnapCd.Server.Core.Services.DependencyGraph;
-using SnapCd.Server.Core.Services.Edition;
-using SnapCd.Server.Core.Services.Notification;
-using SnapCd.Server.Core.Services.PrincipalProvider;
-using SnapCd.Server.Core.Services.ResolvedConfiguration;
-using SnapCd.Server.Core.Services.ViewManagement;
+using SnapCd.Server.Core.Services.Interfaces;
+using SnapCd.Server.Core.Services.Interfaces.DataSeeder;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.QuotaUsage;
+using SnapCd.Server.Core.Services.Interfaces.Resilience;
+using SnapCd.Server.Core.Services.Interfaces.ViewManagement;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.AgentConnectionValidator;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Transfers;
+using SnapCd.Server.Core.Services.Nonsecured.Dashboard;
+using SnapCd.Server.Core.Services.Nonsecured.DataSeeder;
+using SnapCd.Server.Core.Services.Nonsecured.DependencyGraph;
+using SnapCd.Server.Core.Services.Nonsecured.Logs;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Nonsecured.ModuleHold;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.ResolvedConfiguration;
+using SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
+using SnapCd.Server.Core.Services.Nonsecured.SecretMigrator;
+using SnapCd.Server.Core.Services.Nonsecured.ViewManagement;
+using SnapCd.Server.Core.Services.Secured;
+using SnapCd.Server.Core.Services.Secured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Secured.Logs;
+using SnapCd.Server.Core.Services.Secured.ModuleHold;
+using SnapCd.Server.Core.Services.Secured.RippleProbes;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Utils.Dashboard;
+using SnapCd.Server.Core.Services.Utils.Notification;
+using SnapCd.Server.Core.Services.Utils.QuotaUsage;
+using SnapCd.Server.Core.Services.Utils.Resilience;
 using SnapCd.Server.Core.Settings;
-using RunnerSelectionService = SnapCd.Server.Core.Services.RunnerSelectionService;
+using RunnerSelectionService = SnapCd.Server.Core.Services.Nonsecured.RunnerSelectionService;
 
 namespace SnapCd.Server.Core.Startup;
 
@@ -37,9 +59,9 @@ public static class MiscService
         // Log redactor — singleton, shared by REST logs endpoint (Phase 4) + MCP
         // redacted-logs Resource (Phase 6). Single chokepoint, identical scrub policy.
         services.AddSingleton<SnapCd.Server.Core.Logging.ILogRedactor, SnapCd.Server.Core.Logging.DefaultLogRedactor>();
-        services.AddSingleton<SnapCd.Server.Core.Services.Resilience.ITransientFaultClassifier, SnapCd.Server.Core.Services.Resilience.TransientFaultClassifier>();
+        services.AddSingleton<ITransientFaultClassifier, TransientFaultClassifier>();
 
-        services.AddScoped<SnapCd.Server.Core.Services.AgentConnectionValidator.AgentConnectionValidator>();
+        services.AddScoped<AgentConnectionValidator>();
 
         services.AddScoped<ResolvedConfigurationService>();
         services.AddScoped<DependencyGraphService>();
@@ -54,9 +76,9 @@ public static class MiscService
         services.AddScoped<JobService>();
         services.AddScoped<SecuredJobService>();
         services.AddScoped<JobOrchestrationService>();
-        services.AddScoped<Services.ModuleHold.ModuleHoldStore>();
-        services.AddScoped<Services.ModuleHold.ModuleHoldService>();
-        services.AddScoped<Services.ModuleHold.ModuleHoldGate>();
+        services.AddScoped<ModuleHoldStore>();
+        services.AddScoped<ModuleHoldService>();
+        services.AddScoped<ModuleHoldGate>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<SourceChangedService>();
 
@@ -95,17 +117,17 @@ public static class MiscService
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddSingleton<IStateEncryptionService, StateEncryptionService>();
-        services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferArtefactService>();
-        services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.StateMigrationStepService>();
+        services.AddScoped<TransferArtefactService>();
+        services.AddScoped<StateMigrationStepService>();
 
 
         // Execution Services
         services.AddScoped<SourceRefreshJob>();
         services.AddScoped<SourceRefreshDispatcher>();
 
-        services.AddScoped<SnapCd.Server.Core.Services.Logs.JobLogWriterFactory>();
-        services.AddScoped(typeof(SnapCd.Server.Core.Services.Logs.JobLogReader<,,>));
-        services.AddScoped<SnapCd.Server.Core.Services.Logs.SecuredLogReaderFactory>();
+        services.AddScoped<JobLogWriterFactory>();
+        services.AddScoped(typeof(JobLogReader<,,>));
+        services.AddScoped<SecuredLogReaderFactory>();
 
         // Other services
         services.AddScoped<IPrincipalProvider, HttpContextPrincipalProvider>();
@@ -123,7 +145,7 @@ public static class MiscService
 
 
         // Secret Migrator
-        services.AddScoped<Services.SecretMigrator.SecretMigratorService>();
+        services.AddScoped<SecretMigratorService>();
 
         services.AddScoped<IQuotaGatingService, QuotaGatingService>();
         services.AddScoped<QuotaService>();
@@ -133,31 +155,31 @@ public static class MiscService
 
         // The probe step's query, inputs document and signal recording. RippleProbeConsumerLookup
         // is the output-to-variable map the inputs document is keyed by.
-        services.AddScoped<Services.RippleProbes.RippleProbeConsumerLookupFactory>();
-        services.AddScoped<Services.RippleProbes.ProbeInputsBuilderFactory>();
-        services.AddScoped<Services.RippleProbes.ProbeReadinessReaderFactory>();
-        services.AddScoped<Services.RippleProbes.ProbeWaveProgressReaderFactory>();
-        services.AddScoped<Services.RippleProbes.ProbeWaveReadServiceFactory>();
-        services.AddScoped<Services.RippleProbes.ProbeRerunServiceFactory>();
-        services.AddScoped<Services.RippleProbes.ProbeWaveStarterFactory>();
-        services.AddScoped<Services.RippleProbes.SignalEdgeResolverFactory>();
-        services.AddScoped<Services.RippleProbes.ProbeSignalRecorderFactory>();
+        services.AddScoped<RippleProbeConsumerLookupFactory>();
+        services.AddScoped<ProbeInputsBuilderFactory>();
+        services.AddScoped<ProbeReadinessReaderFactory>();
+        services.AddScoped<ProbeWaveProgressReaderFactory>();
+        services.AddScoped<ProbeWaveReadServiceFactory>();
+        services.AddScoped<ProbeRerunServiceFactory>();
+        services.AddScoped<ProbeWaveStarterFactory>();
+        services.AddScoped<SignalEdgeResolverFactory>();
+        services.AddScoped<ProbeSignalRecorderFactory>();
         // The services themselves, for anything resolved per scope: an activity, a consumer, the
         // harness. The factories above stay for a page that wants an instance it controls.
-        services.AddScoped<Services.RippleProbes.RippleProbeConsumerLookup>();
-        services.AddScoped<Services.RippleProbes.ProbeReadinessReader>();
-        services.AddScoped<Services.RippleProbes.ProbeInputsBuilder>();
-        services.AddScoped<Services.RippleProbes.ProbeWaveProgressReader>();
-        services.AddScoped<Services.RippleProbes.ProbeWaveReadService>();
-        services.AddScoped<Services.RippleProbes.ProbeRerunService>();
-        services.AddScoped<Services.RippleProbes.ProbeWaveStarter>();
-        services.AddScoped<Services.RippleProbes.SignalEdgeResolver>();
-        services.AddScoped<Services.RippleProbes.ProbeSignalRecorder>();
+        services.AddScoped<RippleProbeConsumerLookup>();
+        services.AddScoped<ProbeReadinessReader>();
+        services.AddScoped<ProbeInputsBuilder>();
+        services.AddScoped<ProbeWaveProgressReader>();
+        services.AddScoped<ProbeWaveReadService>();
+        services.AddScoped<ProbeRerunService>();
+        services.AddScoped<ProbeWaveStarter>();
+        services.AddScoped<SignalEdgeResolver>();
+        services.AddScoped<ProbeSignalRecorder>();
 
-        services.AddScoped<Services.RippleProbes.ISignalSecretReader, Services.RippleProbes.SignalSecretReader>();
-        services.AddScoped<Services.RippleProbes.ISignalSecretWriter, Services.RippleProbes.SignalSecretWriter>();
+        services.AddScoped<ISignalSecretReader, SignalSecretReader>();
+        services.AddScoped<ISignalSecretWriter, SignalSecretWriter>();
         services.AddScoped<TransportReconciliationJob>();
-        services.AddSingleton<Services.MaintenanceMode.IMaintenanceModeService, Services.MaintenanceMode.MaintenanceModeService>();
+        services.AddSingleton<IMaintenanceModeService, MaintenanceModeService>();
         services.AddScoped<QuotaEnforcementService>();
 
         // Register HttpClient for license verification
@@ -183,9 +205,9 @@ public static class MiscService
 
         // No-op quota usage defaults (self-hosted). SaaS calls AddSaaSQuotaUsageServices()
         // which Replace()s these with the real, DB-backed implementations.
-        services.AddScoped<Services.QuotaUsage.IQuotaUsageForInvitationService, Services.QuotaUsage.NoOpQuotaUsageForInvitationService>();
-        services.AddScoped<Services.QuotaUsage.IQuotaUsageForEmailConfirmationService, Services.QuotaUsage.NoOpQuotaUsageForEmailConfirmationService>();
-        services.AddScoped<Services.QuotaUsage.IQuotaUsageForPasswordResetService, Services.QuotaUsage.NoOpQuotaUsageForPasswordResetService>();
+        services.AddScoped<IQuotaUsageForInvitationService, NoOpQuotaUsageForInvitationService>();
+        services.AddScoped<IQuotaUsageForEmailConfirmationService, NoOpQuotaUsageForEmailConfirmationService>();
+        services.AddScoped<IQuotaUsageForPasswordResetService, NoOpQuotaUsageForPasswordResetService>();
         services.AddScoped<IQuotaUsageForInvitationServiceFactory, NoOpQuotaUsageForInvitationServiceFactory>();
         services.AddScoped<IQuotaUsageForEmailConfirmationServiceFactory, NoOpQuotaUsageForEmailConfirmationServiceFactory>();
         services.AddSingleton<IQuotaUsageForPasswordResetServiceFactory, NoOpQuotaUsageForPasswordResetServiceFactory>();

@@ -5,10 +5,11 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
-using SnapCd.Contracts;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 
-namespace SnapCd.Server.Core.Misc.Utils;
+using SnapCd.Contracts;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
+
+namespace SnapCd.Server.Core.Services.Utils;
 
 /// <summary>
 /// Runs one job against an explicit git ref instead of the Module's configured revision. The

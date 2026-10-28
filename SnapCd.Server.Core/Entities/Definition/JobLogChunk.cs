@@ -8,6 +8,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using SnapCd.Server.Core.Services.Utils.Logs;
 
 namespace SnapCd.Server.Core.Entities.Definition;
 
@@ -43,7 +44,7 @@ public abstract class JobLogChunk
 
     public int UncompressedBytes { get; set; }
 
-    /// <summary>Gzipped JSON array of <see cref="SnapCd.Server.Core.Services.Logs.StoredLogLine"/>.</summary>
+    /// <summary>Gzipped JSON array of <see cref="StoredLogLine"/>.</summary>
     public byte[] Payload { get; set; } = null!;
 }
 

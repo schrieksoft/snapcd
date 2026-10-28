@@ -7,8 +7,6 @@
 // for terms covering either use.
 
 using MassTransit;
-using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Services.MaintenanceMode;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
@@ -20,10 +18,14 @@ using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 
-namespace SnapCd.Server.Core.Services.Crud.Jobs;
+namespace SnapCd.Server.Core.Services.Secured.Crud.Jobs;
 
 public class ModuleNamespaceIdTuple
 {

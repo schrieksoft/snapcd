@@ -12,6 +12,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Handlers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.Nonsecured;
 
 namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 

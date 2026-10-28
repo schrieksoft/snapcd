@@ -10,9 +10,10 @@ using Amazon;
 using Amazon.SimpleEmail;
 using Amazon.SimpleEmail.Model;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Services.Interfaces.Email.Transport;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.Email.Transport;
+namespace SnapCd.Server.Core.Services.Utils.Email.Transport;
 
 public class AmazonSesEmailTransport : IEmailTransport
 {

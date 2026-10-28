@@ -8,7 +8,7 @@
 
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace SnapCd.Server.Core.Services.CallerContext;
+namespace SnapCd.Server.Core.Services.Utils.CallerContext;
 
 /// <summary>
 /// Opens a caller scope around every action on the decorated controller.

@@ -8,10 +8,11 @@
 
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.Email.Transport;
+using SnapCd.Server.Core.Services.Interfaces.Email;
+using SnapCd.Server.Core.Services.Interfaces.Email.Transport;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.Email;
+namespace SnapCd.Server.Core.Services.Utils.Email;
 
 /// <summary>
 /// The <see cref="ISnapCdEmailSender"/> implementation. Owns subject strings and body

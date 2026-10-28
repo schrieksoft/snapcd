@@ -9,7 +9,7 @@
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Utils;
 
 public class QuotaService(IQuotaGatingService quotaGatingService)
 {

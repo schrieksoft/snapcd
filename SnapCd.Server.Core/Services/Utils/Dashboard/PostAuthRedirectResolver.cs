@@ -8,7 +8,7 @@
 
 using SnapCd.Server.Core.Factories;
 
-namespace SnapCd.Server.Core.Services.Dashboard;
+namespace SnapCd.Server.Core.Services.Utils.Dashboard;
 
 public sealed class PostAuthRedirectResolver(
     IdentityRedirectManager redirectManager,

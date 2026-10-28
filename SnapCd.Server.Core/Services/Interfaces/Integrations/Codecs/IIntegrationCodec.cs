@@ -8,9 +8,9 @@
 
 using System.Text.Json;
 using SnapCd.Contracts;
-using SnapCd.Server.Core.Services.Integrations.Connections;
+using SnapCd.Server.Core.Services.Interfaces.Integrations.Connections;
 
-namespace SnapCd.Server.Core.Services.Integrations.Codecs;
+namespace SnapCd.Server.Core.Services.Interfaces.Integrations.Codecs;
 
 /// <summary>
 /// Per-<see cref="IntegrationType"/> conversion between the stored blob, the API write payload, and the

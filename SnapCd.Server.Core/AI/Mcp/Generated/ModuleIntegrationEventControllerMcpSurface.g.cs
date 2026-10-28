@@ -22,7 +22,7 @@ public static class ModuleIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "module_integration_events_create")]
     [Description(@"Create a new ModuleIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.ModuleIntegrationEventReadDto> ModuleIntegrationEventsCreate(
-        SnapCd.Server.Core.Services.Crud.ModuleIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The ModuleIntegrationEvent to create")] SnapCd.Contracts.Dto.IntegrationEvents.ModuleIntegrationEventCreateDto dto)
         => service.Create(dto, organizationId);
@@ -30,7 +30,7 @@ public static class ModuleIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "module_integration_events_list_by_integration")]
     [Description(@"List all ModuleIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.ModuleIntegrationEventReadDto>> ModuleIntegrationEventsListByIntegration(
-        SnapCd.Server.Core.Services.Crud.ModuleIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Integration ID")] System.Guid integrationId)
         => service.ListByIntegration(integrationId, organizationId);
@@ -38,7 +38,7 @@ public static class ModuleIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "module_integration_events_list_by_module")]
     [Description(@"List all ModuleIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.ModuleIntegrationEventReadDto>> ModuleIntegrationEventsListByModule(
-        SnapCd.Server.Core.Services.Crud.ModuleIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"Module ID")] System.Guid moduleId)
         => service.ListByModule(moduleId, organizationId);
@@ -46,14 +46,14 @@ public static class ModuleIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "module_integration_events_list")]
     [Description(@"List all ModuleIntegrationEvents")]
     public static System.Threading.Tasks.Task<System.Collections.Generic.List<SnapCd.Contracts.Dto.IntegrationEvents.ModuleIntegrationEventReadDto>> ModuleIntegrationEventsList(
-        SnapCd.Server.Core.Services.Crud.ModuleIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId)
         => service.List(organizationId);
 
     [McpServerTool(Name = "module_integration_events_get")]
     [Description(@"Get a single ModuleIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.ModuleIntegrationEventReadDto> ModuleIntegrationEventsGet(
-        SnapCd.Server.Core.Services.Crud.ModuleIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"ModuleIntegrationEvent ID")] System.Guid id)
         => service.Get(id, organizationId);
@@ -61,7 +61,7 @@ public static class ModuleIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "module_integration_events_update")]
     [Description(@"Update an existing ModuleIntegrationEvent")]
     public static System.Threading.Tasks.Task<SnapCd.Contracts.Dto.IntegrationEvents.ModuleIntegrationEventReadDto> ModuleIntegrationEventsUpdate(
-        SnapCd.Server.Core.Services.Crud.ModuleIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"The new ModuleIntegrationEvent values")] SnapCd.Contracts.Dto.IntegrationEvents.ModuleIntegrationEventUpdateDto dto,
         [Description(@"ModuleIntegrationEvent ID")] System.Guid id)
@@ -70,7 +70,7 @@ public static class ModuleIntegrationEventControllerMcpSurface
     [McpServerTool(Name = "module_integration_events_delete")]
     [Description(@"Delete a ModuleIntegrationEvent")]
     public static System.Threading.Tasks.Task ModuleIntegrationEventsDelete(
-        SnapCd.Server.Core.Services.Crud.ModuleIntegrationEventService service,
+        SnapCd.Server.Core.Services.Secured.Crud.ModuleIntegrationEventService service,
         [Description(@"Organization ID")] System.Guid organizationId,
         [Description(@"ModuleIntegrationEvent ID")] System.Guid id)
         => service.Delete(id, organizationId);

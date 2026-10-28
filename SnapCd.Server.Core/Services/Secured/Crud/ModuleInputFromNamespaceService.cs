@@ -12,14 +12,12 @@ using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.Crud.Generic;
-using SnapCd.Server.Core.Services.Crud.Interfaces;
+using SnapCd.Server.Core.Services.Interfaces.Crud;
+using SnapCd.Server.Core.Services.Secured.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
-using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 
-namespace SnapCd.Server.Core.Services.Crud;
+namespace SnapCd.Server.Core.Services.Secured.Crud;
 
 public class ModuleInputFromNamespaceService<TEntity> : GenericCrudService<
     TEntity,

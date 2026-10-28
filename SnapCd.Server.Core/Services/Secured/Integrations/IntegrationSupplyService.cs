@@ -15,7 +15,7 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 
-namespace SnapCd.Server.Core.Services.Integrations;
+namespace SnapCd.Server.Core.Services.Secured.Integrations;
 
 /// <summary>Manages an integration's supply assignments across the three scope tables. Reading requires
 /// read permission on the integration; adding/removing requires update permission (managing supply is an

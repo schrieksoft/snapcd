@@ -9,7 +9,7 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Utils;
 
 /// <summary>
 /// The connections this server process holds open on <typeparamref name="THub"/>. A connection row is only

@@ -8,7 +8,7 @@
 
 using MassTransit;
 using SnapCd.Server.Core.Events.Repository.Organization;
-using SnapCd.Server.Core.Services.OrganizationContext;
+using SnapCd.Server.Core.Services.Nonsecured.OrganizationContext;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;
 

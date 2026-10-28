@@ -8,7 +8,7 @@
 
 using System.Collections.Concurrent;
 
-namespace SnapCd.Server.Core.Services.Notification;
+namespace SnapCd.Server.Core.Services.Utils.Notification;
 
 public class ModuleSagaModifiedNotificationService
 {

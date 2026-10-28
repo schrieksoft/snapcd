@@ -8,7 +8,7 @@
 
 using SnapCd.Contracts.Dto.NamespaceInputs;
 
-namespace SnapCd.Server.Core.Services.Crud.Interfaces;
+namespace SnapCd.Server.Core.Services.Interfaces.Crud;
 
 public interface INamespaceInputFromSecretService
 {

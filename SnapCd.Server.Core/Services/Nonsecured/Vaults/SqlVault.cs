@@ -11,8 +11,9 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Services.Interfaces.Vaults;
 
-namespace SnapCd.Server.Core.Services.Vaults;
+namespace SnapCd.Server.Core.Services.Nonsecured.Vaults;
 
 /// <summary>
 /// SQL-backed <see cref="IVault"/> implementation. Stores AES-256-GCM ciphertext in the

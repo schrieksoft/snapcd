@@ -19,9 +19,11 @@
 @using SnapCd.Contracts.Dto.Misc
 @using Microsoft.Extensions.Options
 @using SnapCd.Server.Core.Services
-@using SnapCd.Server.Core.Services.Logs
-@using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Contracts
+@using SnapCd.Server.Core.Services.Nonsecured.Logs
+@using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
+@using SnapCd.Server.Core.Services.Secured.Logs
+@using SnapCd.Server.Core.Services.Utils.PrincipalProvider
 @using SnapCd.Server.Core.Settings
 @inject SecuredLogReaderFactory LogReaderFactory
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider

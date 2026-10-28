@@ -8,7 +8,7 @@
 
 using System.Collections.Concurrent;
 
-namespace SnapCd.Server.Core.Services.Notification;
+namespace SnapCd.Server.Core.Services.Utils.Notification;
 
 /// <summary>
 /// Notifies subscribers (dashboard, nav menu) when a user's favorites change. Keyed by user id.

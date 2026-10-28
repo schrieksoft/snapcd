@@ -9,7 +9,7 @@
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Server.Core.Hubs;
 
-namespace SnapCd.Server.Core.Services.CallerContext;
+namespace SnapCd.Server.Core.Services.Utils.CallerContext;
 
 /// <summary>
 /// Opens the matching caller scope around every hub invocation and connection event: runner

@@ -21,14 +21,16 @@ using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Misc.Utils;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
-using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
 using System.Linq.Expressions;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
+using NameValidator = SnapCd.Server.Core.Services.Utils.NameValidator;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 

@@ -8,7 +8,7 @@
 
 using Microsoft.Extensions.Caching.Memory;
 
-namespace SnapCd.Server.Core.Services.Integrations;
+namespace SnapCd.Server.Core.Services.Utils.Integrations;
 
 /// <summary>
 /// Per-instance, in-process cache of an integration's **connection JSON** (the credentials blob) so the

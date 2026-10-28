@@ -7,7 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Services.RippleProbes;
+using SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 using SnapCd.Server.Core.Views;
 using Xunit;
 

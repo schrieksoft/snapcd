@@ -17,11 +17,11 @@ using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Exceptions;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Services.Email;
-using SnapCd.Server.Core.Services.QuotaUsage;
+using SnapCd.Server.Core.Services.Interfaces.Email;
+using SnapCd.Server.Core.Services.Interfaces.QuotaUsage;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 public class MemberService : IDisposable
 {

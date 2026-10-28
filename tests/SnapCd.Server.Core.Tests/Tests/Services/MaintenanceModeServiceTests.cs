@@ -11,7 +11,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Services.MaintenanceMode;
+using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 

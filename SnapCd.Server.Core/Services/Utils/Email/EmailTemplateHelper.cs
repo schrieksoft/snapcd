@@ -8,7 +8,7 @@
 
 using System.Text;
 
-namespace SnapCd.Server.Core.Services.Email;
+namespace SnapCd.Server.Core.Services.Utils.Email;
 
 public static class EmailTemplateHelper
 {

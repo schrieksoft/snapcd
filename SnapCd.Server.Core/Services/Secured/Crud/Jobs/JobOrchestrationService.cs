@@ -10,17 +10,17 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Jobs;
+using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.Dto.ModuleJobApprovals;
 using SnapCd.Server.Core.Database;
-using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Logging;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.Logs;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Secured.Logs;
 
-namespace SnapCd.Server.Core.Services.Crud.Jobs;
+namespace SnapCd.Server.Core.Services.Secured.Crud.Jobs;
 
 /// <summary>
 /// Coordinates multi-step Job operations (Apply/Destroy/Approve/Decline/Cancel) that don't fit

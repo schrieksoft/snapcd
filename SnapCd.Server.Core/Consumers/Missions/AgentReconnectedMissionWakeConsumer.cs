@@ -12,7 +12,7 @@ using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Agents;
-using SnapCd.Server.Core.Services.Ai.Missions;
+using SnapCd.Server.Core.Services.Nonsecured.Ai.Missions;
 
 namespace SnapCd.Server.Core.Consumers.Missions;
 

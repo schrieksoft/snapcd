@@ -7,13 +7,12 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Interfaces;
 
-namespace SnapCd.Server.Core.Services.Logs;
+namespace SnapCd.Server.Core.Services.Nonsecured.Logs;
 
 public class JobLogWriterFactory(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,

@@ -9,7 +9,7 @@
 using Microsoft.AspNetCore.Components;
 using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Server.Core.Services.Admin;
+namespace SnapCd.Server.Core.Services.Interfaces.Admin;
 
 /// <summary>
 /// Returns the per-row admin-action fragment rendered for each member in the org users page,

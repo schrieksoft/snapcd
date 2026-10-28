@@ -14,7 +14,7 @@ using SnapCd.Server.Core.Factories.Vaults;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.ParamResolver.Helpers;
+namespace SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 
 public class SecretParamResolver
 {

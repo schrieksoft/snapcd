@@ -16,19 +16,17 @@ using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Entities.Definition.Outputs;
 using SnapCd.Server.Core.Entities.Definition.Secrets;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
-using SnapCd.Server.Core.Services.Crud.Secrets;
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Services.Secured.Crud.Secrets;
+using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 
-using SnapCd.Server.Core.Misc.Utils;
-
-namespace SnapCd.Server.Core.Services.ResolvedConfiguration;
+namespace SnapCd.Server.Core.Services.Nonsecured.ResolvedConfiguration;
 
 // "Declared" and "Applied" configuration
 

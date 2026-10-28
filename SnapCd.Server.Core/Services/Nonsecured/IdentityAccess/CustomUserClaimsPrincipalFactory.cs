@@ -14,7 +14,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Misc.Constants;
 
-namespace SnapCd.Server.Core.Services.IdentityAccess;
+namespace SnapCd.Server.Core.Services.Nonsecured.IdentityAccess;
 
 public class CustomUserClaimsPrincipalFactory : UserClaimsPrincipalFactory<User>
 {

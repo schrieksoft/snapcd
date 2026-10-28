@@ -6,14 +6,13 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ModelContextProtocol.Protocol;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace SnapCd.Server.Core.Services.Ai.Mcp;
+namespace SnapCd.Server.Core.Services.Utils.Ai.Mcp;
 
 public sealed class PromptRegistry
 {

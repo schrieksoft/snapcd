@@ -8,8 +8,9 @@
 
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Nonsecured;
 
 /// <summary>
 /// Hangfire recurring job that periodically cleans up old RunnerConnectionJob records.
@@ -30,7 +31,7 @@ public class RunnerConnectionJobCleanupJob
 
     public async Task ExecuteJob()
     {
-        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
+        using var _ = CallerContext.Begin(CallerKind.System);
         _logger.LogDebug("Starting RunnerConnectionJob cleanup job");
 
         try

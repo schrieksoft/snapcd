@@ -7,7 +7,7 @@
 // for terms covering either use.
 
 
-namespace SnapCd.Server.Core.Services.RippleProbes;
+namespace SnapCd.Server.Core.Services.Utils.RippleProbes;
 
 /// <summary>
 /// One Module that consumes a changed output, and which of its own variables that output feeds.

@@ -8,7 +8,7 @@
 
 using Microsoft.AspNetCore.Components;
 
-namespace SnapCd.Server.Core.Services.Edition;
+namespace SnapCd.Server.Core.Services.Interfaces.Edition;
 
 public interface IEditionNavProvider
 {

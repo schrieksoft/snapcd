@@ -11,7 +11,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Mappers.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
-using SnapCd.Server.Core.Services.ParamResolver.Helpers;
+using SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 
 namespace SnapCd.Server.Core.Factories;
 

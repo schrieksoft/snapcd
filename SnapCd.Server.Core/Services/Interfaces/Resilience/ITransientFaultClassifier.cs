@@ -5,7 +5,7 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
-namespace SnapCd.Server.Core.Services.Resilience;
+namespace SnapCd.Server.Core.Services.Interfaces.Resilience;
 
 public interface ITransientFaultClassifier
 {

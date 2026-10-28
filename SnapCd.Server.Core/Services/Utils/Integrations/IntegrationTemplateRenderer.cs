@@ -9,7 +9,7 @@
 using System.Text.RegularExpressions;
 using SnapCd.Contracts;
 
-namespace SnapCd.Server.Core.Services.Integrations;
+namespace SnapCd.Server.Core.Services.Utils.Integrations;
 
 /// <summary>
 /// Minimal, sandboxed template rendering: <c>{{ token }}</c> substitution only (no code execution). Unknown

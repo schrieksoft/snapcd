@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using MassTransit;
-using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.SplitMigrate;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMigrate;

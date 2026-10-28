@@ -8,10 +8,11 @@
 
 using SnapCd.Contracts.Dto.ModuleHolds;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.ModuleHold;
 using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Services.ModuleHold;
+namespace SnapCd.Server.Core.Services.Secured.ModuleHold;
 
 /// <summary>
 /// Holds modules out of deployment while a client (the provider, during an apply) is still configuring them, for as

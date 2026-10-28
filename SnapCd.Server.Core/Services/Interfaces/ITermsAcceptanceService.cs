@@ -8,7 +8,7 @@
 
 using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Server.Core.Services;
+namespace SnapCd.Server.Core.Services.Interfaces;
 
 public interface ITermsAcceptanceService
 {

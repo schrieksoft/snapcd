@@ -8,7 +8,7 @@
 
 using System.Collections.Concurrent;
 
-namespace SnapCd.Server.Core.Services.Notification;
+namespace SnapCd.Server.Core.Services.Utils.Notification;
 
 /// <summary>
 /// Notifies subscribers (dependency graphs) when a user's colors change. Keyed by user id, so a
