@@ -23,22 +23,21 @@ public class OrphanedJobInfo
 
 public class OrphanedJobCleanupService
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
 
-    public OrphanedJobCleanupService(IDbContextFactory<SnapCdDbContext> dbContextFactory)
+    public OrphanedJobCleanupService(SnapCdDbContext dbContext)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
     }
 
     public async Task<List<OrphanedJobInfo>> ListOrphanedJobs()
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         // Get orphaned Apply jobs (unfinalized with no saga)
         var orphanedApplyJobs = await (
-            from job in dbContext.ModuleJobs
+            from job in _dbContext.ModuleJobs
             where job.TimestampEnd == null && job.JobType == nameof(ApplyJobSaga)
-            join saga in dbContext.Set<ApplyJobSaga>()
+            join saga in _dbContext.Set<ApplyJobSaga>()
                 on new { job.Id, job.OrganizationId }
                 equals new { Id = saga.CorrelationId, saga.OrganizationId }
                 into sagas
@@ -49,9 +48,9 @@ public class OrphanedJobCleanupService
 
         // Get orphaned Destroy jobs (unfinalized with no saga)
         var orphanedDestroyJobs = await (
-            from job in dbContext.ModuleJobs
+            from job in _dbContext.ModuleJobs
             where job.TimestampEnd == null && job.JobType == nameof(DestroyJobSaga)
-            join saga in dbContext.Set<DestroyJobSaga>()
+            join saga in _dbContext.Set<DestroyJobSaga>()
                 on new { job.Id, job.OrganizationId }
                 equals new { Id = saga.CorrelationId, saga.OrganizationId }
                 into sagas
@@ -70,29 +69,28 @@ public class OrphanedJobCleanupService
     /// </summary>
     public async Task<List<OrphanedJobInfo>> ListOrphanedStateMigrations()
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         // JobType names the saga table the job's state lives in, so each type is checked against
         // its own.
-        var orphaned = await OrphansOf<SplitMigrateSaga>(dbContext,
+        var orphaned = await OrphansOf<SplitMigrateSaga>(_dbContext,
             StateMigrationTypes.SplitMigrate, StateMigrationTypes.SplitProve);
 
-        orphaned.AddRange(await OrphansOf<MoveSaga>(dbContext, StateMigrationTypes.Move));
-        orphaned.AddRange(await OrphansOf<ImportSaga>(dbContext, StateMigrationTypes.Import));
-        orphaned.AddRange(await OrphansOf<RemoveSaga>(dbContext, StateMigrationTypes.Remove));
-        orphaned.AddRange(await OrphansOf<LookupAddressesSaga>(dbContext, StateMigrationTypes.LookupAddresses));
+        orphaned.AddRange(await OrphansOf<MoveSaga>(_dbContext, StateMigrationTypes.Move));
+        orphaned.AddRange(await OrphansOf<ImportSaga>(_dbContext, StateMigrationTypes.Import));
+        orphaned.AddRange(await OrphansOf<RemoveSaga>(_dbContext, StateMigrationTypes.Remove));
+        orphaned.AddRange(await OrphansOf<LookupAddressesSaga>(_dbContext, StateMigrationTypes.LookupAddresses));
 
         return orphaned;
     }
 
     /// <summary>The open jobs of these types whose saga row is gone.</summary>
     private static async Task<List<OrphanedJobInfo>> OrphansOf<TSaga>(
-        SnapCdDbContext dbContext, params string[] jobTypes)
+        SnapCdDbContext _dbContext, params string[] jobTypes)
         where TSaga : StateMigrationSagaBase =>
         await (
-            from job in dbContext.StateMigrationJobs
+            from job in _dbContext.StateMigrationJobs
             where job.TimestampEnd == null && jobTypes.Contains(job.JobType)
-            join saga in dbContext.Set<TSaga>()
+            join saga in _dbContext.Set<TSaga>()
                 on new { job.Id, job.OrganizationId }
                 equals new { Id = saga.CorrelationId, saga.OrganizationId }
                 into sagas

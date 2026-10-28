@@ -30,7 +30,7 @@ namespace SnapCd.Server.Core.Services.Crud;
 public class StateFileServiceFactory(
     StateFileSecuredRepositoryFactory securedRepositoryFactory,
     IStateEncryptionService encryptionService,
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     IOptions<StateStoreSettings> stateStoreSettings)
 {
     public StateFileService Create(IPrincipalProvider principalProvider)
@@ -38,7 +38,7 @@ public class StateFileServiceFactory(
         return new StateFileService(
             securedRepositoryFactory.Create(principalProvider),
             encryptionService,
-            dbContextFactory,
+            dbContext,
             principalProvider,
             stateStoreSettings);
     }
@@ -58,19 +58,19 @@ public class StateFileService : GenericCrudService<
     StateFileRepositorySettings>
 {
     private readonly IStateEncryptionService _encryptionService;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IPrincipalProvider _principalProvider;
     private readonly StateStoreSettings _stateStoreSettings;
 
     public StateFileService(
         StateFileSecuredRepository securedRepository,
         IStateEncryptionService encryptionService,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider
     ) : base(securedRepository)
     {
         _encryptionService = encryptionService;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _principalProvider = principalProvider;
         _stateStoreSettings = new StateStoreSettings();
     }
@@ -78,13 +78,13 @@ public class StateFileService : GenericCrudService<
     public StateFileService(
         StateFileSecuredRepository securedRepository,
         IStateEncryptionService encryptionService,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,
         IOptions<StateStoreSettings> stateStoreSettings
     ) : base(securedRepository)
     {
         _encryptionService = encryptionService;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _principalProvider = principalProvider;
         _stateStoreSettings = stateStoreSettings.Value;
     }
@@ -171,8 +171,7 @@ public class StateFileService : GenericCrudService<
     {
         SecuredRepository.AssertCanReadVersions(stateFileId, organizationId);
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        return await dbContext.Set<StateFileVersion>()
+        return await _dbContext.Set<StateFileVersion>()
             .CountAsync(v => v.StateFileId == stateFileId && v.OrganizationId == organizationId);
     }
 
@@ -184,9 +183,8 @@ public class StateFileService : GenericCrudService<
     {
         SecuredRepository.AssertCanReadVersions(stateFileId, organizationId);
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var query = dbContext.Set<StateFileVersion>()
+        var query = _dbContext.Set<StateFileVersion>()
             .Where(v => v.StateFileId == stateFileId && v.OrganizationId == organizationId)
             .OrderByDescending(v => v.CreatedDateTime);
 
@@ -208,7 +206,7 @@ public class StateFileService : GenericCrudService<
         var spDisplayNames = new Dictionary<Guid, string>();
         if (spIds.Count > 0)
         {
-            var sps = await dbContext.Set<ServicePrincipal>()
+            var sps = await _dbContext.Set<ServicePrincipal>()
                 .Where(sp => spIds.Contains(sp.Id))
                 .Select(sp => new { sp.Id, sp.ClientId })
                 .ToListAsync();
@@ -239,13 +237,12 @@ public class StateFileService : GenericCrudService<
     {
         SecuredRepository.AssertCanWriteVersions(stateFileId, organizationId);
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var version = await dbContext.Set<StateFileVersion>()
+        var version = await _dbContext.Set<StateFileVersion>()
             .FirstOrDefaultAsync(v => v.Id == versionId && v.StateFileId == stateFileId && v.OrganizationId == organizationId)
             ?? throw new InvalidOperationException("Version not found.");
 
-        var latestVersion = await dbContext.Set<StateFileVersion>()
+        var latestVersion = await _dbContext.Set<StateFileVersion>()
             .Where(v => v.StateFileId == stateFileId)
             .OrderByDescending(v => v.CreatedDateTime)
             .FirstOrDefaultAsync();
@@ -264,7 +261,7 @@ public class StateFileService : GenericCrudService<
 
         var data = PatchStateJsonForRestore(version.Data, nextSerial);
 
-        dbContext.Set<StateFileVersion>().Add(new StateFileVersion
+        _dbContext.Set<StateFileVersion>().Add(new StateFileVersion
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
@@ -275,15 +272,14 @@ public class StateFileService : GenericCrudService<
             CreatedDateTime = DateTime.UtcNow
         });
 
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
 
         await PruneOldVersions(stateFileId);
     }
 
     public async Task<string?> GetVersionData(Guid versionId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var version = await dbContext.Set<StateFileVersion>()
+        var version = await _dbContext.Set<StateFileVersion>()
             .FirstOrDefaultAsync(v => v.Id == versionId && v.OrganizationId == organizationId)
             ?? throw new InvalidOperationException("Version not found.");
 
@@ -297,15 +293,14 @@ public class StateFileService : GenericCrudService<
 
     public async Task DeleteVersion(Guid versionId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var version = await dbContext.Set<StateFileVersion>()
+        var version = await _dbContext.Set<StateFileVersion>()
             .FirstOrDefaultAsync(v => v.Id == versionId && v.OrganizationId == organizationId)
             ?? throw new InvalidOperationException("Version not found.");
 
         SecuredRepository.AssertCanWriteVersions(version.StateFileId, organizationId);
 
-        dbContext.Set<StateFileVersion>().Remove(version);
-        await dbContext.SaveChangesAsync();
+        _dbContext.Set<StateFileVersion>().Remove(version);
+        await _dbContext.SaveChangesAsync();
     }
 
     public async Task<StateFile?> FindByName(string name, Guid stateStoreId, Guid organizationId)
@@ -322,8 +317,7 @@ public class StateFileService : GenericCrudService<
     {
         SecuredRepository.AssertCanReadVersions(stateFileId, organizationId);
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        return await dbContext.Set<StateFileVersion>()
+        return await _dbContext.Set<StateFileVersion>()
             .Where(v => v.StateFileId == stateFileId && v.OrganizationId == organizationId)
             .OrderByDescending(v => v.CreatedDateTime)
             .FirstOrDefaultAsync();
@@ -366,7 +360,6 @@ public class StateFileService : GenericCrudService<
     {
         SecuredRepository.AssertCanWriteVersions(stateFileId, organizationId);
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         var version = new StateFileVersion
         {
@@ -378,8 +371,8 @@ public class StateFileService : GenericCrudService<
             CreatedByPrincipalDiscriminator = principalDiscriminator,
             CreatedDateTime = DateTime.UtcNow
         };
-        dbContext.Set<StateFileVersion>().Add(version);
-        await dbContext.SaveChangesAsync();
+        _dbContext.Set<StateFileVersion>().Add(version);
+        await _dbContext.SaveChangesAsync();
 
         await PruneOldVersions(stateFileId);
 
@@ -388,8 +381,7 @@ public class StateFileService : GenericCrudService<
 
     public async Task<Guid> GetOrganizationIdForStateStore(Guid stateStoreId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var stateStore = await dbContext.Set<StateStore>()
+        var stateStore = await _dbContext.Set<StateStore>()
             .FirstOrDefaultAsync(ss => ss.Id == stateStoreId);
         if (stateStore == null)
             throw new InvalidOperationException("State store not found.");
@@ -405,8 +397,7 @@ public class StateFileService : GenericCrudService<
             ? AuditPrincipalDiscriminator.ServicePrincipal
             : AuditPrincipalDiscriminator.User;
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        dbContext.Set<StateFileVersion>().Add(new StateFileVersion
+        _dbContext.Set<StateFileVersion>().Add(new StateFileVersion
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
@@ -416,7 +407,7 @@ public class StateFileService : GenericCrudService<
             CreatedByPrincipalDiscriminator = auditDiscriminator,
             CreatedDateTime = DateTime.UtcNow
         });
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
 
         await PruneOldVersions(stateFileId);
     }
@@ -425,8 +416,7 @@ public class StateFileService : GenericCrudService<
     {
         if (_stateStoreSettings.MaxStateFileVersions <= 0) return;
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var versionsToDelete = await dbContext.Set<StateFileVersion>()
+        var versionsToDelete = await _dbContext.Set<StateFileVersion>()
             .Where(v => v.StateFileId == stateFileId)
             .OrderByDescending(v => v.CreatedDateTime)
             .Skip(_stateStoreSettings.MaxStateFileVersions)
@@ -434,8 +424,8 @@ public class StateFileService : GenericCrudService<
 
         if (versionsToDelete.Count > 0)
         {
-            dbContext.Set<StateFileVersion>().RemoveRange(versionsToDelete);
-            await dbContext.SaveChangesAsync();
+            _dbContext.Set<StateFileVersion>().RemoveRange(versionsToDelete);
+            await _dbContext.SaveChangesAsync();
         }
     }
 
@@ -492,8 +482,7 @@ public class StateFileService : GenericCrudService<
 
     private async Task PopulateLatestVersionData(StateFileReadDto dto)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var latest = await dbContext.Set<StateFileVersion>()
+        var latest = await _dbContext.Set<StateFileVersion>()
             .Where(v => v.StateFileId == dto.Id)
             .OrderByDescending(v => v.CreatedDateTime)
             .FirstOrDefaultAsync();

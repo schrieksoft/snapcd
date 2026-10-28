@@ -40,9 +40,9 @@ public class LogServiceTests : IAsyncLifetime
     {
         _dbContext = _fixture.CreateDbContext();
         _logService = new JobLogReader<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>(
-            new FixtureDbContextFactory(_fixture), NullLogger<JobLogReader<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
+            _fixture.CreateDbContext(), NullLogger<JobLogReader<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
         _logWriter = new JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>(
-            new FixtureDbContextFactory(_fixture), NullLogger<JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
+            _fixture.CreateDbContext(), NullLogger<JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
 
         // Create test ModuleJobs
         _testJob1 = new ModuleJob
@@ -365,7 +365,7 @@ public class LogServiceTests : IAsyncLifetime
             var task = Task.Run(async () =>
             {
                 var service = new JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>(
-                    new FixtureDbContextFactory(_fixture), NullLogger<JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
+                    _fixture.CreateDbContext(), NullLogger<JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
 
                 var logEntry = new List<ModuleJobLogEntryDto>
                 {
@@ -401,7 +401,7 @@ public class LogServiceTests : IAsyncLifetime
             var task = Task.Run(async () =>
             {
                 var service = new JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>(
-                    new FixtureDbContextFactory(_fixture), NullLogger<JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
+                    _fixture.CreateDbContext(), NullLogger<JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
 
                 var logEntry = new List<ModuleJobLogEntryDto>
                 {
@@ -443,7 +443,7 @@ public class LogServiceTests : IAsyncLifetime
             var task = Task.Run(async () =>
             {
                 var service = new JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>(
-                    new FixtureDbContextFactory(_fixture), NullLogger<JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
+                    _fixture.CreateDbContext(), NullLogger<JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
 
                 var logEntry = new List<ModuleJobLogEntryDto>
                 {
@@ -461,7 +461,7 @@ public class LogServiceTests : IAsyncLifetime
             var task = Task.Run(async () =>
             {
                 var service = new JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>(
-                    new FixtureDbContextFactory(_fixture), NullLogger<JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
+                    _fixture.CreateDbContext(), NullLogger<JobLogWriter<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>>.Instance);
 
                 var logEntry = new List<ModuleJobLogEntryDto>
                 {
@@ -734,7 +734,7 @@ public class LogServiceTests : IAsyncLifetime
 
         // A manual job's logs go to its own table, so the writer and reader name that family.
         var writer = new JobLogWriter<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>(
-            new FixtureDbContextFactory(_fixture), NullLogger<JobLogWriter<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>>.Instance);
+            _fixture.CreateDbContext(), NullLogger<JobLogWriter<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>>.Instance);
 
         var line = CreateLogEntry(stateMigration.Id, "could not find the revision", "SplitProve");
 
@@ -758,7 +758,7 @@ public class LogServiceTests : IAsyncLifetime
             _fixture.Organizations["0"].Id);
 
         var reader = new JobLogReader<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>(
-            new FixtureDbContextFactory(_fixture), NullLogger<JobLogReader<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>>.Instance);
+            _fixture.CreateDbContext(), NullLogger<JobLogReader<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>>.Instance);
 
         var entries = await reader.GetLogEntries(stateMigration.Id);
         Assert.Single(entries);

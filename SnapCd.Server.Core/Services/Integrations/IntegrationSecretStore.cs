@@ -21,7 +21,7 @@ namespace SnapCd.Server.Core.Services.Integrations;
 /// </summary>
 public sealed class IntegrationSecretStore(
     IVaultFactory vaultFactory,
-    IDbContextFactory<SnapCdDbContext> dbFactory,
+    SnapCdDbContext dbContext,
     IOptions<SecretStoreSettings> secretStoreSettings)
 {
     private readonly SecretStoreSettings _secretStoreSettings = secretStoreSettings.Value;
@@ -31,8 +31,7 @@ public sealed class IntegrationSecretStore(
 
     private async Task<Services.Vaults.IVault> CreateVaultAsync(Guid organizationId)
     {
-        await using var db = await dbFactory.CreateDbContextAsync();
-        var url = await db.Organizations
+        var url = await dbContext.Organizations
             .Where(o => o.Id == organizationId)
             .Select(o => o.InputKeyVaultUrl)
             .FirstOrDefaultAsync();

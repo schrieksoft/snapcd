@@ -29,29 +29,29 @@ namespace SnapCd.Server.Core.Controllers.Jobs;
 [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.RunJob)]
 public class MissionRunController : ControllerBase
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IBus _bus;
     private readonly MissionDispatcher _dispatcher;
     private readonly ModuleJobSecuredRepositoryFactory _moduleJobSecuredRepositoryFactory;
     private readonly ILogger<MissionRunController> _logger;
 
     public MissionRunController(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IBus bus,
         MissionDispatcher dispatcher,
         ModuleJobSecuredRepositoryFactory moduleJobSecuredRepositoryFactory,
         ILogger<MissionRunController> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _bus = bus;
         _dispatcher = dispatcher;
         _moduleJobSecuredRepositoryFactory = moduleJobSecuredRepositoryFactory;
         _logger = logger;
     }
 
-    private bool CanRunJobForModuleJob(SnapCdDbContext db, Guid moduleJobId, Guid organizationId)
+    private bool CanRunJobForModuleJob(SnapCdDbContext _dbContext, Guid moduleJobId, Guid organizationId)
     {
-        var moduleId = db.ModuleJobs
+        var moduleId = _dbContext.ModuleJobs
             .Where(j => j.Id == moduleJobId && j.OrganizationId == organizationId)
             .Select(j => j.ModuleId)
             .FirstOrDefault();
@@ -66,13 +66,12 @@ public class MissionRunController : ControllerBase
     [HttpPost("{runId:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid organizationId, Guid runId)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var run = await db.ModuleJobMissionRuns
+        var run = await _dbContext.ModuleJobMissionRuns
             .FirstOrDefaultAsync(r => r.Id == runId && r.OrganizationId == organizationId);
         if (run is null)
             return NotFound($"Run '{runId}' not found");
 
-        if (!CanRunJobForModuleJob(db, run.ModuleJobId, organizationId))
+        if (!CanRunJobForModuleJob(_dbContext, run.ModuleJobId, organizationId))
             return StatusCode(StatusCodes.Status403Forbidden,
                 "Not permitted to manage runs for this module's jobs.");
 
@@ -84,7 +83,7 @@ public class MissionRunController : ControllerBase
             return Conflict($"Run '{runId}' has no owning connection to cancel.");
 
         run.CancelRequestedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
 
         var uri = MassTransitHelpers.GetAgentConsumerEndpoint(run.ServerInstanceId.Value, nameof(CancelMissionRunRequested));
         var endpoint = await _bus.GetSendEndpoint(new Uri(uri));
@@ -103,22 +102,21 @@ public class MissionRunController : ControllerBase
     [HttpPost("rerun/{missionId:guid}")]
     public async Task<IActionResult> Rerun(Guid organizationId, Guid missionId)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var mission = await db.ModuleJobMissions
+        var mission = await _dbContext.ModuleJobMissions
             .FirstOrDefaultAsync(m => m.Id == missionId && m.OrganizationId == organizationId);
         if (mission is null)
             return NotFound($"Mission '{missionId}' not found");
 
-        if (!CanRunJobForModuleJob(db, mission.ModuleJobId, organizationId))
+        if (!CanRunJobForModuleJob(_dbContext, mission.ModuleJobId, organizationId))
             return StatusCode(StatusCodes.Status403Forbidden,
                 "Not permitted to manage runs for this module's jobs.");
 
-        var maxAttempt = await db.ModuleJobMissionRuns
+        var maxAttempt = await _dbContext.ModuleJobMissionRuns
             .Where(r => r.ModuleJobMissionId == missionId && r.OrganizationId == organizationId)
             .Select(r => (int?)r.AttemptNumber)
             .MaxAsync() ?? 0;
 
-        var outcome = await _dispatcher.DispatchAsync(db, mission, mission.AgentId, maxAttempt + 1, HttpContext.RequestAborted);
+        var outcome = await _dispatcher.DispatchAsync(_dbContext, mission, mission.AgentId, maxAttempt + 1, HttpContext.RequestAborted);
         return outcome switch
         {
             MissionDispatchOutcome.Dispatched => Ok($"Rerun started for mission '{missionId}' (attempt {maxAttempt + 1})."),

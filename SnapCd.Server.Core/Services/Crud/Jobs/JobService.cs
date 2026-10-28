@@ -79,7 +79,7 @@ public class JobServiceFactory
         var moduleRepository = new ModuleRepository(dbContext, principalProvider, _bus, _moduleOptions);
         var dependencyService = _dependencyServiceFactory.Create();
 
-        return new JobService(_bus, dbContext, resolvedConfigurationService, moduleJobRepository, moduleRepository, dependencyService, _dbFactory, _connectionRepositoryFactory, _messageBrokerPolicy, _quotaEnforcementService);
+        return new JobService(_bus, dbContext, resolvedConfigurationService, moduleJobRepository, moduleRepository, dependencyService, _connectionRepositoryFactory, _messageBrokerPolicy, _quotaEnforcementService);
     }
 }
 
@@ -91,7 +91,6 @@ public class JobService : IDisposable
     private readonly ModuleJobRepository _moduleJobRepository;
     private readonly ModuleRepository _moduleRepository;
     private readonly DependencyGraphService _dependencyService;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly IPremiumMessageBrokerPolicy _messageBrokerPolicy;
     private readonly QuotaEnforcementService _quotaEnforcementService;
@@ -103,7 +102,6 @@ public class JobService : IDisposable
         ModuleJobRepository moduleJobRepository,
         ModuleRepository moduleRepository,
         DependencyGraphService dependencyService,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
         IPremiumMessageBrokerPolicy messageBrokerPolicy,
         QuotaEnforcementService quotaEnforcementService
@@ -115,7 +113,6 @@ public class JobService : IDisposable
         _moduleJobRepository = moduleJobRepository;
         _moduleRepository = moduleRepository;
         _dependencyService = dependencyService;
-        _dbContextFactory = dbContextFactory;
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _messageBrokerPolicy = messageBrokerPolicy;
         _quotaEnforcementService = quotaEnforcementService;
@@ -214,8 +211,7 @@ public class JobService : IDisposable
     public virtual async Task<bool> CheckDependenciesAsync(Guid moduleId, Guid organizationId, DesiredStateHeadline desiredState)
     {
         // Get module dependency settings
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var moduleSettings = await dbContext.Modules
+        var moduleSettings = await _dbContext.Modules
             .Where(m => m.Id == moduleId)
             .Select(x => new
             {

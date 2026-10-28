@@ -20,7 +20,7 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 namespace SnapCd.Server.Core.Services.Logs;
 
 public class SecuredLogReaderFactory(
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     ILoggerFactory loggerFactory,
     ModuleSecuredRepositoryFactory moduleSecuredRepositoryFactory)
 {
@@ -33,9 +33,9 @@ public class SecuredLogReaderFactory(
         principalProvider ??= new HttpContextPrincipalProvider(new HttpContextAccessor());
 
         return new SecuredLogReader<TJob, TChunk, TLogEntry>(
-            dbContextFactory,
+            dbContext,
             new JobLogReader<TJob, TChunk, TLogEntry>(
-                dbContextFactory,
+                dbContext,
                 loggerFactory.CreateLogger<JobLogReader<TJob, TChunk, TLogEntry>>()),
             moduleSecuredRepositoryFactory.Create(principalProvider));
     }
@@ -50,25 +50,24 @@ public class SecuredLogReader<TJob, TChunk, TLogEntry> : IDisposable
     where TChunk : JobLogChunk
     where TLogEntry : class, IJobLogEntry, new()
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly JobLogReader<TJob, TChunk, TLogEntry> _logs;
     private readonly ModuleSecuredRepository _modules;
 
     public SecuredLogReader(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         JobLogReader<TJob, TChunk, TLogEntry> logs,
         ModuleSecuredRepository modules)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _logs = logs;
         _modules = modules;
     }
 
     private async Task EnsureCanRead(Guid jobId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var moduleId = await dbContext.Set<TJob>()
+        var moduleId = await _dbContext.Set<TJob>()
             .AsNoTracking()
             .Where(j => j.Id == jobId && j.OrganizationId == organizationId)
             .Select(j => (Guid?)j.ModuleId)

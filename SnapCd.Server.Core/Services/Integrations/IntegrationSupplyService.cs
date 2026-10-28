@@ -25,7 +25,7 @@ public sealed class IntegrationSupplyService(
     IntegrationNamespaceSupplyRepositoryFactory namespaceRepoFactory,
     IntegrationModuleSupplyRepositoryFactory moduleRepoFactory,
     IntegrationSecuredRepositoryFactory securedFactory,
-    IDbContextFactory<SnapCdDbContext> dbFactory)
+    SnapCdDbContext dbContext)
 {
     public async Task<List<IntegrationSupplyDto>> List(Guid integrationId, Guid organizationId)
     {
@@ -35,17 +35,16 @@ public sealed class IntegrationSupplyService(
                 throw new PrincipalNotAuthorizedException($"Not permitted to read integration '{integrationId}'.");
         }
 
-        await using var db = await dbFactory.CreateDbContextAsync();
 
-        var stacks = await db.IntegrationStackSupplies
+        var stacks = await dbContext.IntegrationStackSupplies
             .Where(x => x.IntegrationId == integrationId && x.OrganizationId == organizationId)
             .Select(x => new IntegrationSupplyDto { Id = x.Id, Scope = IntegrationSupplyScope.Stack, ScopeId = x.StackId })
             .ToListAsync();
-        var namespaces = await db.IntegrationNamespaceSupplies
+        var namespaces = await dbContext.IntegrationNamespaceSupplies
             .Where(x => x.IntegrationId == integrationId && x.OrganizationId == organizationId)
             .Select(x => new IntegrationSupplyDto { Id = x.Id, Scope = IntegrationSupplyScope.Namespace, ScopeId = x.NamespaceId })
             .ToListAsync();
-        var modules = await db.IntegrationModuleSupplies
+        var modules = await dbContext.IntegrationModuleSupplies
             .Where(x => x.IntegrationId == integrationId && x.OrganizationId == organizationId)
             .Select(x => new IntegrationSupplyDto { Id = x.Id, Scope = IntegrationSupplyScope.Module, ScopeId = x.ModuleId })
             .ToListAsync();
@@ -55,16 +54,15 @@ public sealed class IntegrationSupplyService(
 
     public async Task<IntegrationSupplyDto> GetOne(Guid integrationId, Guid organizationId, IntegrationSupplyScope scope, Guid assignmentId)
     {
-        await using var db = await dbFactory.CreateDbContextAsync();
         IntegrationSupplyDto? dto = scope switch
         {
-            IntegrationSupplyScope.Stack => await db.IntegrationStackSupplies
+            IntegrationSupplyScope.Stack => await dbContext.IntegrationStackSupplies
                 .Where(x => x.Id == assignmentId && x.IntegrationId == integrationId && x.OrganizationId == organizationId)
                 .Select(x => new IntegrationSupplyDto { Id = x.Id, Scope = IntegrationSupplyScope.Stack, ScopeId = x.StackId }).FirstOrDefaultAsync(),
-            IntegrationSupplyScope.Namespace => await db.IntegrationNamespaceSupplies
+            IntegrationSupplyScope.Namespace => await dbContext.IntegrationNamespaceSupplies
                 .Where(x => x.Id == assignmentId && x.IntegrationId == integrationId && x.OrganizationId == organizationId)
                 .Select(x => new IntegrationSupplyDto { Id = x.Id, Scope = IntegrationSupplyScope.Namespace, ScopeId = x.NamespaceId }).FirstOrDefaultAsync(),
-            IntegrationSupplyScope.Module => await db.IntegrationModuleSupplies
+            IntegrationSupplyScope.Module => await dbContext.IntegrationModuleSupplies
                 .Where(x => x.Id == assignmentId && x.IntegrationId == integrationId && x.OrganizationId == organizationId)
                 .Select(x => new IntegrationSupplyDto { Id = x.Id, Scope = IntegrationSupplyScope.Module, ScopeId = x.ModuleId }).FirstOrDefaultAsync(),
             _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown assignment scope.")
@@ -105,13 +103,12 @@ public sealed class IntegrationSupplyService(
     public async Task Remove(Guid organizationId, IntegrationSupplyScope scope, Guid assignmentId)
     {
         Guid? integrationId;
-        await using (var db = await dbFactory.CreateDbContextAsync())
         {
             integrationId = scope switch
             {
-                IntegrationSupplyScope.Stack => await db.IntegrationStackSupplies.Where(x => x.Id == assignmentId && x.OrganizationId == organizationId).Select(x => (Guid?)x.IntegrationId).FirstOrDefaultAsync(),
-                IntegrationSupplyScope.Namespace => await db.IntegrationNamespaceSupplies.Where(x => x.Id == assignmentId && x.OrganizationId == organizationId).Select(x => (Guid?)x.IntegrationId).FirstOrDefaultAsync(),
-                IntegrationSupplyScope.Module => await db.IntegrationModuleSupplies.Where(x => x.Id == assignmentId && x.OrganizationId == organizationId).Select(x => (Guid?)x.IntegrationId).FirstOrDefaultAsync(),
+                IntegrationSupplyScope.Stack => await dbContext.IntegrationStackSupplies.Where(x => x.Id == assignmentId && x.OrganizationId == organizationId).Select(x => (Guid?)x.IntegrationId).FirstOrDefaultAsync(),
+                IntegrationSupplyScope.Namespace => await dbContext.IntegrationNamespaceSupplies.Where(x => x.Id == assignmentId && x.OrganizationId == organizationId).Select(x => (Guid?)x.IntegrationId).FirstOrDefaultAsync(),
+                IntegrationSupplyScope.Module => await dbContext.IntegrationModuleSupplies.Where(x => x.Id == assignmentId && x.OrganizationId == organizationId).Select(x => (Guid?)x.IntegrationId).FirstOrDefaultAsync(),
                 _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown assignment scope.")
             };
         }

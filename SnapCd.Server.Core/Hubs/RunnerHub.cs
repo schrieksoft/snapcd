@@ -52,7 +52,7 @@ namespace SnapCd.Server.Core.Hubs;
 [Authorize(AuthenticationSchemes = "Bearer")]
 public class RunnerHub : Hub
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly JobLogWriterFactory _jobLogWriterFactory;
     private readonly JobServiceFactory _jobServiceFactory;
     private readonly IBus _bus;
@@ -106,7 +106,7 @@ public class RunnerHub : Hub
     private readonly CancelKillHandler _cancelKillHandler;
 
     public RunnerHub(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         JobLogWriterFactory jobLogWriterFactory,
         JobServiceFactory jobServiceFactory,
         IBus bus,
@@ -159,7 +159,7 @@ public class RunnerHub : Hub
         ReportRunningTaskHandler reportRunningTaskHandler,
         CancelKillHandler cancelKillHandler)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _jobLogWriterFactory = jobLogWriterFactory;
         _jobServiceFactory = jobServiceFactory;
         _bus = bus;
@@ -249,10 +249,9 @@ public class RunnerHub : Hub
                 return;
             }
 
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
             // Get the Runner by ID
-            var runner = await dbContext.Runners
+            var runner = await _dbContext.Runners
                 .FirstOrDefaultAsync(rp => rp.Id == runnerId && rp.OrganizationId == organizationId);
 
             if (runner == null)
@@ -312,7 +311,7 @@ public class RunnerHub : Hub
             }
 
             // Verify service principal belongs to the organization
-            var servicePrincipal = await dbContext.ServicePrincipals
+            var servicePrincipal = await _dbContext.ServicePrincipals
                 .FirstOrDefaultAsync(sp => sp.Id == principalId && sp.OrganizationId == organizationId);
 
             if (servicePrincipal == null)
@@ -467,15 +466,14 @@ public class RunnerHub : Hub
 
         var jobId = logEntries.First().JobId;
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        if (await dbContext.ModuleJobs.AnyAsync(j => j.Id == jobId))
+        if (await _dbContext.ModuleJobs.AnyAsync(j => j.Id == jobId))
         {
             await AddLogs<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>(logEntries);
             return;
         }
 
-        if (await dbContext.StateMigrationJobs.AnyAsync(j => j.Id == jobId))
+        if (await _dbContext.StateMigrationJobs.AnyAsync(j => j.Id == jobId))
         {
             // The payloads are the same shape, so the batch is re-read as the type that table takes.
             await AddLogs<StateMigrationJob, StateMigrationJobLogChunk, StateMigrationLogEntryDto>(
@@ -532,9 +530,8 @@ public class RunnerHub : Hub
             // Same question every step method asks: is the caller the runner this job was given to.
             // SelectedRunnerId is null only on a row written before it existed, and null is not a
             // match, so those are refused rather than trusted.
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
             var jobId = logEntries.First().JobId;
-            var selectedRunnerId = await dbContext.Set<TJob>().AsNoTracking()
+            var selectedRunnerId = await _dbContext.Set<TJob>().AsNoTracking()
                 .Where(j => j.Id == jobId && j.OrganizationId == connection.OrganizationId)
                 .Select(j => j.SelectedRunnerId)
                 .FirstOrDefaultAsync();

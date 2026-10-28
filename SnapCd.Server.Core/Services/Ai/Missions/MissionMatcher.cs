@@ -25,16 +25,16 @@ namespace SnapCd.Server.Core.Services.Ai.Missions;
 /// </summary>
 public class MissionMatcher
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly MissionDispatcher _dispatcher;
     private readonly ILogger<MissionMatcher> _logger;
 
     public MissionMatcher(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         MissionDispatcher dispatcher,
         ILogger<MissionMatcher> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _dispatcher = dispatcher;
         _logger = logger;
     }
@@ -47,19 +47,18 @@ public class MissionMatcher
     public async Task<bool> MatchAndDispatchAsync(
         Guid moduleId, Guid organizationId, Guid jobId, MissionType triggeredType, CancellationToken ct)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct);
 
-        var scope = await db.Modules
+        var scope = await _dbContext.Modules
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new { m.NamespaceId, m.Namespace.StackId })
             .FirstOrDefaultAsync(ct);
         if (scope is null) return false;
 
-        var matches = await GatherMatchesAsync(db, organizationId, moduleId, scope.NamespaceId, scope.StackId, triggeredType, ct);
+        var matches = await GatherMatchesAsync(_dbContext, organizationId, moduleId, scope.NamespaceId, scope.StackId, triggeredType, ct);
         if (matches.Count == 0)
             return false;
 
-        var liveAgents = await db.AgentConnections
+        var liveAgents = await _dbContext.AgentConnections
             .Where(c => c.OrganizationId == organizationId)
             .Select(c => c.AgentId)
             .Distinct()
@@ -77,16 +76,16 @@ public class MissionMatcher
         var sawNoLiveConnection = false;
         foreach (var match in ordered)
         {
-            mission ??= await GetOrCreateMissionAsync(db, organizationId, jobId, match, ct);
+            mission ??= await GetOrCreateMissionAsync(_dbContext, organizationId, jobId, match, ct);
             if (mission is null) break;
 
             if (mission.AgentId != match.AgentId)
             {
                 mission.AgentId = match.AgentId;
-                await db.SaveChangesAsync(ct);
+                await _dbContext.SaveChangesAsync(ct);
             }
 
-            var outcome = await _dispatcher.DispatchAsync(db, mission, match.AgentId, attemptNumber: 1, ct);
+            var outcome = await _dispatcher.DispatchAsync(_dbContext, mission, match.AgentId, attemptNumber: 1, ct);
             if (outcome is MissionDispatchOutcome.Dispatched or MissionDispatchOutcome.AlreadyActive)
             {
                 dispatched = true;
@@ -105,7 +104,7 @@ public class MissionMatcher
             mission.Status = sawNoLiveConnection || !sawAgentNotAssigned
                 ? MissionStatus.WaitingForAgent
                 : MissionStatus.BlockedAgentNotAssigned;
-            await db.SaveChangesAsync(ct);
+            await _dbContext.SaveChangesAsync(ct);
             _logger.LogInformation(
                 "Mission {MissionType} (job {JobId}) parked {Status} — no live match.",
                 mission.MissionType, jobId, mission.Status);
@@ -115,9 +114,9 @@ public class MissionMatcher
     }
 
     private static async Task<ModuleJobMission?> GetOrCreateMissionAsync(
-        SnapCdDbContext db, Guid organizationId, Guid jobId, MissionMatch match, CancellationToken ct)
+        SnapCdDbContext _dbContext, Guid organizationId, Guid jobId, MissionMatch match, CancellationToken ct)
     {
-        var existing = await db.ModuleJobMissions.FirstOrDefaultAsync(
+        var existing = await _dbContext.ModuleJobMissions.FirstOrDefaultAsync(
             m => m.ModuleJobId == jobId && m.MissionType == match.MissionType && m.OrganizationId == organizationId, ct);
         if (existing is not null)
             return existing;
@@ -133,39 +132,39 @@ public class MissionMatcher
             SidecarName = match.SidecarName,
             Status = MissionStatus.Pending
         };
-        db.ModuleJobMissions.Add(mission);
+        _dbContext.ModuleJobMissions.Add(mission);
         try
         {
-            await db.SaveChangesAsync(ct);
+            await _dbContext.SaveChangesAsync(ct);
             return mission;
         }
         catch (DbUpdateException)
         {
-            db.ChangeTracker.Clear();
-            return await db.ModuleJobMissions.FirstOrDefaultAsync(
+            _dbContext.ChangeTracker.Clear();
+            return await _dbContext.ModuleJobMissions.FirstOrDefaultAsync(
                 m => m.ModuleJobId == jobId && m.MissionType == match.MissionType && m.OrganizationId == organizationId, ct);
         }
     }
 
     private static async Task<List<MissionMatch>> GatherMatchesAsync(
-        SnapCdDbContext db, Guid orgId, Guid moduleId, Guid namespaceId, Guid stackId,
+        SnapCdDbContext _dbContext, Guid orgId, Guid moduleId, Guid namespaceId, Guid stackId,
         MissionType triggeredType, CancellationToken ct)
     {
         var matches = new List<MissionMatch>();
 
-        matches.AddRange(await db.OrganizationMissions
+        matches.AddRange(await _dbContext.OrganizationMissions
             .Where(x => x.OrganizationId == orgId && !x.IsDisabled && x.MissionType == triggeredType)
             .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName)).ToListAsync(ct));
 
-        matches.AddRange(await db.StackMissions
+        matches.AddRange(await _dbContext.StackMissions
             .Where(x => x.OrganizationId == orgId && x.StackId == stackId && !x.IsDisabled && x.MissionType == triggeredType)
             .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName)).ToListAsync(ct));
 
-        matches.AddRange(await db.ModuleMissions
+        matches.AddRange(await _dbContext.ModuleMissions
             .Where(x => x.OrganizationId == orgId && x.ModuleId == moduleId && !x.IsDisabled && x.MissionType == triggeredType)
             .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName)).ToListAsync(ct));
 
-        matches.AddRange(await db.NamespaceMissions
+        matches.AddRange(await _dbContext.NamespaceMissions
             .Where(x => x.OrganizationId == orgId && x.NamespaceId == namespaceId && !x.IsDisabled && x.MissionType == triggeredType)
             .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName)).ToListAsync(ct));
 

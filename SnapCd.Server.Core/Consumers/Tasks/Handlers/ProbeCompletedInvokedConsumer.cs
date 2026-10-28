@@ -28,20 +28,20 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
     where TCompleted : StepResponseBase, new()
 {
     private readonly ILogger _logger;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly ProbeSignalRecorder _recorder;
     private readonly SignalEdgeResolver _resolver;
     private readonly IBus _bus;
 
     protected ProbeCompletedInvokedConsumer(
         ILogger logger,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         ProbeSignalRecorder recorder,
         SignalEdgeResolver resolver,
         IBus bus)
     {
         _logger = logger;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _recorder = recorder;
         _resolver = resolver;
         _bus = bus;
@@ -59,8 +59,7 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
             }
             else
             {
-                await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-                var jobView = await dbContext.ModuleJobs
+                var jobView = await _dbContext.ModuleJobs
                     .Where(x => x.Id == jobId)
                     .Select(x => new { x.OrganizationId, x.ModuleId })
                     .FirstOrDefaultAsync();
@@ -73,7 +72,7 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
                 {
                     // The wave the saga recorded when it dispatched this probe. A job probes once
                     // per wave it owes, so its attempt rows alone cannot say which one replied.
-                    var probeWaveId = await dbContext.ApplyJobSagas
+                    var probeWaveId = await _dbContext.ApplyJobSagas
                         .AsNoTracking()
                         .Where(s => s.CorrelationId == jobId)
                         .Select(s => s.ProbingForWaveId)
@@ -116,9 +115,9 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
 
 public class ApplyProbeCompletedInvokedConsumer(
     ILogger<ApplyProbeCompletedInvokedConsumer> logger,
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     ProbeSignalRecorder recorder,
     SignalEdgeResolver resolver,
     IBus bus)
     : ProbeCompletedInvokedConsumer<ApplyProbeCompletedInvoked, ApplyProbeCompleted>(
-        logger, dbContextFactory, recorder, resolver, bus);
+        logger, dbContext, recorder, resolver, bus);

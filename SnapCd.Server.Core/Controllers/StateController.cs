@@ -32,7 +32,7 @@ namespace SnapCd.Server.Core.Controllers;
 [Services.CallerContext.CallerScope(Services.CallerContext.CallerKind.Runner)]
 public class StateController : ControllerBase
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IOpenIddictApplicationManager _applicationManager;
     private readonly StateFileServiceFactory _serviceFactory;
     private readonly IOrganizationActivationService _organizationActivation;
@@ -40,14 +40,14 @@ public class StateController : ControllerBase
     private readonly ILogger<StateController> _logger;
 
     public StateController(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         IOpenIddictApplicationManager applicationManager,
         StateFileServiceFactory serviceFactory,
         IOrganizationActivationService organizationActivation,
         IOrganizationNotActivatedResultProvider notActivatedResultProvider,
         ILogger<StateController> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _applicationManager = applicationManager;
         _serviceFactory = serviceFactory;
         _organizationActivation = organizationActivation;
@@ -324,8 +324,7 @@ public class StateController : ControllerBase
         if (!isValid)
             return AuthResult.Fail(Unauthorized(new { error = "Invalid credentials." }));
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var sp = await dbContext.Set<ServicePrincipal>()
+        var sp = await _dbContext.Set<ServicePrincipal>()
             .FirstOrDefaultAsync(s => s.ClientId == clientId && s.OrganizationId == organizationId);
 
         if (sp == null || sp.IsDisabled)

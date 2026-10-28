@@ -43,14 +43,14 @@ public class ModuleHoldStore
     private readonly IDistributedCache _cache;
     private readonly ModuleHoldSettings _settings;
     private readonly TimeProvider _time;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
 
-    public ModuleHoldStore(IDistributedCache cache, IOptions<ModuleHoldSettings> settings, TimeProvider time, IDbContextFactory<SnapCdDbContext> dbContextFactory)
+    public ModuleHoldStore(IDistributedCache cache, IOptions<ModuleHoldSettings> settings, TimeProvider time, SnapCdDbContext dbContext)
     {
         _cache = cache;
         _settings = settings.Value;
         _time = time;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
     }
 
     public ModuleHoldSettings Settings => _settings;
@@ -83,9 +83,8 @@ public class ModuleHoldStore
     {
         var keys = new List<ModuleHoldKey> { ModuleHoldKey.Module(organizationId, moduleId) };
 
-        await using (var dbContext = await _dbContextFactory.CreateDbContextAsync())
         {
-            var parents = await dbContext.Modules
+            var parents = await _dbContext.Modules
                 .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
                 .Select(m => new { m.NamespaceId, m.Namespace.StackId })
                 .FirstOrDefaultAsync();

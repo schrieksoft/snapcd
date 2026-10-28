@@ -36,7 +36,7 @@ public class IntegrationEventDispatcher :
     IConsumer<ModuleJobAwaitingApprovalEvent>,
     IConsumer<MissionMilestoneReported>
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IntegrationEventMatcher _matcher;
     private readonly IIntegrationCodecRegistry _codecs;
     private readonly IntegrationSecretStore _secrets;
@@ -46,7 +46,7 @@ public class IntegrationEventDispatcher :
     private readonly string _serverHost;
 
     public IntegrationEventDispatcher(
-        IDbContextFactory<SnapCdDbContext> dbFactory,
+        SnapCdDbContext dbContext,
         IntegrationEventMatcher matcher,
         IIntegrationCodecRegistry codecs,
         IntegrationSecretStore secrets,
@@ -55,7 +55,7 @@ public class IntegrationEventDispatcher :
         IOptions<ServerSettings> serverSettings,
         ILogger<IntegrationEventDispatcher> logger)
     {
-        _dbFactory = dbFactory;
+        _dbContext = dbContext;
         _matcher = matcher;
         _codecs = codecs;
         _secrets = secrets;
@@ -79,9 +79,8 @@ public class IntegrationEventDispatcher :
         var ct = c.CancellationToken;
 
         Guid? moduleId;
-        await using (var db = await _dbFactory.CreateDbContextAsync(ct))
         {
-            moduleId = await db.ModuleJobs
+            moduleId = await _dbContext.ModuleJobs
                 .Where(j => j.Id == msg.ModuleJobId && j.OrganizationId == msg.OrganizationId)
                 .Select(j => (Guid?)j.ModuleId).FirstOrDefaultAsync(ct);
         }
@@ -116,14 +115,13 @@ public class IntegrationEventDispatcher :
         var matches = await _matcher.MatchAsync(moduleId, organizationId, trigger, ct);
         if (matches.Count == 0) return;
 
-        await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
         ctx["trigger"] = trigger.ToString();
         ctx["organizationId"] = organizationId.ToString();
         ctx["moduleId"] = moduleId.ToString();
         ctx["jobId"] = jobId?.ToString() ?? "";
 
-        var moduleScope = await db.Modules
+        var moduleScope = await _dbContext.Modules
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new { m.Name, NamespaceName = m.Namespace.Name, StackName = m.Namespace.Stack.Name })
             .FirstOrDefaultAsync(ct);
@@ -143,7 +141,7 @@ public class IntegrationEventDispatcher :
 
         foreach (var match in matches)
         {
-            var integration = await db.Integrations
+            var integration = await _dbContext.Integrations
                 .Where(i => i.Id == match.IntegrationId && i.OrganizationId == organizationId)
                 .Select(i => new { i.IntegrationType, i.Enabled })
                 .FirstOrDefaultAsync(ct);
@@ -162,14 +160,14 @@ public class IntegrationEventDispatcher :
                 Status = IntegrationDeliveryStatus.Pending,
                 CreatedAt = DateTime.UtcNow
             };
-            db.IntegrationDeliveries.Add(delivery);
+            _dbContext.IntegrationDeliveries.Add(delivery);
             try
             {
-                await db.SaveChangesAsync(ct);
+                await _dbContext.SaveChangesAsync(ct);
             }
             catch (DbUpdateException)
             {
-                db.ChangeTracker.Clear();
+                _dbContext.ChangeTracker.Clear();
                 continue; // already delivered for this (occurrence, subscription)
             }
 
@@ -177,7 +175,7 @@ public class IntegrationEventDispatcher :
             string? threadId = null;
             if (missionId is not null)
             {
-                threadId = await db.IntegrationDeliveries
+                threadId = await _dbContext.IntegrationDeliveries
                     .Where(d => d.OrganizationId == organizationId && d.IntegrationId == match.IntegrationId
                                 && d.ModuleJobMissionId == missionId && d.MessageId != null && d.Id != delivery.Id)
                     .OrderBy(d => d.CreatedAt).Select(d => d.MessageId).FirstOrDefaultAsync(ct);
@@ -196,7 +194,7 @@ public class IntegrationEventDispatcher :
             {
                 delivery.Status = IntegrationDeliveryStatus.Failed;
                 delivery.Error = "Connection secret missing.";
-                await db.SaveChangesAsync(ct);
+                await _dbContext.SaveChangesAsync(ct);
                 continue;
             }
 
@@ -207,7 +205,7 @@ public class IntegrationEventDispatcher :
             delivery.Status = result.Success ? IntegrationDeliveryStatus.Sent : IntegrationDeliveryStatus.Failed;
             delivery.MessageId = result.MessageId;
             delivery.Error = result.Error;
-            await db.SaveChangesAsync(ct);
+            await _dbContext.SaveChangesAsync(ct);
 
             if (!result.Success)
                 _logger.LogWarning("Integration delivery failed: integration {IntegrationId}, trigger {Trigger}: {Error}",

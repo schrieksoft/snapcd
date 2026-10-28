@@ -15,7 +15,7 @@ using SnapCd.Server.Core.Settings;
 namespace SnapCd.Server.Core.Services;
 
 public class QuotaEnforcementService(
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     QuotaService quotaService,
     ILogger<QuotaEnforcementService> logger)
 {
@@ -41,7 +41,6 @@ public class QuotaEnforcementService(
 
         var quota = limited.Limit;
 
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
         // Get all active users
         var activeUsers = await dbContext.OrganizationUsers
@@ -133,7 +132,6 @@ public class QuotaEnforcementService(
 
         var limit = allowance.LimitOrNull!.Value;
 
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var moduleCount = await dbContext.Modules
             .CountAsync(m => m.OrganizationId == organizationId);
 

@@ -112,7 +112,7 @@ public class HeartbeatConsumerTests : IAsyncLifetime
         var jobId = await SeedStateMigrationJobOnly();
 
         await new RunnerConnectionStateMigrationService(
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>())
+            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext())
             .CreateOrUpdate(_module.OrganizationId, jobId, "Plan", _module.RunnerId, Instance);
 
         Assert.True(await HeartbeatSucceeds<StateMigrationHeartbeatRequested>(jobId));

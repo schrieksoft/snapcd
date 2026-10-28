@@ -83,7 +83,7 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
     {
         var jobId = await SeedJob(withSaga: false, ended: false);
 
-        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedStateMigrations();
+        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory.CreateDbContext()).ListOrphanedStateMigrations();
 
         Assert.Contains(orphaned, j => j.Id == jobId && j.JobType == StateMigrationTypes.SplitMigrate && j.OrganizationId == _organizationId);
     }
@@ -93,7 +93,7 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
     {
         var jobId = await SeedJob(withSaga: true, ended: false);
 
-        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedStateMigrations();
+        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory.CreateDbContext()).ListOrphanedStateMigrations();
 
         Assert.DoesNotContain(orphaned, j => j.Id == jobId);
     }
@@ -103,7 +103,7 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
     {
         var jobId = await SeedJob(withSaga: false, ended: true);
 
-        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedStateMigrations();
+        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory.CreateDbContext()).ListOrphanedStateMigrations();
 
         Assert.DoesNotContain(orphaned, j => j.Id == jobId);
     }
@@ -116,7 +116,7 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
         Assert.Equal("A manual job is already running on this module.", await BlockedReason());
 
         var job = new OrphanedJobCleanupJob(
-            new OrphanedJobCleanupService(_dbContextFactory),
+            new OrphanedJobCleanupService(_dbContextFactory.CreateDbContext()),
             new StateMigrationJobRepositoryFactory(_dbContextFactory),
             _fixture.CreateMockBus(),
             NullLogger<OrphanedJobCleanupJob>.Instance);

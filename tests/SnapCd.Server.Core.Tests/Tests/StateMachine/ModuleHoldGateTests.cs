@@ -438,7 +438,7 @@ public class ModuleHoldGateTests : IAsyncLifetime
     }
 
     private sealed class StubJobService(SnapCdDbContext dbContext, ConcurrentBag<Guid> applied)
-        : JobService(null!, dbContext, null!, null!, null!, null!, null!, null!, null!, null!)
+        : JobService(null!, dbContext, null!, null!, null!, null!, null!, null!, null!)
     {
         public override Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null, string? sourceRevisionOverride = null)
         {

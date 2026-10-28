@@ -28,17 +28,17 @@ public abstract class OutputCompletedInvokedConsumer<TInvoked, TCompleted, TFaul
     where TFaulted : StepFaultedBase, new()
 {
     private readonly ILogger _logger;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly OutputSetService _outputSetService;
     private readonly IBus _bus;
 
     protected OutputCompletedInvokedConsumer(
         ILogger logger,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         OutputSetService outputSetService, IBus bus)
     {
         _logger = logger;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _outputSetService = outputSetService;
         _bus = bus;
     }
@@ -59,8 +59,7 @@ public abstract class OutputCompletedInvokedConsumer<TInvoked, TCompleted, TFaul
 
         try
         {
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-            var jobView = await dbContext.ModuleJobs
+            var jobView = await _dbContext.ModuleJobs
                 .Where(x => x.Id == jobId)
                 .Select(x => new { x.OrganizationId, x.ModuleId })
                 .FirstOrDefaultAsync();
@@ -105,16 +104,16 @@ public abstract class OutputCompletedInvokedConsumer<TInvoked, TCompleted, TFaul
 
 public class ApplyOutputCompletedInvokedConsumer(
     ILogger<ApplyOutputCompletedInvokedConsumer> logger,
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     OutputSetService outputSetService,
     IBus bus)
     : OutputCompletedInvokedConsumer<ApplyOutputCompletedInvoked, ApplyOutputCompleted, ApplyOutputFaulted>(
-        logger, dbContextFactory, outputSetService, bus);
+        logger, dbContext, outputSetService, bus);
 
 public class DestroyOutputCompletedInvokedConsumer(
     ILogger<DestroyOutputCompletedInvokedConsumer> logger,
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     OutputSetService outputSetService,
     IBus bus)
     : OutputCompletedInvokedConsumer<DestroyOutputCompletedInvoked, DestroyOutputCompleted, DestroyOutputFaulted>(
-        logger, dbContextFactory, outputSetService, bus);
+        logger, dbContext, outputSetService, bus);

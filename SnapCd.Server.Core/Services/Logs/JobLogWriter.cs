@@ -16,14 +16,14 @@ using SnapCd.Server.Core.Entities.Interfaces;
 namespace SnapCd.Server.Core.Services.Logs;
 
 public class JobLogWriterFactory(
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     ILoggerFactory loggerFactory)
 {
     public JobLogWriter<TJob, TChunk, TLogEntry> Create<TJob, TChunk, TLogEntry>()
         where TJob : class, IJobWithLogs
         where TChunk : JobLogChunk, new()
         where TLogEntry : class, IJobLogEntry =>
-        new(dbContextFactory, loggerFactory.CreateLogger<JobLogWriter<TJob, TChunk, TLogEntry>>());
+        new(dbContext, loggerFactory.CreateLogger<JobLogWriter<TJob, TChunk, TLogEntry>>());
 }
 
 /// <summary>
@@ -34,7 +34,7 @@ public class JobLogWriterFactory(
 /// principal; the hub checks the caller is the runner the job was given to.
 /// </summary>
 public class JobLogWriter<TJob, TChunk, TLogEntry>(
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     ILogger<JobLogWriter<TJob, TChunk, TLogEntry>> logger)
     where TJob : class, IJobWithLogs
     where TChunk : JobLogChunk, new()
@@ -45,7 +45,6 @@ public class JobLogWriter<TJob, TChunk, TLogEntry>(
         if (logEntries == null || logEntries.Count == 0)
             return;
 
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
         foreach (var job in logEntries.GroupBy(l => l.JobId))
         {

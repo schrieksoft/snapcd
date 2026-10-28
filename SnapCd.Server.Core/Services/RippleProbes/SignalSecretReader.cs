@@ -26,25 +26,24 @@ public interface ISignalSecretReader
 
 public class SignalSecretReader : ISignalSecretReader
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly IVaultFactory _vaultFactory;
     private readonly SecretStoreSettings _secretStoreSettings;
 
     public SignalSecretReader(
-        IDbContextFactory<SnapCdDbContext> dbFactory,
+        SnapCdDbContext dbContext,
         IVaultFactory vaultFactory,
         IOptions<SecretStoreSettings> secretStoreSettings)
     {
-        _dbFactory = dbFactory;
+        _dbContext = dbContext;
         _vaultFactory = vaultFactory;
         _secretStoreSettings = secretStoreSettings.Value;
     }
 
     public async Task<string?> Read(SecretSignalOutput signal, Guid organizationId)
     {
-        await using var dbContext = await _dbFactory.CreateDbContextAsync();
 
-        var vaultUrl = await dbContext.Organizations
+        var vaultUrl = await _dbContext.Organizations
             .Where(o => o.Id == organizationId)
             .Select(o => o.InputKeyVaultUrl)
             .FirstOrDefaultAsync();

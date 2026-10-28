@@ -27,7 +27,7 @@ namespace SnapCd.Server.Core.Services.Crud;
 
 public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCreateDto, ModuleUpdateDto, ModuleReadDto, ModuleMetadataReadDto, ModuleSecuredRepository, ModuleRepository, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
 
     private readonly ModuleSagaSecuredRepositoryFactory _sagaSecuredRepositoryFactory;
 
@@ -35,13 +35,13 @@ public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCr
 
     public ModuleService(
         ModuleSecuredRepository securedRepository,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         ModuleSagaSecuredRepositoryFactory sagaSecuredRepositoryFactory,
         ModuleHoldService holds
     ) : base(securedRepository)
     {
         _sagaSecuredRepositoryFactory = sagaSecuredRepositoryFactory;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _holds = holds;
     }
 
@@ -90,8 +90,7 @@ public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCr
 
     public async Task<ModuleSourceDto> GetSource(Guid moduleId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var dto = await dbContext.Modules
+        var dto = await _dbContext.Modules
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new ModuleSourceDto
             {
@@ -113,16 +112,15 @@ public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCr
 
     public async Task<ModuleStateDto> GetState(Guid moduleId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var moduleHeader = await dbContext.Modules
+        var moduleHeader = await _dbContext.Modules
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new { m.Id, m.Name, m.NamespaceId })
             .FirstOrDefaultAsync();
 
         if (moduleHeader is null) throw new EntityNotFoundException($"Module '{moduleId}' not found");
 
-        var lastJob = await dbContext.ModuleJobs
+        var lastJob = await _dbContext.ModuleJobs
             .Where(j => j.ModuleId == moduleId && j.OrganizationId == organizationId)
             .OrderByDescending(j => j.Id)
             .Select(j => new
@@ -152,16 +150,15 @@ public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCr
 
     public async Task<List<ModuleMissionHistoryEntryDto>> GetMissionHistory(Guid moduleId, Guid organizationId, int take = 5)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var moduleExists = await dbContext.Modules
+        var moduleExists = await _dbContext.Modules
             .AnyAsync(m => m.Id == moduleId && m.OrganizationId == organizationId);
         if (!moduleExists) throw new EntityNotFoundException($"Module '{moduleId}' not found");
 
-        var entries = await dbContext.ModuleJobMissionRuns
+        var entries = await _dbContext.ModuleJobMissionRuns
             .Where(run => run.OrganizationId == organizationId)
             .Join(
-                dbContext.ModuleJobs.Where(j => j.ModuleId == moduleId),
+                _dbContext.ModuleJobs.Where(j => j.ModuleId == moduleId),
                 run => run.ModuleJobId,
                 job => job.Id,
                 (run, job) => new ModuleMissionHistoryEntryDto
@@ -185,7 +182,7 @@ public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCr
         if (entries.Count == 0) return entries;
 
         var runIds = entries.Select(e => e.RunId).ToList();
-        var milestones = await dbContext.ModuleJobMissionRunMilestones
+        var milestones = await _dbContext.ModuleJobMissionRunMilestones
             .Where(m => m.OrganizationId == organizationId && runIds.Contains(m.ModuleJobMissionRunId))
             .OrderBy(m => m.ReportedAt)
             .Select(m => new ModuleJobMissionRunMilestoneReadDto

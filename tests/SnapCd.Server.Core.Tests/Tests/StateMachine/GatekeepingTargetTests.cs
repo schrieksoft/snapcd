@@ -333,7 +333,7 @@ public class GatekeepingTargetTests : IAsyncLifetime
     }
 
     private sealed class StubJobService(SnapCdDbContext dbContext, ConcurrentQueue<(Guid, DesiredStateHeadline)> ran, Dependencies dependencies)
-        : JobService(null!, dbContext, null!, null!, null!, null!, null!, null!, null!, null!)
+        : JobService(null!, dbContext, null!, null!, null!, null!, null!, null!, null!)
     {
         public override Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null, string? sourceRevisionOverride = null)
         {

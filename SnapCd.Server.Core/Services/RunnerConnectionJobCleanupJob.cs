@@ -18,14 +18,14 @@ namespace SnapCd.Server.Core.Services;
 public class RunnerConnectionJobCleanupJob
 {
     private readonly ILogger<RunnerConnectionJobCleanupJob> _logger;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
 
     public RunnerConnectionJobCleanupJob(
         ILogger<RunnerConnectionJobCleanupJob> logger,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory)
+        SnapCdDbContext dbContext)
     {
         _logger = logger;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
     }
 
     public async Task ExecuteJob()
@@ -35,18 +35,17 @@ public class RunnerConnectionJobCleanupJob
 
         try
         {
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
             var cutoffTime = DateTime.UtcNow.AddMinutes(-10);
 
-            var oldStateMigrationRecords = await dbContext.RunnerConnectionStateMigrations
+            var oldStateMigrationRecords = await _dbContext.RunnerConnectionStateMigrations
                 .Where(r => r.ModifiedDateTime < cutoffTime)
                 .ToListAsync();
 
             if (oldStateMigrationRecords.Count > 0)
             {
-                dbContext.RunnerConnectionStateMigrations.RemoveRange(oldStateMigrationRecords);
-                await dbContext.SaveChangesAsync();
+                _dbContext.RunnerConnectionStateMigrations.RemoveRange(oldStateMigrationRecords);
+                await _dbContext.SaveChangesAsync();
 
                 _logger.LogDebug(
                     "Cleaned up {Count} old RunnerConnectionStateMigration record(s)",
@@ -54,7 +53,7 @@ public class RunnerConnectionJobCleanupJob
             }
 
             // Find all RunnerConnectionJob records older than 10 minutes
-            var oldRecords = await dbContext.RunnerConnectionJobs
+            var oldRecords = await _dbContext.RunnerConnectionJobs
                 .Where(rcj => rcj.ModifiedDateTime < cutoffTime)
                 .ToListAsync();
 
@@ -69,8 +68,8 @@ public class RunnerConnectionJobCleanupJob
                 oldRecords.Count);
 
             // Delete the old records
-            dbContext.RunnerConnectionJobs.RemoveRange(oldRecords);
-            await dbContext.SaveChangesAsync();
+            _dbContext.RunnerConnectionJobs.RemoveRange(oldRecords);
+            await _dbContext.SaveChangesAsync();
 
             _logger.LogInformation(
                 "Successfully cleaned up {Count} old RunnerConnectionJob record(s)",

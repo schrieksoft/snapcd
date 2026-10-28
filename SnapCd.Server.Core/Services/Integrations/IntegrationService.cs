@@ -32,7 +32,7 @@ public sealed class IntegrationService(
     IIntegrationCodecRegistry codecs,
     IntegrationSecretStore secrets,
     IntegrationConnectionCache connectionCache,
-    IDbContextFactory<SnapCdDbContext> dbFactory)
+    SnapCdDbContext dbContext)
 {
     public async Task<List<IntegrationReadDto>> List(Guid organizationId)
     {
@@ -66,8 +66,7 @@ public sealed class IntegrationService(
         if (!secured.CanRead(id, organizationId))
             throw new PrincipalNotAuthorizedException($"Not permitted to read integration '{id}'.");
 
-        await using var db = await dbFactory.CreateDbContextAsync();
-        var row = await db.Integrations
+        var row = await dbContext.Integrations
             .Where(i => i.Id == id && i.OrganizationId == organizationId)
             .FirstOrDefaultAsync();
         if (row is null) throw new EntityNotFoundException($"Integration '{id}' not found");
@@ -91,9 +90,8 @@ public sealed class IntegrationService(
     public async Task<IntegrationReadDto> GetReadByName(string name, Guid organizationId)
     {
         Guid? id;
-        await using (var db = await dbFactory.CreateDbContextAsync())
         {
-            id = await db.Integrations
+            id = await dbContext.Integrations
                 .Where(i => i.OrganizationId == organizationId && i.Name == name)
                 .Select(i => (Guid?)i.Id)
                 .FirstOrDefaultAsync();
@@ -115,8 +113,7 @@ public sealed class IntegrationService(
 
     private async Task<IntegrationDetailDto> GetUncached(Guid id, Guid organizationId)
     {
-        await using var db = await dbFactory.CreateDbContextAsync();
-        var row = await db.Integrations
+        var row = await dbContext.Integrations
             .Where(i => i.Id == id && i.OrganizationId == organizationId)
             .FirstOrDefaultAsync();
         if (row is null) throw new EntityNotFoundException($"Integration '{id}' not found");
@@ -150,8 +147,7 @@ public sealed class IntegrationService(
                 throw new PrincipalNotAuthorizedException($"Not permitted to test integration '{id}'.");
         }
 
-        await using var db = await dbFactory.CreateDbContextAsync();
-        var type = await db.Integrations
+        var type = await dbContext.Integrations
             .Where(i => i.Id == id && i.OrganizationId == organizationId)
             .Select(i => (IntegrationType?)i.IntegrationType)
             .FirstOrDefaultAsync();

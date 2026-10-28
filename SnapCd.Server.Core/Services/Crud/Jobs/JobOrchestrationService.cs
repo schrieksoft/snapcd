@@ -30,7 +30,7 @@ namespace SnapCd.Server.Core.Services.Crud.Jobs;
 public class JobOrchestrationService
 {
     private readonly SecuredJobServiceFactory _securedJobServiceFactory;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly ModuleJobApprovalSecuredRepositoryFactory _approvalRepoFactory;
     private readonly ModuleJobSecuredRepositoryFactory _moduleJobRepoFactory;
     private readonly IPrincipalProvider _principalProvider;
@@ -39,7 +39,7 @@ public class JobOrchestrationService
 
     public JobOrchestrationService(
         SecuredJobServiceFactory securedJobServiceFactory,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         ModuleJobApprovalSecuredRepositoryFactory approvalRepoFactory,
         ModuleJobSecuredRepositoryFactory moduleJobRepoFactory,
         IPrincipalProvider principalProvider,
@@ -47,7 +47,7 @@ public class JobOrchestrationService
         SecuredLogReaderFactory logReaderFactory)
     {
         _securedJobServiceFactory = securedJobServiceFactory;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _approvalRepoFactory = approvalRepoFactory;
         _moduleJobRepoFactory = moduleJobRepoFactory;
         _principalProvider = principalProvider;
@@ -81,8 +81,7 @@ public class JobOrchestrationService
 
     public async Task Cancel(Guid jobId, Guid organizationId, CancellationType cancellationType)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var job = await dbContext.ModuleJobs
+        var job = await _dbContext.ModuleJobs
             .Where(j => j.Id == jobId && j.OrganizationId == organizationId)
             .Select(j => new { j.ModuleId, ModuleNamespaceId = j.Module.NamespaceId })
             .FirstOrDefaultAsync();
@@ -95,8 +94,7 @@ public class JobOrchestrationService
 
     public async Task<string> GetLogs(Guid jobId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var exists = await dbContext.ModuleJobs
+        var exists = await _dbContext.ModuleJobs
             .AnyAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
 
         if (!exists) throw new EntityNotFoundException($"Job '{jobId}' not found");
@@ -110,8 +108,7 @@ public class JobOrchestrationService
 
     public async Task<ModuleJobStatusDto> GetStatus(Guid jobId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var dto = await dbContext.ModuleJobs
+        var dto = await _dbContext.ModuleJobs
             .Where(j => j.Id == jobId && j.OrganizationId == organizationId)
             .Select(j => new ModuleJobStatusDto
             {
@@ -138,16 +135,15 @@ public class JobOrchestrationService
 
     public async Task<List<ModuleJobApprovalReadDto>> GetApprovals(Guid jobId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         // Ensure the job exists in the org before returning approvals — distinguish "no decisions yet"
         // (return []) from "job doesn't exist" (404).
-        var jobExists = await dbContext.ModuleJobs
+        var jobExists = await _dbContext.ModuleJobs
             .AnyAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
         if (!jobExists) throw new EntityNotFoundException($"Job '{jobId}' not found");
         EnsureCanReadJob(jobId, organizationId);
 
-        return await dbContext.ModuleJobApprovals
+        return await _dbContext.ModuleJobApprovals
             .Where(a => a.ModuleJobId == jobId && a.OrganizationId == organizationId)
             .OrderBy(a => a.DecisionDateTime)
             .Select(a => new ModuleJobApprovalReadDto
@@ -171,15 +167,13 @@ public class JobOrchestrationService
 
     private async Task EnsureModuleExists(Guid moduleId, Guid organizationId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var exists = await dbContext.Modules.AnyAsync(m => m.Id == moduleId && m.OrganizationId == organizationId);
+        var exists = await _dbContext.Modules.AnyAsync(m => m.Id == moduleId && m.OrganizationId == organizationId);
         if (!exists) throw new EntityNotFoundException($"Module '{moduleId}' not found");
     }
 
     private async Task RecordApprovalDecision(Guid jobId, Guid organizationId, bool declined, string? reason)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var exists = await dbContext.ModuleJobs.AnyAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
+        var exists = await _dbContext.ModuleJobs.AnyAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
         if (!exists) throw new EntityNotFoundException($"Job '{jobId}' not found");
 
         using var approvalRepo = _approvalRepoFactory.Create();

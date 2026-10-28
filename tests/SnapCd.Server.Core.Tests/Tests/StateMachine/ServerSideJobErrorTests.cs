@@ -123,7 +123,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
         // The output store is not reached on the paths under test.
         services.AddScoped(sp => new ApplyOutputCompletedInvokedConsumer(
             sp.GetRequiredService<ILogger<ApplyOutputCompletedInvokedConsumer>>(),
-            sp.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(), null!, sp.GetRequiredService<IBus>()));
+            sp.GetRequiredService<SnapCdDbContext>(), null!, sp.GetRequiredService<IBus>()));
 
         services.AddMassTransitTestHarness(x =>
         {
@@ -379,15 +379,37 @@ public class ServerSideJobErrorTests : IAsyncLifetime
     public async Task Failed_Liveness_Recording_Is_Rethrown_For_Retry()
     {
         var consumer = new ReportRunningTaskInvokedConsumer(
-            NullLogger<ReportRunningTaskInvokedConsumer>.Instance, null!, null!, new UnavailableDbContextFactory());
+            NullLogger<ReportRunningTaskInvokedConsumer>.Instance, null!, null!, new UnavailableDbContext());
         var context = new Moq.Mock<ConsumeContext<ReportRunningTaskInvoked>>();
         context.SetupGet(c => c.Message).Returns(new ReportRunningTaskInvoked { JobId = Guid.NewGuid(), OrganizationId = _module.OrganizationId, RunnerId = _runner.Id, TaskName = "Plan" });
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => consumer.Consume(context.Object));
     }
 
-    private sealed class UnavailableDbContextFactory : IDbContextFactory<SnapCdDbContext>
+    /// Stands in for a database that cannot be reached: the first query throws.
+    private sealed class UnavailableDbContext() : SnapCdDbContext(
+        new DbContextOptionsBuilder<SnapCdDbContext>()
+            .UseSqlServer("Server=unused", o => o.ExecutionStrategy(_ => new ThrowingStrategy()))
+            .Options)
     {
-        public SnapCdDbContext CreateDbContext() => throw new InvalidOperationException("database unavailable");
+        public const string Message = "database unavailable";
+
+        private sealed class ThrowingStrategy : Microsoft.EntityFrameworkCore.Storage.IExecutionStrategy
+        {
+            public bool RetriesOnFailure => false;
+
+            public TResult Execute<TState, TResult>(
+                TState state,
+                Func<DbContext, TState, TResult> operation,
+                Func<DbContext, TState, Microsoft.EntityFrameworkCore.Storage.ExecutionResult<TResult>>? verifySucceeded)
+                => throw new InvalidOperationException(Message);
+
+            public Task<TResult> ExecuteAsync<TState, TResult>(
+                TState state,
+                Func<DbContext, TState, CancellationToken, Task<TResult>> operation,
+                Func<DbContext, TState, CancellationToken, Task<Microsoft.EntityFrameworkCore.Storage.ExecutionResult<TResult>>>? verifySucceeded,
+                CancellationToken cancellationToken = default)
+                => throw new InvalidOperationException(Message);
+        }
     }
 }

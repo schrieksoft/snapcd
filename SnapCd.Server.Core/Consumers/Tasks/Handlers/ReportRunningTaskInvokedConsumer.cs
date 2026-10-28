@@ -25,18 +25,18 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
     private readonly ILogger<ReportRunningTaskInvokedConsumer> _logger;
     private readonly RunnerConnectionJobRepositoryFactory _runnerConnectionJobRepositoryFactory;
     private readonly RunnerConnectionStateMigrationService _runnerConnectionStateMigrationService;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
 
     public ReportRunningTaskInvokedConsumer(
         ILogger<ReportRunningTaskInvokedConsumer> logger,
         RunnerConnectionJobRepositoryFactory runnerConnectionJobRepositoryFactory,
         RunnerConnectionStateMigrationService runnerConnectionStateMigrationService,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory)
+        SnapCdDbContext dbContext)
     {
         _logger = logger;
         _runnerConnectionJobRepositoryFactory = runnerConnectionJobRepositoryFactory;
         _runnerConnectionStateMigrationService = runnerConnectionStateMigrationService;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
     }
 
     public async Task Consume(ConsumeContext<ReportRunningTaskInvoked> context)
@@ -45,8 +45,7 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
 
         try
         {
-            await using var db = await _dbContextFactory.CreateDbContextAsync();
-            var isStateMigration = await db.StateMigrationJobs
+            var isStateMigration = await _dbContext.StateMigrationJobs
                 .AnyAsync(j => j.Id == message.JobId && j.OrganizationId == message.OrganizationId);
 
             // Each job family has its own table, because the foreign key is what makes the

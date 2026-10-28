@@ -45,13 +45,13 @@ public class JobLogReader<TJob, TChunk, TLogEntry>
 {
 
 
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly ILogger<JobLogReader<TJob, TChunk, TLogEntry>> _logger;
 
-    public JobLogReader(IDbContextFactory<SnapCdDbContext> dbContextFactory, ILogger<JobLogReader<TJob, TChunk, TLogEntry>> logger)
+    public JobLogReader(SnapCdDbContext dbContext, ILogger<JobLogReader<TJob, TChunk, TLogEntry>> logger)
     {
         _logger = logger;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
     }
 
     /// <summary>
@@ -60,13 +60,12 @@ public class JobLogReader<TJob, TChunk, TLogEntry>
     /// </summary>
     public async Task<List<LogChunkSummary>> GetChunkSummaries(Guid jobId, Guid? moduleId = null, long afterSequence = -1)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         var summaries = new List<LogChunkSummary>();
 
         if (afterSequence < JobLogs.LegacySequence)
         {
-            var legacyBytes = await dbContext.Set<TJob>()
+            var legacyBytes = await _dbContext.Set<TJob>()
                 .Where(j => j.Id == jobId && j.Logs != null)
                 .Select(j => (long?)EF.Functions.DataLength(j.Logs))
                 .FirstOrDefaultAsync();
@@ -75,7 +74,7 @@ public class JobLogReader<TJob, TChunk, TLogEntry>
                 summaries.Add(new LogChunkSummary(JobLogs.LegacySequence, null, null, 0, legacyBytes.Value));
         }
 
-        var chunks = (await Summaries(dbContext.Set<TChunk>(), jobId, moduleId, afterSequence).ToListAsync())
+        var chunks = (await Summaries(_dbContext.Set<TChunk>(), jobId, moduleId, afterSequence).ToListAsync())
             .OrderBy(c => c.Sequence);
 
         summaries.AddRange(chunks.Select(c =>
@@ -100,22 +99,21 @@ public class JobLogReader<TJob, TChunk, TLogEntry>
 
     private async Task<List<TLogEntry>> ReadChunksUnordered(Guid jobId, IReadOnlyCollection<long> sequences, Guid? moduleId)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         var entries = new List<TLogEntry>();
 
         if (sequences.Contains(JobLogs.LegacySequence))
-            entries.AddRange(await ReadLegacy(dbContext, jobId, moduleId));
+            entries.AddRange(await ReadLegacy(_dbContext, jobId, moduleId));
 
         var chunkSequences = sequences.Where(s => s != JobLogs.LegacySequence).ToList();
         if (chunkSequences.Count == 0)
             return entries;
 
-        var chunks = (await Payloads(dbContext.Set<TChunk>(), jobId, chunkSequences, moduleId).ToListAsync())
+        var chunks = (await Payloads(_dbContext.Set<TChunk>(), jobId, chunkSequences, moduleId).ToListAsync())
             .OrderBy(c => c.Sequence)
             .ToList();
 
-        var contexts = await ModuleContexts(dbContext, chunks.Select(c => c.ModuleId).Distinct().ToList());
+        var contexts = await ModuleContexts(_dbContext, chunks.Select(c => c.ModuleId).Distinct().ToList());
 
         foreach (var chunk in chunks)
         {
@@ -166,8 +164,8 @@ public class JobLogReader<TJob, TChunk, TLogEntry>
 
     private record ModuleContext(string ModuleName, Guid NamespaceId, string NamespaceName, Guid StackId, string StackName);
 
-    private static async Task<Dictionary<Guid, ModuleContext>> ModuleContexts(SnapCdDbContext dbContext, List<Guid> moduleIds) =>
-        await dbContext.Modules
+    private static async Task<Dictionary<Guid, ModuleContext>> ModuleContexts(SnapCdDbContext _dbContext, List<Guid> moduleIds) =>
+        await _dbContext.Modules
             .Where(m => moduleIds.Contains(m.Id))
             .Select(m => new
             {
@@ -176,9 +174,9 @@ public class JobLogReader<TJob, TChunk, TLogEntry>
             })
             .ToDictionaryAsync(m => m.Id, m => m.Context);
 
-    private async Task<List<TLogEntry>> ReadLegacy(SnapCdDbContext dbContext, Guid jobId, Guid? moduleId)
+    private async Task<List<TLogEntry>> ReadLegacy(SnapCdDbContext _dbContext, Guid jobId, Guid? moduleId)
     {
-        var found = await dbContext.Set<TJob>()
+        var found = await _dbContext.Set<TJob>()
             .Where(j => j.Id == jobId)
             .Select(j => new { j.Logs })
             .FirstOrDefaultAsync();
@@ -252,9 +250,8 @@ public class JobLogReader<TJob, TChunk, TLogEntry>
     {
         if (waveIds.Count == 0) return [];
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        return await dbContext.ProbeWaves
+        return await _dbContext.ProbeWaves
             .AsNoTracking()
             .Where(w => waveIds.Contains(w.Id) && w.OrganizationId == organizationId)
             .Select(w => new ProbeWaveOrigin(

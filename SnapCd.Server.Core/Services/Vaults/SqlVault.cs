@@ -19,6 +19,8 @@ namespace SnapCd.Server.Core.Services.Vaults;
 /// <c>VaultSecrets</c> table (registered on the self-hosted context). <paramref name="vaultUrl"/>
 /// passed in by the caller is ignored — the SQL store is one logical vault.
 /// </summary>
+/// A context per operation: one vault instance is shared across a Parallel.ForEachAsync in the
+/// secret migrator, and a DbContext serves one thread at a time.
 public class SqlVault : IVault
 {
     private const int NonceSize = 12; // AES-GCM nonce

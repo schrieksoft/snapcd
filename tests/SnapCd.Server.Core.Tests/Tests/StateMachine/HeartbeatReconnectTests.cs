@@ -182,7 +182,7 @@ public class HeartbeatReconnectTests : IAsyncLifetime
             .Returns(Task.CompletedTask);
 
         var consumer = new ModuleJobHeartbeatConsumer(NullLogger<ModuleJobHeartbeatConsumer>.Instance,
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>());
+            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext());
         await consumer.Consume(contextMock.Object);
 
         Assert.NotNull(response);

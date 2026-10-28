@@ -27,18 +27,18 @@ public class RunnerJobAuthorizationService
 {
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly ServicePrincipalRepositoryFactory _servicePrincipalRepositoryFactory;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly ILogger<RunnerJobAuthorizationService> _logger;
 
     public RunnerJobAuthorizationService(
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
         ServicePrincipalRepositoryFactory servicePrincipalRepositoryFactory,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         ILogger<RunnerJobAuthorizationService> logger)
     {
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _servicePrincipalRepositoryFactory = servicePrincipalRepositoryFactory;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -106,8 +106,7 @@ public class RunnerJobAuthorizationService
         Guid organizationId)
     {
         // Get all ServicePrincipalIds for runners in this pool
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var servicePrincipalId = dbContext.Runners
+        var servicePrincipalId = _dbContext.Runners
             .Where(r => r.Id == runnerId && r.OrganizationId == organizationId)
             .Select(r => r.ServicePrincipalId)
             .SingleOrDefault();
@@ -145,11 +144,11 @@ public class RunnerJobAuthorizationService
     /// Notes on an ended job that its runner was still working on it, so a result the server can no longer accept is not
     /// silently lost. Only the runner the job's module runs on can leave the note, and only once.
     /// </summary>
-    public static async Task RecordLateReport(SnapCdDbContext dbContext, Guid jobId, Guid organizationId, Guid runnerId)
+    public static async Task RecordLateReport(SnapCdDbContext _dbContext, Guid jobId, Guid organizationId, Guid runnerId)
     {
         var note = $"{LateReportNote}, at {DateTimeOffset.UtcNow:u}. Its result was not recorded; check the runner's logs for what it did.";
 
-        var moduleJob = await dbContext.ModuleJobs
+        var moduleJob = await _dbContext.ModuleJobs
             .Where(j => j.Id == jobId && j.OrganizationId == organizationId && j.Status != ExecutionStatus.Running && j.Module.RunnerId == runnerId)
             .FirstOrDefaultAsync();
         if (moduleJob != null)
@@ -157,17 +156,17 @@ public class RunnerJobAuthorizationService
             if (moduleJob.ServerSideError?.Contains(LateReportNote) == true) return;
             moduleJob.ServerSideErrorHeader ??= LateReportNote;
             moduleJob.ServerSideError = ErrorText.Body(string.IsNullOrEmpty(moduleJob.ServerSideError) ? note : $"{moduleJob.ServerSideError}\n\n{note}");
-            await dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync();
             return;
         }
 
-        var stateMigrationJob = await dbContext.StateMigrationJobs
+        var stateMigrationJob = await _dbContext.StateMigrationJobs
             .Where(j => j.Id == jobId && j.OrganizationId == organizationId && j.Status != ExecutionStatus.Running && j.Module.RunnerId == runnerId)
             .FirstOrDefaultAsync();
         if (stateMigrationJob == null || stateMigrationJob.ServerSideError?.Contains(LateReportNote) == true) return;
         stateMigrationJob.ServerSideErrorHeader ??= LateReportNote;
         stateMigrationJob.ServerSideError = ErrorText.Body(string.IsNullOrEmpty(stateMigrationJob.ServerSideError) ? note : $"{stateMigrationJob.ServerSideError}\n\n{note}");
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     /// <summary>
@@ -198,9 +197,8 @@ public class RunnerJobAuthorizationService
             throw ConnectionNotRegistered(hubCallerContext);
         }
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var query = dbContext.Set<TSaga>().AsNoTracking()
+        var query = _dbContext.Set<TSaga>().AsNoTracking()
             .Where(x => x.CorrelationId == jobId && x.OrganizationId == connection.OrganizationId);
 
         if (moduleId.HasValue)
@@ -215,7 +213,7 @@ public class RunnerJobAuthorizationService
             _logger.LogWarning(
                 "Authorization failed: {Family} job {JobId} not found (Module: {ModuleId}, Connection: {ConnectionId})",
                 family, jobId, moduleId, hubCallerContext.ConnectionId);
-            await RecordLateReport(dbContext, jobId, connection.OrganizationId, connection.RunnerId);
+            await RecordLateReport(_dbContext, jobId, connection.OrganizationId, connection.RunnerId);
             throw new HubException($"Could not find a Job with correlation id {jobId}.");
         }
 

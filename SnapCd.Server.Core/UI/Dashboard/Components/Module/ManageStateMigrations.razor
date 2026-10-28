@@ -379,7 +379,6 @@ else
     [Inject] private TransferServiceFactory TransferServiceFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> TransferDbContextFactory { get; set; } = null!;
     [Inject] private StateMigrationJobSecuredRepositoryFactory StateMigrationRepoFactory { get; set; } = null!;
-    [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
 
     private string? _blockedReason;
     private List<StateMigrationJob> _jobs = [];
@@ -468,7 +467,6 @@ else
             StateMigrationRepoFactory,
             ModuleRepoFactory,
             StateMigrationServiceFactory,
-            DbContextFactory,
             PrincipalProvider ?? new HttpContextPrincipalProvider(new HttpContextAccessor()));
 
     private IApprovalSource? _approvalSource;

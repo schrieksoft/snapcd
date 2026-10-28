@@ -26,16 +26,16 @@ namespace SnapCd.Server.Core.Consumers.Missions;
 /// </summary>
 public class AgentReconnectedMissionWakeConsumer : IConsumer<AgentReconnectedEvent>
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly MissionDispatcher _dispatcher;
     private readonly ILogger<AgentReconnectedMissionWakeConsumer> _logger;
 
     public AgentReconnectedMissionWakeConsumer(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         MissionDispatcher dispatcher,
         ILogger<AgentReconnectedMissionWakeConsumer> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _dispatcher = dispatcher;
         _logger = logger;
     }
@@ -44,9 +44,8 @@ public class AgentReconnectedMissionWakeConsumer : IConsumer<AgentReconnectedEve
     {
         var msg = context.Message;
         var ct = context.CancellationToken;
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct);
 
-        var parked = await db.ModuleJobMissions
+        var parked = await _dbContext.ModuleJobMissions
             .Where(m => m.OrganizationId == msg.OrganizationId && m.Status == MissionStatus.WaitingForAgent)
             .ToListAsync(ct);
         if (parked.Count == 0)
@@ -54,22 +53,22 @@ public class AgentReconnectedMissionWakeConsumer : IConsumer<AgentReconnectedEve
 
         foreach (var mission in parked)
         {
-            if (!await AgentCoversMissionAsync(db, msg.AgentId, mission, ct))
+            if (!await AgentCoversMissionAsync(_dbContext, msg.AgentId, mission, ct))
                 continue;
 
-            var nextAttempt = (await db.ModuleJobMissionRuns
+            var nextAttempt = (await _dbContext.ModuleJobMissionRuns
                 .Where(r => r.ModuleJobMissionId == mission.Id && r.OrganizationId == mission.OrganizationId)
                 .Select(r => (int?)r.AttemptNumber)
                 .MaxAsync(ct)) ?? 0;
 
             mission.AgentId = msg.AgentId;
-            await db.SaveChangesAsync(ct);
+            await _dbContext.SaveChangesAsync(ct);
 
-            var outcome = await _dispatcher.DispatchAsync(db, mission, msg.AgentId, nextAttempt + 1, ct);
+            var outcome = await _dispatcher.DispatchAsync(_dbContext, mission, msg.AgentId, nextAttempt + 1, ct);
             if (outcome == MissionDispatchOutcome.Dispatched)
             {
                 mission.Status = MissionStatus.Pending;
-                await db.SaveChangesAsync(ct);
+                await _dbContext.SaveChangesAsync(ct);
                 _logger.LogInformation(
                     "Woken parked mission {MissionId} ({MissionType}, job {JobId}) via agent {AgentId} reconnect.",
                     mission.Id, mission.MissionType, mission.ModuleJobId, msg.AgentId);
@@ -85,37 +84,37 @@ public class AgentReconnectedMissionWakeConsumer : IConsumer<AgentReconnectedEve
     /// narrowed to one agent + one type.
     /// </summary>
     private static async Task<bool> AgentCoversMissionAsync(
-        SnapCdDbContext db, Guid agentId, ModuleJobMission mission, CancellationToken ct)
+        SnapCdDbContext _dbContext, Guid agentId, ModuleJobMission mission, CancellationToken ct)
     {
         var orgId = mission.OrganizationId;
-        var moduleId = await db.ModuleJobs
+        var moduleId = await _dbContext.ModuleJobs
             .Where(j => j.Id == mission.ModuleJobId && j.OrganizationId == orgId)
             .Select(j => j.ModuleId)
             .FirstOrDefaultAsync(ct);
         if (moduleId == Guid.Empty) return false;
 
-        var module = await db.Modules
+        var module = await _dbContext.Modules
             .FirstOrDefaultAsync(m => m.Id == moduleId && m.OrganizationId == orgId, ct);
         if (module is null) return false;
 
         var namespaceId = module.NamespaceId;
-        var stackId = await db.Namespaces
+        var stackId = await _dbContext.Namespaces
             .Where(n => n.Id == namespaceId && n.OrganizationId == orgId)
             .Select(n => (Guid?)n.StackId)
             .FirstOrDefaultAsync(ct);
 
         var type = mission.MissionType;
 
-        if (await db.OrganizationMissions.AnyAsync(
+        if (await _dbContext.OrganizationMissions.AnyAsync(
                 x => x.OrganizationId == orgId && x.AgentId == agentId && x.MissionType == type && !x.IsDisabled, ct))
             return true;
-        if (await db.ModuleMissions.AnyAsync(
+        if (await _dbContext.ModuleMissions.AnyAsync(
                 x => x.OrganizationId == orgId && x.ModuleId == moduleId && x.AgentId == agentId && x.MissionType == type && !x.IsDisabled, ct))
             return true;
-        if (await db.NamespaceMissions.AnyAsync(
+        if (await _dbContext.NamespaceMissions.AnyAsync(
                 x => x.OrganizationId == orgId && x.NamespaceId == namespaceId && x.AgentId == agentId && x.MissionType == type && !x.IsDisabled, ct))
             return true;
-        if (stackId is { } sid && await db.StackMissions.AnyAsync(
+        if (stackId is { } sid && await _dbContext.StackMissions.AnyAsync(
                 x => x.OrganizationId == orgId && x.StackId == sid && x.AgentId == agentId && x.MissionType == type && !x.IsDisabled, ct))
             return true;
 

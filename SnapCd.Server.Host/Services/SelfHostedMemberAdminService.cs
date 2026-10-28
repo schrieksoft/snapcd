@@ -22,7 +22,7 @@ using SnapCd.Server.Core.Services.Email;
 namespace SnapCd.Server.Host.Services;
 
 public class SelfHostedMemberAdminService(
-    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    SnapCdDbContext dbContext,
     UserManager<User> userManager,
     ISnapCdEmailSender emailSender,
     IHttpContextAccessor httpContextAccessor,
@@ -31,10 +31,9 @@ public class SelfHostedMemberAdminService(
     public async Task<(bool EmailSent, string ResetLink)> ResetMemberPasswordAsync(
         Guid organizationId, Guid targetUserId, Guid actingUserId)
     {
-        await using var db = await dbContextFactory.CreateDbContextAsync();
 
-        await AuthorizeAsync(db, organizationId, actingUserId);
-        await ValidateMembershipAsync(db, organizationId, targetUserId);
+        await AuthorizeAsync(dbContext, organizationId, actingUserId);
+        await ValidateMembershipAsync(dbContext, organizationId, targetUserId);
 
         var targetUser = await userManager.FindByIdAsync(targetUserId.ToString())
             ?? throw new InvalidOperationException($"User {targetUserId} not found");
@@ -57,10 +56,9 @@ public class SelfHostedMemberAdminService(
     public async Task ForceConfirmEmailAsync(
         Guid organizationId, Guid targetUserId, Guid actingUserId)
     {
-        await using var db = await dbContextFactory.CreateDbContextAsync();
 
-        await AuthorizeAsync(db, organizationId, actingUserId);
-        await ValidateMembershipAsync(db, organizationId, targetUserId);
+        await AuthorizeAsync(dbContext, organizationId, actingUserId);
+        await ValidateMembershipAsync(dbContext, organizationId, targetUserId);
 
         var targetUser = await userManager.FindByIdAsync(targetUserId.ToString())
             ?? throw new InvalidOperationException($"User {targetUserId} not found");
@@ -77,13 +75,13 @@ public class SelfHostedMemberAdminService(
             targetUserId, actingUserId, organizationId);
     }
 
-    private static async Task AuthorizeAsync(SnapCdDbContext db, Guid organizationId, Guid actingUserId)
+    private static async Task AuthorizeAsync(SnapCdDbContext dbContext, Guid organizationId, Guid actingUserId)
     {
-        var hasSystemAdmin = await db.Set<UserSystemRoleAssignment>()
+        var hasSystemAdmin = await dbContext.Set<UserSystemRoleAssignment>()
             .AnyAsync(r => r.UserId == actingUserId && r.RoleName == SystemRole.Administrator);
         if (hasSystemAdmin) return;
 
-        var hasOrgAdminRole = await db.UserOrganizationRoleAssignments
+        var hasOrgAdminRole = await dbContext.UserOrganizationRoleAssignments
             .AnyAsync(r => r.OrganizationId == organizationId
                         && r.UserId == actingUserId
                         && (r.RoleName == OrganizationRole.Owner
@@ -94,9 +92,9 @@ public class SelfHostedMemberAdminService(
                 $"or OrganizationRole.IdentityAccessManager to perform this action.");
     }
 
-    private static async Task ValidateMembershipAsync(SnapCdDbContext db, Guid organizationId, Guid targetUserId)
+    private static async Task ValidateMembershipAsync(SnapCdDbContext dbContext, Guid organizationId, Guid targetUserId)
     {
-        var isMember = await db.OrganizationUsers
+        var isMember = await dbContext.OrganizationUsers
             .AnyAsync(ou => ou.OrganizationId == organizationId && ou.UserId == targetUserId);
         if (!isMember)
             throw new InvalidOperationException(

@@ -138,7 +138,7 @@ public class RunnerConnectionLivenessTests : IAsyncLifetime
         var authorization = new RunnerJobAuthorizationService(
             Repositories(),
             null!,
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>(),
+            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext(),
             NullLogger<RunnerJobAuthorizationService>.Instance);
         var context = new CallerContext(Guid.NewGuid().ToString("N"), _runner.OrganizationId);
 

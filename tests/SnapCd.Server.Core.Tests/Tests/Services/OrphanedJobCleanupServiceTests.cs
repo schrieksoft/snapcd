@@ -31,7 +31,7 @@ public class OrphanedJobCleanupServiceTests : IAsyncLifetime
         // Create a mock IDbContextFactory that returns contexts from the fixture
         var dbContextFactory = new TestDbContextFactory(_fixture);
         _dbContextFactory = dbContextFactory;
-        _service = new OrphanedJobCleanupService(_dbContextFactory);
+        _service = new OrphanedJobCleanupService(_dbContextFactory.CreateDbContext());
         return Task.CompletedTask;
     }
 

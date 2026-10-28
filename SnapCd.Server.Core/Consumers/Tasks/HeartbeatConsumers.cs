@@ -22,18 +22,18 @@ public abstract class HeartbeatConsumerBase<TRequest> : IConsumer<TRequest>
     where TRequest : HeartbeatRequestedBase
 {
     private readonly ILogger _logger;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
 
-    protected HeartbeatConsumerBase(ILogger logger, IDbContextFactory<SnapCdDbContext> dbContextFactory)
+    protected HeartbeatConsumerBase(ILogger logger, SnapCdDbContext dbContext)
     {
         _logger = logger;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
     }
 
     /// <summary>When the runner last reported on this job, or null if it never has.</summary>
     private const int ThresholdSeconds = 90;
 
-    protected abstract Task<DateTime?> LastReportedAt(SnapCdDbContext dbContext, Guid organizationId, Guid jobId);
+    protected abstract Task<DateTime?> LastReportedAt(SnapCdDbContext _dbContext, Guid organizationId, Guid jobId);
 
     public async Task Consume(ConsumeContext<TRequest> context)
     {
@@ -44,14 +44,13 @@ public abstract class HeartbeatConsumerBase<TRequest> : IConsumer<TRequest>
 
         try
         {
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-            var lastReportedAt = await LastReportedAt(dbContext, orgId, correlationId);
+            var lastReportedAt = await LastReportedAt(_dbContext, orgId, correlationId);
 
             if (lastReportedAt == null)
             {
                 // A reconnect deletes the connection's job rows; the runner's next report recreates them.
-                var reconnectedAt = await dbContext.RunnerConnections
+                var reconnectedAt = await _dbContext.RunnerConnections
                     .Where(rc => rc.OrganizationId == orgId
                                  && rc.RunnerId == context.Message.RunnerId
                                  && rc.InstanceName == context.Message.RunnerInstanceName)
@@ -102,11 +101,11 @@ public abstract class HeartbeatConsumerBase<TRequest> : IConsumer<TRequest>
 
 public class ModuleJobHeartbeatConsumer : HeartbeatConsumerBase<ModuleJobHeartbeatRequested>
 {
-    public ModuleJobHeartbeatConsumer(ILogger<ModuleJobHeartbeatConsumer> logger, IDbContextFactory<SnapCdDbContext> dbContextFactory)
-        : base(logger, dbContextFactory) { }
+    public ModuleJobHeartbeatConsumer(ILogger<ModuleJobHeartbeatConsumer> logger, SnapCdDbContext dbContext)
+        : base(logger, dbContext) { }
 
-    protected override async Task<DateTime?> LastReportedAt(SnapCdDbContext dbContext, Guid organizationId, Guid jobId) =>
-        await dbContext.RunnerConnectionJobs
+    protected override async Task<DateTime?> LastReportedAt(SnapCdDbContext _dbContext, Guid organizationId, Guid jobId) =>
+        await _dbContext.RunnerConnectionJobs
             .Where(r => r.OrganizationId == organizationId && r.ModuleJobId == jobId)
             .Select(r => (DateTime?)r.ModifiedDateTime)
             .FirstOrDefaultAsync();
@@ -114,11 +113,11 @@ public class ModuleJobHeartbeatConsumer : HeartbeatConsumerBase<ModuleJobHeartbe
 
 public class StateMigrationHeartbeatConsumer : HeartbeatConsumerBase<StateMigrationHeartbeatRequested>
 {
-    public StateMigrationHeartbeatConsumer(ILogger<StateMigrationHeartbeatConsumer> logger, IDbContextFactory<SnapCdDbContext> dbContextFactory)
-        : base(logger, dbContextFactory) { }
+    public StateMigrationHeartbeatConsumer(ILogger<StateMigrationHeartbeatConsumer> logger, SnapCdDbContext dbContext)
+        : base(logger, dbContext) { }
 
-    protected override async Task<DateTime?> LastReportedAt(SnapCdDbContext dbContext, Guid organizationId, Guid jobId) =>
-        await dbContext.RunnerConnectionStateMigrations
+    protected override async Task<DateTime?> LastReportedAt(SnapCdDbContext _dbContext, Guid organizationId, Guid jobId) =>
+        await _dbContext.RunnerConnectionStateMigrations
             .Where(r => r.OrganizationId == organizationId && r.StateMigrationJobId == jobId)
             .Select(r => (DateTime?)r.ModifiedDateTime)
             .FirstOrDefaultAsync();

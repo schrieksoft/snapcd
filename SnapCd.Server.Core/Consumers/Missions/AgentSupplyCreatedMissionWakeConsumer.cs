@@ -31,16 +31,16 @@ public class AgentSupplyCreatedMissionWakeConsumer :
     IConsumer<AgentModuleSupplyCreatedEvent>,
     IConsumer<AgentUpdatedEvent>
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
     private readonly MissionDispatcher _dispatcher;
     private readonly ILogger<AgentSupplyCreatedMissionWakeConsumer> _logger;
 
     public AgentSupplyCreatedMissionWakeConsumer(
-        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        SnapCdDbContext dbContext,
         MissionDispatcher dispatcher,
         ILogger<AgentSupplyCreatedMissionWakeConsumer> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _dispatcher = dispatcher;
         _logger = logger;
     }
@@ -67,9 +67,8 @@ public class AgentSupplyCreatedMissionWakeConsumer :
 
     private async Task WakeAsync(Guid agentId, Guid organizationId, CancellationToken ct)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct);
 
-        var parked = await db.ModuleJobMissions
+        var parked = await _dbContext.ModuleJobMissions
             .Where(m => m.OrganizationId == organizationId
                      && m.AgentId == agentId
                      && m.Status == MissionStatus.BlockedAgentNotAssigned)
@@ -79,17 +78,17 @@ public class AgentSupplyCreatedMissionWakeConsumer :
 
         foreach (var mission in parked)
         {
-            var lastAttempt = (await db.ModuleJobMissionRuns
+            var lastAttempt = (await _dbContext.ModuleJobMissionRuns
                 .Where(r => r.ModuleJobMissionId == mission.Id && r.OrganizationId == mission.OrganizationId)
                 .Select(r => (int?)r.AttemptNumber)
                 .MaxAsync(ct)) ?? 0;
 
-            var outcome = await _dispatcher.DispatchAsync(db, mission, agentId, lastAttempt + 1, ct);
+            var outcome = await _dispatcher.DispatchAsync(_dbContext, mission, agentId, lastAttempt + 1, ct);
 
             if (outcome == MissionDispatchOutcome.Dispatched)
             {
                 mission.Status = MissionStatus.Pending;
-                await db.SaveChangesAsync(ct);
+                await _dbContext.SaveChangesAsync(ct);
                 _logger.LogInformation(
                     "Woken parked mission {MissionId} ({MissionType}, job {JobId}) — agent {AgentId} now supplied to the target scope.",
                     mission.Id, mission.MissionType, mission.ModuleJobId, agentId);

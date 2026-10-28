@@ -67,7 +67,7 @@ public class ModuleHoldServiceTests
             principal);
     }
 
-    private ModuleHoldStore Store => new(_cache, Options.Create(_settings), _clock, new DbFactory(_fixture));
+    private ModuleHoldStore Store => new(_cache, Options.Create(_settings), _clock, _fixture.CreateDbContext());
 
     private ModuleHoldHeartbeatRequestDto NamespaceHeartbeat(params Guid[] namespaces) =>
         new() { NamespaceIds = [.. namespaces], HeartbeatIntervalSeconds = 10 };

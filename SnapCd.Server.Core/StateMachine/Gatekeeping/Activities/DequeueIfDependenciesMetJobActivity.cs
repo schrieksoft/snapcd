@@ -25,18 +25,18 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
     private readonly IServiceProvider _serviceProvider;
     private readonly IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<DequeueIfDependenciesMetJobActivity<TMessage>> _logger;
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly SnapCdDbContext _dbContext;
 
     public DequeueIfDependenciesMetJobActivity(
         IServiceProvider serviceProvider,
         IMaintenanceModeService maintenanceMode,
         ILogger<DequeueIfDependenciesMetJobActivity<TMessage>> logger,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory)
+        SnapCdDbContext dbContext)
     {
         _serviceProvider = serviceProvider;
         _maintenanceMode = maintenanceMode;
         _logger = logger;
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
     }
 
     // Resolved lazily: the maintenance-gated path runs without the job-service dependency graph.
@@ -72,15 +72,13 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
                 return;
             }
 
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
             // Check if there's a current ModuleJob for this module
-            var hasCurrentJob = await dbContext.ModuleJobs
+            var hasCurrentJob = await _dbContext.ModuleJobs
                 .Where(j => j.ModuleId == context.Saga.CorrelationId && j.OrganizationId == context.Saga.OrganizationId && j.IsCurrent == true)
                 .AnyAsync();
 
             if (context.Saga.QueuedDesiredStateHeadline == DesiredStateHeadline.Destroyed &&
-                await ModuleDestroyedCheck.IsDestroyedAsync(dbContext, context.Saga.CorrelationId, context.Saga.OrganizationId))
+                await ModuleDestroyedCheck.IsDestroyedAsync(_dbContext, context.Saga.CorrelationId, context.Saga.OrganizationId))
             {
                 context.Saga.QueuedDesiredStateHeadline = null;
                 context.Saga.QueuedReason = null;
