@@ -54,6 +54,13 @@ public sealed class IntegrationSupplyService(
 
     public async Task<IntegrationSupplyDto> GetOne(Guid integrationId, Guid organizationId, IntegrationSupplyScope scope, Guid assignmentId)
     {
+        
+        using (var secured = securedFactory.Create())
+        {
+            if (!secured.CanRead(integrationId, organizationId))
+                throw new PrincipalNotAuthorizedException($"Not permitted to read integration '{integrationId}'.");
+        }
+        
         IntegrationSupplyDto? dto = scope switch
         {
             IntegrationSupplyScope.Stack => await dbContext.IntegrationStackSupplies

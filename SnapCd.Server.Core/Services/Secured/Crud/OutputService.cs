@@ -23,28 +23,24 @@ namespace SnapCd.Server.Core.Services.Crud;
 
 public class OutputServiceFactory(
     OutputSecuredRepositoryFactory securedRepositoryFactory,
-    CustomOutputMapper outputMapper,
-    SnapCdDbContext dbContext)
+    CustomOutputMapper outputMapper)
 {
     public OutputService Create()
     {
-        return new OutputService(securedRepositoryFactory.Create(), outputMapper, dbContext);
+        return new OutputService(securedRepositoryFactory.Create(), outputMapper);
     }
 }
 
 public class OutputService : GenericCrudService<Output, OutputMetadata, OutputCreateDto, OutputUpdateDto, OutputReadDto, OutputMetadataReadDto, OutputSecuredRepository, OutputRepository, OutputCreatedEvent, OutputUpdatedEvent, OutputDeletedEvent, OutputRepositorySettings>
 {
     private readonly CustomOutputMapper _outputMapper;
-    private readonly SnapCdDbContext _dbContext;
 
     public OutputService(
         OutputSecuredRepository securedRepository,
-        CustomOutputMapper outputMapper,
-        SnapCdDbContext dbContext
+        CustomOutputMapper outputMapper
     ) : base(securedRepository)
     {
         _outputMapper = outputMapper;
-        _dbContext = dbContext;
     }
 
     protected override Output MapToEntity(OutputCreateDto dto, Guid organizationId)

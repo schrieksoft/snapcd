@@ -72,6 +72,10 @@ public class StateMigrationService : IDisposable
     /// </summary>
     public async Task<string?> GetBlockedReason(Guid moduleId, Guid organizationId)
     {
+        if (!_moduleSecuredRepository.CanRead(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Principal is not allowed to read Module with Id {moduleId}");
+
         var saga = await _dbContext.Set<ModuleSaga>().AsNoTracking()
             .FirstOrDefaultAsync(s => s.CorrelationId == moduleId && s.OrganizationId == organizationId);
 
@@ -743,35 +747,6 @@ public class StateMigrationService : IDisposable
         job.FailedOnServerSideStep = ServerSideStep.Start;
         job.ServerSideErrorHeader = "This job failed due to an error occurring on the Server. The full error can be seen below.";
         job.ServerSideError = ErrorText.Body(errorMessage);
-
-        await _dbContext.SaveChangesAsync();
-    }
-
-    /// <summary>
-    /// Records a manual job that failed before its saga could take over, so a launch that throws
-    /// leaves a visible job rather than nothing. Mirrors JobService.CreateFailedJob.
-    /// </summary>
-    public async Task CreateFailedJob(
-        Guid correlationId,
-        Guid moduleId,
-        Guid organizationId,
-        string jobType,
-        string errorMessage)
-    {
-        var timestamp = DateTimeOffset.UtcNow;
-
-        _dbContext.StateMigrationJobs.Add(new StateMigrationJob
-        {
-            Id = correlationId,
-            ModuleId = moduleId,
-            OrganizationId = organizationId,
-            TimestampStart = timestamp,
-            TimestampEnd = timestamp,
-            JobType = jobType,
-            Status = ExecutionStatus.Failed,
-            ServerSideErrorHeader = "This job failed due to an error occurring on the Server. The full error can be seen below.",
-            ServerSideError = ErrorText.Body(errorMessage)
-        });
 
         await _dbContext.SaveChangesAsync();
     }

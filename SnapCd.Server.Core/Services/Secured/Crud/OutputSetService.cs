@@ -34,7 +34,6 @@ public class
 {
     private readonly CustomOutputMapper _outputMapper;
 
-    private readonly SnapCdDbContext _dbContext;
     private readonly IBus _bus;
     private readonly IVaultFactory _vaultFactory;
     private readonly SecretOutputRepository _secretOutputRepository;
@@ -44,7 +43,6 @@ public class
     public OutputSetService(
         OutputSetSecuredRepository securedRepository,
         CustomOutputMapper outputMapper,
-        SnapCdDbContext dbContext,
         IBus bus,
         IVaultFactory vaultFactory,
         SecretOutputRepository secretOutputRepository,
@@ -52,7 +50,6 @@ public class
         IOptions<OutputSetRepositorySettings> repositorySettings) : base(securedRepository)
     {
         _outputMapper = outputMapper;
-        _dbContext = dbContext;
         _bus = bus;
         _vaultFactory = vaultFactory;
         _secretOutputRepository = secretOutputRepository;

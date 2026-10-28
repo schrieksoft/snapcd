@@ -88,8 +88,16 @@ public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCr
         return module;
     }
 
+    private void EnsureCanRead(Guid moduleId, Guid organizationId)
+    {
+        if (!CanRead(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException($"Not permitted to read Module '{moduleId}'.");
+    }
+
     public async Task<ModuleSourceDto> GetSource(Guid moduleId, Guid organizationId)
     {
+        EnsureCanRead(moduleId, organizationId);
+
         var dto = await _dbContext.Modules
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new ModuleSourceDto
@@ -112,6 +120,7 @@ public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCr
 
     public async Task<ModuleStateDto> GetState(Guid moduleId, Guid organizationId)
     {
+        EnsureCanRead(moduleId, organizationId);
 
         var moduleHeader = await _dbContext.Modules
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
@@ -150,6 +159,7 @@ public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCr
 
     public async Task<List<ModuleMissionHistoryEntryDto>> GetMissionHistory(Guid moduleId, Guid organizationId, int take = 5)
     {
+        EnsureCanRead(moduleId, organizationId);
 
         var moduleExists = await _dbContext.Modules
             .AnyAsync(m => m.Id == moduleId && m.OrganizationId == organizationId);

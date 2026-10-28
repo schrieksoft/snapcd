@@ -421,9 +421,7 @@
 
         using var service = ProbeRerunServiceFactory.Create(Principal());
 
-        var originModuleId = await service.OriginModuleOf(ModuleJobId, OrganizationId);
-
-        var refusal = originModuleId is { } id && service.MayAsk(id, OrganizationId)
+        var refusal = await service.CanRetry(ModuleJobId, OrganizationId)
             ? null
             : "You are not allowed to run jobs on this Module.";
 
@@ -474,7 +472,7 @@
 
         using var service = ProbeRerunServiceFactory.Create(Principal());
 
-        var refusal = service.MayAsk(_wave.OriginModuleId, OrganizationId)
+        var refusal = service.CanRerun(_wave.OriginModuleId, OrganizationId)
             ? null
             : $"You are not allowed to run jobs on {_wave.OriginModuleName}.";
 

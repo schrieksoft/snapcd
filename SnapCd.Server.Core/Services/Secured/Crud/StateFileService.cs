@@ -379,15 +379,6 @@ public class StateFileService : GenericCrudService<
         return version;
     }
 
-    public async Task<Guid> GetOrganizationIdForStateStore(Guid stateStoreId)
-    {
-        var stateStore = await _dbContext.Set<StateStore>()
-            .FirstOrDefaultAsync(ss => ss.Id == stateStoreId);
-        if (stateStore == null)
-            throw new InvalidOperationException("State store not found.");
-        return stateStore.OrganizationId;
-    }
-
     private async Task CreateVersionInternal(Guid stateFileId, Guid organizationId, byte[] encryptedData)
     {
         var principalId = _principalProvider.GetSubjectOrDefault(organizationId);

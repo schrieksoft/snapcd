@@ -385,7 +385,11 @@ public class JobService : IDisposable
             });
     }
 
-    public async Task CreateFailedJob(Guid correlationId, Guid moduleId, Guid organizationId, string errorMessage, string jobType)
+    /// <summary>
+    /// Records a job that failed before its saga could take over, so a launch that throws leaves
+    /// a visible job rather than nothing.
+    /// </summary>
+    private async Task CreateFailedJob(Guid correlationId, Guid moduleId, Guid organizationId, string errorMessage, string jobType)
     {
         // First, unset any existing current job for this module
         var existingCurrentJob = await _dbContext.ModuleJobs

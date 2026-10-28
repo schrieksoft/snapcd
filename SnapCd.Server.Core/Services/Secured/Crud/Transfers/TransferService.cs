@@ -166,38 +166,13 @@ public class TransferService(
         });
     }
 
-    /// <summary>
-    /// Closes a transfer once both sides have finished, releasing both Modules. A further attempt
-    /// is a new transfer rather than a re-run of this one.
-    /// </summary>
-    /// <remarks>
-    /// Not called: a trigger on StateMigrationJobs closes a transfer as its jobs end, so the claim
-    /// and the release are both made by the statement that caused them. Kept for the sweep that
-    /// reconciles a transfer left open by something the trigger did not see.
-    /// </remarks>
-    public async Task CloseIfBothSidesEnded(Guid transferId, Guid organizationId)
-    {
-        var transfer = await dbContext.Transfers
-            .FirstOrDefaultAsync(t => t.Id == transferId && t.OrganizationId == organizationId);
-
-        if (transfer is null || transfer.ClosedAt != null) return;
-
-        var jobs = await dbContext.StateMigrationJobs.AsNoTracking()
-            .Where(j => j.TransferId == transferId && j.OrganizationId == organizationId)
-            .Select(j => j.Status)
-            .ToListAsync();
-
-        if (jobs.Count < 2 || jobs.Any(s => s == ExecutionStatus.Running)) return;
-
-        transfer.ClosedAt = DateTimeOffset.UtcNow;
-        transfer.CloseReason = "both modules finished";
-
-        await dbContext.SaveChangesAsync();
-    }
-
     /// <summary>The open transfer this Module is in, in either role.</summary>
     public async Task<Transfer?> FindOpenForModule(Guid moduleId, Guid organizationId)
     {
+        if (!moduleSecuredRepository.CanRead(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Principal is not allowed to read Module with Id {moduleId}");
+
         return await dbContext.Transfers.AsNoTracking()
             .FirstOrDefaultAsync(t =>
                 t.OrganizationId == organizationId &&

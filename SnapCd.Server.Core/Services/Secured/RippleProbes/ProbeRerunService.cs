@@ -39,6 +39,9 @@ public class ProbeRerunServiceFactory(
 /// resolved. Any of those can move afterwards, and the answer stops holding without anything
 /// saying so. The approver is the one who decides whether the difference matters, so re-running is
 /// something they ask for rather than something that happens to them.
+///
+/// Every entry point checks permission itself. CanRetry and CanRerun answer the same question
+/// without acting, for a caller that has to decide whether to offer the action at all.
 /// </summary>
 public class ProbeRerunService(
     SnapCdDbContext dbContext,
@@ -48,19 +51,28 @@ public class ProbeRerunService(
     ILogger<ProbeRerunService> logger) : IDisposable
 {
     /// <summary>
-    /// Both asks start an Apply on the Module, so they take the same permission as running one
-    /// directly. Reading the panel is a weaker bar than running what it offers.
+    /// Whether a retry may be asked for. The permission hangs off the Module the origin job ran
+    /// against, which this resolves; a job that is gone answers false. RetryPropagation checks
+    /// again when asked to act, so a caller uses this to decide what to offer.
     /// </summary>
-    public bool MayAsk(Guid moduleId, Guid organizationId) =>
-        jobs.CanRunJob(moduleId, organizationId);
-
-    /// <summary>The Module whose permission governs a retry, or null where the job is gone.</summary>
-    public async Task<Guid?> OriginModuleOf(Guid originModuleJobId, Guid organizationId) =>
-        await dbContext.ModuleJobs
+    public async Task<bool> CanRetry(Guid originModuleJobId, Guid organizationId)
+    {
+        var originModuleId = await dbContext.ModuleJobs
             .AsNoTracking()
             .Where(j => j.Id == originModuleJobId && j.OrganizationId == organizationId)
             .Select(j => (Guid?)j.ModuleId)
             .FirstOrDefaultAsync();
+
+        return originModuleId is { } id && CanRerun(id, organizationId);
+    }
+
+    /// <summary>
+    /// Whether another prediction may be asked for. Both asks start an Apply on the Module the
+    /// wave came from, so they take the same permission as running one directly. Reading the
+    /// panel is a weaker bar than running what it offers.
+    /// </summary>
+    public bool CanRerun(Guid originModuleId, Guid organizationId) =>
+        jobs.CanRunJob(originModuleId, organizationId);
 
     /// <summary>
     /// Starts the propagation a job's plan should have started. The plan is already recorded, so
@@ -85,7 +97,7 @@ public class ProbeRerunService(
 
         if (job == null) return "that job no longer exists";
 
-        if (!MayAsk(job.ModuleId, organizationId))
+        if (!CanRerun(job.ModuleId, organizationId))
             return "you are not allowed to run jobs on this Module";
 
         if (job.Status != ExecutionStatus.Running || job.WaitingForApproval != true)
@@ -149,7 +161,7 @@ public class ProbeRerunService(
 
         if (wave == null) return "that propagation no longer exists";
 
-        if (!MayAsk(wave.OriginModuleId, organizationId))
+        if (!CanRerun(wave.OriginModuleId, organizationId))
             return "you are not allowed to run jobs on this Module";
 
         // A wave informs one approval decision and ends when that decision is made. Asking a
