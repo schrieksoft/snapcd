@@ -59,5 +59,12 @@ public class ModuleProbeAttemptClassMap : IEntityTypeConfiguration<ModuleProbeAt
             .HasForeignKey(e => new { e.SignalOutputSetId, e.OrganizationId })
             .HasPrincipalKey(x => new { x.Id, x.OrganizationId })
             .OnDelete(DeleteBehavior.Restrict);
+
+        entity
+            .HasOne(e => e.ResourceChangeSet)
+            .WithMany()
+            .HasForeignKey(e => new { e.ResourceChangeSetId, e.OrganizationId })
+            .HasPrincipalKey(x => new { x.Id, x.OrganizationId })
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

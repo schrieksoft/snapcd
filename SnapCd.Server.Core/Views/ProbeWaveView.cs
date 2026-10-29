@@ -164,6 +164,22 @@ public class ProbeWaveModuleView
         Signals.Any(s => s.Actions.Contains("delete"));
 
     public bool HasUnknownSignal => Signals.Any(s => s.AfterIsUnknown);
+
+    /// <summary>
+    /// What the latest probe predicted this Module would do to its own resources, which is a
+    /// different question from what it passes downstream. A Module can change in place while its
+    /// outputs hold still, and reporting only the signals calls that unaffected.
+    /// </summary>
+    public List<ResourceChangeView>? ResourceChanges => Latest?.ResourceChanges;
+
+    public int? ResourceChangeCount => Latest?.ResourceChangeCount;
+
+    /// <summary>
+    /// This Module changes while passing nothing on. Null where the probe reported nothing about
+    /// its resources, so the question cannot be answered rather than answered no.
+    /// </summary>
+    public bool? ChangesWithoutSignalling =>
+        ResourceChangeCount is { } count ? count > 0 && Signals.Count == 0 : null;
 }
 
 /// <summary>How far one participant has got, for a reader deciding whether to wait for it.</summary>
@@ -219,6 +235,19 @@ public class ProbeAttemptView
     public List<SignalOutputView> Signals { get; set; } = [];
 
     /// <summary>
+    /// What this probe predicted it would do to this Module's own resources. Empty where it
+    /// predicted none, and null where the probe reported nothing about them at all, which an
+    /// engine that does not report them produces.
+    /// </summary>
+    public List<ResourceChangeView>? ResourceChanges { get; set; }
+
+    /// <summary>
+    /// How many resource changes the probe predicted, which can exceed what
+    /// <see cref="ResourceChanges"/> holds: a wide blast radius is stored up to a cap.
+    /// </summary>
+    public int? ResourceChangeCount { get; set; }
+
+    /// <summary>
     /// What has moved for this Module since the probe answered. A probe plans against the code,
     /// the declaration and the resolved input values of one moment, so a prediction holds only
     /// while those are unchanged. Empty where nothing has moved, and null where the comparison
@@ -227,6 +256,25 @@ public class ProbeAttemptView
     public List<StalenessReason>? Stale { get; set; }
 
     public bool IsStale => Stale is { Count: > 0 };
+}
+
+/// <summary>
+/// One resource a probe predicted a change to. No attribute values: what an approver reads is the
+/// verb and what it applies to, and a resource's attributes are large and often secret.
+/// </summary>
+public class ResourceChangeView
+{
+    /// <summary>The resource's address as the engine prints it, module path included.</summary>
+    public string Address { get; set; } = null!;
+
+    public string ResourceType { get; set; } = null!;
+    public string Name { get; set; } = null!;
+
+    /// <summary>
+    /// The plan's own actions, as "tofu show -json" writes them: one element for a simple action,
+    /// two for a replace.
+    /// </summary>
+    public List<string> Actions { get; set; } = [];
 }
 
 public class SignalEdgeView
