@@ -47,10 +47,31 @@ type Value struct {
 	Sensitive bool `json:"sensitive,omitempty"`
 }
 
+// ResourceChange is one resource the plan acts on, carried so an approver can
+// read what a probe would do to this root rather than only what it passes on.
+//
+// No attribute values: a resource's attributes are large and often secret,
+// where an output's value is small and has a sensitive path of its own. The
+// address and the verb are what the reader of an approval needs.
+type ResourceChange struct {
+	// Address is the resource's address in the root, as tofu prints it.
+	Address string `json:"address"`
+
+	Type string `json:"type"`
+	Name string `json:"name"`
+
+	// Action is the plan's verdict, in the same wire form as a Value's.
+	Action Action `json:"action"`
+}
+
 // OutputChanges is what a root emits: keyed by output name.
 type OutputChanges struct {
 	FormatVersion string           `json:"format_version"`
 	Outputs       map[string]Value `json:"outputs"`
+
+	// ResourceChanges is what the plan does to this root's own resources, and
+	// is absent on a document built from a plan file's outputs alone.
+	ResourceChanges []ResourceChange `json:"resource_changes,omitempty"`
 }
 
 // Inputs is what a root consumes: keyed by variable name. The orchestrator

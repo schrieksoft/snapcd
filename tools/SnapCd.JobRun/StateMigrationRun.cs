@@ -6,7 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Services.Logs;
+using SnapCd.Server.Core.Services.Nonsecured.Logs;
+using SnapCd.Server.Core.Services.Secured.Logs;
+using SnapCd.Server.Core.Services.Utils.Logs;
 using SnapCd.Contracts.Dto.Misc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,8 +19,11 @@ using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Repositories.Custom.Secured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services;
-using SnapCd.Server.Core.Services.Crud.Jobs;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Secured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 
 namespace SnapCd.JobRun;
 

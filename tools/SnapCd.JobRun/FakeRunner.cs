@@ -7,7 +7,9 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services.Logs;
+using SnapCd.Server.Core.Services.Nonsecured.Logs;
+using SnapCd.Server.Core.Services.Secured.Logs;
+using SnapCd.Server.Core.Services.Utils.Logs;
 using SnapCd.Contracts.Endpoints;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using System.Reflection;
@@ -465,14 +467,19 @@ public class FakeRunner(
             _ when moduleId == RunOptions.DiamondDModuleId => "d_id",
             _ when moduleId == RunOptions.DiamondEModuleId => "e_id",
             _ when moduleId == RunOptions.DiamondFModuleId => "f_id",
+            _ when moduleId == RunOptions.FanoutAModuleId => "a_id",
+            _ when moduleId == RunOptions.FanoutBModuleId => "b_id",
+            _ when moduleId == RunOptions.FanoutCModuleId => "c_id",
+            _ when moduleId == RunOptions.FanoutDModuleId => "d_id",
             _ => "jobrun_output"
         };
     }
 
     /// <summary>
     /// What a probe of this Module reports. The diamond's Modules answer with the signals a real
-    /// a real plan produced for the matching root; anything else answers with one changed output,
-    /// which is enough for a Module whose consumers are not the point of the run.
+    /// a real plan produced for the matching root; the fanout's answer with the three ways a probe
+    /// can report, one per consumer. Anything else answers with one changed output, which is enough
+    /// for a Module whose consumers are not the point of the run.
     /// </summary>
     private static string ProbeSignalsFor(object payload)
     {
@@ -484,6 +491,10 @@ public class FakeRunner(
             _ when moduleId == RunOptions.DiamondBModuleId => DiamondSignals.RootB,
             _ when moduleId == RunOptions.DiamondCModuleId => DiamondSignals.RootC,
             _ when moduleId == RunOptions.DiamondDModuleId => DiamondSignals.RootD,
+            _ when moduleId == RunOptions.FanoutAModuleId => FanoutSignals.RootA,
+            _ when moduleId == RunOptions.FanoutBModuleId => FanoutSignals.RootB,
+            _ when moduleId == RunOptions.FanoutCModuleId => FanoutSignals.RootC,
+            _ when moduleId == RunOptions.FanoutDModuleId => FanoutSignals.RootD,
             _ => DiamondSignals.RootA
         };
     }

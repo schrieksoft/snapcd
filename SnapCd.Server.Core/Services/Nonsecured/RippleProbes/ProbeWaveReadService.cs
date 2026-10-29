@@ -208,7 +208,7 @@ public class ProbeWaveReadService : IDisposable
         var attempts = (await _dbContext.ModuleProbeAttempts
                 .AsNoTracking()
                 .Where(a => a.ProbeWaveId == waveId && a.OrganizationId == organizationId)
-                .Select(a => new { a.ModuleId, a.SignalOutputSetId, a.ProbeModuleJobId, a.Timestamp })
+                .Select(a => new { a.ModuleId, a.SignalOutputSetId, a.ResourceChangeSetId, a.ProbeModuleJobId, a.Timestamp })
                 .ToListAsync())
             .OrderByDescending(a => a.Timestamp)
             .ToList();
@@ -302,6 +302,25 @@ public class ProbeWaveReadService : IDisposable
             .OrderBy(s => s.Name)
             .ToListAsync();
 
+        var changeSetIds = attempts
+            .Where(a => a.ResourceChangeSetId != null && visibleIds.Contains(a.ModuleId))
+            .Select(a => a.ResourceChangeSetId!.Value)
+            .Distinct()
+            .ToList();
+
+        var resourceChanges = await _dbContext.ResourceChanges
+            .AsNoTracking()
+            .Where(r => changeSetIds.Contains(r.ResourceChangeSetId) && r.OrganizationId == organizationId)
+            .OrderBy(r => r.Address)
+            .ToListAsync();
+
+        // The stored rows stop at a cap, so the count comes off the set rather than from them.
+        var changeCounts = await _dbContext.ResourceChangeSets
+            .AsNoTracking()
+            .Where(r => changeSetIds.Contains(r.Id) && r.OrganizationId == organizationId)
+            .Select(r => new { r.Id, r.TotalCount })
+            .ToDictionaryAsync(r => r.Id, r => r.TotalCount);
+
         var ordered = visibleIds
             .Select(id => edges.First(e => e.ConsumerModuleId == id))
             .OrderBy(e => e.ConsumerNamespaceName)
@@ -340,7 +359,17 @@ public class ProbeWaveReadService : IDisposable
                             : signals
                                 .Where(x => x.SignalOutputSetId == a.SignalOutputSetId!.Value)
                                 .Select(Describe)
-                                .ToList()
+                                .ToList(),
+                        ResourceChanges = a.ResourceChangeSetId == null
+                            ? null
+                            : resourceChanges
+                                .Where(x => x.ResourceChangeSetId == a.ResourceChangeSetId!.Value)
+                                .Select(Describe)
+                                .ToList(),
+                        ResourceChangeCount = a.ResourceChangeSetId is { } changeSetId &&
+                                              changeCounts.TryGetValue(changeSetId, out var changeCount)
+                            ? changeCount
+                            : null
                     })
                     .ToList(),
                 Edges = edges
@@ -364,6 +393,19 @@ public class ProbeWaveReadService : IDisposable
     /// unknown exactly when the plan cannot know the new value, so the finding is read off that
     /// field rather than by inspecting the encoded bytes.
     /// </summary>
+    private static ResourceChangeView Describe(ResourceChange change)
+    {
+        return new ResourceChangeView
+        {
+            Address = change.Address,
+            ResourceType = change.ResourceType,
+            Name = change.Name,
+            Actions = change.Actions.Length == 0
+                ? []
+                : change.Actions.Split(',').ToList()
+        };
+    }
+
     private static SignalOutputView Describe(SignalOutput signal)
     {
         var view = new SignalOutputView

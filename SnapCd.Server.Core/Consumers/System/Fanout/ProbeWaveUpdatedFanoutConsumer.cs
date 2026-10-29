@@ -31,6 +31,6 @@ public class ProbeWaveUpdatedFanoutConsumer : IConsumer<ProbeWaveUpdatedEvent>
             "Telling open pages that wave {ProbeWaveId} changed",
             context.Message.ProbeWaveId);
 
-        await _notificationService.Notify(context.Message.ProbeWaveId);
+        await _notificationService.Notify(context.Message.ProbeWaveId, context.Message.ModuleId);
     }
 }

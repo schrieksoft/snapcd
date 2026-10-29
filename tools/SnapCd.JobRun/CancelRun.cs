@@ -15,8 +15,11 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Repositories.Custom.Secured;
-using SnapCd.Server.Core.Services.Crud.Jobs;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Secured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 
 namespace SnapCd.JobRun;
 

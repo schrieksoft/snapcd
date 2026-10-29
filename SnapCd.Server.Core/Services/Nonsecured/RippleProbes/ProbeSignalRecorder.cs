@@ -108,6 +108,63 @@ public class ProbeSignalRecorder : IDisposable
         });
     }
 
+    /// <summary>
+    /// Notes that this job's probe ran and reported nothing, which is an answer rather than an
+    /// absence: the Module owes the wave no prediction and nothing is still to come from it.
+    /// Without this a probe that reported nothing is indistinguishable from one that never
+    /// replied, and the wave waits on it for good.
+    /// </summary>
+    public async Task RecordEmptyReport(Guid probeWaveId, Guid moduleId, Guid organizationId, Guid moduleJobId)
+    {
+        var attempt = await _dbContext.ModuleProbeAttempts
+            .FirstOrDefaultAsync(a => a.ProbeWaveId == probeWaveId &&
+                                      a.ModuleId == moduleId &&
+                                      a.OrganizationId == organizationId &&
+                                      a.ProbeModuleJobId == moduleJobId);
+
+        // A set with no outputs in it, so every reader testing for one sees that this Module
+        // answered. The alternative is a second way of saying "reported", which every such
+        // reader would then have to learn.
+        var set = new SignalOutputSet
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            ModuleId = moduleId,
+            ProbeWaveId = probeWaveId,
+            ModuleJobId = moduleJobId,
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Checksum = Checksum(string.Empty)
+        };
+
+        _dbContext.SignalOutputSets.Add(set);
+
+        if (attempt == null)
+        {
+            attempt = new ModuleProbeAttempt
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                ProbeWaveId = probeWaveId,
+                ModuleId = moduleId,
+                ProbeModuleJobId = moduleJobId,
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
+
+            _dbContext.ModuleProbeAttempts.Add(attempt);
+        }
+
+        attempt.SignalOutputSetId = set.Id;
+
+        await _dbContext.SaveChangesAsync();
+
+        await _bus.Publish(new ProbeWaveUpdatedEvent
+        {
+            ProbeWaveId = probeWaveId,
+            OrganizationId = organizationId,
+            ModuleId = moduleId
+        });
+    }
+
     public async Task<Guid?> Record(
         Guid probeWaveId,
         Guid moduleId,
@@ -138,9 +195,12 @@ public class ProbeSignalRecorder : IDisposable
         }
 
         JsonObject? outputs;
+        JsonArray? resourceChanges;
         try
         {
-            outputs = JsonNode.Parse(signalsJson)?["outputs"]?.AsObject();
+            var document = JsonNode.Parse(signalsJson);
+            outputs = document?["outputs"]?.AsObject();
+            resourceChanges = document?["resource_changes"]?.AsArray();
         }
         catch (JsonException)
         {
@@ -148,7 +208,14 @@ public class ProbeSignalRecorder : IDisposable
             return null;
         }
 
-        if (outputs == null) return null;
+        if (outputs == null)
+        {
+            _logger.LogWarning(
+                "Probe for Module {ModuleId} returned a signals document with no outputs object.", moduleId);
+            return null;
+        }
+
+        RecordResourceChanges(attempt, resourceChanges, moduleId, organizationId, probeWaveId, moduleJobId);
 
         var set = new SignalOutputSet
         {
@@ -213,6 +280,88 @@ public class ProbeSignalRecorder : IDisposable
 
         return probeWaveId;
     }
+
+    /// <summary>
+    /// How many predicted resource changes are stored for one probe. A wide blast radius is
+    /// reported by its count rather than row by row, so one probe cannot fill the table.
+    /// </summary>
+    private const int MaxStoredResourceChanges = 500;
+
+    /// <summary>
+    /// Stores what the probe predicted for this Module's own resources. Absent for an engine whose
+    /// probe does not report them, and empty where the probe predicted none, which is a finding in
+    /// its own right: it is what distinguishes a Module that changes nothing from one whose outputs
+    /// merely hold still.
+    /// </summary>
+    private void RecordResourceChanges(
+        ModuleProbeAttempt attempt,
+        JsonArray? resourceChanges,
+        Guid moduleId,
+        Guid organizationId,
+        Guid probeWaveId,
+        Guid moduleJobId)
+    {
+        if (resourceChanges == null) return;
+
+        var set = new ResourceChangeSet
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            ModuleId = moduleId,
+            ProbeWaveId = probeWaveId,
+            ModuleJobId = moduleJobId,
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            TotalCount = resourceChanges.Count
+        };
+
+        _dbContext.ResourceChangeSets.Add(set);
+
+        var stored = 0;
+        var seen = new HashSet<string>();
+
+        foreach (var change in resourceChanges)
+        {
+            if (stored >= MaxStoredResourceChanges) break;
+            if (change == null) continue;
+
+            var address = change["address"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(address)) continue;
+
+            // The address is unique within a plan, and the unique index says so.
+            if (!seen.Add(address)) continue;
+
+            var actions = change["action"]?.AsArray();
+
+            _dbContext.ResourceChanges.Add(new ResourceChange
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                ResourceChangeSetId = set.Id,
+                Address = Truncate(address, 1024),
+                ResourceType = Truncate(change["type"]?.GetValue<string>() ?? string.Empty, 255),
+                Name = Truncate(change["name"]?.GetValue<string>() ?? string.Empty, 255),
+                Actions = Truncate(
+                    actions == null
+                        ? string.Empty
+                        : string.Join(",", actions.Select(a => a?.GetValue<string>()).Where(a => a != null)),
+                    100)
+            });
+
+            stored++;
+        }
+
+        if (set.TotalCount > stored)
+        {
+            _logger.LogDebug(
+                "Probe for Module {ModuleId} predicted {Total} resource changes; storing the first {Stored}.",
+                moduleId, set.TotalCount, stored);
+        }
+
+        attempt.ResourceChangeSetId = set.Id;
+    }
+
+    private static string Truncate(string value, int max) =>
+        value.Length <= max ? value : value[..max];
 
     private static string Checksum(string document)
     {

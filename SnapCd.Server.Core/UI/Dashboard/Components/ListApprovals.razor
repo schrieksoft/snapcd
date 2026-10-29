@@ -171,6 +171,12 @@
         if (_panelRef != null)
             await _panelRef.Refresh(invokeAsync);
 
+        // The wave is created as the job becomes awaiting-approval, which is a state change this
+        // already answers. The panel subscribes to the wave, so it has nothing to wait on until
+        // one exists, and the event announcing it can land before the panel is mounted.
+        if (_probesRef != null)
+            await _probesRef.Reload();
+
         if (invokeAsync)
             // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.
             await InvokeAsync(StateHasChanged);

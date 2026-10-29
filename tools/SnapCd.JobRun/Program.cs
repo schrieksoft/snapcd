@@ -19,9 +19,13 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Hubs;
+using SnapCd.Server.Core.Services.Interfaces.DataSeeder;
 using SnapCd.Server.Core.Licensing.Services;
-using SnapCd.Server.Core.Services.Crud.Jobs;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Secured.Crud.Jobs;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 using SnapCd.Server.Core.Startup;
 
 var options = RunOptions.Parse(args);
@@ -55,6 +59,17 @@ builder.Services.AddSingleton<EndpointReadiness>();
 builder.Services.AddSingleton<IReceiveEndpointObserver>(sp => sp.GetRequiredService<EndpointReadiness>());
 
 ServerComposition.AddServerServices(builder.Services, builder.Configuration, options.ConnectionString);
+
+// Fixture graphs the harness alone runs against, which do not belong in the debug seeder.
+if (options.Fanout)
+{
+    builder.Services.Replace(ServiceDescriptor.Scoped<IDataSeeder, JobRunDataSeeder>());
+
+    // Those Modules take a seeded organization past the community cap, which the quota gate
+    // refuses before any job is created.
+    builder.Services.Replace(
+        ServiceDescriptor.Scoped<ILicenseInfoProvider, ModuleCapForTheRun>());
+}
 
 builder.Services.Replace(ServiceDescriptor.Scoped<IPrincipalProvider>(_ => new LiteralPrincipalProvider(
     options.PrincipalId, PrincipalDiscriminator.User, [options.OrganizationId])));

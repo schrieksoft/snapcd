@@ -7,7 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.Extensions.DependencyInjection;
-using SnapCd.Server.Core.Services.Notification;
+using SnapCd.Server.Core.Services.Utils.Notification;
 
 namespace SnapCd.JobRun;
 

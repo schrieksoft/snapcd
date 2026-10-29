@@ -54,7 +54,7 @@ public class ProbeWaveView
         Modules.Any(m => m.Progress == ProbeProgress.Faulted) ? DownstreamImpact.Failed
         : Modules.Any(m => m.HasDisruptiveSignal) ? DownstreamImpact.Impact
         : Modules.Any(m => m.IsOutstanding) ? DownstreamImpact.Pending
-        : Modules.Any(m => m.Signals.Count > 0) ? DownstreamImpact.Changes
+        : Modules.Any(m => m.Changes) ? DownstreamImpact.Changes
         : DownstreamImpact.Cleared;
 }
 
@@ -77,7 +77,7 @@ public enum DownstreamImpact
     /// <summary>Everything answered and something downstream changes, but nothing is lost.</summary>
     Changes,
 
-    /// <summary>Everything answered and nothing downstream changes at all.</summary>
+    /// <summary>Everything answered and no Module downstream changes anything at all.</summary>
     Cleared
 }
 
@@ -164,6 +164,28 @@ public class ProbeWaveModuleView
         Signals.Any(s => s.Actions.Contains("delete"));
 
     public bool HasUnknownSignal => Signals.Any(s => s.AfterIsUnknown);
+
+    /// <summary>
+    /// The signals whose values actually change. What a reader is told about is movement, and an
+    /// output carried as a no-op is the probe reporting that this one holds still.
+    /// </summary>
+    public List<SignalOutputView> MovingSignals => Signals.Where(s => s.Moves).ToList();
+
+    /// <summary>
+    /// What the latest probe predicted this Module would do to its own resources, which is a
+    /// different question from what it passes downstream. A Module can change in place while its
+    /// outputs hold still, and reporting only the signals calls that unaffected.
+    /// </summary>
+    public List<ResourceChangeView>? ResourceChanges => Latest?.ResourceChanges;
+
+    public int? ResourceChangeCount => Latest?.ResourceChangeCount;
+
+    /// <summary>
+    /// This Module changes something, whether or not any of it reaches further downstream. A
+    /// Module can update its own resources while its outputs resolve to what they already were,
+    /// and counting only the signals calls that unaffected.
+    /// </summary>
+    public bool Changes => MovingSignals.Count > 0 || ResourceChangeCount > 0;
 }
 
 /// <summary>How far one participant has got, for a reader deciding whether to wait for it.</summary>
@@ -219,6 +241,19 @@ public class ProbeAttemptView
     public List<SignalOutputView> Signals { get; set; } = [];
 
     /// <summary>
+    /// What this probe predicted it would do to this Module's own resources. Empty where it
+    /// predicted none, and null where the probe reported nothing about them at all, which an
+    /// engine that does not report them produces.
+    /// </summary>
+    public List<ResourceChangeView>? ResourceChanges { get; set; }
+
+    /// <summary>
+    /// How many resource changes the probe predicted, which can exceed what
+    /// <see cref="ResourceChanges"/> holds: a wide blast radius is stored up to a cap.
+    /// </summary>
+    public int? ResourceChangeCount { get; set; }
+
+    /// <summary>
     /// What has moved for this Module since the probe answered. A probe plans against the code,
     /// the declaration and the resolved input values of one moment, so a prediction holds only
     /// while those are unchanged. Empty where nothing has moved, and null where the comparison
@@ -227,6 +262,25 @@ public class ProbeAttemptView
     public List<StalenessReason>? Stale { get; set; }
 
     public bool IsStale => Stale is { Count: > 0 };
+}
+
+/// <summary>
+/// One resource a probe predicted a change to. No attribute values: what an approver reads is the
+/// verb and what it applies to, and a resource's attributes are large and often secret.
+/// </summary>
+public class ResourceChangeView
+{
+    /// <summary>The resource's address as the engine prints it, module path included.</summary>
+    public string Address { get; set; } = null!;
+
+    public string ResourceType { get; set; } = null!;
+    public string Name { get; set; } = null!;
+
+    /// <summary>
+    /// The plan's own actions, as "tofu show -json" writes them: one element for a simple action,
+    /// two for a replace.
+    /// </summary>
+    public List<string> Actions { get; set; } = [];
 }
 
 public class SignalEdgeView
@@ -256,6 +310,13 @@ public class SignalOutputView
 
     /// <summary>True where the output goes away entirely, rather than being replaced.</summary>
     public bool IsDelete => Actions is ["delete"];
+
+    /// <summary>
+    /// Whether this output's value actually changes. An output the plan resolved and found equal
+    /// to its current value is carried as a no-op, because a consumer needs a value for every
+    /// variable it reads, so the presence of a signal does not by itself mean movement.
+    /// </summary>
+    public bool Moves => Actions.Count > 0 && Actions.Any(a => a != "no-op");
 
     /// <summary>True when the plan cannot know the new value yet, which is a finding rather than a gap.</summary>
     public bool AfterIsUnknown { get; set; }

@@ -177,6 +177,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Entities.Definition.Signals.SignalOutput> SignalOutputs { get; set; }
     public DbSet<Entities.Definition.Signals.LiteralSignalOutput> LiteralSignalOutputs { get; set; }
     public DbSet<Entities.Definition.Signals.SecretSignalOutput> SecretSignalOutputs { get; set; }
+    public DbSet<Entities.Definition.Signals.ResourceChangeSet> ResourceChangeSets { get; set; }
+    public DbSet<Entities.Definition.Signals.ResourceChange> ResourceChanges { get; set; }
     public DbSet<Entities.Definition.ProbeWaves.ProbeWave> ProbeWaves { get; set; }
     public DbSet<Entities.Definition.ProbeWaves.ModuleProbeAttempt> ModuleProbeAttempts { get; set; }
     public DbSet<Entities.Definition.ProbeWaves.SignalEdge> SignalEdges { get; set; }
@@ -507,6 +509,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new SecretOutputClassMap());
         modelBuilder.ApplyConfiguration(new ClassMaps.Signals.SignalOutputSetClassMap());
         modelBuilder.ApplyConfiguration(new ClassMaps.Signals.SignalOutputClassMap());
+        modelBuilder.ApplyConfiguration(new ClassMaps.Signals.ResourceChangeSetClassMap());
+        modelBuilder.ApplyConfiguration(new ClassMaps.Signals.ResourceChangeClassMap());
         modelBuilder.ApplyConfiguration(new ClassMaps.ProbeWaves.ProbeWaveClassMap());
         modelBuilder.ApplyConfiguration(new ClassMaps.ProbeWaves.ModuleProbeAttemptClassMap());
         modelBuilder.ApplyConfiguration(new ClassMaps.ProbeWaves.SignalEdgeClassMap());

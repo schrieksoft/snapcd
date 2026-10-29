@@ -72,6 +72,8 @@ func runProbe(args []string) int {
 		return 1
 	}
 
+	changes.ResourceChanges = signals.ResourceChangesFor(plan)
+
 	if err := signals.WriteOutputChanges(*signalsOut, changes); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		return 1

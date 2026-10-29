@@ -61,6 +61,22 @@ public class RunOptions
     /// <summary>A second origin, which b also reads, so b is owed a probe by two waves at once.</summary>
     public static readonly Guid DiamondGModuleId = new("99999999-9999-9999-9999-999999999946");
 
+    /// <summary>
+    /// The fanout: a feeds b, c and d, and each answers differently. b changes resources without
+    /// moving an output, c is unaffected and carries its outputs unchanged, and d answers with
+    /// nothing.
+    /// </summary>
+    public static readonly Guid FanoutAModuleId = new("99999999-9999-9999-9999-999999999950");
+    public static readonly Guid FanoutBModuleId = new("99999999-9999-9999-9999-999999999951");
+    public static readonly Guid FanoutCModuleId = new("99999999-9999-9999-9999-999999999952");
+    public static readonly Guid FanoutDModuleId = new("99999999-9999-9999-9999-999999999953");
+
+    /// <summary>
+    /// Seed and apply the fanout instead of the default Module. Its four Modules take the seeded
+    /// organization past the community cap, so the run also licenses itself for them.
+    /// </summary>
+    public bool Fanout { get; init; }
+
     public required string MasterConnectionString { get; init; }
     public required string DatabaseName { get; init; }
     public Guid OrganizationId { get; init; } = SeededOrganizationId;
@@ -192,7 +208,12 @@ public class RunOptions
                 // DebugDataSeeder builds on the preseed rather than repeating it: its Module
                 // references the preseeded runner and its missions the preseeded agent, so without
                 // this it fails on a foreign key.
-                ["ProductionDataSeeder:Preseeded:Enabled"] = "true"
+                ["ProductionDataSeeder:Preseeded:Enabled"] = "true",
+
+                // The server's appsettings points the cache at Redis, which a console run has no
+                // reason to need. ModuleHoldGate reads the hold state through it and lets a
+                // connection failure escape, so the gatekeeper throws and no job is created.
+                ["Caching:Provider"] = nameof(SnapCd.Server.Core.Enums.CacheProvider.InMemory)
             };
 
             // Left unset, the namespace comes from the server's own appsettings, so a run on Azure
@@ -267,6 +288,9 @@ public class RunOptions
                                             hop probes before the decision ends it
                   --two-origins             apply a second Module too, so one consumer is owed a
                                             probe by two waves at once
+                  --fanout                  apply the fanout's origin instead of the default
+                                            Module, so b, c and d each report one of the three
+                                            ways a probe can answer
                   --real-runner             run the runner's own code, so the engine really
                                             plans; needs tofu on PATH and is minutes slower
                   --working-dir   <path>    where a real run checks out Modules
@@ -277,7 +301,11 @@ public class RunOptions
 
         // The only Modules a real-runner run has code for are the diamond's, so the generic mock
         // Module would place no fixture and exercise no wave while still reporting a healthy apply.
-        var defaultModuleId = args.Contains("--real-runner") ? DiamondAModuleId : SeededModuleId;
+        var defaultModuleId = args.Contains("--fanout")
+            ? FanoutAModuleId
+            : args.Contains("--real-runner")
+                ? DiamondAModuleId
+                : SeededModuleId;
 
         return new RunOptions
         {
@@ -307,6 +335,7 @@ public class RunOptions
             RunnerId = Guid.TryParse(Get("runner"), out var r) ? r : Guid.Empty,
             Keep = args.Contains("--keep"),
             RealRunner = args.Contains("--real-runner"),
+            Fanout = args.Contains("--fanout"),
             ApproveAfterWave = args.Contains("--approve-after-wave"),
             SecondModuleId = args.Contains("--two-origins") ? DiamondGModuleId : Guid.Empty,
             WorkingDirectory = Get("working-dir")

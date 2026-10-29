@@ -38,12 +38,19 @@ public class ModuleProbeAttempt : AuditBase, IEntity, IModuleChild
     /// <summary>What this Module reported, once its probe has run.</summary>
     public Guid? SignalOutputSetId { get; set; }
 
+    /// <summary>
+    /// What this Module predicted it would do to its own resources. Null where the probe reported
+    /// no resource changes at all, and where the reporting engine does not report them.
+    /// </summary>
+    public Guid? ResourceChangeSetId { get; set; }
+
     /// <summary>The job carrying the probe, written before it starts.</summary>
     public Guid? ProbeModuleJobId { get; set; }
 
     [JsonIgnore] public ProbeWave ProbeWave { get; set; } = null!;
     [JsonIgnore] public Module Module { get; set; } = null!;
     [JsonIgnore] public SignalOutputSet? SignalOutputSet { get; set; }
+    [JsonIgnore] public ResourceChangeSet? ResourceChangeSet { get; set; }
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 
     public Guid ParentId()
