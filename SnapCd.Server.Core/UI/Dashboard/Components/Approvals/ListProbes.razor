@@ -394,7 +394,7 @@
                 (SnapCdIcons.Error, Color.Error, "destroys or replaces"),
             ProbeProgress.Reported when p.HasUnknownSignal =>
                 (SnapCdIcons.Warning, Color.Warning, "changes, some unknown"),
-            ProbeProgress.Reported when p.Signals.Count > 0 =>
+            ProbeProgress.Reported when p.MovingSignals.Count > 0 =>
                 (SnapCdIcons.Warning, Color.Warning, "changes"),
             ProbeProgress.Reported =>
                 (SnapCdIcons.CheckCircle, Color.Success, "no change"),

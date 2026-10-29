@@ -37,6 +37,9 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     private const string Replaced =
         """{"action":["delete","create"],"type":"string","before":"live","after":{"$unknown":true}}""";
 
+    private const string NoOp =
+        """{"action":["no-op"],"type":"string","before":"52.247.5.27","after":"52.247.5.27"}""";
+
     private readonly Fixture _fixture;
     private Guid _organizationId;
     private Guid _originModuleId;
@@ -193,6 +196,57 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         Assert.Equal("create", signal.Action);
         Assert.False(signal.HasBefore);
         Assert.False(signal.AfterIsUnknown);
+    }
+
+    // Every output is carried, changed or not, because a consumer needs a value for each variable
+    // it reads. A module whose outputs all resolve unchanged therefore has signals and moves
+    // nothing, and counting the rows reports it as changing.
+    [Fact]
+    public async Task Signals_That_All_Hold_Still_Are_Not_Movement()
+    {
+        var wave = await AddWave();
+        var set = await AddSignalSet(
+            wave,
+            _consumerModuleId,
+            ("public_gateway_ip", NoOp, false),
+            ("public_gateway_fqdn", NoOp, false));
+        await AddAttempt(wave, _consumerModuleId, set);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        var module = view!.Modules.Single();
+
+        Assert.Equal(2, module.Signals.Count);
+        Assert.Empty(module.MovingSignals);
+        Assert.False(module.HasDisruptiveSignal);
+        Assert.False(module.HasUnknownSignal);
+
+        Assert.Equal(DownstreamImpact.Cleared, view.Impact);
+    }
+
+    [Fact]
+    public async Task A_Signal_That_Moves_Among_Ones_That_Do_Not_Is_Movement()
+    {
+        var wave = await AddWave();
+        var set = await AddSignalSet(
+            wave,
+            _consumerModuleId,
+            ("public_gateway_ip", NoOp, false),
+            ("cluster_endpoint", KnownUpdate, false));
+        await AddAttempt(wave, _consumerModuleId, set);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        var module = view!.Modules.Single();
+
+        Assert.Equal(2, module.Signals.Count);
+        Assert.Equal("cluster_endpoint", module.MovingSignals.Single().Name);
+
+        Assert.Equal(DownstreamImpact.Changes, view.Impact);
     }
 
     [Fact]

@@ -54,7 +54,7 @@ public class ProbeWaveView
         Modules.Any(m => m.Progress == ProbeProgress.Faulted) ? DownstreamImpact.Failed
         : Modules.Any(m => m.HasDisruptiveSignal) ? DownstreamImpact.Impact
         : Modules.Any(m => m.IsOutstanding) ? DownstreamImpact.Pending
-        : Modules.Any(m => m.Signals.Count > 0) ? DownstreamImpact.Changes
+        : Modules.Any(m => m.MovingSignals.Count > 0) ? DownstreamImpact.Changes
         : DownstreamImpact.Cleared;
 }
 
@@ -166,6 +166,12 @@ public class ProbeWaveModuleView
     public bool HasUnknownSignal => Signals.Any(s => s.AfterIsUnknown);
 
     /// <summary>
+    /// The signals whose values actually change. What a reader is told about is movement, and an
+    /// output carried as a no-op is the probe reporting that this one holds still.
+    /// </summary>
+    public List<SignalOutputView> MovingSignals => Signals.Where(s => s.Moves).ToList();
+
+    /// <summary>
     /// What the latest probe predicted this Module would do to its own resources, which is a
     /// different question from what it passes downstream. A Module can change in place while its
     /// outputs hold still, and reporting only the signals calls that unaffected.
@@ -179,7 +185,7 @@ public class ProbeWaveModuleView
     /// its resources, so the question cannot be answered rather than answered no.
     /// </summary>
     public bool? ChangesWithoutSignalling =>
-        ResourceChangeCount is { } count ? count > 0 && Signals.Count == 0 : null;
+        ResourceChangeCount is { } count ? count > 0 && MovingSignals.Count == 0 : null;
 }
 
 /// <summary>How far one participant has got, for a reader deciding whether to wait for it.</summary>
@@ -304,6 +310,13 @@ public class SignalOutputView
 
     /// <summary>True where the output goes away entirely, rather than being replaced.</summary>
     public bool IsDelete => Actions is ["delete"];
+
+    /// <summary>
+    /// Whether this output's value actually changes. An output the plan resolved and found equal
+    /// to its current value is carried as a no-op, because a consumer needs a value for every
+    /// variable it reads, so the presence of a signal does not by itself mean movement.
+    /// </summary>
+    public bool Moves => Actions.Count > 0 && Actions.Any(a => a != "no-op");
 
     /// <summary>True when the plan cannot know the new value yet, which is a finding rather than a gap.</summary>
     public bool AfterIsUnknown { get; set; }
