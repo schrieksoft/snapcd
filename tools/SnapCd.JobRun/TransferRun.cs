@@ -11,8 +11,11 @@ using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Repositories.Custom.Secured;
-using SnapCd.Server.Core.Services.Crud.Transfers;
-using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.Crud.Transfers;
+using SnapCd.Server.Core.Services.Secured.Crud.Transfers;
+using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
+using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 
 namespace SnapCd.JobRun;
 
@@ -74,7 +77,7 @@ public static class TransferRun
         Console.WriteLine("  the counterparty agreed, so both sides go ahead");
 
         var stateMigrations = scope.ServiceProvider
-            .GetRequiredService<SnapCd.Server.Core.Services.Crud.Jobs.StateMigrationServiceFactory>()
+            .GetRequiredService<SnapCd.Server.Core.Services.Secured.Crud.Jobs.StateMigrationServiceFactory>()
             .Create(principal);
 
         var status = await Watch(dbFactory, stateMigrations, transfer.Id, options);
@@ -115,7 +118,7 @@ public static class TransferRun
     /// <summary>Both sides have to end before the transfer has.</summary>
     private static async Task<bool> Watch(
         IDbContextFactory<SnapCdDbContext> dbFactory,
-        SnapCd.Server.Core.Services.Crud.Jobs.StateMigrationService stateMigrations,
+        SnapCd.Server.Core.Services.Secured.Crud.Jobs.StateMigrationService stateMigrations,
         Guid transferId,
         RunOptions options)
     {

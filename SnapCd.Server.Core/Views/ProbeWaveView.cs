@@ -181,10 +181,11 @@ public class ProbeWaveModuleView
     public int? ResourceChangeCount => Latest?.ResourceChangeCount;
 
     /// <summary>
-    /// This Module changes while passing nothing on. Null where the probe reported nothing about
-    /// its resources, so the question cannot be answered rather than answered no.
+    /// This Module's own resources change while none of its outputs move, so the ripple stops
+    /// here. Null where the probe reported nothing about its resources, so the question cannot be
+    /// answered rather than answered no.
     /// </summary>
-    public bool? ChangesWithoutSignalling =>
+    public bool? ChangesNothingDownstream =>
         ResourceChangeCount is { } count ? count > 0 && MovingSignals.Count == 0 : null;
 }
 

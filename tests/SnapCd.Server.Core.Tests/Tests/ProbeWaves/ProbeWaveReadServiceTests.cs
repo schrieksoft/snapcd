@@ -642,6 +642,53 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// A probe whose job finished without recording anything reads as failed, not as running. The
+    /// prediction is not coming, and showing it as in flight holds the wave open on a job that has
+    /// already stopped.
+    /// </summary>
+    [Fact]
+    public async Task A_Probe_Whose_Job_Finished_Without_Recording_Is_Not_Still_Running()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Failed);
+        await AddAttempt(wave, _consumerModuleId, probeModuleJobId: jobId);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        var module = view!.Modules.Single();
+
+        Assert.Equal(ProbeProgress.Faulted, module.Progress);
+        Assert.False(module.IsOutstanding);
+        Assert.Equal(DownstreamImpact.Failed, view.Impact);
+    }
+
+    /// <summary>
+    /// A probe that predicted nothing still answered: the recorder writes a set holding no outputs,
+    /// so every reader testing for one sees that this Module is done.
+    /// </summary>
+    [Fact]
+    public async Task A_Probe_That_Predicted_Nothing_Has_Reported()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Completed);
+        var set = await AddSignalSet(wave, _consumerModuleId);
+        await AddAttempt(wave, _consumerModuleId, set, jobId);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        var module = view!.Modules.Single();
+
+        Assert.Equal(ProbeProgress.Reported, module.Progress);
+        Assert.Empty(module.Signals);
+        Assert.False(module.IsOutstanding);
+        Assert.Equal(DownstreamImpact.Cleared, view.Impact);
+    }
+
+    /// <summary>
     /// A probe that is genuinely still running is not a failure. Its job is Running, which is the
     /// state every probe passes through.
     /// </summary>

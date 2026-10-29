@@ -108,6 +108,63 @@ public class ProbeSignalRecorder : IDisposable
         });
     }
 
+    /// <summary>
+    /// Notes that this job's probe ran and reported nothing, which is an answer rather than an
+    /// absence: the Module owes the wave no prediction and nothing is still to come from it.
+    /// Without this a probe that reported nothing is indistinguishable from one that never
+    /// replied, and the wave waits on it for good.
+    /// </summary>
+    public async Task RecordEmptyReport(Guid probeWaveId, Guid moduleId, Guid organizationId, Guid moduleJobId)
+    {
+        var attempt = await _dbContext.ModuleProbeAttempts
+            .FirstOrDefaultAsync(a => a.ProbeWaveId == probeWaveId &&
+                                      a.ModuleId == moduleId &&
+                                      a.OrganizationId == organizationId &&
+                                      a.ProbeModuleJobId == moduleJobId);
+
+        // A set with no outputs in it, so every reader testing for one sees that this Module
+        // answered. The alternative is a second way of saying "reported", which every such
+        // reader would then have to learn.
+        var set = new SignalOutputSet
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            ModuleId = moduleId,
+            ProbeWaveId = probeWaveId,
+            ModuleJobId = moduleJobId,
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Checksum = Checksum(string.Empty)
+        };
+
+        _dbContext.SignalOutputSets.Add(set);
+
+        if (attempt == null)
+        {
+            attempt = new ModuleProbeAttempt
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                ProbeWaveId = probeWaveId,
+                ModuleId = moduleId,
+                ProbeModuleJobId = moduleJobId,
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
+
+            _dbContext.ModuleProbeAttempts.Add(attempt);
+        }
+
+        attempt.SignalOutputSetId = set.Id;
+
+        await _dbContext.SaveChangesAsync();
+
+        await _bus.Publish(new ProbeWaveUpdatedEvent
+        {
+            ProbeWaveId = probeWaveId,
+            OrganizationId = organizationId,
+            ModuleId = moduleId
+        });
+    }
+
     public async Task<Guid?> Record(
         Guid probeWaveId,
         Guid moduleId,
@@ -151,7 +208,12 @@ public class ProbeSignalRecorder : IDisposable
             return null;
         }
 
-        if (outputs == null) return null;
+        if (outputs == null)
+        {
+            _logger.LogWarning(
+                "Probe for Module {ModuleId} returned a signals document with no outputs object.", moduleId);
+            return null;
+        }
 
         RecordResourceChanges(attempt, resourceChanges, moduleId, organizationId, probeWaveId, moduleJobId);
 

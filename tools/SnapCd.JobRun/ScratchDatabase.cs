@@ -10,9 +10,12 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Services.CallerContext;
-using SnapCd.Server.Core.Services.DataSeeder;
-using SnapCd.Server.Core.Services.ViewManagement;
+using SnapCd.Server.Core.Services.Utils.CallerContext;
+using SnapCd.Server.Core.Services.Interfaces.DataSeeder;
+using SnapCd.Server.Core.Services.Nonsecured.DataSeeder;
+using SnapCd.Server.Core.Services.Interfaces.ViewManagement;
+using SnapCd.Server.Core.Services.Nonsecured.ViewManagement;
+using SnapCd.Server.Core.Services.Utils.ViewManagement;
 
 namespace SnapCd.JobRun;
 

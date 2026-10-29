@@ -29,7 +29,7 @@ namespace SnapCd.Server.Core.Services.Nonsecured.DataSeeder;
 public class DebugDataSeeder : ProductionDataSeeder
 {
     // All "debug" entities — stack/namespace/module/runner share this id; secrets/SPs use suffix variants.
-    private static readonly Guid DebugEntityId = new("99999999-9999-9999-9999-999999999999");
+    protected static readonly Guid DebugEntityId = new("99999999-9999-9999-9999-999999999999");
 
     // A second module in the debug namespace, backed by the real snapcd-samples/mock-module-vpc repo
     // (branch autofixtest), used by the Mission Test Bench AutoFix test so the mission fixes a real repo.
@@ -87,7 +87,7 @@ public class DebugDataSeeder : ProductionDataSeeder
     private static readonly Guid DebugIntegrationEventMilestoneId = new("99999999-9999-9999-9999-999999999925");
 
     private readonly DebugDataSeederSettings _debugSettings;
-    private readonly Guid _preseededOrganizationId;
+    protected readonly Guid PreseededOrganizationId;
     private readonly Guid _preseededAgentId;
     private readonly Guid _preseededStackId;
     private readonly Guid _preseededRunnerId;
@@ -102,7 +102,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         : base(serviceProvider, dbContext, productionOptions, serverOptions)
     {
         _debugSettings = debugOptions.Value;
-        _preseededOrganizationId = productionOptions.Value.Preseeded.Organization.Id ?? PreseededSettings.DefaultId;
+        PreseededOrganizationId = productionOptions.Value.Preseeded.Organization.Id ?? PreseededSettings.DefaultId;
         _preseededAgentId = productionOptions.Value.Preseeded.Agent.Id ?? PreseededSettings.DefaultAgentId;
         _preseededStackId = productionOptions.Value.Preseeded.Stack.Id ?? PreseededSettings.DefaultId;
         _preseededRunnerId = productionOptions.Value.Preseeded.Runner.Id ?? PreseededSettings.DefaultId;
@@ -133,7 +133,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             Id = DebugUserId,
             Name = "debug@preseeded.io",
             Password = DebugUserPassword,
-            OrganizationId = _preseededOrganizationId
+            OrganizationId = PreseededOrganizationId
         };
         await CreatePreseededUser(asyncServiceScope, debugUser);
 
@@ -141,7 +141,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         var dbUser = await userManager.FindByNameAsync(debugUser.Name);
         if (dbUser == null) return;
 
-        await SyncOrganizationRoles(dbUser.Id, _preseededOrganizationId, [OrganizationRole.Owner]);
+        await SyncOrganizationRoles(dbUser.Id, PreseededOrganizationId, [OrganizationRole.Owner]);
         await GrantSystemAdminRole(dbUser.Id);
     }
 
@@ -172,7 +172,7 @@ public class DebugDataSeeder : ProductionDataSeeder
                 Id = id,
                 Name = name,
                 Password = DebugUserPassword,
-                OrganizationId = _preseededOrganizationId
+                OrganizationId = PreseededOrganizationId
             });
 
         // Reader on the default Stack: reads it and everything under it, and nothing else.
@@ -234,7 +234,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             Id = Guid.NewGuid(),
             UserId = userId,
             StackId = stackId,
-            OrganizationId = _preseededOrganizationId,
+            OrganizationId = PreseededOrganizationId,
             RoleName = role
         });
     }
@@ -250,7 +250,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             Id = Guid.NewGuid(),
             UserId = userId,
             RunnerId = runnerId,
-            OrganizationId = _preseededOrganizationId,
+            OrganizationId = PreseededOrganizationId,
             RoleName = role
         });
     }
@@ -266,7 +266,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             Id = Guid.NewGuid(),
             UserId = userId,
             AgentId = agentId,
-            OrganizationId = _preseededOrganizationId,
+            OrganizationId = PreseededOrganizationId,
             RoleName = role
         });
     }
@@ -282,7 +282,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             Id = Guid.NewGuid(),
             UserId = userId,
             IntegrationId = integrationId,
-            OrganizationId = _preseededOrganizationId,
+            OrganizationId = PreseededOrganizationId,
             RoleName = role
         });
     }
@@ -298,7 +298,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             Id = Guid.NewGuid(),
             UserId = userId,
             StateStoreId = stateStoreId,
-            OrganizationId = _preseededOrganizationId,
+            OrganizationId = PreseededOrganizationId,
             RoleName = role
         });
     }
@@ -327,10 +327,10 @@ public class DebugDataSeeder : ProductionDataSeeder
                 ConsentType = null,
                 LoginRedirectUri = null,
                 LogoutRedirectUri = null,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 IsServicePrincipal = true
             });
-            await SyncServicePrincipalOrganizationRoles(id, _preseededOrganizationId, [OrganizationRole.Owner]);
+            await SyncServicePrincipalOrganizationRoles(id, PreseededOrganizationId, [OrganizationRole.Owner]);
         }
     }
 
@@ -348,7 +348,7 @@ public class DebugDataSeeder : ProductionDataSeeder
                 Name = "debug",
                 AllowMultipleInstances = true,
                 IsSuppliedToAllModules = true,
-                OrganizationId = _preseededOrganizationId
+                OrganizationId = PreseededOrganizationId
             });
         }
         else
@@ -357,7 +357,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             existingRunner.ServicePrincipalId = DebugSpRunnerId;
             existingRunner.AllowMultipleInstances = true;
             existingRunner.IsSuppliedToAllModules = true;
-            existingRunner.OrganizationId = _preseededOrganizationId;
+            existingRunner.OrganizationId = PreseededOrganizationId;
         }
 
         var existingStack = await dbContext.Stacks.FirstOrDefaultAsync(s => s.Id == DebugEntityId);
@@ -366,7 +366,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             dbContext.Stacks.Add(new Stack
             {
                 Id = DebugEntityId,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 Name = "debug",
                 CreatedDateTime = DateTime.UtcNow
             });
@@ -374,7 +374,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         else
         {
             existingStack.Name = "debug";
-            existingStack.OrganizationId = _preseededOrganizationId;
+            existingStack.OrganizationId = PreseededOrganizationId;
         }
 
         var existingNamespace = await dbContext.Namespaces.FirstOrDefaultAsync(n => n.Id == DebugEntityId);
@@ -383,7 +383,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             dbContext.Namespaces.Add(new Namespace
             {
                 Id = DebugEntityId,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 StackId = DebugEntityId,
                 Name = "debug",
                 CreatedDateTime = DateTime.UtcNow
@@ -393,7 +393,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         {
             existingNamespace.Name = "debug";
             existingNamespace.StackId = DebugEntityId;
-            existingNamespace.OrganizationId = _preseededOrganizationId;
+            existingNamespace.OrganizationId = PreseededOrganizationId;
         }
 
         var existingModule = await dbContext.Modules.FirstOrDefaultAsync(m => m.Id == DebugEntityId);
@@ -402,7 +402,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             var debugModule = new Module
             {
                 Id = DebugEntityId,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 NamespaceId = DebugEntityId,
                 RunnerId = DebugEntityId,
                 Name = "debug",
@@ -416,7 +416,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             debugModule.ModuleSaga = new ModuleSaga
             {
                 CorrelationId = debugModule.Id,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 RowVersion = [],
                 CurrentState = nameof(ModuleStateMachine.Gatekeeping),
                 DesiredStateHeadline = DesiredStateHeadline.Applied,
@@ -429,7 +429,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             existingModule.Name = "debug";
             existingModule.NamespaceId = DebugEntityId;
             existingModule.RunnerId = DebugEntityId;
-            existingModule.OrganizationId = _preseededOrganizationId;
+            existingModule.OrganizationId = PreseededOrganizationId;
         }
 
         // A second module backed by the real mock-module-vpc repo (branch autofixtest) so the AutoFix
@@ -442,7 +442,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             var mockModule = new Module
             {
                 Id = MockModuleVpcId,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 NamespaceId = DebugEntityId,
                 RunnerId = DebugEntityId,
                 Name = "mock-module-vpc",
@@ -456,7 +456,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             mockModule.ModuleSaga = new ModuleSaga
             {
                 CorrelationId = mockModule.Id,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 RowVersion = [],
                 CurrentState = nameof(ModuleStateMachine.Gatekeeping),
                 DesiredStateHeadline = DesiredStateHeadline.Applied,
@@ -469,7 +469,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             existingMockModule.Name = "mock-module-vpc";
             existingMockModule.NamespaceId = DebugEntityId;
             existingMockModule.RunnerId = DebugEntityId;
-            existingMockModule.OrganizationId = _preseededOrganizationId;
+            existingMockModule.OrganizationId = PreseededOrganizationId;
             existingMockModule.SourceUrl = mockSourceUrl;
             existingMockModule.SourceRevision = mockSourceRevision;
             existingMockModule.SourceSubdirectory = "";
@@ -486,7 +486,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             var monorepoModule = new Module
             {
                 Id = MonorepoTestingModuleId,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 NamespaceId = DebugEntityId,
                 RunnerId = DebugEntityId,
                 Name = "monorepo-testing-app-a",
@@ -502,7 +502,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             monorepoModule.ModuleSaga = new ModuleSaga
             {
                 CorrelationId = monorepoModule.Id,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 RowVersion = [],
                 CurrentState = nameof(ModuleStateMachine.Gatekeeping),
                 DesiredStateHeadline = DesiredStateHeadline.Applied,
@@ -515,7 +515,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             existingMonorepoModule.Name = "monorepo-testing-app-a";
             existingMonorepoModule.NamespaceId = DebugEntityId;
             existingMonorepoModule.RunnerId = DebugEntityId;
-            existingMonorepoModule.OrganizationId = _preseededOrganizationId;
+            existingMonorepoModule.OrganizationId = PreseededOrganizationId;
             existingMonorepoModule.SourceUrl = monorepoTestingUrl;
             existingMonorepoModule.SourceRevision = "main";
             existingMonorepoModule.SourceSubdirectory = "modules/app-a";
@@ -527,13 +527,13 @@ public class DebugDataSeeder : ProductionDataSeeder
         // AutoFix (it takes precedence). Targets the preseeded default Agent (assigned to all modules).
         var existingAutoFix = await dbContext.ModuleMissions.FirstOrDefaultAsync(m =>
             m.ModuleId == MockModuleVpcId && m.AgentId == _preseededAgentId
-            && m.OrganizationId == _preseededOrganizationId && m.MissionType == MissionType.AutoFix);
+            && m.OrganizationId == PreseededOrganizationId && m.MissionType == MissionType.AutoFix);
         if (existingAutoFix == null)
         {
             dbContext.ModuleMissions.Add(new ModuleMission
             {
                 Id = Guid.NewGuid(),
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 AgentId = _preseededAgentId,
                 ModuleId = MockModuleVpcId,
                 MissionType = MissionType.AutoFix,
@@ -580,7 +580,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             var module = new Module
             {
                 Id = moduleId,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 NamespaceId = DebugEntityId,
                 RunnerId = DebugEntityId,
                 Name = name,
@@ -607,7 +607,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             module.ModuleSaga = new ModuleSaga
             {
                 CorrelationId = moduleId,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 RowVersion = [],
                 CurrentState = nameof(ModuleStateMachine.Gatekeeping),
                 DesiredStateHeadline = DesiredStateHeadline.Applied,
@@ -619,7 +619,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             dbContext.ModuleJobs.Add(new ModuleJob
             {
                 Id = Guid.NewGuid(),
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 ModuleId = moduleId,
                 JobType = nameof(ApplyJobSaga),
                 Status = ExecutionStatus.Completed,
@@ -635,61 +635,61 @@ public class DebugDataSeeder : ProductionDataSeeder
 
         // The edges, named as the fixture's roots name them: each consumer renames the producer's
         // output to its own variable, which is what makes the rename path real rather than assumed.
-        await AddDiamondEdge(dbContext, DiamondBModuleId, DiamondAModuleId, "a_id", "from_a");
-        await AddDiamondEdge(dbContext, DiamondBModuleId, DiamondGModuleId, "g_id", "from_g");
-        await AddDiamondEdge(dbContext, DiamondCModuleId, DiamondAModuleId, "a_id", "from_a");
-        await AddDiamondEdge(dbContext, DiamondDModuleId, DiamondBModuleId, "b_id", "from_b");
-        await AddDiamondEdge(dbContext, DiamondDModuleId, DiamondCModuleId, "c_id", "from_c");
+        await AddSeededEdge(dbContext, DiamondBModuleId, DiamondAModuleId, "a_id", "from_a");
+        await AddSeededEdge(dbContext, DiamondBModuleId, DiamondGModuleId, "g_id", "from_g");
+        await AddSeededEdge(dbContext, DiamondCModuleId, DiamondAModuleId, "a_id", "from_a");
+        await AddSeededEdge(dbContext, DiamondDModuleId, DiamondBModuleId, "b_id", "from_b");
+        await AddSeededEdge(dbContext, DiamondDModuleId, DiamondCModuleId, "c_id", "from_c");
 
         // The edges that must not be followed: the outputs they name do not change.
-        await AddDiamondEdge(dbContext, DiamondEModuleId, DiamondAModuleId, "a_other", "from_a_other");
-        await AddDiamondEdge(dbContext, DiamondFModuleId, DiamondBModuleId, "b_other", "from_b_other");
+        await AddSeededEdge(dbContext, DiamondEModuleId, DiamondAModuleId, "a_other", "from_a_other");
+        await AddSeededEdge(dbContext, DiamondFModuleId, DiamondBModuleId, "b_other", "from_b_other");
 
         // Every diamond Module is seeded as one that has already applied, so each has the output
         // set its committed state holds. That is what lets any of them be applied on its own at
         // any time: a probe is an ordinary apply plus a signals file, and the variables a wave is
         // not predicting resolve from these.
-        await AddDiamondOutputs(dbContext, DiamondAModuleId,
+        await AddSeededOutputs(dbContext, DiamondAModuleId,
             ("a_id", "trusting-lab"),
             ("a_other", "honest-meerkat"));
 
-        await AddDiamondOutputs(dbContext, DiamondBModuleId,
+        await AddSeededOutputs(dbContext, DiamondBModuleId,
             ("b_id", "trusting-lab-fleet-owl-tidy-unicorn"),
             ("b_other", "causal-burro"));
 
-        await AddDiamondOutputs(dbContext, DiamondCModuleId,
+        await AddSeededOutputs(dbContext, DiamondCModuleId,
             ("c_id", "trusting-lab-fine-gibbon"));
 
-        await AddDiamondOutputs(dbContext, DiamondGModuleId,
+        await AddSeededOutputs(dbContext, DiamondGModuleId,
             ("g_id", "fleet-owl"));
 
-        await AddDiamondOutputs(dbContext, DiamondDModuleId,
+        await AddSeededOutputs(dbContext, DiamondDModuleId,
             ("d_id", "trusting-lab-fleet-owl-tidy-unicorn-trusting-lab-fine-gibbon-promoted-horse"));
 
-        await AddDiamondOutputs(dbContext, DiamondEModuleId,
+        await AddSeededOutputs(dbContext, DiamondEModuleId,
             ("e_id", "honest-meerkat-suitable-pug"));
 
-        await AddDiamondOutputs(dbContext, DiamondFModuleId,
+        await AddSeededOutputs(dbContext, DiamondFModuleId,
             ("f_id", "causal-burro-flowing-chamois"));
     }
 
     /// <summary>
     /// One output set per producing Module, holding what the fixture's committed state holds.
     /// </summary>
-    private async Task AddDiamondOutputs(
+    protected async Task AddSeededOutputs(
         SnapCdDbContext dbContext,
         Guid moduleId,
         params (string Name, string Value)[] outputs)
     {
         var exists = await dbContext.OutputSets
-            .AnyAsync(os => os.ModuleId == moduleId && os.OrganizationId == _preseededOrganizationId);
+            .AnyAsync(os => os.ModuleId == moduleId && os.OrganizationId == PreseededOrganizationId);
 
         if (exists) return;
 
         var set = new OutputSet
         {
             Id = Guid.NewGuid(),
-            OrganizationId = _preseededOrganizationId,
+            OrganizationId = PreseededOrganizationId,
             ModuleId = moduleId,
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             Checksum = "seeded"
@@ -701,7 +701,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             dbContext.Set<LiteralOutput>().Add(new LiteralOutput
             {
                 Id = Guid.NewGuid(),
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 OutputSetId = set.Id,
                 Name = name,
                 Type = "string",
@@ -711,7 +711,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         await dbContext.SaveChangesAsync();
     }
 
-    private async Task AddDiamondEdge(
+    protected async Task AddSeededEdge(
         SnapCdDbContext dbContext,
         Guid consumerModuleId,
         Guid producerModuleId,
@@ -725,14 +725,14 @@ public class DebugDataSeeder : ProductionDataSeeder
             .AnyAsync(i =>
                 i.ModuleId == consumerModuleId &&
                 i.Name == variableName &&
-                i.OrganizationId == _preseededOrganizationId);
+                i.OrganizationId == PreseededOrganizationId);
 
         if (exists) return;
 
         dbContext.ModuleInputs.Add(new ModuleParamFromOutput
         {
             Id = Guid.NewGuid(),
-            OrganizationId = _preseededOrganizationId,
+            OrganizationId = PreseededOrganizationId,
             ModuleId = consumerModuleId,
             Name = variableName,
             OutputModuleId = producerModuleId,
@@ -744,7 +744,7 @@ public class DebugDataSeeder : ProductionDataSeeder
     {
         var dbContext = asyncServiceScope.ServiceProvider.GetRequiredService<SnapCdDbContext>();
 
-        await CreatePreseededStackSecret(asyncServiceScope, DebugStackSecretId, "debug", "debug-secret-value", DebugEntityId, _preseededOrganizationId);
+        await CreatePreseededStackSecret(asyncServiceScope, DebugStackSecretId, "debug", "debug-secret-value", DebugEntityId, PreseededOrganizationId);
 
         var existingNamespaceSecret = await dbContext.Secrets
             .OfType<NamespaceSecret>()
@@ -754,7 +754,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             dbContext.Secrets.Add(new NamespaceSecret
             {
                 Id = DebugNamespaceSecretId,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 NamespaceId = DebugEntityId,
                 Name = "debug"
             });
@@ -763,7 +763,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         {
             existingNamespaceSecret.Name = "debug";
             existingNamespaceSecret.NamespaceId = DebugEntityId;
-            existingNamespaceSecret.OrganizationId = _preseededOrganizationId;
+            existingNamespaceSecret.OrganizationId = PreseededOrganizationId;
         }
 
         var existingModuleSecret = await dbContext.Secrets
@@ -774,7 +774,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             dbContext.Secrets.Add(new ModuleSecret
             {
                 Id = DebugModuleSecretId,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 ModuleId = DebugEntityId,
                 Name = "debug"
             });
@@ -783,7 +783,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         {
             existingModuleSecret.Name = "debug";
             existingModuleSecret.ModuleId = DebugEntityId;
-            existingModuleSecret.OrganizationId = _preseededOrganizationId;
+            existingModuleSecret.OrganizationId = PreseededOrganizationId;
         }
 
         await dbContext.SaveChangesAsync();
@@ -799,7 +799,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             dbContext.Integrations.Add(new Integration
             {
                 Id = DebugIntegrationId,
-                OrganizationId = _preseededOrganizationId,
+                OrganizationId = PreseededOrganizationId,
                 Name = "debug-slack",
                 IntegrationType = IntegrationType.Slack,
                 Enabled = true,
@@ -813,7 +813,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             existing.IntegrationType = IntegrationType.Slack;
             existing.Enabled = true;
             existing.IsSuppliedToAllModules = true;
-            existing.OrganizationId = _preseededOrganizationId;
+            existing.OrganizationId = PreseededOrganizationId;
         }
 
         var events = new (Guid Id, IntegrationTrigger Trigger)[]
@@ -834,7 +834,7 @@ public class DebugDataSeeder : ProductionDataSeeder
                 dbContext.OrganizationIntegrationEvents.Add(new OrganizationIntegrationEvent
                 {
                     Id = id,
-                    OrganizationId = _preseededOrganizationId,
+                    OrganizationId = PreseededOrganizationId,
                     IntegrationId = DebugIntegrationId,
                     Trigger = trigger,
                     IsDisabled = false,
@@ -843,7 +843,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             }
             else
             {
-                existingEvent.OrganizationId = _preseededOrganizationId;
+                existingEvent.OrganizationId = PreseededOrganizationId;
                 existingEvent.IntegrationId = DebugIntegrationId;
                 existingEvent.Trigger = trigger;
                 existingEvent.IsDisabled = false;
@@ -863,7 +863,7 @@ public class DebugDataSeeder : ProductionDataSeeder
                 BotToken = botToken,
                 DefaultChannel = defaultChannel
             });
-            await secretStore.WriteAsync(_preseededOrganizationId, DebugIntegrationId, connectionJson);
+            await secretStore.WriteAsync(PreseededOrganizationId, DebugIntegrationId, connectionJson);
         }
     }
 
@@ -880,13 +880,13 @@ public class DebugDataSeeder : ProductionDataSeeder
                 Id = user.Id,
                 Name = user.Email,
                 Password = user.Password,
-                OrganizationId = _preseededOrganizationId
+                OrganizationId = PreseededOrganizationId
             });
 
             var dbUser = await userManager.FindByNameAsync(user.Email);
             if (dbUser == null) continue;
 
-            await SyncOrganizationRoles(dbUser.Id, _preseededOrganizationId, [OrganizationRole.Owner]);
+            await SyncOrganizationRoles(dbUser.Id, PreseededOrganizationId, [OrganizationRole.Owner]);
             if (user.IsSystemAdministrator)
                 await GrantSystemAdminRole(dbUser.Id);
         }

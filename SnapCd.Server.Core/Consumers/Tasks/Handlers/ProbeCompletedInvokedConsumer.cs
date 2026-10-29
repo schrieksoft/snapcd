@@ -19,13 +19,14 @@ namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 /// <summary>
 /// Stores what a probe reported, then answers the saga.
 ///
-/// The apply has already succeeded by the time a probe runs, so a failure to record cannot make
-/// the job wrong: the saga is told the step completed either way and carries on to Output. That is
-/// the opposite of the outputs read, where a storage failure does fault the job.
+/// A probe that cannot be recorded faults the step as a server-side error. The prediction is what
+/// the wave exists to collect, so losing it silently leaves every Module waiting on this one
+/// outstanding for good, with nothing saying why.
 /// </summary>
-public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : IConsumer<TInvoked>
+public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted, TFaulted> : IConsumer<TInvoked>
     where TInvoked : ProbeCompletedInvokedBase
     where TCompleted : StepResponseBase, new()
+    where TFaulted : StepFaultedBase, new()
 {
     private readonly ILogger _logger;
     private readonly SnapCdDbContext _dbContext;
@@ -50,66 +51,80 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
     public async Task Consume(ConsumeContext<TInvoked> context)
     {
         var jobId = context.Message.JobId;
+        var organizationId = Guid.Empty;
 
         try
         {
+            var jobView = await _dbContext.ModuleJobs
+                .Where(x => x.Id == jobId)
+                .Select(x => new { x.OrganizationId, x.ModuleId })
+                .FirstOrDefaultAsync();
+
+            if (jobView == null)
+                throw new InvalidOperationException(
+                    $"No ModuleJob {jobId} to record a probe against.");
+
+            organizationId = jobView.OrganizationId;
+
+            // The wave the saga recorded when it dispatched this probe. A job probes once per wave
+            // it owes, so its attempt rows alone cannot say which one replied.
+            var probeWaveId = await _dbContext.ApplyJobSagas
+                .AsNoTracking()
+                .Where(s => s.CorrelationId == jobId)
+                .Select(s => s.ProbingForWaveId)
+                .FirstOrDefaultAsync();
+
+            if (probeWaveId == null)
+                throw new InvalidOperationException(
+                    $"Probe for job {jobId} replied with no wave claiming it, so there is nothing to record it against.");
+
             if (string.IsNullOrWhiteSpace(context.Message.SignalsJson))
             {
+                // A probe that ran and predicted nothing still answered. Recording it is what tells
+                // the wave this Module is done, and the panel that the job is not still in flight.
                 _logger.LogDebug("Probe for job {JobId} reported no signals", jobId);
+
+                await _recorder.RecordEmptyReport(
+                    probeWaveId.Value, jobView.ModuleId, jobView.OrganizationId, jobId);
             }
             else
             {
-                var jobView = await _dbContext.ModuleJobs
-                    .Where(x => x.Id == jobId)
-                    .Select(x => new { x.OrganizationId, x.ModuleId })
-                    .FirstOrDefaultAsync();
+                var setId = await _recorder.Record(
+                    probeWaveId.Value,
+                    jobView.ModuleId,
+                    jobView.OrganizationId,
+                    jobId,
+                    context.Message.SignalsJson!);
 
-                if (jobView == null)
-                {
-                    _logger.LogWarning("Could not find module job {JobId} to store probe signals", jobId);
-                }
-                else
-                {
-                    // The wave the saga recorded when it dispatched this probe. A job probes once
-                    // per wave it owes, so its attempt rows alone cannot say which one replied.
-                    var probeWaveId = await _dbContext.ApplyJobSagas
-                        .AsNoTracking()
-                        .Where(s => s.CorrelationId == jobId)
-                        .Select(s => s.ProbingForWaveId)
-                        .FirstOrDefaultAsync();
+                if (setId == null)
+                    throw new InvalidOperationException(
+                        $"Probe for job {jobId} returned a signals document that could not be recorded.");
 
-                    if (probeWaveId == null)
-                    {
-                        _logger.LogWarning(
-                            "Probe for job {JobId} reported signals with no wave claiming it", jobId);
-                    }
-                    else
-                    {
-                        await _recorder.Record(
-                            probeWaveId.Value,
-                            jobView.ModuleId,
-                            jobView.OrganizationId,
-                            jobId,
-                            context.Message.SignalsJson!);
-
-                        _logger.LogDebug("Stored probe signals for job {JobId}", jobId);
-
-                        // Whoever waited on this Module now has an answer, and a consumer whose
-                        // last edge this was is released by it.
-                        await _resolver.ResolveAfterSignals(
-                            probeWaveId.Value, jobView.ModuleId, jobView.OrganizationId);
-                    }
-                }
+                _logger.LogDebug("Stored probe signals for job {JobId}", jobId);
             }
+
+            // Whoever waited on this Module now has an answer, and a consumer whose last edge this
+            // was is released by it.
+            await _resolver.ResolveAfterSignals(
+                probeWaveId.Value, jobView.ModuleId, jobView.OrganizationId);
+
+            await _bus.Publish(new TCompleted { CorrelationId = jobId });
+
+            _logger.LogDebug("Probe completion processed for job {JobId}", jobId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to store probe signals for job {JobId}", jobId);
+
+            await context.Publish(new TFaulted
+            {
+                CorrelationId = jobId,
+                OrganizationId = organizationId,
+                ErrorMessage = ex.Message,
+                StackTrace = ex.ToString(),
+                IsServerSideError = true
+            });
         }
-
-        await _bus.Publish(new TCompleted { CorrelationId = jobId });
-
-        _logger.LogDebug("Probe completion processed for job {JobId}", jobId);
     }
 }
 
@@ -119,5 +134,5 @@ public class ApplyProbeCompletedInvokedConsumer(
     ProbeSignalRecorder recorder,
     SignalEdgeResolver resolver,
     IBus bus)
-    : ProbeCompletedInvokedConsumer<ApplyProbeCompletedInvoked, ApplyProbeCompleted>(
+    : ProbeCompletedInvokedConsumer<ApplyProbeCompletedInvoked, ApplyProbeCompleted, ApplyProbeFaulted>(
         logger, dbContext, recorder, resolver, bus);
