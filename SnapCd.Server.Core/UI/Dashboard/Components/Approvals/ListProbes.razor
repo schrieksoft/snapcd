@@ -59,15 +59,7 @@
 @if (_wave != null)
 {
     <MudPaper Elevation="0" Class="pa-4 mb-4">
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
-            <MudText Typo="Typo.overline" Class="mud-text-secondary">Downstream Impacts</MudText>
-            @{
-                var (impactIcon, impactColor, impactLabel) = ImpactBadge(_wave.Impact);
-            }
-            <MudIcon Icon="@impactIcon" Color="@impactColor" Size="Size.Small"/>
-            <MudText Typo="Typo.subtitle2" Color="@impactColor">@impactLabel</MudText>
-            <MudText Typo="Typo.body2" Class="mud-text-secondary">@Summary()</MudText>
-        </MudStack>
+        <MudText Typo="Typo.overline" Class="mud-text-secondary mb-2">Downstream Impacts</MudText>
 
         @if (_wave.ModulesOmitted > 0)
         {
@@ -93,7 +85,7 @@
                             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                                 <MudIcon Icon="@icon" Color="@color" Size="Size.Small"/>
                                 <MudLink Href="@($"/Module/{module.StackName}/{module.NamespaceName}/{module.ModuleName}")"
-                                         Typo="Typo.body1"
+                                         Typo="Typo.body2"
                                          Style="font-family: var(--snap-font-mono);"
                                          @onclick:stopPropagation="true">
                                     @module.NamespaceName/@module.ModuleName
@@ -296,43 +288,6 @@
         Resubscribe();
 
         await OnImpactChanged.InvokeAsync(_wave?.Impact);
-    }
-
-    /// <summary>
-    /// Pending is deliberately not coloured: the wave has found nothing to report yet, and an
-    /// amber chip on every change that is merely still running would be read as a finding.
-    /// </summary>
-    private static (string Icon, Color Color, string Label) ImpactBadge(DownstreamImpact impact) =>
-        impact switch
-        {
-            DownstreamImpact.Failed => (SnapCdIcons.Error, Color.Error, "Failed"),
-            DownstreamImpact.Impact => (SnapCdIcons.Error, Color.Error, "Impact"),
-            DownstreamImpact.Changes => (SnapCdIcons.Warning, Color.Warning, "Changes"),
-            DownstreamImpact.Cleared => (SnapCdIcons.CheckCircle, Color.Success, "Cleared"),
-            _ => (SnapCdIcons.HourglassTop, Color.Default, "Pending")
-        };
-
-    /// <summary>
-    /// The counts behind the badge. A failed probe is counted apart from the ones still running,
-    /// so this line cannot say "still running" about a probe the badge calls failed.
-    /// </summary>
-    private string Summary()
-    {
-        if (_relevant.Count == 0) return "nothing affected";
-
-        var reported = _relevant.Count(p => p.Progress == ProbeProgress.Reported);
-        var failed = _relevant.Count(p => p.Progress == ProbeProgress.Faulted);
-        var running = _relevant.Count - reported - failed;
-
-        var parts = new List<string> { $"{reported} of {_relevant.Count} reported" };
-
-        if (running > 0) parts.Add($"{running} still running");
-        if (failed > 0) parts.Add($"{failed} failed");
-
-        var disruptive = _relevant.Count(p => p.HasDisruptiveSignal);
-        if (disruptive > 0) parts.Add($"{disruptive} predicting a destroy or replace");
-
-        return string.Join(", ", parts);
     }
 
     private static string Upstreams(ProbeWaveModuleView module)
