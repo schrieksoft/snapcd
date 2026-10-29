@@ -83,20 +83,19 @@ public class MissionRunDeadlineCheckConsumer : IConsumer<MissionRunDeadlineCheck
             _logger.LogWarning("Run {RunId} timed out; retrying mission {MissionType} (attempt {Next}/{Max}).",
                 run.Id, run.MissionType, run.AttemptNumber + 1, MaxAttempts);
             var outcome = await _dispatcher.DispatchAsync(_dbContext, mission, mission.AgentId, run.AttemptNumber + 1, ct);
-            if (outcome == MissionDispatchOutcome.NoLiveConnection)
+            if (outcome is MissionDispatchOutcome.NoLiveConnection
+                or MissionDispatchOutcome.AgentNotAssigned)
             {
-                // Park instead of failing — AgentReconnectedMissionWakeConsumer will retry when a
-                // covering agent comes back online (the runner's XWaitingForRunner analogue).
-                mission.Status = MissionStatus.WaitingForAgent;
+                mission.Status = MissionStatus.Failed;
+                mission.Error = outcome == MissionDispatchOutcome.NoLiveConnection
+                    ? "No agent covering this Module was connected when the mission was retried."
+                    : "No Agent assignment covers this Module, so no agent could run the mission.";
+                mission.CompletedAt = DateTime.UtcNow;
                 await _dbContext.SaveChangesAsync(ct);
-            }
-            else if (outcome == MissionDispatchOutcome.AgentNotAssigned)
-            {
-                // Distinct status from WaitingForAgent: the agent isn't offline, the assignment is missing.
-                // The wake path that picks this up is a future follow-up (an Agent{Scope}Assignment-created
-                // event consumer that re-attempts dispatch for parked missions referencing the affected Agent).
-                mission.Status = MissionStatus.BlockedAgentNotAssigned;
-                await _dbContext.SaveChangesAsync(ct);
+
+                _logger.LogInformation(
+                    "Mission {MissionType} (job {JobId}) failed: {Error}",
+                    mission.MissionType, mission.ModuleJobId, mission.Error);
             }
         }
         else
@@ -105,6 +104,7 @@ public class MissionRunDeadlineCheckConsumer : IConsumer<MissionRunDeadlineCheck
                 run.Id, run.MissionType, MaxAttempts);
             mission.Status = MissionStatus.Failed;
             mission.Error = run.Error;
+            mission.CompletedAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync(ct);
         }
     }

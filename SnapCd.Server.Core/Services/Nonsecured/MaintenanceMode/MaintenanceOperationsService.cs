@@ -301,9 +301,7 @@ public class MaintenanceOperationsService : IDisposable
             }
         }
 
-        // A run that timed out parks its parent mission at WaitingForAgent, where it waits for an
-        // agent that may never return. Those hold no phase open, but they are outstanding work with
-        // nothing else to resolve them.
+        // The status persists as text, and a row carrying it has nothing else to resolve it.
         var stranded = await _dbContext.ModuleJobMissions
             .Where(m => m.Status == MissionStatus.WaitingForAgent
                         || m.Status == MissionStatus.BlockedAgentNotAssigned)

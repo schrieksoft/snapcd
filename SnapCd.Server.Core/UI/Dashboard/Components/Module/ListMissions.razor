@@ -63,7 +63,7 @@
 {
     <MudText Typo="Typo.body2"><em>Loading missions…</em></MudText>
 }
-else if (_runs.Count == 0)
+else if (_runs.Count == 0 && _missionsWithoutRuns.Count == 0)
 {
     <MudText Typo="Typo.body2" Class="pa-4" Style="opacity: 0.6;">
         No missions have run against this job.
@@ -71,6 +71,29 @@ else if (_runs.Count == 0)
 }
 else
 {
+    @foreach (var mission in _missionsWithoutRuns)
+    {
+        <div class="mission-panel-header pa-4" @key="mission.Id">
+            <MudIcon Icon="@StatusIcon(mission.Status)" Size="Size.Medium"/>
+            <div>
+                <div class="mission-panel-header-title">@mission.MissionType</div>
+                <div class="mission-panel-header-status">@mission.Status</div>
+            </div>
+            <div class="mission-panel-header-chips">
+                @if (!string.IsNullOrWhiteSpace(mission.Error))
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@mission.Error</MudText>
+                }
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
+                           OnClick="@(() => RerunMission(mission.Id))">
+                    Rerun
+                </MudButton>
+            </div>
+        </div>
+    }
+
     <MudExpansionPanels MultiExpansion="true" Dense="true">
         @foreach (var run in _runs)
         {
@@ -229,12 +252,23 @@ else
         Notifications.Subscribe(ModuleJobId, _handler);
     }
 
+    private List<ModuleJobMission> _missionsWithoutRuns = [];
+
     public async Task RefreshAsync()
     {
         await using var db = await DbContextFactory.CreateDbContextAsync();
         _runs = await db.ModuleJobMissionRuns
             .Where(r => r.ModuleJobId == ModuleJobId && r.OrganizationId == OrganizationId)
             .OrderByDescending(r => r.StartedAt ?? r.DeadlineAt)
+            .ToListAsync();
+
+        // A mission that never reached an agent has no run of its own.
+        var dispatchedMissionIds = _runs.Select(r => r.ModuleJobMissionId).Distinct().ToList();
+        _missionsWithoutRuns = await db.ModuleJobMissions
+            .Where(m => m.ModuleJobId == ModuleJobId
+                        && m.OrganizationId == OrganizationId
+                        && !dispatchedMissionIds.Contains(m.Id))
+            .OrderByDescending(m => m.CreatedDateTime)
             .ToListAsync();
 
         var runIds = _runs.Select(r => r.Id).ToList();

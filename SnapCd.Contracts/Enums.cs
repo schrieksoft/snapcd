@@ -454,16 +454,9 @@ public enum DiagnosisCategory
 public enum MissionStatus
 {
     Pending,
-    /// <summary>Mission-level only: no live agent matched at dispatch time; parked until an agent
-    /// covering the mission's scope reconnects (mirrors the runner's <c>XWaitingForRunner</c>).</summary>
+    /// <summary>Mission-level only. Nothing sets it; the status persists as text and rows carry it.</summary>
     WaitingForAgent,
-    /// <summary>Mission-level only: the referenced Agent has a live connection but is not assigned
-    /// to the target scope (no covering <c>Agent{Stack,Namespace,Module}Assignment</c> row and
-    /// <c>Agent.IsSuppliedToAllModules</c> is false). Parked until the Agent owner adds an assignment;
-    /// a status distinct from <see cref="WaitingForAgent"/> so the operator can see "this mission is
-    /// blocked on configuration, not on the agent being offline". The wake path that picks this up is
-    /// <c>AgentSupplyCreatedMissionWakeConsumer</c> — it consumes the assignment-created events and
-    /// the <c>Agent</c> update event for <c>IsSuppliedToAllModules</c> flips, and re-attempts dispatch.</summary>
+    /// <summary>Mission-level only. Nothing sets it; the status persists as text and rows carry it.</summary>
     BlockedAgentNotAssigned,
     Running,
     AwaitingReconnect,
