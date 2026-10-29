@@ -19,9 +19,8 @@ namespace SnapCd.Server.Core.Services.Nonsecured.Ai.Missions;
 /// (job failed → AutoDiagnose, job succeeded → SummarizeJob, awaiting approval → ApprovalRecommend)
 /// delegates here with the single mission type it triggers. Resolves the job's module scope chain,
 /// queries the four scoped mission tables for active matches, prefers live-agent matches, falls
-/// through to the next match on <see cref="MissionDispatchOutcome.NoLiveConnection"/>, and parks
-/// the mission <see cref="MissionStatus.WaitingForAgent"/> if every match is offline — the
-/// <c>AgentReconnectedMissionWakeConsumer</c> picks them up when an agent comes online.
+/// through to the next match on <see cref="MissionDispatchOutcome.NoLiveConnection"/>, and fails
+/// the mission if no match can take it.
 /// </summary>
 public class MissionMatcher
 {
@@ -41,8 +40,8 @@ public class MissionMatcher
 
     /// <summary>
     /// Returns <c>true</c> if at least one mission of <paramref name="triggeredType"/> was configured for
-    /// the job's scope (whether or not it dispatched to a live agent — an offline match parks and wakes
-    /// later). Callers use this to express precedence between trigger-sharing mission types.
+    /// the job's scope, whether or not it reached an agent. Callers use this to express precedence
+    /// between trigger-sharing mission types.
     /// </summary>
     public async Task<bool> MatchAndDispatchAsync(
         Guid moduleId, Guid organizationId, Guid jobId, MissionType triggeredType, CancellationToken ct)
@@ -97,17 +96,17 @@ public class MissionMatcher
 
         if (mission is not null && !dispatched)
         {
-            // Distinct park statuses: NoLiveConnection is operational (agent will come back), AgentNotAssigned
-            // is configuration (Agent owner must wire up an assignment). If both were observed across the
-            // iteration, prefer WaitingForAgent — the connection path is more likely to self-heal, and once
-            // the agent reconnects the supply gate runs again at dispatch time.
-            mission.Status = sawNoLiveConnection || !sawAgentNotAssigned
-                ? MissionStatus.WaitingForAgent
-                : MissionStatus.BlockedAgentNotAssigned;
+            // A mission reports on the job as it is, so one that cannot be dispatched now is not
+            // worth dispatching later.
+            mission.Status = MissionStatus.Failed;
+            mission.Error = sawNoLiveConnection || !sawAgentNotAssigned
+                ? "No agent covering this Module was connected when the mission was dispatched."
+                : "No Agent assignment covers this Module, so no agent could run the mission.";
+            mission.CompletedAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync(ct);
             _logger.LogInformation(
-                "Mission {MissionType} (job {JobId}) parked {Status} — no live match.",
-                mission.MissionType, jobId, mission.Status);
+                "Mission {MissionType} (job {JobId}) failed: {Error}",
+                mission.MissionType, jobId, mission.Error);
         }
 
         return true;

@@ -312,7 +312,7 @@ public class AgentHub : Hub
             run.Status = MissionStatus.Running;
             run.StartedAt = DateTime.UtcNow;
             run.DeadlineAt = DateTime.UtcNow.Add(ServerTimeout);
-        });
+        }, onlyWhileLive: true);
 
     /// <summary>
     /// Apply a mutation to the calling agent's run through the non-secured repository, so the run's audit
@@ -324,7 +324,8 @@ public class AgentHub : Hub
     /// Returns false if the run wasn't found / isn't owned by the caller.
     /// </summary>
     private async Task<bool> UpdateRunAsync(Guid invocationId, Action<ModuleJobMissionRun> mutate,
-        bool project = true, bool publishModified = true, bool suppressUpdateEvent = false)
+        bool project = true, bool publishModified = true, bool suppressUpdateEvent = false,
+        bool onlyWhileLive = false)
     {
         // suppressUpdateEvent (e.g. streamed log appends): stamp audit, skip the per-batch event.
         using var repo = _runRepositoryFactory.Create(
@@ -332,6 +333,18 @@ public class AgentHub : Hub
         // Load detached so the repository re-reads the unmodified row as the event's "previous" state.
         var run = await ResolveRunAsync(repo.DbContext, invocationId, track: false);
         if (run is null) return false;
+
+        // A filtered unique index allows one non-terminal run per (job, type), so a write that
+        // returns a terminal run to that set collides with whatever replaced it.
+        if (onlyWhileLive && run.Status is MissionStatus.Succeeded or MissionStatus.Failed
+                or MissionStatus.Cancelled or MissionStatus.TimedOut)
+        {
+            _logger.LogDebug(
+                "Agent reported {Report} for run {RunId}, which already ended as {Status}; ignored.",
+                nameof(MissionStarted), run.Id, run.Status);
+            return false;
+        }
+
         mutate(run);
         if (project) await ProjectAsync(repo.DbContext, run);
         await repo.Update(run);

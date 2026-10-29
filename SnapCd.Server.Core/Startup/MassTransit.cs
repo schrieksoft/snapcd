@@ -349,13 +349,6 @@ public static class MassTransit
         // Agent mission run watchdog (fired by the scheduled MissionRunDeadlineCheck)
         typeof(MissionRunDeadlineCheckConsumer),
 
-        // Wakes parked missions (Status=WaitingForAgent) when a covering agent reconnects
-        typeof(AgentReconnectedMissionWakeConsumer),
-
-        // Wakes parked missions (Status=BlockedAgentNotAssigned) when a new Agent{Scope}Assignment is
-        // created for the bound agent, or when the agent's IsSuppliedToAllModules flag flips on
-        typeof(AgentSupplyCreatedMissionWakeConsumer),
-
         typeof(OutputSetWithOutputsCreatedCompetingConsumer),
         typeof(ModuleModifiedCompetingConsumer),
         typeof(NamespaceModifiedCompetingConsumer),

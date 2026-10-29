@@ -52,7 +52,7 @@
             {
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3" Dense="true">
                     No supplies configured. Until the Agent owner adds a supply (or sets <code>IsSuppliedToAllModules</code>),
-                    every mission referencing this Agent will park as <code>BlockedAgentNotAssigned</code> on the next dispatch.
+                    every mission referencing this Agent will fail on the next dispatch.
                 </MudAlert>
             }
             else
@@ -106,7 +106,7 @@
             {
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3" Dense="true">
                     <strong>@blockedCount of @_rows.Count missions</strong> are not currently supplied to their target scope.
-                    Each will park <code>BlockedAgentNotAssigned</code> on dispatch until the Agent owner resolves the supply gap.
+                    Each will fail on dispatch until the Agent owner resolves the supply gap.
                 </MudAlert>
             }
 
