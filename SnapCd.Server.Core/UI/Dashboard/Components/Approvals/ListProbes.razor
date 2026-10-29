@@ -56,6 +56,25 @@
     </MudPaper>
 }
 
+@* A job awaiting approval has asked for probes, and the wave carrying them is created after the
+   plan that starts it. Until it arrives there is nothing to list, but saying nothing reads as
+   nothing downstream, which is the one thing a reader must not conclude while it is unknown. *@
+@if (_wave == null && _propagationFailure is not { Length: > 0 })
+{
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary mb-2">Downstream Impacts</MudText>
+
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <span class="job-status-running" style="color: var(--snap-running, #EB753C);">
+                <span class="job-status-dot" style="background-color: var(--snap-running, #EB753C);"></span>
+            </span>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Working out what this change affects downstream.
+            </MudText>
+        </MudStack>
+    </MudPaper>
+}
+
 @if (_wave != null)
 {
     <MudPaper Elevation="0" Class="pa-4 mb-4">
@@ -83,7 +102,16 @@
                                        ExpandedChanged="@(e => HandleExpansionChanged(module.ModuleId, e))">
                         <TitleContent>
                             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                <MudIcon Icon="@icon" Color="@color" Size="Size.Small"/>
+                                @if (icon == null)
+                                {
+                                    <span class="job-status-running" style="color: var(--snap-running, #EB753C);">
+                                        <span class="job-status-dot" style="background-color: var(--snap-running, #EB753C);"></span>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@icon" Color="@color" Size="Size.Small"/>
+                                }
                                 <MudLink Href="@($"/Module/{module.StackName}/{module.NamespaceName}/{module.ModuleName}")"
                                          Typo="Typo.body2"
                                          Style="font-family: var(--snap-font-mono);"
@@ -219,12 +247,19 @@
         _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
         _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
 
+        // Before the first read, because the wave this job starts may not exist yet and its
+        // creation is the event this panel most needs: keyed on the wave alone there is nothing
+        // to subscribe to until a wave has already been found.
+        ProbeWaveUpdatedNotificationService.SubscribeByModule(ModuleId, HandleWaveUpdated);
+
         await Reload();
         Resubscribe();
     }
 
     public void Dispose()
     {
+        ProbeWaveUpdatedNotificationService.UnsubscribeByModule(ModuleId, HandleWaveUpdated);
+
         if (_subscribedWaveId != null)
             ProbeWaveUpdatedNotificationService.Unsubscribe(_subscribedWaveId.Value, HandleWaveUpdated);
     }
@@ -246,10 +281,18 @@
             ProbeWaveUpdatedNotificationService.Subscribe(_subscribedWaveId.Value, HandleWaveUpdated);
     }
 
+    /// <summary>
+    /// The reload runs on the circuit's dispatcher, not the notification's thread: it resolves
+    /// scoped services and reads the database, and the publisher swallows whatever a handler
+    /// throws, so a failure here is indistinguishable from a disposed component.
+    /// </summary>
     private async Task HandleWaveUpdated(Guid probeWaveId)
     {
-        await Reload();
-        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(async () =>
+        {
+            await Reload();
+            StateHasChanged();
+        });
     }
 
     /// <summary>
@@ -338,29 +381,22 @@
     }
 
     /// <summary>
-    /// A destroy or replace downstream is the finding worth colouring red, since it is the one a
-    /// reader might stop for. An unknown value is amber: the probe worked and the answer is that
-    /// the plan cannot know yet.
+    /// Four answers: it changes something, it changes nothing, its probe did not report, or it has
+    /// not reported yet. What a Module changes is read from the row's own detail, so the badge
+    /// stays one word.
     /// </summary>
-    private static (string Icon, Color Color, string Label) Badge(ProbeWaveModuleView p) =>
+    private static (string? Icon, Color Color, string Label) Badge(ProbeWaveModuleView p) =>
         p.Progress switch
         {
-            ProbeProgress.Reported when p.HasDisruptiveSignal =>
-                (SnapCdIcons.Error, Color.Error, "destroys or replaces"),
-            ProbeProgress.Reported when p.HasUnknownSignal =>
-                (SnapCdIcons.Warning, Color.Warning, "changes, some unknown"),
-            ProbeProgress.Reported when p.MovingSignals.Count > 0 =>
+            ProbeProgress.Reported when p.Changes =>
                 (SnapCdIcons.Warning, Color.Warning, "changes"),
             ProbeProgress.Reported =>
                 (SnapCdIcons.CheckCircle, Color.Success, "no change"),
             ProbeProgress.Faulted =>
                 (SnapCdIcons.Error, Color.Error, "probe failed"),
-            ProbeProgress.Running =>
-                (SnapCdIcons.HourglassTop, Color.Default, "running"),
-            ProbeProgress.Queued =>
-                (SnapCdIcons.HourglassEmpty, Color.Default, "queued"),
+            // Null icon: still going, drawn as the job list draws a running job.
             _ =>
-                (SnapCdIcons.HourglassEmpty, Color.Default, "waiting on an upstream")
+                (null, Color.Default, "pending")
         };
 
     private readonly Dictionary<Guid, ListLogs<ModuleJob, ModuleJobLogChunk, ModuleJobLogEntryDto>> _logRefs = new();

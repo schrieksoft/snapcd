@@ -54,7 +54,7 @@ public class ProbeWaveView
         Modules.Any(m => m.Progress == ProbeProgress.Faulted) ? DownstreamImpact.Failed
         : Modules.Any(m => m.HasDisruptiveSignal) ? DownstreamImpact.Impact
         : Modules.Any(m => m.IsOutstanding) ? DownstreamImpact.Pending
-        : Modules.Any(m => m.MovingSignals.Count > 0) ? DownstreamImpact.Changes
+        : Modules.Any(m => m.Changes) ? DownstreamImpact.Changes
         : DownstreamImpact.Cleared;
 }
 
@@ -77,7 +77,7 @@ public enum DownstreamImpact
     /// <summary>Everything answered and something downstream changes, but nothing is lost.</summary>
     Changes,
 
-    /// <summary>Everything answered and nothing downstream changes at all.</summary>
+    /// <summary>Everything answered and no Module downstream changes anything at all.</summary>
     Cleared
 }
 
@@ -181,12 +181,11 @@ public class ProbeWaveModuleView
     public int? ResourceChangeCount => Latest?.ResourceChangeCount;
 
     /// <summary>
-    /// This Module's own resources change while none of its outputs move, so the ripple stops
-    /// here. Null where the probe reported nothing about its resources, so the question cannot be
-    /// answered rather than answered no.
+    /// This Module changes something, whether or not any of it reaches further downstream. A
+    /// Module can update its own resources while its outputs resolve to what they already were,
+    /// and counting only the signals calls that unaffected.
     /// </summary>
-    public bool? ChangesNothingDownstream =>
-        ResourceChangeCount is { } count ? count > 0 && MovingSignals.Count == 0 : null;
+    public bool Changes => MovingSignals.Count > 0 || ResourceChangeCount > 0;
 }
 
 /// <summary>How far one participant has got, for a reader deciding whether to wait for it.</summary>
