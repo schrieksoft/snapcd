@@ -16,8 +16,8 @@ namespace SnapCd.Server.Core.Events.Steps;
 /// will become, and report what that does to its own outputs. It runs in the checkout the Module's
 /// own job is already holding, so it has no GetModule, no Init and no runner selection of its own.
 ///
-/// A destroy closes these slots with the Dummy types below. Its outputs are removed rather than
-/// changed, which is a different question with different inputs, so the step never fires there.
+/// A destroy answers the step without a runner. Its outputs are removed rather than changed, so
+/// there is nothing to plan: the consumer marks the Module's edge ModuleDestroyed and completes.
 /// </summary>
 public abstract class ProbeRequestedBase : StepRequestBase
 {
@@ -52,7 +52,7 @@ public class ApplyProbeCompleted : ProbeCompletedBase;
 public class ApplyProbeCancelled : StepResponseBase;
 public class ApplyProbeFaulted : ApplyProbeFaultedBase;
 
-public class DummyDestroyProbeRequested : ProbeRequestedBase;
-public class DummyDestroyProbeCompleted : ProbeCompletedBase;
-public class DummyDestroyProbeCancelled : StepResponseBase;
-public class DummyDestroyProbeFaulted : DestroyProbeFaultedBase;
+public class DestroyProbeRequested : ProbeRequestedBase;
+public class DestroyProbeCompleted : ProbeCompletedBase;
+public class DestroyProbeCancelled : StepResponseBase;
+public class DestroyProbeFaulted : DestroyProbeFaultedBase;

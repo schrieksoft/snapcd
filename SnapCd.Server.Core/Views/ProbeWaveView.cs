@@ -121,12 +121,21 @@ public class ProbeWaveModuleView
     public bool IsWaiting => Edges.Any(e => e.Status == SignalEdgeStatus.Potential);
 
     /// <summary>
+    /// This Module was destroyed, so the outputs the change would have reached are gone. The
+    /// change did reach it, which is what separates this from NothingToProbe.
+    /// </summary>
+    public bool IsDestroyed =>
+        !HasProbed &&
+        Edges.Any(e => e.Status == SignalEdgeStatus.ModuleDestroyed);
+
+    /// <summary>
     /// Nothing reaches this Module along the edges that resolved, so it has no probe to run. Edges
     /// are written from reachability, so most of a wide graph is in this state.
     /// </summary>
     public bool NothingToProbe =>
         !IsWaiting &&
         !HasProbed &&
+        !IsDestroyed &&
         !Edges.Any(e => e.Status == SignalEdgeStatus.Confirmed);
 
     /// <summary>
@@ -146,10 +155,11 @@ public class ProbeWaveModuleView
     /// owes one itself. Mirrors ModuleProgress.IsOutstanding, which the readiness check reads.
     /// </summary>
     public bool IsOutstanding =>
-        !HasProbed && !HasFaulted && (IsWaiting || !NothingToProbe);
+        !HasProbed && !HasFaulted && !IsDestroyed && (IsWaiting || !NothingToProbe);
 
     public ProbeProgress Progress =>
         HasProbed ? ProbeProgress.Reported
+        : IsDestroyed ? ProbeProgress.Destroyed
         : HasFaulted ? ProbeProgress.Faulted
         : IsWaiting ? ProbeProgress.WaitingOnUpstream
         : NothingToProbe ? ProbeProgress.NothingToProbe
@@ -205,6 +215,9 @@ public enum ProbeProgress
 
     /// <summary>Resolved with nothing reaching it, so no probe runs.</summary>
     NothingToProbe,
+
+    /// <summary>Destroyed, so the outputs the change would have reached no longer exist.</summary>
+    Destroyed,
 
     /// <summary>Its probe ended without reporting, so its prediction will not arrive.</summary>
     Faulted

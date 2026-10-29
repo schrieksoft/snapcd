@@ -181,6 +181,116 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         Assert.DoesNotContain(neverApplied, moduleIds);
     }
 
+    /// <summary>
+    /// A destroyed Module has no outputs left for a consumer to plan against, and asking it for an
+    /// Apply would undo the destroy. The filter reads the state at creation, so it catches the
+    /// Module destroyed before the wave rather than one destroyed while it is open.
+    /// </summary>
+    [Fact]
+    public async Task A_Destroyed_Consumer_Gets_No_Edge()
+    {
+        await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
+
+        var destroyedJobId = Guid.NewGuid();
+        _originJobs.Add(destroyedJobId);
+
+        await using (var seed = _fixture.CreateDbContext())
+        {
+            // A later job than the Applied one the fixture seeds, so the most recent finished job
+            // for this Module is the destroy.
+            seed.ModuleJobs.Add(new ModuleJob
+            {
+                Id = destroyedJobId,
+                OrganizationId = _organizationId,
+                ModuleId = _consumerModuleId,
+                JobType = "Destroy",
+                Status = ExecutionStatus.Completed,
+                ActualStateHeadline = ActualStateHeadline.Destroyed,
+                TimestampStart = DateTime.UtcNow.AddMinutes(-5),
+                TimestampEnd = DateTime.UtcNow,
+                IsCurrent = false,
+                CreatedDateTime = DateTime.UtcNow
+            });
+            await seed.SaveChangesAsync();
+        }
+
+        var waveId = await Start(["vpc_id"]);
+
+        if (waveId is null) return;
+
+        await using var db = _fixture.CreateDbContext();
+        var moduleIds = await db.SignalEdges
+            .AsNoTracking()
+            .Where(e => e.ProbeWaveId == waveId.Value)
+            .Select(e => e.ConsumerModuleId)
+            .ToListAsync();
+
+        Assert.DoesNotContain(_consumerModuleId, moduleIds);
+    }
+
+    /// <summary>
+    /// Destroyed then applied again is applied. The check reads the most recent finished job, so a
+    /// Module that came back is enrolled like any other.
+    /// </summary>
+    [Fact]
+    public async Task A_Consumer_Reapplied_After_A_Destroy_Gets_An_Edge()
+    {
+        await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
+
+        var destroyedJobId = Guid.NewGuid();
+        var reappliedJobId = Guid.NewGuid();
+        _originJobs.Add(destroyedJobId);
+        _originJobs.Add(reappliedJobId);
+
+        await using (var seed = _fixture.CreateDbContext())
+        {
+            seed.ModuleJobs.Add(new ModuleJob
+            {
+                Id = destroyedJobId,
+                OrganizationId = _organizationId,
+                ModuleId = _consumerModuleId,
+                JobType = "Destroy",
+                Status = ExecutionStatus.Completed,
+                ActualStateHeadline = ActualStateHeadline.Destroyed,
+                TimestampStart = DateTime.UtcNow.AddMinutes(-20),
+                TimestampEnd = DateTime.UtcNow.AddMinutes(-10),
+                IsCurrent = false,
+                CreatedDateTime = DateTime.UtcNow
+            });
+            // Saved separately: JobNumber is an identity column, so insert order is what makes
+            // the re-apply the most recent finished job.
+            await seed.SaveChangesAsync();
+
+            seed.ModuleJobs.Add(new ModuleJob
+            {
+                Id = reappliedJobId,
+                OrganizationId = _organizationId,
+                ModuleId = _consumerModuleId,
+                JobType = "Apply",
+                Status = ExecutionStatus.Completed,
+                ActualStateHeadline = ActualStateHeadline.Applied,
+                TimestampStart = DateTime.UtcNow.AddMinutes(-5),
+                TimestampEnd = DateTime.UtcNow,
+                IsCurrent = false,
+                CreatedDateTime = DateTime.UtcNow
+            });
+            await seed.SaveChangesAsync();
+        }
+
+        var waveId = await Start(["vpc_id"]);
+
+        Assert.NotNull(waveId);
+
+        await using var db = _fixture.CreateDbContext();
+        var moduleIds = await db.SignalEdges
+            .AsNoTracking()
+            .Where(e => e.ProbeWaveId == waveId!.Value)
+            .Select(e => e.ConsumerModuleId)
+            .ToListAsync();
+
+        Assert.Contains(_consumerModuleId, moduleIds);
+    }
+
     [Fact]
     public async Task A_Consumer_Of_An_Unchanged_Output_Gets_No_Edge()
     {

@@ -152,6 +152,99 @@ public class SignalEdgeResolverTests : IAsyncLifetime
         Assert.True(edge);
     }
 
+    /// <summary>
+    /// A Module destroyed while a wave is open answers it rather than leaving it waiting. The edge
+    /// it owes points at it as the consumer and is already Confirmed, which is the row
+    /// ResolveAfterSignals does not touch.
+    /// </summary>
+    [Fact]
+    public async Task A_Destroyed_Module_Resolves_The_Edge_It_Owes()
+    {
+        var wave = await AddWave();
+
+        await using (var seed = _fixture.CreateDbContext())
+        {
+            seed.SignalEdges.Add(new SignalEdge
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = _organizationId,
+                ProbeWaveId = wave,
+                ConsumerModuleId = _consumerModuleId,
+                UpstreamModuleId = _producerModuleId,
+                Status = SignalEdgeStatus.Confirmed
+            });
+            await seed.SaveChangesAsync();
+        }
+
+        using (var resolver = new SignalEdgeResolver(
+                   _fixture.CreateDbContext(),
+                   new RippleProbeConsumerLookup(_fixture.CreateDbContext()),
+                   Mock.Of<IPublishEndpoint>(),
+                   NullLogger<SignalEdgeResolver>.Instance))
+        {
+            await resolver.ResolveAsModuleDestroyed(wave, _consumerModuleId, _organizationId);
+        }
+
+        await using var db = _fixture.CreateDbContext();
+        var statuses = await db.SignalEdges
+            .AsNoTracking()
+            .Where(e => e.ProbeWaveId == wave && e.ConsumerModuleId == _consumerModuleId)
+            .Select(e => e.Status)
+            .ToListAsync();
+
+        Assert.NotEmpty(statuses);
+        Assert.All(statuses, status => Assert.Equal(SignalEdgeStatus.ModuleDestroyed, status));
+    }
+
+    /// <summary>
+    /// The wave stops asking once the edge is resolved. Without this the saga reads another wave
+    /// as owed and runs the probe branch again.
+    /// </summary>
+    [Fact]
+    public async Task A_Destroyed_Module_Is_No_Longer_Owed_A_Probe()
+    {
+        var wave = await AddWave();
+
+        await using (var seed = _fixture.CreateDbContext())
+        {
+            seed.SignalEdges.Add(new SignalEdge
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = _organizationId,
+                ProbeWaveId = wave,
+                ConsumerModuleId = _consumerModuleId,
+                UpstreamModuleId = _producerModuleId,
+                Status = SignalEdgeStatus.Confirmed
+            });
+            await seed.SaveChangesAsync();
+        }
+
+        await using (var before = _fixture.CreateDbContext())
+        {
+            using var builder = NewInputsBuilder(before);
+            Assert.Contains(wave, await builder.FindWavesToProbeFor(_consumerModuleId, _organizationId));
+        }
+
+        using (var resolver = new SignalEdgeResolver(
+                   _fixture.CreateDbContext(),
+                   new RippleProbeConsumerLookup(_fixture.CreateDbContext()),
+                   Mock.Of<IPublishEndpoint>(),
+                   NullLogger<SignalEdgeResolver>.Instance))
+        {
+            await resolver.ResolveAsModuleDestroyed(wave, _consumerModuleId, _organizationId);
+        }
+
+        await using var after = _fixture.CreateDbContext();
+        using var afterBuilder = NewInputsBuilder(after);
+        Assert.DoesNotContain(wave, await afterBuilder.FindWavesToProbeFor(_consumerModuleId, _organizationId));
+    }
+
+    private static ProbeInputsBuilder NewInputsBuilder(SnapCdDbContext dbContext) =>
+        new(dbContext,
+            new RippleProbeConsumerLookup(dbContext),
+            Mock.Of<ISignalSecretReader>(),
+            NullLogger<ProbeInputsBuilder>.Instance);
+
     private async Task Resolve(Guid probeWaveId, Guid moduleId)
     {
         using var resolver = new SignalEdgeResolver(

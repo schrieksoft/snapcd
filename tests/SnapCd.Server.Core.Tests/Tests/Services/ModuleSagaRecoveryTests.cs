@@ -96,14 +96,26 @@ public class ModuleSagaRecoveryTests : IAsyncLifetime
             .Where(j => j.ModuleId == moduleId && j.OrganizationId == orgId)
             .OrderByDescending(j => j.TimestampEnd)
             .FirstAsync();
-        job.ActualStateHeadline = ActualStateHeadline.Destroyed;
-        await _dbContext.SaveChangesAsync();
 
-        await RemoveSagaIfPresent(moduleId);
-        var saga = await Repo().Get(moduleId, orgId);
-        _restored.Add(moduleId);
+        // The fixture's own rows are shared with every other test in the collection, so the
+        // headline is put back whatever this test does with it.
+        var headlineBefore = job.ActualStateHeadline;
+        try
+        {
+            job.ActualStateHeadline = ActualStateHeadline.Destroyed;
+            await _dbContext.SaveChangesAsync();
 
-        Assert.Equal(DesiredStateHeadline.Destroyed, saga.DesiredStateHeadline);
+            await RemoveSagaIfPresent(moduleId);
+            var saga = await Repo().Get(moduleId, orgId);
+            _restored.Add(moduleId);
+
+            Assert.Equal(DesiredStateHeadline.Destroyed, saga.DesiredStateHeadline);
+        }
+        finally
+        {
+            job.ActualStateHeadline = headlineBefore;
+            await _dbContext.SaveChangesAsync();
+        }
     }
 
     [Fact]

@@ -128,7 +128,14 @@
                             </MudStack>
                         </TitleContent>
                         <ChildContent>
-                            @if (module.Attempts.Count == 0)
+                            @if (module.Progress == ProbeProgress.Destroyed)
+                            {
+                                <MudText Typo="Typo.body2">
+                                    This Module is destroyed, so the outputs it reads from
+                                    @_wave?.OriginModuleName no longer reach anything. There is nothing to predict.
+                                </MudText>
+                            }
+                            else if (module.Attempts.Count == 0)
                             {
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary">No probe has run yet, so there are no logs.</MudText>
                             }
@@ -319,7 +326,8 @@
             : await service.PropagationFailure(ModuleJobId, OrganizationId);
 
         // The origin answers from its own plan rather than being probed, and a Module nothing
-        // reaches has no probe to show. Neither is a panel a reader would open.
+        // reaches has no probe to show. Neither is a panel a reader would open. A destroyed
+        // Module stays: the change did reach it, and its outputs being gone is the finding.
         _relevant = _wave == null
             ? []
             : _wave.Modules
@@ -381,9 +389,9 @@
     }
 
     /// <summary>
-    /// Four answers: it changes something, it changes nothing, its probe did not report, or it has
-    /// not reported yet. What a Module changes is read from the row's own detail, so the badge
-    /// stays one word.
+    /// Five answers: it changes something, it changes nothing, it is destroyed, its probe did not
+    /// report, or it has not reported yet. What a Module changes is read from the row's own
+    /// detail, so the badge stays one word.
     /// </summary>
     private static (string? Icon, Color Color, string Label) Badge(ProbeWaveModuleView p) =>
         p.Progress switch
@@ -392,6 +400,8 @@
                 (SnapCdIcons.Warning, Color.Warning, "changes"),
             ProbeProgress.Reported =>
                 (SnapCdIcons.CheckCircle, Color.Success, "no change"),
+            ProbeProgress.Destroyed =>
+                (SnapCdIcons.Delete, Color.Error, "destroyed"),
             ProbeProgress.Faulted =>
                 (SnapCdIcons.Error, Color.Error, "probe failed"),
             // Null icon: still going, drawn as the job list draws a running job.
