@@ -108,6 +108,7 @@
     <!-- Embed SQL views and announcements as resources -->
     <ItemGroup>
         <EmbeddedResource Include="Views\**\*.sql" />
+        <EmbeddedResource Include="Startup\Hangfire\*.css" />
         <EmbeddedResource Include="AI\Skills\**\*" />
     </ItemGroup>
 

@@ -1,0 +1,101 @@
+/* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft. */
+
+/* Brings the background jobs dashboard onto the product's palette and type. The markup is
+   Bootstrap 3 and belongs to Hangfire, so this overrides its colours rather than restyling it.
+   Tokens are declared here because the page is served outside the app's own stylesheet. */
+
+:root {
+  --snap-ink: #12171D;
+  --snap-accent: #E85D1A;
+  --snap-accent-hover: #DC5414;
+  --snap-bg: #FAFBFB;
+  --snap-bg-raised: #FFFFFF;
+  --snap-bg-inset: #F2F4F6;
+  --snap-border: #DDE3E8;
+  --snap-text: #12171D;
+  --snap-text-2: #4A5561;
+  --snap-success: #00B368;
+  --snap-error: #DB4A3F;
+  --snap-font-sans: 'Geist Sans', system-ui, -apple-system, sans-serif;
+  --snap-font-mono: 'Geist Mono', ui-monospace, 'Cascadia Code', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --snap-bg: #000000;
+    --snap-bg-raised: #171D24;
+    --snap-bg-inset: #0E1216;
+    --snap-border: #262E37;
+    --snap-text: #E8ECEF;
+    --snap-text-2: #9AA5B0;
+  }
+}
+
+:root[data-theme="dark"] {
+  --snap-bg: #000000;
+  --snap-bg-raised: #171D24;
+  --snap-bg-inset: #0E1216;
+  --snap-border: #262E37;
+  --snap-text: #E8ECEF;
+  --snap-text-2: #9AA5B0;
+}
+
+body {
+  font-family: var(--snap-font-sans);
+  background-color: var(--snap-bg);
+  color: var(--snap-text);
+}
+
+/* The bar carries the product's sidebar colour rather than Hangfire's own. */
+.navbar-inverse {
+  background-color: var(--snap-ink);
+  border-color: var(--snap-ink);
+}
+
+.navbar-inverse .navbar-brand,
+.navbar-inverse .navbar-nav > li > a {
+  color: #E8ECEF;
+}
+
+.navbar-inverse .navbar-nav > .active > a,
+.navbar-inverse .navbar-nav > li > a:hover {
+  background-color: var(--snap-accent);
+  color: var(--snap-ink);
+}
+
+a { color: var(--snap-accent); }
+a:hover, a:focus { color: var(--snap-accent-hover); }
+
+/* Ink on the accent, never white: white on ember fails WCAG AA at 3.49:1. */
+.btn-primary {
+  background-color: var(--snap-accent);
+  border-color: var(--snap-accent);
+  color: var(--snap-ink);
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+  background-color: var(--snap-accent-hover);
+  border-color: var(--snap-accent-hover);
+  color: var(--snap-ink);
+}
+
+.panel, .well, .table {
+  background-color: var(--snap-bg-raised);
+  border-color: var(--snap-border);
+  color: var(--snap-text);
+}
+
+.panel-heading, .table > thead > tr > th {
+  background-color: var(--snap-bg-inset);
+  border-color: var(--snap-border);
+  color: var(--snap-text-2);
+}
+
+.table > tbody > tr > td { border-color: var(--snap-border); }
+
+/* Job ids, queue names and types are system objects, so they take the mono face. */
+code, pre, .job-snippet, .text-monospace { font-family: var(--snap-font-mono); }
+
+.label-success, .bg-success { background-color: var(--snap-success); }
+.label-danger, .bg-danger { background-color: var(--snap-error); }

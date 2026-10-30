@@ -171,6 +171,11 @@
                     <MudNavLink Href="/AdminCenter/SecretMigrator" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.SyncAlt">
                         Secret Migrator
                     </MudNavLink>
+                    @* Served outside the Blazor app, so it is a full navigation rather than a route. *@
+                    <MudNavLink Href="/AdminCenter/BackgroundJobs" Match="NavLinkMatch.Prefix"
+                                Icon="@SnapCdIcons.Schedule" ForceLoad="true">
+                        Background Jobs
+                    </MudNavLink>
                     @if (EditionAdminCenterNavItems != null)
                     {
                         @EditionAdminCenterNavItems

@@ -266,7 +266,7 @@ using (var scope = app.Services.CreateScope())
 // The flag cache has no expiry, so each boot rewrites it from the table the migration creates.
 await maintenanceModeService.SyncCacheAsync();
 
-app.UseHangfireDashboard();
+app.UseSnapCdHangfireDashboard();
 
 var jobLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("SnapCd.BackgroundJobs");
 
