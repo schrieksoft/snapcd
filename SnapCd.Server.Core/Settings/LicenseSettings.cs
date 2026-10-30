@@ -21,12 +21,6 @@ public class LicenseSettings
     /// </summary>
     public string LicenseServerBaseUrl { get; set; } = "https://snapcd.io";
 
-    /// <summary>
-    /// Quartz cron expression for the background license refresh job. Defaults to 03:00 daily,
-    /// which is frequent enough to propagate Cloud-side state changes (cancellation, plan changes,
-    /// expiry) within a day while staying well under the Cloud endpoint's rate limit.
-    /// </summary>
-    public string RefreshJobCron { get; set; } = "0 3 * * *";
 
     /// <summary>
     /// How many days before token expiry the refresh job tries to renew. Defaults to 3 — gives the

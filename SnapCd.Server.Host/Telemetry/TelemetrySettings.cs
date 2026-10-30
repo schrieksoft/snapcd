@@ -19,8 +19,6 @@ public class TelemetrySettings
     /// <summary>Whether the beacon runs at all. Defaults to true.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Cron expression for the beacon. Defaults to 05:00 daily.</summary>
-    public string Cron { get; set; } = "0 5 * * *";
 
     /// <summary>GitHub repository whose releases the What's New page lists.</summary>
     public string ReleaseRepository { get; set; } = "schrieksoft/snapcd";

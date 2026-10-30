@@ -75,8 +75,8 @@ builder.Services.AddOptions<SecretStoreSettings>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<SecretStoreSettings>, SnapCd.Server.Core.Validation.SecretStoreSettingsValidator>();
-builder.Services.Configure<SourceRefreshSettings>(builder.Configuration.GetSection("SourceRefresh"));
 builder.Services.AddSnapCdRepositorySettings(builder.Configuration);
+builder.Services.Configure<SourceRefreshSettings>(builder.Configuration.GetSection("SourceRefresh"));
 builder.Services.Configure<InvitationSettings>(builder.Configuration.GetSection("InvitationSettings"));
 builder.Services.Configure<OrphanedJobCleanupSettings>(builder.Configuration.GetSection("OrphanedJobCleanup"));
 builder.Services.Configure<StuckJobDetectionSettings>(builder.Configuration.GetSection("StuckJobDetection"));
@@ -101,7 +101,6 @@ else if (!(builder.Configuration.GetSection("Debugging").Get<DebuggingOptions>()
 }
 
 
-var sourceRefreshSettings = builder.Configuration.GetSection("SourceRefresh").Get<SourceRefreshSettings>() ?? new SourceRefreshSettings();
 var allowHttp = builder.Configuration.GetSection("AllowHttp").Get<bool>();
 var connectionString = builder.Configuration["ConnectionString"] ?? throw new Exception("Connection string not found.");
 
@@ -269,65 +268,43 @@ await maintenanceModeService.SyncCacheAsync();
 
 app.UseHangfireDashboard();
 
-RecurringJob.AddOrUpdate<SourceRefreshJob>(
-    "source-refresh-job",
-    x => x.ExecuteJob(),
-    sourceRefreshSettings.RefreshIntervalCronExpression
-);
-RecurringJob.AddOrUpdate<ServerConnectionCleanupJob>(
-    "server-connection-cleanup-job",
-    x => x.ExecuteJob(),
-    "*/1 * * * *" // Every 1 minute
-);
-var secretStoreSettings = builder.Configuration.GetSection("SecretStore").Get<SecretStoreSettings>() ?? new SecretStoreSettings();
-RecurringJob.AddOrUpdate<SecretNameSweepJob>(
-    "secret-name-sweep-job",
-    x => x.ExecuteJob(),
-    secretStoreSettings.NameSweepCron
-);
-RecurringJob.AddOrUpdate<RunnerConnectionJobCleanupJob>(
-    "runner-connection-job-cleanup-job",
-    x => x.ExecuteJob(),
-    "*/15 * * * *" // Every 15 minutes
-);
+var jobLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("SnapCd.BackgroundJobs");
 
-var invitationSettings = builder.Configuration.GetSection("InvitationSettings").Get<InvitationSettings>() ?? new InvitationSettings();
-RecurringJob.AddOrUpdate<InvitationCleanupJob>(
-    "invitation-cleanup-job",
-    x => x.ExecuteJob(),
-    invitationSettings.CleanupJobCron
-);
+T JobSettings<T>(string name) where T : BackgroundJobSettingsBase, new() =>
+    builder.Configuration.GetSection($"BackgroundJobs:{name}").Get<T>() ?? new T();
 
-var orphanedJobCleanupSettings = builder.Configuration.GetSection("OrphanedJobCleanup").Get<OrphanedJobCleanupSettings>() ?? new OrphanedJobCleanupSettings();
-RecurringJob.AddOrUpdate<OrphanedJobCleanupJob>(
-    "orphaned-job-cleanup-job",
-    x => x.ExecuteJob(),
-    orphanedJobCleanupSettings.CleanupCronExpression
-);
+RecurringJobs.Register<SourceRefreshJob>(JobSettings<SourceRefreshJobSettings>("SourceRefresh"),
+    "source-refresh-job", x => x.ExecuteJob(), jobLogger);
 
-var stuckJobDetectionSettings = builder.Configuration.GetSection("StuckJobDetection").Get<StuckJobDetectionSettings>() ?? new StuckJobDetectionSettings();
-RecurringJob.AddOrUpdate<StuckJobDetectionJob>(
-    "stuck-job-detection-job",
-    x => x.ExecuteJob(),
-    stuckJobDetectionSettings.CronExpression
-);
+RecurringJobs.Register<ServerConnectionCleanupJob>(JobSettings<ServerConnectionCleanupJobSettings>("ServerConnectionCleanup"),
+    "server-connection-cleanup-job", x => x.ExecuteJob(), jobLogger);
+
+RecurringJobs.Register<SecretNameSweepJob>(JobSettings<SecretNameSweepJobSettings>("SecretNameSweep"),
+    "secret-name-sweep-job", x => x.ExecuteJob(), jobLogger);
+
+RecurringJobs.Register<RunnerConnectionJobCleanupJob>(JobSettings<RunnerConnectionJobCleanupJobSettings>("RunnerConnectionJobCleanup"),
+    "runner-connection-job-cleanup-job", x => x.ExecuteJob(), jobLogger);
+
+RecurringJobs.Register<InvitationCleanupJob>(JobSettings<InvitationCleanupJobSettings>("InvitationCleanup"),
+    "invitation-cleanup-job", x => x.ExecuteJob(), jobLogger);
+
+RecurringJobs.Register<OrphanedJobCleanupJob>(JobSettings<OrphanedJobCleanupJobSettings>("OrphanedJobCleanup"),
+    "orphaned-job-cleanup-job", x => x.ExecuteJob(), jobLogger);
+
+RecurringJobs.Register<StuckJobDetectionJob>(JobSettings<StuckJobDetectionJobSettings>("StuckJobDetection"),
+    "stuck-job-detection-job", x => x.ExecuteJob(), jobLogger);
 
 // Scheduled messages live in the transport and do not survive a transport change.
 BackgroundJob.Enqueue<TransportReconciliationJob>(x => x.ExecuteJob());
 
-var licenseSettings = builder.Configuration.GetSection("License").Get<LicenseSettings>() ?? new LicenseSettings();
-RecurringJob.AddOrUpdate<LicenseRefreshJob>(
-    "license-refresh-job",
-    x => x.ExecuteJob(),
-    licenseSettings.RefreshJobCron
-);
-RecurringJob.AddOrUpdate<LicensePublicKeyRefreshJob>(
-    "license-public-key-refresh-job",
-    x => x.ExecuteJob(),
-    "0 4 * * *" // daily at 04:00 UTC
-);
-var telemetrySettings = builder.Configuration.GetSection("Telemetry").Get<TelemetrySettings>() ?? new TelemetrySettings();
-RecurringJob.AddOrUpdate<TelemetryReportJob>("telemetry-report-job", x => x.ExecuteJob(), telemetrySettings.Cron);
+RecurringJobs.Register<LicenseRefreshJob>(JobSettings<LicenseRefreshJobSettings>("LicenseRefresh"),
+    "license-refresh-job", x => x.ExecuteJob(), jobLogger);
+
+RecurringJobs.Register<LicensePublicKeyRefreshJob>(JobSettings<LicensePublicKeyRefreshJobSettings>("LicensePublicKeyRefresh"),
+    "license-public-key-refresh-job", x => x.ExecuteJob(), jobLogger);
+
+RecurringJobs.Register<TelemetryReportJob>(JobSettings<TelemetryReportJobSettings>("TelemetryReport"),
+    "telemetry-report-job", x => x.ExecuteJob(), jobLogger);
 // One run shortly after boot, so a fresh install or an upgrade has notices and the version indicator today, not tomorrow.
 BackgroundJob.Schedule<TelemetryReportJob>(x => x.ExecuteJob(), TimeSpan.FromMinutes(1));
 

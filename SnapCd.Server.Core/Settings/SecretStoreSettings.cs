@@ -47,12 +47,6 @@ public class SecretStoreSettings
     /// <summary>Tuning knobs for the Secret Migrator utility.</summary>
     public SecretMigratorSettings Migrator { get; set; } = new();
 
-    /// <summary>
-    /// Cron expression for the sweep that moves Secret values onto the current naming scheme.
-    /// Defaults to 03:00 daily: it is a backfill that runs until every Secret has moved and then
-    /// finds nothing, so it is not worth running often.
-    /// </summary>
-    public string NameSweepCron { get; set; } = "0 3 * * *";
 }
 
 /// <summary>

@@ -34,8 +34,4 @@ public class InvitationSettings
     /// </summary>
     public bool RequireEmailVerification { get; set; } = true;
 
-    /// <summary>
-    /// Quartz cron expression for the invitation-cleanup background job. Defaults to 00:00 daily.
-    /// </summary>
-    public string CleanupJobCron { get; set; } = "0 0 * * *"; // Daily at midnight
 }
