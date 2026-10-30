@@ -82,6 +82,7 @@ builder.Services.Configure<OrphanedJobCleanupSettings>(builder.Configuration.Get
 builder.Services.Configure<StuckJobDetectionSettings>(builder.Configuration.GetSection("StuckJobDetection"));
 builder.Services.Configure<JobLogSettings>(builder.Configuration.GetSection("JobLogs"));
 builder.Services.Configure<ModuleHoldSettings>(builder.Configuration.GetSection("ModuleHold"));
+builder.Services.Configure<SetRetentionSettings>(builder.Configuration.GetSection("SetRetention"));
 builder.Services.Configure<LicenseSettings>(builder.Configuration.GetSection("License"));
 builder.Services.Configure<TelemetrySettings>(builder.Configuration.GetSection("Telemetry"));
 builder.Services.Configure<DebuggingOptions>(builder.Configuration.GetSection("Debugging"));

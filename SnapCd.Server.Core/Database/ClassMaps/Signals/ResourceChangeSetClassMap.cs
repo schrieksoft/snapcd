@@ -8,6 +8,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 
 namespace SnapCd.Server.Core.Database.ClassMaps.Signals;
@@ -28,16 +29,23 @@ public class ResourceChangeSetClassMap : IEntityTypeConfiguration<ResourceChange
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // The wave owns the set, as it does a SignalOutputSet.
+        entity
+            .HasOne(e => e.ProbeWave)
+            .WithMany(x => x.ResourceChangeSets)
+            .HasForeignKey(e => new { e.ProbeWaveId, e.OrganizationId })
+            .HasPrincipalKey(w => new { w.Id, w.OrganizationId })
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Restrict for the same reason as SignalOutputSets: two cascade paths from the Module.
         entity
             .HasOne(e => e.Module)
             .WithMany(x => x.ResourceChangeSets)
             .HasForeignKey(e => new { e.ModuleId, e.OrganizationId })
             .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
 
         entity
             .HasIndex(p => new { p.ModuleId, p.Timestamp, p.OrganizationId });
-
-        entity.HasIndex(p => p.ProbeWaveId);
     }
 }

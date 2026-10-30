@@ -263,6 +263,17 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
             .Where(a => a.ModuleId == id && a.OrganizationId == organizationId)
             .ExecuteDeleteAsync();
 
+        // A probe's two sets belong to the wave that asked for them, and the Module reaches them a
+        // second time through the job that owns the wave, so the Module's own path restricts. They
+        // go here, after the attempts that point at them.
+        await DbContext.SignalOutputSets
+            .Where(s => s.ModuleId == id && s.OrganizationId == organizationId)
+            .ExecuteDeleteAsync();
+
+        await DbContext.ResourceChangeSets
+            .Where(s => s.ModuleId == id && s.OrganizationId == organizationId)
+            .ExecuteDeleteAsync();
+
         // Now proceed with normal module deletion (which will cascade to other entities)
         await base.ExecuteDelete(id, organizationId);
     }

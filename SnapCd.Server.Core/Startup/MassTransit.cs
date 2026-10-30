@@ -358,6 +358,7 @@ public static class MassTransit
         typeof(MissionRunDeadlineCheckConsumer),
 
         typeof(OutputSetWithOutputsCreatedCompetingConsumer),
+        typeof(OutputSetCullConsumer),
         typeof(ModuleModifiedCompetingConsumer),
         typeof(NamespaceModifiedCompetingConsumer),
         typeof(StackModifiedCompetingConsumer),

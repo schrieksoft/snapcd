@@ -6851,9 +6851,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.HasIndex("ProbeWaveId");
-
                     b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ProbeWaveId", "OrganizationId");
 
                     b.HasIndex("ModuleId", "Timestamp", "OrganizationId");
 
@@ -6995,9 +6995,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.HasIndex("ProbeWaveId");
-
                     b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ProbeWaveId", "OrganizationId");
 
                     b.HasIndex("ModuleId", "Timestamp", "OrganizationId");
 
@@ -12768,12 +12768,20 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
                         .WithMany("ResourceChangeSets")
                         .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ProbeWaves.ProbeWave", "ProbeWave")
+                        .WithMany("ResourceChangeSets")
+                        .HasForeignKey("ProbeWaveId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Module");
 
                     b.Navigation("Organization");
+
+                    b.Navigation("ProbeWave");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Signals.SignalOutput", b =>
@@ -12806,12 +12814,20 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
                         .WithMany("SignalOutputSets")
                         .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ProbeWaves.ProbeWave", "ProbeWave")
+                        .WithMany("SignalOutputSets")
+                        .HasForeignKey("ProbeWaveId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Module");
 
                     b.Navigation("Organization");
+
+                    b.Navigation("ProbeWave");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.SourceRefresherPreselection", b =>
@@ -14318,6 +14334,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Attempts");
 
                     b.Navigation("Contributions");
+
+                    b.Navigation("ResourceChangeSets");
+
+                    b.Navigation("SignalOutputSets");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Runner", b =>

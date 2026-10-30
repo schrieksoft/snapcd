@@ -53,6 +53,10 @@ public class ModuleProbeAttemptClassMap : IEntityTypeConfiguration<ModuleProbeAt
         entity
             .HasIndex(p => new { p.ProbeWaveId, p.ModuleId, p.OrganizationId, p.Timestamp });
 
+        // Restrict, and it cannot be otherwise: the foreign key is composite over OrganizationId,
+        // which is not nullable, and SQL Server refuses SET NULL where any referencing column is.
+        // So the attempt must be deleted before the set it points at, which is what the wave's own
+        // delete does by taking both.
         entity
             .HasOne(e => e.SignalOutputSet)
             .WithMany()

@@ -160,8 +160,8 @@ public class OrphanedVaultValueSweeper(
 }
 
 /// <summary>
-/// Which of an organization's two vaults holds a value. Secrets and integration connections live
-/// in the input vault, Module outputs and probe signals in the output one.
+/// Which of an organization's two vaults holds a value. Module outputs live in the output vault;
+/// Secrets, integration connections and probe signals in the input one.
 /// </summary>
 public enum VaultKind
 {

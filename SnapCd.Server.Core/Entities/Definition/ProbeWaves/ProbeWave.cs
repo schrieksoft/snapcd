@@ -8,6 +8,7 @@
 
 using System.Text.Json.Serialization;
 using SnapCd.Server.Core.Entities.Definition.Base;
+using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Entities.Interfaces;
 
 namespace SnapCd.Server.Core.Entities.Definition.ProbeWaves;
@@ -32,6 +33,12 @@ public class ProbeWave : AuditBase, IEntity, IOrganizationChild
 
     /// <summary>The edges this wave has discovered, which is how it knows who is still owed an answer.</summary>
     public List<SignalEdge> Contributions { get; set; } = new();
+
+    /// <summary>What the participants reported downstream. A set belongs to the wave it answered.</summary>
+    public List<SignalOutputSet> SignalOutputSets { get; set; } = new();
+
+    /// <summary>What the participants predicted for their own resources.</summary>
+    public List<ResourceChangeSet> ResourceChangeSets { get; set; } = new();
 
     /// <summary>
     /// The job whose approval this wave informs. A wave exists to inform that one decision, so it
