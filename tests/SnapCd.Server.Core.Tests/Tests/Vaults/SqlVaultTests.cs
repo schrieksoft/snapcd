@@ -120,6 +120,32 @@ public class SqlVaultTests : IAsyncLifetime
         Assert.Equal("after", await vault.GetSecretAsync(name));
     }
 
+    /// <summary>
+    /// An empty value is refused rather than stored. The edit form sends the value field as it
+    /// stands, so a save that never loaded the existing value would otherwise replace a real
+    /// secret with nothing and report success.
+    /// </summary>
+    [Fact]
+    public async Task SetIfChanged_Refuses_An_Empty_Value()
+    {
+        var vault = NewVault();
+        var name = NewName();
+
+        await vault.SetSecretAsync(name, "real value");
+
+        await Assert.ThrowsAsync<ArgumentException>(() => vault.SetIfChanged(name, string.Empty));
+
+        Assert.Equal("real value", await vault.GetSecretAsync(name));
+    }
+
+    [Fact]
+    public async Task SetSecretAsync_Refuses_An_Empty_Value()
+    {
+        var vault = NewVault();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => vault.SetSecretAsync(NewName(), string.Empty));
+    }
+
     [Fact]
     public async Task A_Deleted_Secret_Is_Gone()
     {
@@ -175,6 +201,41 @@ public class SqlVaultTests : IAsyncLifetime
         await vault.SetSecretAsync(name, "second");
 
         Assert.Equal("second", await vault.GetSecretAsync(name));
+    }
+
+    /// <summary>
+    /// Listing by prefix is how a deleted Stack, Namespace or Module has its values found, so it
+    /// must match exactly what belongs to that owner and nothing adjacent.
+    /// </summary>
+    [Fact]
+    public async Task Names_Are_Listed_By_Prefix()
+    {
+        var vault = NewVault();
+        var owner = Guid.NewGuid().ToString("N");
+        var mine = $"test--{owner}--one";
+        var alsoMine = $"test--{owner}--two";
+        var somebodyElses = $"test--{Guid.NewGuid():N}--one";
+
+        foreach (var name in new[] { mine, alsoMine, somebodyElses })
+        {
+            _names.Add(name);
+            await vault.SetSecretAsync(name, "value");
+        }
+
+        var found = await vault.ListNamesAsync($"test--{owner}--");
+
+        Assert.Equal(2, found.Count);
+        Assert.Contains(mine, found);
+        Assert.Contains(alsoMine, found);
+        Assert.DoesNotContain(somebodyElses, found);
+    }
+
+    [Fact]
+    public async Task Listing_A_Prefix_Nothing_Matches_Returns_Nothing()
+    {
+        var vault = NewVault();
+
+        Assert.Empty(await vault.ListNamesAsync($"test--{Guid.NewGuid():N}--"));
     }
 
     private SqlVault NewVault() =>

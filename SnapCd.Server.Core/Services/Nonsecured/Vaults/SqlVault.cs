@@ -45,6 +45,9 @@ public class SqlVault : IVault
 
     public async Task<SetIfChangedResult> SetIfChanged(string secretName, string value)
     {
+        if (string.IsNullOrEmpty(secretName) || string.IsNullOrEmpty(value))
+            throw new ArgumentException("Secret name and value cannot be null or empty");
+
         await using var db = await _dbContextFactory.CreateDbContextAsync();
         var set = db.Set<VaultSecret>();
         var existing = await set.FirstOrDefaultAsync(s => s.Name == secretName);
@@ -108,6 +111,18 @@ public class SqlVault : IVault
 
         if (affected == 0)
             _logger.LogInformation("Secret \"{Name}\" not found or already deleted.", name);
+    }
+
+    public async Task<IReadOnlyList<string>> ListNamesAsync(string prefix, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(prefix))
+            throw new ArgumentException("Prefix cannot be null or empty", nameof(prefix));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct);
+        return await db.Set<VaultSecret>()
+            .Where(s => s.Name.StartsWith(prefix))
+            .Select(s => s.Name)
+            .ToListAsync(ct);
     }
 
     /// <summary>Rows are deleted outright here, so no name is ever in a recoverable state.</summary>

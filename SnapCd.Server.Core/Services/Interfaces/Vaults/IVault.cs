@@ -38,4 +38,10 @@ public interface IVault : IDisposable
     /// decides by absence alone would plan work that cannot run.
     /// </summary>
     public Task<bool> IsSoftDeletedAsync(string secretName, CancellationToken ct = default);
+
+    /// <summary>
+    /// Every name the store holds that begins with this prefix. Names carry the organization and
+    /// the owner, so a prefix is how everything belonging to one deleted owner is found.
+    /// </summary>
+    public Task<IReadOnlyList<string>> ListNamesAsync(string prefix, CancellationToken ct = default);
 }

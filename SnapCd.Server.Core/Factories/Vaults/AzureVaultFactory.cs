@@ -31,7 +31,20 @@ public class AzureVaultFactory : IVaultFactory
     public IVault Create(string keyVaultUrl)
     {
         var logger = _loggerFactory.CreateLogger<AzureVault>();
-        return new AzureVault(keyVaultUrl, BuildCredential(), logger);
+        return new AzureVault(keyVaultUrl, BuildCredential(), logger, BuildClientOptions());
+    }
+
+    /// <summary>
+    /// Caps how long one Key Vault call may run. A Secret write happens inside an open SQL
+    /// transaction, so the SDK's own defaults would let a struggling vault hold locks for minutes.
+    /// </summary>
+    private SecretClientOptions BuildClientOptions()
+    {
+        var akv = _secretStoreSettings.AzureKeyVault;
+        var options = new SecretClientOptions();
+        options.Retry.NetworkTimeout = TimeSpan.FromSeconds(akv.NetworkTimeoutSeconds);
+        options.Retry.MaxRetries = akv.MaxRetries;
+        return options;
     }
 
     /// <summary>
@@ -45,7 +58,7 @@ public class AzureVaultFactory : IVaultFactory
         if (string.IsNullOrEmpty(keyVaultUrl))
             throw new ArgumentException("Key Vault URL cannot be null or empty", nameof(keyVaultUrl));
 
-        var client = new SecretClient(new Uri(keyVaultUrl), BuildCredential());
+        var client = new SecretClient(new Uri(keyVaultUrl), BuildCredential(), BuildClientOptions());
         await foreach (var props in client.GetPropertiesOfSecretsAsync(ct))
         {
             yield return props.Name;

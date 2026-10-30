@@ -16,6 +16,13 @@ public class SecretOutput : Output, ISecretOutput
 {
     [MaxLength(255)] public string RemoteSecretName { get; set; } = null!;
 
+    /// <summary>
+    /// When the value was first found to be absent from the vault. Null while the value is there.
+    /// Advisory: nothing reads it to decide whether this works, so a stale value misleads rather
+    /// than breaks.
+    /// </summary>
+    public DateTime? RemoteValueMissingSince { get; set; }
+
     public virtual SecretDiscriminator GetSecretDiscriminator()
     {
         return SecretDiscriminator.SecretOutput;

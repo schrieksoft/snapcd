@@ -6531,6 +6531,12 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<bool>("NameContainsScope")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("RemoteValueMissingSince")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ScopeKind")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -10461,6 +10467,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<DateTime?>("RemoteValueMissingSince")
+                        .HasColumnType("datetime2");
+
                     b.HasDiscriminator().HasValue("SecretOutput");
                 });
 
@@ -10964,6 +10973,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("RemoteValueMissingSince")
+                        .HasColumnType("datetime2");
 
                     b.HasDiscriminator().HasValue("SecretSignalOutput");
                 });

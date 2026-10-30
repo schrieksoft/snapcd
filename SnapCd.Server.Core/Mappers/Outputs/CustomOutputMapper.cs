@@ -19,6 +19,7 @@ using SnapCd.Server.Core.Entities.Definition.Outputs;
 using SnapCd.Server.Core.Factories.Vaults;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
+using SnapCd.Server.Core.Services.Utils.Vaults;
 
 namespace SnapCd.Server.Core.Mappers.Outputs;
 
@@ -145,13 +146,8 @@ public class CustomOutputMapper
     }
 
 
-    private string CreateRemoteSecretName(Guid organizationId, Guid moduleId, string outputName)
-    {
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(outputName));
-        var hash32 = BitConverter.ToString(hashBytes).Replace("-", "").ToLower()[..32];
-        return $"output--{organizationId}--{moduleId}--{hash32}";
-    }
+    private string CreateRemoteSecretName(Guid organizationId, Guid moduleId, string outputName) =>
+        RemoteSecretName.ForOutput(organizationId, moduleId, outputName);
 
 
     private SecretOutput CreateSecretOutput(OutputCreateDto outputCreateDto, Guid outputSetId, Guid moduleId, Guid organizationId)

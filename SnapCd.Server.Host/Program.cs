@@ -34,6 +34,7 @@ using SnapCd.Server.Core.Services.Interfaces.ViewManagement;
 using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 using SnapCd.Server.Core.Services.Nonsecured.OrganizationContext;
+using SnapCd.Server.Core.Services.Nonsecured.Vaults;
 using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Services.Utils.CallerContext;
 using SnapCd.Server.Core.Services.Utils.Dashboard;
@@ -277,6 +278,12 @@ RecurringJob.AddOrUpdate<ServerConnectionCleanupJob>(
     "server-connection-cleanup-job",
     x => x.ExecuteJob(),
     "*/1 * * * *" // Every 1 minute
+);
+var secretStoreSettings = builder.Configuration.GetSection("SecretStore").Get<SecretStoreSettings>() ?? new SecretStoreSettings();
+RecurringJob.AddOrUpdate<SecretNameSweepJob>(
+    "secret-name-sweep-job",
+    x => x.ExecuteJob(),
+    secretStoreSettings.NameSweepCron
 );
 RecurringJob.AddOrUpdate<RunnerConnectionJobCleanupJob>(
     "runner-connection-job-cleanup-job",

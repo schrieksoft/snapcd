@@ -19,6 +19,7 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Services.Secured.Crud.Generic;
+using SnapCd.Server.Core.Services.Utils.Vaults;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Views.Metadata;
@@ -128,17 +129,8 @@ public class SecretService : GenericCrudService<Secret, SecretMetadata, SecretCr
     }
 
 
-    public string MakeRemoteSecretName(Secret secret, Guid organizationId)
-    {
-        var prefix = secret switch
-        {
-            ModuleSecret => "module",
-            NamespaceSecret => "namespace",
-            StackSecret => "stack",
-            _ => throw new InvalidOperationException($"Unknown secret type: {secret.GetType().Name}")
-        };
-        return $"{prefix}--{organizationId}--{secret.Id}";
-    }
+    public string MakeRemoteSecretName(Secret secret, Guid organizationId) =>
+        RemoteSecretName.For(secret, organizationId);
 
 
     public async Task<string> GetRemote(Guid id, Guid organizationId)

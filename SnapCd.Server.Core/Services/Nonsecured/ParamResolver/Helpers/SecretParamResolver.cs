@@ -13,6 +13,7 @@ using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Factories.Vaults;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Settings;
+using SnapCd.Server.Core.Services.Utils.Vaults;
 
 namespace SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 
@@ -33,17 +34,8 @@ public class SecretParamResolver
         _secretStoreSettings = secretStoreSettings.Value;
     }
 
-    public string MakeRemoteSecretName(Secret secret, Guid organizationId)
-    {
-        var prefix = secret switch
-        {
-            ModuleSecret => "module",
-            NamespaceSecret => "namespace",
-            StackSecret => "stack",
-            _ => throw new InvalidOperationException($"Unknown secret type: {secret.GetType().Name}")
-        };
-        return $"{prefix}--{organizationId}--{secret.Id}";
-    }
+    public string MakeRemoteSecretName(Secret secret, Guid organizationId) =>
+        RemoteSecretName.For(secret, organizationId);
 
     public async Task<List<MappedSecretDto>> ListRemoteByIds(List<Guid> ids, Guid organizationId)
     {

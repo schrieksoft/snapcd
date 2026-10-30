@@ -91,6 +91,9 @@ public class SoftDeletedNameTests
 
         public Task DeleteSecretAsync(string secretName) => throw new NotSupportedException();
 
+        public Task<IReadOnlyList<string>> ListNamesAsync(string prefix, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
         public void Dispose() { }
     }
 }

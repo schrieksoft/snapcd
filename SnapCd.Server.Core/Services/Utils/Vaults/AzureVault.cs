@@ -18,12 +18,12 @@ public class AzureVault : IVault
     private readonly ILogger<AzureVault> _logger;
 
     public AzureVault(string keyVaultUrl, Azure.Core.TokenCredential credential,
-        ILogger<AzureVault> logger)
+        ILogger<AzureVault> logger, SecretClientOptions? options = null)
     {
         if (string.IsNullOrEmpty(keyVaultUrl))
             throw new ArgumentException("Key Vault URL cannot be null or empty", nameof(keyVaultUrl));
 
-        _secretClient = new SecretClient(new Uri(keyVaultUrl), credential);
+        _secretClient = new SecretClient(new Uri(keyVaultUrl), credential, options);
         _logger = logger;
     }
 
@@ -97,6 +97,22 @@ public class AzureVault : IVault
 
         KeyVaultSecret secret = await _secretClient.GetSecretAsync(name);
         return new VersionedSecret(secret.Value, secret.Properties.Version);
+    }
+
+    public async Task<IReadOnlyList<string>> ListNamesAsync(string prefix, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(prefix))
+            throw new ArgumentException("Prefix cannot be null or empty", nameof(prefix));
+
+        // Key Vault cannot filter server side, so the whole vault is enumerated and matched here.
+        var names = new List<string>();
+        await foreach (var properties in _secretClient.GetPropertiesOfSecretsAsync(ct))
+        {
+            if (properties.Name.StartsWith(prefix, StringComparison.Ordinal))
+                names.Add(properties.Name);
+        }
+
+        return names;
     }
 
     public async Task<bool> IsSoftDeletedAsync(string name, CancellationToken ct = default)

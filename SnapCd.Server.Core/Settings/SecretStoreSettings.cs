@@ -46,6 +46,13 @@ public class SecretStoreSettings
 
     /// <summary>Tuning knobs for the Secret Migrator utility.</summary>
     public SecretMigratorSettings Migrator { get; set; } = new();
+
+    /// <summary>
+    /// Cron expression for the sweep that moves Secret values onto the current naming scheme.
+    /// Defaults to 03:00 daily: it is a backfill that runs until every Secret has moved and then
+    /// finds nothing, so it is not worth running often.
+    /// </summary>
+    public string NameSweepCron { get; set; } = "0 3 * * *";
 }
 
 /// <summary>
@@ -109,6 +116,20 @@ public class AzureKeyVaultSecretStoreSettings
     /// need different vaults for compliance or geo-replication reasons.
     /// </summary>
     public string DefaultOutputKeyVaultUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Seconds a single Key Vault call may take before it is abandoned. A Secret write happens
+    /// inside an open SQL transaction, so this bounds how long that transaction holds its locks.
+    /// The SDK default is 100 seconds, which is sized for ordinary API calls rather than ones made
+    /// with a transaction open.
+    /// </summary>
+    public int NetworkTimeoutSeconds { get; set; } = 10;
+
+    /// <summary>
+    /// Retries attempted after a failed Key Vault call. With the timeout above, the worst case is
+    /// (MaxRetries + 1) calls plus backoff, which is the longest a Secret write can hold its locks.
+    /// </summary>
+    public int MaxRetries { get; set; } = 2;
 }
 
 /// <summary>
