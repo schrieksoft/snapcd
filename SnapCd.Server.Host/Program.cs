@@ -270,33 +270,12 @@ app.UseHangfireDashboard();
 
 var jobLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("SnapCd.BackgroundJobs");
 
+RecurringJobs.RegisterCoreJobs(builder.Configuration, jobLogger);
+
 T JobSettings<T>(string name) where T : BackgroundJobSettingsBase, new() =>
-    builder.Configuration.GetSection($"BackgroundJobs:{name}").Get<T>() ?? new T();
+    RecurringJobs.Settings<T>(builder.Configuration, name);
 
-RecurringJobs.Register<SourceRefreshJob>(JobSettings<SourceRefreshJobSettings>("SourceRefresh"),
-    "source-refresh-job", x => x.ExecuteJob(), jobLogger);
-
-RecurringJobs.Register<ServerConnectionCleanupJob>(JobSettings<ServerConnectionCleanupJobSettings>("ServerConnectionCleanup"),
-    "server-connection-cleanup-job", x => x.ExecuteJob(), jobLogger);
-
-RecurringJobs.Register<SecretNameSweepJob>(JobSettings<SecretNameSweepJobSettings>("SecretNameSweep"),
-    "secret-name-sweep-job", x => x.ExecuteJob(), jobLogger);
-
-RecurringJobs.Register<RunnerConnectionJobCleanupJob>(JobSettings<RunnerConnectionJobCleanupJobSettings>("RunnerConnectionJobCleanup"),
-    "runner-connection-job-cleanup-job", x => x.ExecuteJob(), jobLogger);
-
-RecurringJobs.Register<InvitationCleanupJob>(JobSettings<InvitationCleanupJobSettings>("InvitationCleanup"),
-    "invitation-cleanup-job", x => x.ExecuteJob(), jobLogger);
-
-RecurringJobs.Register<OrphanedJobCleanupJob>(JobSettings<OrphanedJobCleanupJobSettings>("OrphanedJobCleanup"),
-    "orphaned-job-cleanup-job", x => x.ExecuteJob(), jobLogger);
-
-RecurringJobs.Register<StuckJobDetectionJob>(JobSettings<StuckJobDetectionJobSettings>("StuckJobDetection"),
-    "stuck-job-detection-job", x => x.ExecuteJob(), jobLogger);
-
-// Scheduled messages live in the transport and do not survive a transport change.
-BackgroundJob.Enqueue<TransportReconciliationJob>(x => x.ExecuteJob());
-
+// Licensing and telemetry are this host's own.
 RecurringJobs.Register<LicenseRefreshJob>(JobSettings<LicenseRefreshJobSettings>("LicenseRefresh"),
     "license-refresh-job", x => x.ExecuteJob(), jobLogger);
 

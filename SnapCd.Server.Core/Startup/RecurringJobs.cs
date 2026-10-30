@@ -8,6 +8,9 @@
 
 using System.Linq.Expressions;
 using Hangfire;
+using Microsoft.Extensions.Configuration;
+using SnapCd.Server.Core.Services.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.Vaults;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Startup;
@@ -21,6 +24,42 @@ namespace SnapCd.Server.Core.Startup;
 /// </summary>
 public static class RecurringJobs
 {
+    /// <summary>
+    /// The jobs every host runs, which are the ones whose work lives in Core. A host adds its own
+    /// afterwards; these are the same wherever the server runs, so neither host declares them.
+    /// </summary>
+    public static void RegisterCoreJobs(IConfiguration configuration, ILogger? logger = null)
+    {
+        Register<SourceRefreshJob>(Settings<SourceRefreshJobSettings>(configuration, "SourceRefresh"),
+            "source-refresh-job", x => x.ExecuteJob(), logger);
+
+        Register<ServerConnectionCleanupJob>(Settings<ServerConnectionCleanupJobSettings>(configuration, "ServerConnectionCleanup"),
+            "server-connection-cleanup-job", x => x.ExecuteJob(), logger);
+
+        Register<RunnerConnectionJobCleanupJob>(Settings<RunnerConnectionJobCleanupJobSettings>(configuration, "RunnerConnectionJobCleanup"),
+            "runner-connection-job-cleanup-job", x => x.ExecuteJob(), logger);
+
+        Register<InvitationCleanupJob>(Settings<InvitationCleanupJobSettings>(configuration, "InvitationCleanup"),
+            "invitation-cleanup-job", x => x.ExecuteJob(), logger);
+
+        Register<OrphanedJobCleanupJob>(Settings<OrphanedJobCleanupJobSettings>(configuration, "OrphanedJobCleanup"),
+            "orphaned-job-cleanup-job", x => x.ExecuteJob(), logger);
+
+        Register<StuckJobDetectionJob>(Settings<StuckJobDetectionJobSettings>(configuration, "StuckJobDetection"),
+            "stuck-job-detection-job", x => x.ExecuteJob(), logger);
+
+        Register<SecretNameSweepJob>(Settings<SecretNameSweepJobSettings>(configuration, "SecretNameSweep"),
+            "secret-name-sweep-job", x => x.ExecuteJob(), logger);
+
+        // Scheduled messages live in the transport and do not survive a transport change.
+        BackgroundJob.Enqueue<TransportReconciliationJob>(x => x.ExecuteJob());
+    }
+
+    /// <summary>One job's settings, read from its own section under BackgroundJobs.</summary>
+    public static T Settings<T>(IConfiguration configuration, string name)
+        where T : BackgroundJobSettingsBase, new() =>
+        configuration.GetSection($"BackgroundJobs:{name}").Get<T>() ?? new T();
+
     public static void Register<TJob>(
         BackgroundJobSettingsBase settings,
         string jobName,
