@@ -359,6 +359,7 @@ public static class MassTransit
 
         typeof(OutputSetWithOutputsCreatedCompetingConsumer),
         typeof(OutputSetCullConsumer),
+        typeof(ProbeWaveCullConsumer),
         typeof(ModuleModifiedCompetingConsumer),
         typeof(NamespaceModifiedCompetingConsumer),
         typeof(StackModifiedCompetingConsumer),

@@ -190,6 +190,13 @@ public class ProbeWaveStarter : IDisposable
             "Propagation started from Module {ModuleId}: {Edges} Module(s) waiting on it",
             originModuleId, consumers.Count);
 
+        await _bus.Publish(new ProbeWaveCreatedEvent
+        {
+            ProbeWaveId = wave.Id,
+            OrganizationId = organizationId,
+            OriginModuleId = originModuleId
+        });
+
         await _bus.Publish(new ProbeWaveUpdatedEvent
         {
             ProbeWaveId = wave.Id,

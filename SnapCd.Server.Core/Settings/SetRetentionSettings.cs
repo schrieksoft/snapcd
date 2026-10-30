@@ -15,6 +15,7 @@ namespace SnapCd.Server.Core.Settings;
 public class SetRetentionSettings
 {
     public OutputSetRetentionSettings OutputSets { get; set; } = new();
+    public ProbeWaveRetentionSettings ProbeWaves { get; set; } = new();
 }
 
 /// <summary>
@@ -27,5 +28,21 @@ public class OutputSetRetentionSettings
     public bool CullAboveLimit { get; set; } = false;
 
     /// <summary>How many of a Module's sets survive a cull, newest first.</summary>
+    public int MaxKeptPerModule { get; set; } = 50;
+}
+
+/// <summary>
+/// A Module's probe waves, counted against the Module whose outputs started each one.
+///
+/// The wave is the unit rather than the signal set, because a set is one Module's answer within one
+/// wave and is read through the attempt that recorded it: the absence of an answer is what tells a
+/// wave it is still waiting, so a set cannot be removed from a wave that is still live.
+/// </summary>
+public class ProbeWaveRetentionSettings
+{
+    /// <summary>Whether the oldest waves beyond the limit are removed when a new one starts.</summary>
+    public bool CullAboveLimit { get; set; } = false;
+
+    /// <summary>How many of an origin Module's waves survive a cull, newest first.</summary>
     public int MaxKeptPerModule { get; set; } = 50;
 }
