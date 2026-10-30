@@ -256,7 +256,7 @@
         if (result is { Canceled: false })
         {
             Guid.TryParse(result.Data?.ToString(), out var id);
-            Snackbar.Add($"Successfully deleted group member\"{id}\"");
+            Snackbar.Add($"Successfully deleted group member\"{id}\"", Severity.Success);
             await ReloadGroupMembers();
         }
     }

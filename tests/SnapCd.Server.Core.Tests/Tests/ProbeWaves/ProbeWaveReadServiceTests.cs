@@ -407,6 +407,46 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         Assert.Equal(ProbeProgress.Queued, module.Progress);
     }
 
+    /// <summary>
+    /// A destroyed Module reads as destroyed rather than as nothing-to-probe. The change did reach
+    /// it, so a reader is told its outputs are gone instead of seeing it drop off the panel.
+    /// </summary>
+    [Fact]
+    public async Task A_Destroyed_Participant_Reads_As_Destroyed()
+    {
+        var jobId = Guid.NewGuid();
+        var wave = await AddWave(jobId);
+        await AddAttempt(wave, _originModuleId);
+        await AddAttempt(wave, _consumerModuleId);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.ModuleDestroyed);
+
+        var found = await Service().GetByOriginJob(jobId, _organizationId);
+        var module = found!.Modules.Single(p => p.ModuleId == _consumerModuleId);
+
+        Assert.Equal(ProbeProgress.Destroyed, module.Progress);
+        Assert.True(module.IsDestroyed);
+        Assert.False(module.NothingToProbe);
+    }
+
+    /// <summary>
+    /// A destroyed Module owes nobody an answer, so it cannot be what holds a wave open.
+    /// </summary>
+    [Fact]
+    public async Task A_Destroyed_Participant_Is_Not_Outstanding()
+    {
+        var jobId = Guid.NewGuid();
+        var wave = await AddWave(jobId);
+        await AddAttempt(wave, _originModuleId);
+        await AddAttempt(wave, _consumerModuleId);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.ModuleDestroyed);
+
+        var found = await Service().GetByOriginJob(jobId, _organizationId);
+        var module = found!.Modules.Single(p => p.ModuleId == _consumerModuleId);
+
+        Assert.False(module.IsOutstanding);
+        Assert.NotEqual(DownstreamImpact.Pending, found.Impact);
+    }
+
     [Fact]
     public async Task A_Participant_Whose_Probe_Job_Is_Running_Reads_As_Running()
     {

@@ -60,8 +60,14 @@
                 Are you sure you want to destroy this module?
             </MudText>
             <div class="mb-3">
-                <MudChip T="string" Color="Color.Secondary"
-                         Variant="Variant.Filled" Size="Size.Medium">@(_currentModuleDisplayName ?? Module?.Name ?? "this module")</MudChip>
+                @if (IsModulePath(_currentModuleDisplayName))
+                {
+                    <MudLink Href="@($"/Module/{_currentModuleDisplayName}")" Typo="Typo.body1">@_currentModuleDisplayName</MudLink>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_currentModuleDisplayName) ? Module?.Name ?? "this module" : _currentModuleDisplayName)</MudText>
+                }
             </div>
 
             @if (_recursiveDependencies.Any())
@@ -71,10 +77,17 @@
                     module(s).
                 </MudAlert>
                 <MudText Typo="Typo.body1" Class="mb-2">Modules that depend on this module:</MudText>
-                <MudStack Class="mb-3" AlignItems="AlignItems.Start">
+                <MudStack Spacing="0" Class="mb-3" AlignItems="AlignItems.Start">
                     @foreach (var dep in _recursiveDependencies)
                     {
-                        <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled" Size="Size.Medium">@dep</MudChip>
+                        @if (IsModulePath(dep))
+                        {
+                            <MudLink Href="@($"/Module/{dep}")" Typo="Typo.body2">@dep</MudLink>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2">@dep</MudText>
+                        }
                     }
                 </MudStack>
             }
@@ -187,6 +200,10 @@
 </MudDialog>
 
 @code {
+    // The module route is /Module/{stack}/{namespace}/{module}, so a shorter name has nowhere to link.
+    private static bool IsModulePath(string? displayName) =>
+        !string.IsNullOrWhiteSpace(displayName) && displayName.Split('/').Length == 3;
+
     private string? DestroyDisabledReason =>
         Module == null ? "No module selected."
         : !_dependencyCheckCompleted ? "Still checking dependencies."

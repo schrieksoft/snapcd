@@ -288,6 +288,8 @@ public class RunOptions
                                             hop probes before the decision ends it
                   --two-origins             apply a second Module too, so one consumer is owed a
                                             probe by two waves at once
+                  --second-origin <guid>    apply this Module alongside the watched job, so its
+                                            wave is open while that job runs
                   --fanout                  apply the fanout's origin instead of the default
                                             Module, so b, c and d each report one of the three
                                             ways a probe can answer
@@ -337,7 +339,11 @@ public class RunOptions
             RealRunner = args.Contains("--real-runner"),
             Fanout = args.Contains("--fanout"),
             ApproveAfterWave = args.Contains("--approve-after-wave"),
-            SecondModuleId = args.Contains("--two-origins") ? DiamondGModuleId : Guid.Empty,
+            SecondModuleId = Get("second-origin") is { } second
+                ? Guid.Parse(second)
+                : args.Contains("--two-origins")
+                    ? DiamondGModuleId
+                    : Guid.Empty,
             WorkingDirectory = Get("working-dir")
                 ?? Path.Combine(Path.GetTempPath(), "snapcd-jobrun", DateTime.Now.ToString("yyyyMMdd_HHmmss")),
             TransportTrace = !args.Contains("--quiet-transport"),

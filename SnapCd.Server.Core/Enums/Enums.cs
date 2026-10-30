@@ -185,5 +185,11 @@ public enum SignalEdgeStatus
     /// from NotNeeded, which is an answer; this is the absence of one, and it releases the consumer
     /// rather than leaving the wave waiting forever.
     /// </summary>
-    Unanswerable
+    Unanswerable,
+
+    /// <summary>
+    /// This Module was destroyed, so the outputs its consumers read no longer exist. An answer
+    /// rather than the absence of one, which is what separates it from Unanswerable.
+    /// </summary>
+    ModuleDestroyed
 }

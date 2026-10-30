@@ -68,6 +68,44 @@ public class ProbeWaveStarter : IDisposable
         return consumers.Where(c => haveState.Contains(c.ModuleId)).ToList();
     }
 
+    /// <summary>
+    /// Drops the Modules whose most recent finished job left them destroyed. Their outputs are
+    /// gone, so there is nothing for a consumer to plan against and no Apply to ask them for.
+    ///
+    /// Best effort by nature: this reads the state as it is now, and a Module can be destroyed
+    /// the moment after it passes. A probe owed by a Module destroyed later is answered when the
+    /// step runs, not here.
+    /// </summary>
+    private async Task<List<RippleProbeConsumer>> WithoutDestroyed(
+        List<RippleProbeConsumer> consumers,
+        Guid organizationId)
+    {
+        if (consumers.Count == 0) return consumers;
+
+        var moduleIds = consumers.Select(c => c.ModuleId).ToList();
+
+        var destroyed = (await _dbContext.ModuleJobs
+                .Where(j =>
+                    moduleIds.Contains(j.ModuleId) &&
+                    j.OrganizationId == organizationId &&
+                    j.ActualStateHeadline != null &&
+                    j.TimestampEnd != null)
+                .GroupBy(j => j.ModuleId)
+                .Select(g => new
+                {
+                    ModuleId = g.Key,
+                    Latest = g.OrderByDescending(j => j.JobNumber)
+                        .Select(j => j.ActualStateHeadline)
+                        .First()
+                })
+                .Where(x => x.Latest == ActualStateHeadline.Destroyed)
+                .Select(x => x.ModuleId)
+                .ToListAsync())
+            .ToHashSet();
+
+        return consumers.Where(c => !destroyed.Contains(c.ModuleId)).ToList();
+    }
+
     private readonly SnapCdDbContext _dbContext;
     private readonly RippleProbeConsumerLookup _lookup;
     private readonly ProbeSignalRecorder _recorder;
@@ -107,6 +145,7 @@ public class ProbeWaveStarter : IDisposable
         // has never reached a terminal state has no state and no outputs, so that plan would answer
         // a different question from the one asked.
         consumers = await WithStateToPlanAgainst(consumers, organizationId);
+        consumers = await WithoutDestroyed(consumers, organizationId);
         if (consumers.Count == 0) return null;
 
         var wave = new ProbeWave

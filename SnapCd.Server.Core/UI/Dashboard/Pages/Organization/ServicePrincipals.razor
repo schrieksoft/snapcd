@@ -309,7 +309,7 @@
         if (result is { Canceled: false })
         {
             Guid.TryParse(result.Data?.ToString(), out var deletedUserId);
-            Snackbar.Add($"Successfully deleted user \"{deletedUserId}\"");
+            Snackbar.Add($"Successfully deleted user \"{deletedUserId}\"", Severity.Success);
             await ReloadServicePrincipals();
         }
     }

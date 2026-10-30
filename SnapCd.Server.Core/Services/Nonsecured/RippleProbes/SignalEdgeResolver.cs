@@ -144,6 +144,42 @@ public class SignalEdgeResolver : IDisposable
     }
 
     /// <summary>
+    /// A destroyed Module's answer to the wave: the outputs its consumers read are gone.
+    ///
+    /// Resolves the edge this Module owes as a consumer, not the ones it owes as an upstream, so
+    /// it matches on ConsumerModuleId and accepts a Confirmed row. Nothing is asked for an Apply
+    /// afterwards: a Module whose upstream was destroyed has no new values to plan against.
+    /// </summary>
+    public async Task ResolveAsModuleDestroyed(
+        Guid probeWaveId,
+        Guid moduleId,
+        Guid organizationId)
+    {
+        var owed = await _dbContext.SignalEdges
+            .Where(e =>
+                e.ProbeWaveId == probeWaveId &&
+                e.ConsumerModuleId == moduleId &&
+                e.OrganizationId == organizationId &&
+                (e.Status == SignalEdgeStatus.Confirmed ||
+                 e.Status == SignalEdgeStatus.Potential))
+            .ToListAsync();
+
+        if (owed.Count > 0)
+        {
+            foreach (var edge in owed)
+                edge.Status = SignalEdgeStatus.ModuleDestroyed;
+
+            await _dbContext.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Propagation: Module {ModuleId} was destroyed, so it reports nothing to wave {ProbeWaveId}",
+                moduleId, probeWaveId);
+        }
+
+        await NotifyWave(probeWaveId, organizationId);
+    }
+
+    /// <summary>
     /// Writes an edge from this Module to each consumer of what it changed.
     ///
     /// Two upstreams reaching one consumer write two rows that share nothing, so there is no row
