@@ -110,6 +110,10 @@ public class SqlVault : IVault
             _logger.LogInformation("Secret \"{Name}\" not found or already deleted.", name);
     }
 
+    /// <summary>Rows are deleted outright here, so no name is ever in a recoverable state.</summary>
+    public Task<bool> IsSoftDeletedAsync(string secretName, CancellationToken ct = default) =>
+        Task.FromResult(false);
+
     private async Task<string> WriteAsync(SnapCdDbContext db, DbSet<VaultSecret> set,
         VaultSecret? existing, string name, string value)
     {

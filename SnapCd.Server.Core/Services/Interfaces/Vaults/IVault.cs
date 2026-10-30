@@ -31,4 +31,11 @@ public interface IVault : IDisposable
     public Task<string> SetSecretAsync(string secretName, string value);
 
     public Task DeleteSecretAsync(string secretName);
+
+    /// <summary>
+    /// Whether the store holds this name in a deleted-but-recoverable state. Such a name reads as
+    /// absent through <see cref="GetSecretAsync"/> while still refusing a write, so a caller that
+    /// decides by absence alone would plan work that cannot run.
+    /// </summary>
+    public Task<bool> IsSoftDeletedAsync(string secretName, CancellationToken ct = default);
 }

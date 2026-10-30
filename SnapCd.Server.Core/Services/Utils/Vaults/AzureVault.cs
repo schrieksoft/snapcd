@@ -62,9 +62,23 @@ public class AzureVault : IVault
         if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(value))
             throw new ArgumentException("Secret name and value cannot be null or empty");
 
-        KeyVaultSecret secret = await _secretClient.SetSecretAsync(new KeyVaultSecret(name, value));
+        try
+        {
+            KeyVaultSecret secret = await _secretClient.SetSecretAsync(new KeyVaultSecret(name, value));
+            return secret.Properties.Version;
+        }
+        catch (RequestFailedException ex) when (ex.Status == 409)
+        {
+            // Key Vault refuses a write to a name held in the soft-deleted state. The name has to
+            // be recovered before it can be written again.
+            _logger.LogInformation("Secret '{SecretName}' is soft-deleted; recovering it before writing.", name);
 
-        return secret.Properties.Version;
+            var recoverOperation = await _secretClient.StartRecoverDeletedSecretAsync(name);
+            await recoverOperation.WaitForCompletionAsync();
+
+            KeyVaultSecret secret = await _secretClient.SetSecretAsync(new KeyVaultSecret(name, value));
+            return secret.Properties.Version;
+        }
     }
 
     public async Task<string> GetSecretAsync(string name)
@@ -85,6 +99,22 @@ public class AzureVault : IVault
         return new VersionedSecret(secret.Value, secret.Properties.Version);
     }
 
+    public async Task<bool> IsSoftDeletedAsync(string name, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(name))
+            throw new ArgumentException("Secret name cannot be null or empty", nameof(name));
+
+        try
+        {
+            await _secretClient.GetDeletedSecretAsync(name, ct);
+            return true;
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            return false;
+        }
+    }
+
     public async Task DeleteSecretAsync(string name)
     {
         if (string.IsNullOrEmpty(name))
@@ -92,15 +122,11 @@ public class AzureVault : IVault
 
         try
         {
-            // Start the deletion process
+            // Soft delete only. The value stays recoverable for the vault's retention period,
+            // which is what makes a half-completed delete repairable; SetSecretAsync recovers
+            // the name if it is ever written again.
             var deleteOperation = await _secretClient.StartDeleteSecretAsync(name);
-
-            // Wait for the deletion to complete (optional)
             await deleteOperation.WaitForCompletionAsync();
-
-            // If soft-delete is enabled and you want to purge immediately (optional)
-            // TODO do not necessarily want to purge, but then need to better handle recreation of soft-deleted secrets
-            await _secretClient.PurgeDeletedSecretAsync(name);
         }
         catch (RequestFailedException ex) when (ex.Status == 404)
         {
