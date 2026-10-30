@@ -222,7 +222,7 @@ else
             else
                 await Source.Approve(JobId, ModuleId, OrganizationId);
 
-            Snackbar.Add($"Successfully {(declined ? "declined" : "approved")} {Source.DecisionNoun.ToLowerInvariant()}");
+            Snackbar.Add($"Successfully {(declined ? "declined" : "approved")} {Source.DecisionNoun.ToLowerInvariant()}", Severity.Success);
         }
         catch (PrincipalNotAuthorizedException)
         {
@@ -263,7 +263,7 @@ else
         try
         {
             await Source.RemoveApproval(approvalId, OrganizationId);
-            Snackbar.Add($"Successfully deleted \"{approvalId}\"");
+            Snackbar.Add($"Successfully deleted \"{approvalId}\"", Severity.Success);
         }
         catch (PrincipalNotAuthorizedException)
         {

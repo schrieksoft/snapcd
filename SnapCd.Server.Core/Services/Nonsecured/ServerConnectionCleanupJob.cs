@@ -70,10 +70,16 @@ public class ServerConnectionCleanupJob
                 "Found {Count} server instance(s) with active connections",
                 serverInstanceIds.Count);
 
-            // Check each server (except this one)
+            // Check each server (except this one). Each gets its own repositories: the checks
+            // run concurrently, and a DbContext serves one operation at a time.
             var cleanupTasks = serverInstanceIds
                 .Where(id => id != _serverSettings.InstanceId)
-                .Select(serverInstanceId => CheckAndCleanupServer(serverInstanceId, repository, agentRepository));
+                .Select(async serverInstanceId =>
+                {
+                    using var serverRepository = _repositoryFactory.Create();
+                    using var serverAgentRepository = _agentRepositoryFactory.Create();
+                    await CheckAndCleanupServer(serverInstanceId, serverRepository, serverAgentRepository);
+                });
 
             await Task.WhenAll(cleanupTasks);
 

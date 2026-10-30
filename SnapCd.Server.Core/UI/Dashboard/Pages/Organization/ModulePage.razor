@@ -474,7 +474,7 @@
 
         if (result is { Canceled: false })
         {
-            Snackbar.Add($"Successfully ran queued job");
+            Snackbar.Add($"Successfully ran queued job", Severity.Success);
         }
     }
 
@@ -494,7 +494,7 @@
 
         if (result is { Canceled: false })
         {
-            Snackbar.Add($"Successfully cleared queued job");
+            Snackbar.Add($"Successfully cleared queued job", Severity.Success);
         }
     }
 
