@@ -267,23 +267,23 @@ using (var scope = app.Services.CreateScope())
 // The flag cache has no expiry, so each boot rewrites it from the table the migration creates.
 await maintenanceModeService.SyncCacheAsync();
 
-app.UseSnapCdHangfireDashboard();
-
 var jobLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("SnapCd.BackgroundJobs");
+var recurringJobs = app.Services.GetRequiredService<IRecurringJobManager>();
+var backgroundJobs = app.Services.GetRequiredService<IBackgroundJobClient>();
 
-RecurringJobs.RegisterCoreJobs(builder.Configuration, jobLogger);
+RecurringJobs.RegisterCoreJobs(recurringJobs, backgroundJobs, builder.Configuration, jobLogger);
 
 T JobSettings<T>(string name) where T : BackgroundJobSettingsBase, new() =>
     RecurringJobs.Settings<T>(builder.Configuration, name);
 
 // Licensing and telemetry are this host's own.
-RecurringJobs.Register<LicenseRefreshJob>(JobSettings<LicenseRefreshJobSettings>("LicenseRefresh"),
+RecurringJobs.Register<LicenseRefreshJob>(recurringJobs, JobSettings<LicenseRefreshJobSettings>("LicenseRefresh"),
     "license-refresh-job", x => x.ExecuteJob(), jobLogger);
 
-RecurringJobs.Register<LicensePublicKeyRefreshJob>(JobSettings<LicensePublicKeyRefreshJobSettings>("LicensePublicKeyRefresh"),
+RecurringJobs.Register<LicensePublicKeyRefreshJob>(recurringJobs, JobSettings<LicensePublicKeyRefreshJobSettings>("LicensePublicKeyRefresh"),
     "license-public-key-refresh-job", x => x.ExecuteJob(), jobLogger);
 
-RecurringJobs.Register<TelemetryReportJob>(JobSettings<TelemetryReportJobSettings>("TelemetryReport"),
+RecurringJobs.Register<TelemetryReportJob>(recurringJobs, JobSettings<TelemetryReportJobSettings>("TelemetryReport"),
     "telemetry-report-job", x => x.ExecuteJob(), jobLogger);
 // One run shortly after boot, so a fresh install or an upgrade has notices and the version indicator today, not tomorrow.
 BackgroundJob.Schedule<TelemetryReportJob>(x => x.ExecuteJob(), TimeSpan.FromMinutes(1));
@@ -319,6 +319,8 @@ app.UseCors("AllowAnyOriginCorsPolicy");
 app.UseAuthentication();
 app.UseMiddleware<SnapCd.Server.Core.Auth.AgentClaimAuditMiddleware>();
 app.UseAuthorization();
+
+app.UseSnapCdHangfireDashboard();
 app.UseMiddleware<MaintenanceModeMiddleware>();
 app.UseMiddleware<OrganizationValidationMiddleware>();
 app.UseAntiforgery();

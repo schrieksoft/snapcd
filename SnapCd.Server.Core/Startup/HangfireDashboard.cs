@@ -22,8 +22,14 @@ namespace SnapCd.Server.Core.Startup;
 /// </summary>
 public static class HangfireDashboard
 {
-    /// <summary>Where the dashboard is served from, and what the admin section links to.</summary>
-    public const string Path = "/AdminCenter/BackgroundJobs";
+    /// <summary>
+    /// Where Hangfire itself is served from. It renders a whole document of its own, so it is
+    /// framed by the page at <see cref="PagePath"/> rather than reached directly.
+    /// </summary>
+    public const string Path = "/AdminCenter/BackgroundJobs/Dashboard";
+
+    /// <summary>The page an operator navigates to, which frames the dashboard in the layout.</summary>
+    public const string PagePath = "/AdminCenter/BackgroundJobs";
 
     public static void UseSnapCdHangfireDashboard(this IApplicationBuilder app)
     {

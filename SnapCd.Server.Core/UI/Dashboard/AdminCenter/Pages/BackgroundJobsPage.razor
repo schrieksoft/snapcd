@@ -1,0 +1,43 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@page "/AdminCenter/BackgroundJobs"
+@layout SystemMainLayout
+
+@using SnapCd.Server.Core.Services.Nonsecured.Admin
+@using SnapCd.Server.Core.Startup
+@using SnapCd.Server.Core.UI.Dashboard.Layout
+@inject SystemRoleServiceFactory SystemRoleServiceFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Background Jobs - Snap CD</PageTitle>
+
+@if (_authorized)
+{
+    @* Hangfire serves a document of its own, with its own scrolling and theme, so it runs on its
+       own path and is framed here to keep the navigation alongside it. *@
+    <iframe src="@($"{HangfireDashboard.Path}/")"
+            style="display:block;width:calc(100% + 16px);height:100vh;margin:-16px -16px -16px 0;border:none;"/>
+}
+
+@code {
+    private bool _authorized;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // System-role gate: without it the page is unreachable, not merely hidden.
+        using var systemRoles = SystemRoleServiceFactory.Create();
+        if (!await systemRoles.CurrentUserIsSystemAdministratorAsync())
+        {
+            NavigationManager.NavigateTo("/", true);
+            return;
+        }
+
+        _authorized = true;
+    }
+}

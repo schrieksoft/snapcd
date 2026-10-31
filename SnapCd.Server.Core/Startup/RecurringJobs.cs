@@ -28,31 +28,35 @@ public static class RecurringJobs
     /// The jobs every host runs, which are the ones whose work lives in Core. A host adds its own
     /// afterwards; these are the same wherever the server runs, so neither host declares them.
     /// </summary>
-    public static void RegisterCoreJobs(IConfiguration configuration, ILogger? logger = null)
+    public static void RegisterCoreJobs(
+        IRecurringJobManager recurringJobs,
+        IBackgroundJobClient backgroundJobs,
+        IConfiguration configuration,
+        ILogger? logger = null)
     {
-        Register<SourceRefreshJob>(Settings<SourceRefreshJobSettings>(configuration, "SourceRefresh"),
+        Register<SourceRefreshJob>(recurringJobs, Settings<SourceRefreshJobSettings>(configuration, "SourceRefresh"),
             "source-refresh-job", x => x.ExecuteJob(), logger);
 
-        Register<ServerConnectionCleanupJob>(Settings<ServerConnectionCleanupJobSettings>(configuration, "ServerConnectionCleanup"),
+        Register<ServerConnectionCleanupJob>(recurringJobs, Settings<ServerConnectionCleanupJobSettings>(configuration, "ServerConnectionCleanup"),
             "server-connection-cleanup-job", x => x.ExecuteJob(), logger);
 
-        Register<RunnerConnectionJobCleanupJob>(Settings<RunnerConnectionJobCleanupJobSettings>(configuration, "RunnerConnectionJobCleanup"),
+        Register<RunnerConnectionJobCleanupJob>(recurringJobs, Settings<RunnerConnectionJobCleanupJobSettings>(configuration, "RunnerConnectionJobCleanup"),
             "runner-connection-job-cleanup-job", x => x.ExecuteJob(), logger);
 
-        Register<InvitationCleanupJob>(Settings<InvitationCleanupJobSettings>(configuration, "InvitationCleanup"),
+        Register<InvitationCleanupJob>(recurringJobs, Settings<InvitationCleanupJobSettings>(configuration, "InvitationCleanup"),
             "invitation-cleanup-job", x => x.ExecuteJob(), logger);
 
-        Register<OrphanedJobCleanupJob>(Settings<OrphanedJobCleanupJobSettings>(configuration, "OrphanedJobCleanup"),
+        Register<OrphanedJobCleanupJob>(recurringJobs, Settings<OrphanedJobCleanupJobSettings>(configuration, "OrphanedJobCleanup"),
             "orphaned-job-cleanup-job", x => x.ExecuteJob(), logger);
 
-        Register<StuckJobDetectionJob>(Settings<StuckJobDetectionJobSettings>(configuration, "StuckJobDetection"),
+        Register<StuckJobDetectionJob>(recurringJobs, Settings<StuckJobDetectionJobSettings>(configuration, "StuckJobDetection"),
             "stuck-job-detection-job", x => x.ExecuteJob(), logger);
 
-        Register<SecretNameSweepJob>(Settings<SecretNameSweepJobSettings>(configuration, "SecretNameSweep"),
+        Register<SecretNameSweepJob>(recurringJobs, Settings<SecretNameSweepJobSettings>(configuration, "SecretNameSweep"),
             "secret-name-sweep-job", x => x.ExecuteJob(), logger);
 
         // Scheduled messages live in the transport and do not survive a transport change.
-        BackgroundJob.Enqueue<TransportReconciliationJob>(x => x.ExecuteJob());
+        backgroundJobs.Enqueue<TransportReconciliationJob>(x => x.ExecuteJob());
     }
 
     /// <summary>One job's settings, read from its own section under BackgroundJobs.</summary>
@@ -61,6 +65,7 @@ public static class RecurringJobs
         configuration.GetSection($"BackgroundJobs:{name}").Get<T>() ?? new T();
 
     public static void Register<TJob>(
+        IRecurringJobManager recurringJobs,
         BackgroundJobSettingsBase settings,
         string jobName,
         Expression<Func<TJob, Task>> method,
@@ -70,11 +75,11 @@ public static class RecurringJobs
         {
             // Removed rather than left behind: an earlier run of the server may have registered it,
             // and Hangfire keeps a recurring job until something takes it away.
-            RecurringJob.RemoveIfExists(jobName);
+            recurringJobs.RemoveIfExists(jobName);
             logger?.LogInformation("Background job {JobName} is disabled by configuration", jobName);
             return;
         }
 
-        RecurringJob.AddOrUpdate(jobName, method, settings.Cron);
+        recurringJobs.AddOrUpdate(jobName, method, settings.Cron);
     }
 }
