@@ -125,6 +125,11 @@ properties:
         type: integer
         description: A job's queue is retired after this long with nothing to ship.
         default: 60
+      BufferRetentionMinutes:
+        type: integer
+        description: How long a batch that could not be sent is kept before it is discarded. The buffer exists for a server
+          that is briefly unreachable, so a batch nothing has accepted by now counts as undeliverable whatever the reason.
+        default: 10
     description: Tunables for the per-Job log shipping pipeline that streams engine output back to the Server over SignalR.
       Defaults are sensible for typical workloads; tune BatchSizeLimit and PeriodSeconds together if you need lower per-log
       latency at the cost of more frequent network round-trips.

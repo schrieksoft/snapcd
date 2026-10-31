@@ -542,7 +542,8 @@ public class RunnerHub : Hub
                 _logger.LogWarning(
                     "Authorization failed: logs for job {JobId} require Runner {RequiredRunnerId}, but the caller is {CallerRunnerId}",
                     jobId, selectedRunnerId, connection.RunnerId);
-                throw new HubException($"Unauthorized: not the runner for job {jobId}.");
+                throw new HubException(
+                    $"{LogRejection.PermanentPrefix}Unauthorized: not the runner for job {jobId}.");
             }
 
             await _jobLogWriterFactory.Create<TJob, TChunk, TLogEntry>().AddLogEntries(logEntries, connection.OrganizationId);
@@ -556,6 +557,11 @@ public class RunnerHub : Hub
 
             _logger.LogDebug("Processed log batch with {Count} entries from runner '{RunnerName}'",
                 logEntries.Count, connection.InstanceName);
+        }
+        catch (HubException)
+        {
+            // Already carries whether a retry could ever succeed.
+            throw;
         }
         catch (Exception ex)
         {
