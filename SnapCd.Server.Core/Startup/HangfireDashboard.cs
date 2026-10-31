@@ -37,6 +37,12 @@ public static class HangfireDashboard
             typeof(HangfireDashboard).Assembly,
             "SnapCd.Server.Core.Startup.Hangfire.hangfire-snapcd.css");
 
+        // The graphs are drawn by Chart.js from a palette the dashboard holds privately, out of
+        // reach of both configuration and the stylesheet.
+        DashboardRoutes.AddJavaScript(
+            typeof(HangfireDashboard).Assembly,
+            "SnapCd.Server.Core.Startup.Hangfire.hangfire-snapcd.js");
+
         app.UseHangfireDashboard(Path, new DashboardOptions
         {
             DashboardTitle = "Background Jobs",

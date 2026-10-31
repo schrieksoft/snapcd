@@ -109,6 +109,7 @@
     <ItemGroup>
         <EmbeddedResource Include="Views\**\*.sql" />
         <EmbeddedResource Include="Startup\Hangfire\*.css" />
+        <EmbeddedResource Include="Startup\Hangfire\*.js" />
         <EmbeddedResource Include="AI\Skills\**\*" />
     </ItemGroup>
 
