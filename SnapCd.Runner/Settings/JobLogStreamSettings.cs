@@ -48,4 +48,11 @@ public class JobLogStreamSettings
 
     /// <summary>A job's queue is retired after this long with nothing to ship.</summary>
     public int IdleSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// How long a batch that could not be sent is kept before it is discarded. The buffer exists
+    /// for a server that is briefly unreachable, so a batch nothing has accepted by now counts as
+    /// undeliverable whatever the reason.
+    /// </summary>
+    public int BufferRetentionMinutes { get; set; } = 10;
 }

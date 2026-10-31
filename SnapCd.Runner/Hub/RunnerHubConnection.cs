@@ -57,7 +57,7 @@ public class RunnerHubConnection :
     private bool _isDisposing;
     private int _restarting;
 
-    private readonly LogBuffer _logBuffer = new(capacity: 10000);
+    private readonly LogBuffer _logBuffer;
 
     private readonly ProcessRegistry _processRegistry;
 
@@ -65,6 +65,7 @@ public class RunnerHubConnection :
         ILogger<RunnerHubConnection> logger,
         IOptions<RunnerSettings> runnerSettings,
         IOptions<ServerSettings> serverSettings,
+        IOptions<JobLogStreamSettings> logStreamSettings,
         ILoggerFactory loggerFactory,
         IMemoryCache memoryCache,
         ProcessRegistry processRegistry,
@@ -77,6 +78,10 @@ public class RunnerHubConnection :
         _serverSettings = serverSettings.Value;
         _memoryCache = memoryCache;
         _tasks = tasks;
+
+        _logBuffer = new LogBuffer(
+            capacity: 10000,
+            retentionLimit: TimeSpan.FromMinutes(logStreamSettings.Value.BufferRetentionMinutes));
     }
 
     /// <summary>
@@ -760,14 +765,26 @@ public class RunnerHubConnection :
 
     private async Task FlushLogBufferAsync()
     {
+        _logBuffer.DiscardExpired();
+
         if (_logBuffer.IsEmpty || _connection?.State != HubConnectionState.Connected)
+        {
+            ReportDroppedLogs();
             return;
+        }
 
         try
         {
-            var sent = await _logBuffer.FlushAsync(
+            var result = await _logBuffer.FlushAsync(
                 (endpoint, batch) => _connection.InvokeAsync(endpoint, batch));
-            _logger.LogDebug("Flushed {Count} buffered log entries", sent);
+
+            _logger.LogDebug("Flushed {Count} buffered log entries", result.Sent);
+
+            if (result.StalledJobs > 0)
+                _logger.LogError(
+                    result.LastFailure,
+                    "Logs for {JobCount} job(s) could not be sent; {Count} entries kept for the next attempt",
+                    result.StalledJobs, _logBuffer.Count);
         }
         catch (Exception ex)
         {
@@ -782,6 +799,12 @@ public class RunnerHubConnection :
         var dropped = _logBuffer.TakeDroppedCount();
         if (dropped > 0)
             _logger.LogWarning("Dropped {Count} log entries because the log buffer was full", dropped);
+
+        var discarded = _logBuffer.TakeDiscardedCount();
+        if (discarded > 0)
+            _logger.LogWarning(
+                "Discarded {Count} log entries the server will not accept; they are in this runner's own log only",
+                discarded);
     }
 
     /// <summary>
