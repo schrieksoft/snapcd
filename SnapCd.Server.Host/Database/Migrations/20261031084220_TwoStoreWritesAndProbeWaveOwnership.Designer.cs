@@ -20,8 +20,8 @@ using SnapCd.Server.Host.Database;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     [DbContext(typeof(SelfHostedSnapCdDbContext))]
-    [Migration("20261031065940_ProbeJobReferencesAreForeignKeys")]
-    partial class ProbeJobReferencesAreForeignKeys
+    [Migration("20261031084220_TwoStoreWritesAndProbeWaveOwnership")]
+    partial class TwoStoreWritesAndProbeWaveOwnership
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
