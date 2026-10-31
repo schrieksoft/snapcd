@@ -194,87 +194,8 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
 
     public override async Task ExecuteDelete(Guid id, Guid organizationId)
     {
-        // Get all secrets scoped to this module that we'll need to delete
-        var secretsToDelete = await DbContext.ModuleSecrets
-            .Where(s => s.ModuleId == id && s.Module.OrganizationId == organizationId)
-            .ToListAsync();
+        await DbContext.ClearRowsBlockingModuleDelete(m => m.Id == id, organizationId);
 
-        if (secretsToDelete.Any())
-        {
-            var secretIds = secretsToDelete.Select(s => s.Id).ToList();
-
-            // First delete all ModuleParamFromSecret and ModuleEnvVarFromSecret records that reference these secrets
-            // This must be done before deleting the secrets to avoid FK constraint violations
-            var moduleParamsFromSecret = await DbContext.ModuleParamFromSecrets
-                .Where(mi => secretIds.Contains(mi.SecretId) && mi.Module.OrganizationId == organizationId)
-                .ToListAsync();
-            var moduleEnvVarsFromSecret = await DbContext.ModuleEnvVarFromSecrets
-                .Where(mi => secretIds.Contains(mi.SecretId) && mi.Module.OrganizationId == organizationId)
-                .ToListAsync();
-
-            DbContext.ModuleParamFromSecrets.RemoveRange(moduleParamsFromSecret);
-            DbContext.ModuleEnvVarFromSecrets.RemoveRange(moduleEnvVarsFromSecret);
-
-            DbContext.ModuleSecrets.RemoveRange(secretsToDelete);
-        }
-
-        // A Transfer names two Modules and restricts on both, so it cannot cascade: SQL Server
-        // refuses two cascade paths into one table. Nothing cleared it when a Module was deleted,
-        // so any transfer the Module appeared in blocked the delete permanently.
-        //
-        // Open and closed alike are cleared. An open transfer no longer refuses the delete, which
-        // the Restrict on it used to enforce; a Module being deleted has nothing left to transfer.
-        var transfers = await DbContext.Transfers
-            .Where(t => t.OrganizationId == organizationId &&
-                        (t.ModuleId == id || t.CounterpartyModuleId == id))
-            .ToListAsync();
-
-        if (transfers.Count > 0)
-        {
-            var transferIds = transfers.Select(t => t.Id).ToList();
-
-            // The jobs outlive the transfer and belong to the Module, so they are detached rather
-            // than deleted: the Module's own delete takes them.
-            var jobs = await DbContext.StateMigrationJobs
-                .Where(j => j.OrganizationId == organizationId &&
-                            j.TransferId != null && transferIds.Contains(j.TransferId.Value))
-                .ToListAsync();
-
-            foreach (var job in jobs) job.TransferId = null;
-
-            // Artefacts and locks cascade from the transfer.
-            DbContext.Transfers.RemoveRange(transfers);
-        }
-
-        // A signal edge names two Modules and restricts on both, for the same reason a transfer
-        // does: SQL Server refuses two cascade paths into one table. A wave the Module appeared
-        // in would otherwise block the delete for good.
-        //
-        // The edges go rather than being marked Unanswerable. An edge is the relationship to
-        // this Module, so there is nothing left for a status to describe: a consumer whose other
-        // upstreams remain resolves on those, and one with no edges left has simply left the wave,
-        // which is what an absent edge already means to every reader.
-        await DbContext.SignalEdges
-            .Where(e => e.OrganizationId == organizationId &&
-                        (e.ConsumerModuleId == id || e.UpstreamModuleId == id))
-            .ExecuteDeleteAsync();
-
-        await DbContext.ModuleProbeAttempts
-            .Where(a => a.ModuleId == id && a.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
-
-        // A probe's two sets belong to the wave that asked for them, and the Module reaches them a
-        // second time through the job that owns the wave, so the Module's own path restricts. They
-        // go here, after the attempts that point at them.
-        await DbContext.SignalOutputSets
-            .Where(s => s.ModuleId == id && s.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
-
-        await DbContext.ResourceChangeSets
-            .Where(s => s.ModuleId == id && s.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
-
-        // Now proceed with normal module deletion (which will cascade to other entities)
         await base.ExecuteDelete(id, organizationId);
     }
 

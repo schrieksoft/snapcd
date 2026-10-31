@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
+using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
@@ -267,6 +268,152 @@ public class SignalEdgeBlocksDeleteTests : IAsyncLifetime
 
         await db.SaveChangesAsync();
         return wave.Id;
+    }
+
+    /// <summary>
+    /// A Module's probe results, which restrict on the Module so that a wave they belong to can
+    /// own them. Each owner's delete has to clear them, and a delete path that does not is not
+    /// visible from the delete itself.
+    /// </summary>
+    [Fact]
+    public async Task A_Module_That_Reported_Deletes()
+    {
+        var h = await SeedHierarchy();
+        var waveId = await SeedWaveWithEdges(h);
+        await SeedSets(waveId, h.MiddleId);
+
+        await ModuleRepo().ExecuteDelete(h.MiddleId, _organizationId);
+
+        await AssertModuleAndSagasGone(h.MiddleId);
+        await AssertNoSetsFor(h.MiddleId);
+    }
+
+    /// <summary>
+    /// The participant is in a second Namespace of the same Stack, so the wave it answered
+    /// survives its delete. That is the case the restriction exists for: within one Namespace the
+    /// wave's own origin cascades and takes the sets regardless.
+    ///
+    /// A Stack has no equivalent case, because the consumer lookup only pairs Modules sharing a
+    /// Stack, so a wave never reaches outside one.
+    /// </summary>
+    [Fact]
+    public async Task A_Namespace_Holding_A_Module_That_Reported_In_Another_Namespaces_Wave_Deletes()
+    {
+        var h = await SeedHierarchy();
+        var participant = await AddModuleInNewNamespace(h.StackId);
+
+        var waveId = await SeedWaveWithEdges(h);
+        await SeedSets(waveId, participant.ModuleId);
+
+        await NamespaceRepo().ExecuteDelete(participant.NamespaceId, _organizationId);
+
+        await AssertModuleAndSagasGone(participant.ModuleId);
+        await AssertNoSetsFor(participant.ModuleId);
+
+        // The wave belongs to a Module in the other Namespace, so it is untouched.
+        await using var db = _fixture.CreateDbContext();
+        Assert.True(await db.ProbeWaves.AsNoTracking().AnyAsync(w => w.Id == waveId));
+    }
+
+    [Fact]
+    public async Task A_Namespace_Holding_A_Module_That_Reported_Deletes()
+    {
+        var h = await SeedHierarchy();
+        var waveId = await SeedWaveWithEdges(h);
+        await SeedSets(waveId, h.MiddleId);
+
+        await NamespaceRepo().ExecuteDelete(h.NamespaceId, _organizationId);
+
+        await AssertModuleAndSagasGone(h.MiddleId);
+        await AssertNoSetsFor(h.MiddleId);
+    }
+
+    [Fact]
+    public async Task A_Stack_Holding_A_Module_That_Reported_Deletes()
+    {
+        var h = await SeedHierarchy();
+        var waveId = await SeedWaveWithEdges(h);
+        await SeedSets(waveId, h.MiddleId);
+
+        await StackRepo().ExecuteDelete(h.StackId, _organizationId);
+
+        await AssertModuleAndSagasGone(h.MiddleId);
+        await AssertNoSetsFor(h.MiddleId);
+    }
+
+    /// <summary>A second Namespace in the same Stack, holding one Module.</summary>
+    private async Task<(Guid NamespaceId, Guid ModuleId)> AddModuleInNewNamespace(Guid stackId)
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+
+        var ns = new Namespace
+        {
+            Id = Guid.NewGuid(), Name = $"edge-ns2-{suffix}", StackId = stackId,
+            OrganizationId = _organizationId, CreatedDateTime = DateTime.UtcNow
+        };
+
+        var module = NewModule($"edge-other-{suffix}", ns.Id);
+
+        await using var db = _fixture.CreateDbContext();
+        db.Namespaces.Add(ns);
+        db.Modules.Add(module);
+        await db.SaveChangesAsync();
+
+        return (ns.Id, module.Id);
+    }
+
+    private async Task AssertNoSetsFor(Guid moduleId)
+    {
+        await using var db = _fixture.CreateDbContext();
+        Assert.Empty(await db.SignalOutputSets.AsNoTracking()
+            .Where(x => x.ModuleId == moduleId).ToListAsync());
+        Assert.Empty(await db.ResourceChangeSets.AsNoTracking()
+            .Where(x => x.ModuleId == moduleId).ToListAsync());
+    }
+
+    /// <summary>Both kinds of set a probe writes, with the attempt that recorded them.</summary>
+    private async Task SeedSets(Guid waveId, Guid moduleId)
+    {
+        var jobId = await AddOriginJob(moduleId);
+        var signalSetId = Guid.NewGuid();
+        var changeSetId = Guid.NewGuid();
+
+        await using var db = _fixture.CreateDbContext();
+
+        db.SignalOutputSets.Add(new SignalOutputSet
+        {
+            Id = signalSetId,
+            OrganizationId = _organizationId,
+            ModuleId = moduleId,
+            ProbeWaveId = waveId,
+            ModuleJobId = jobId,
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Checksum = "test"
+        });
+
+        db.ResourceChangeSets.Add(new ResourceChangeSet
+        {
+            Id = changeSetId,
+            OrganizationId = _organizationId,
+            ModuleId = moduleId,
+            ProbeWaveId = waveId,
+            ModuleJobId = jobId,
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            TotalCount = 1
+        });
+
+        db.ModuleProbeAttempts.Add(new ModuleProbeAttempt
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            ProbeWaveId = waveId,
+            ModuleId = moduleId,
+            ProbeModuleJobId = jobId,
+            SignalOutputSetId = signalSetId,
+            ResourceChangeSetId = changeSetId
+        });
+
+        await db.SaveChangesAsync();
     }
 
     private async Task SeedAttempt(Guid waveId, Guid moduleId)
