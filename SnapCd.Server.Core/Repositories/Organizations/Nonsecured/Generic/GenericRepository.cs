@@ -378,6 +378,11 @@ public abstract class GenericRepository<TEntity, TDto, TMetadata, TCreateEvent, 
         }
     }
 
+    public bool Exists(Guid id, Guid organizationId)
+    {
+        return DbContext.Set<TEntity>().Any(e => e.Id == id && e.OrganizationId == organizationId);
+    }
+
     public virtual async Task<int> Count(
         Guid organizationId,
         IQueryable<TEntity>? query = null,

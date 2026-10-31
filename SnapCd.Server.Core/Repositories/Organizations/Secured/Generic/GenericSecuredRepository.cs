@@ -74,14 +74,22 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TMetadata, TReposi
         Repository.Dispose();
     }
 
+    protected Exception NotReadable(Guid id, Guid organizationId)
+    {
+        if (!Repository.Exists(id, organizationId))
+            return new EntityNotFoundException($"{typeof(TEntity).Name} with ID {id} not found.");
+
+        return new PrincipalNotAuthorizedException(
+            $"{typeof(TEntity).Name} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
+    }
+
     public virtual async Task<TEntity> Get(
         Guid id,
         Guid organizationId,
         Func<IQueryable<TEntity>, IQueryable<TEntity>>? queryModifier = null)
     {
         if (!CanRead(id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{typeof(TEntity).Name} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
+            throw NotReadable(id, organizationId);
 
         return await Repository.Get(id, organizationId, queryModifier);
     }
@@ -92,8 +100,7 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TMetadata, TReposi
         Func<IQueryable<TEntity>, IQueryable<TProjection>> queryModifier)
     {
         if (!CanRead(id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{typeof(TEntity).Name} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
+            throw NotReadable(id, organizationId);
 
         return await Repository.Get(id, organizationId, queryModifier);
     }
