@@ -269,6 +269,7 @@ public class ProbeWaveCullConsumerTests : IAsyncLifetime
     private async Task<Guid> SeedSignalSet(Guid waveId, Guid moduleId)
     {
         var id = Guid.NewGuid();
+        var jobId = await AddOriginJob(moduleId);
 
         await using var db = _fixture.CreateDbContext();
         db.SignalOutputSets.Add(new SignalOutputSet
@@ -277,7 +278,7 @@ public class ProbeWaveCullConsumerTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             ProbeWaveId = waveId,
-            ModuleJobId = Guid.NewGuid(),
+            ModuleJobId = jobId,
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Checksum = Guid.NewGuid().ToString()
         });
@@ -288,6 +289,7 @@ public class ProbeWaveCullConsumerTests : IAsyncLifetime
     private async Task<Guid> SeedResourceChangeSet(Guid waveId)
     {
         var id = Guid.NewGuid();
+        var jobId = await AddOriginJob(_originModuleId);
 
         await using var db = _fixture.CreateDbContext();
         db.ResourceChangeSets.Add(new ResourceChangeSet
@@ -296,7 +298,7 @@ public class ProbeWaveCullConsumerTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = _originModuleId,
             ProbeWaveId = waveId,
-            ModuleJobId = Guid.NewGuid(),
+            ModuleJobId = jobId,
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             TotalCount = 1
         });

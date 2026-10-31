@@ -7,11 +7,16 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
+using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 
@@ -283,13 +288,50 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
         Assert.True(await db.SignalOutputSets.AnyAsync(s => s.Id == setId));
     }
 
+    /// <summary>
+    /// A participant's job is not the wave's origin, so deleting it leaves the wave standing. What
+    /// it contributed goes with it: the job is named in a column that cannot cascade, because the
+    /// job already reaches those tables through the wave it owns and SQL Server allows one such
+    /// path, so the repository clears them.
+    ///
+    /// The wave then has no attempt for that Module, which is what "has not answered" already
+    /// means to every reader of one.
+    /// </summary>
+    [Fact]
+    public async Task Deleting_A_Participants_Job_Takes_Its_Contribution_And_Leaves_The_Wave()
+    {
+        var waveId = await SeedWave();
+        var participantJobId = await AddOriginJob(_consumerModuleId);
+
+        var setId = await SeedSignalSet(waveId, participantJobId);
+        var changeSetId = await SeedResourceChangeSet(waveId, participantJobId);
+        var attemptId = await SeedAttempt(waveId, _consumerModuleId, setId, changeSetId, participantJobId);
+
+        using var repository = new ModuleJobRepository(
+            _fixture.CreateDbContext(),
+            new LiteralPrincipalProvider(Guid.Empty, PrincipalDiscriminator.User, [_organizationId]),
+            _fixture.CreateMockBus(),
+            Options.Create(new ModuleJobRepositorySettings()));
+
+        await repository.Delete(participantJobId, _organizationId);
+
+        await using var db = _fixture.CreateDbContext();
+        Assert.False(await db.ModuleJobs.AnyAsync(j => j.Id == participantJobId));
+        Assert.False(await db.ModuleProbeAttempts.AnyAsync(a => a.Id == attemptId));
+        Assert.False(await db.SignalOutputSets.AnyAsync(x => x.Id == setId));
+        Assert.False(await db.ResourceChangeSets.AnyAsync(x => x.Id == changeSetId));
+
+        // The wave belongs to a different job, so it is untouched.
+        Assert.True(await db.ProbeWaves.AnyAsync(w => w.Id == waveId));
+    }
+
     private async Task DeleteWave(Guid waveId)
     {
         await using var db = _fixture.CreateDbContext();
         await db.ProbeWaves.Where(w => w.Id == waveId).ExecuteDeleteAsync();
     }
 
-    private async Task<Guid> SeedResourceChangeSet(Guid waveId)
+    private async Task<Guid> SeedResourceChangeSet(Guid waveId, Guid? moduleJobId = null)
     {
         var id = Guid.NewGuid();
         _resourceChangeSets.Add(id);
@@ -301,7 +343,7 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = _originModuleId,
             ProbeWaveId = waveId,
-            ModuleJobId = Guid.NewGuid(),
+            ModuleJobId = moduleJobId ?? await AddOriginJob(_originModuleId),
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             TotalCount = 1
         });
@@ -353,7 +395,11 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
     }
 
     private async Task<Guid> SeedAttempt(
-        Guid waveId, Guid moduleId, Guid? signalOutputSetId = null, Guid? resourceChangeSetId = null)
+        Guid waveId,
+        Guid moduleId,
+        Guid? signalOutputSetId = null,
+        Guid? resourceChangeSetId = null,
+        Guid? probeModuleJobId = null)
     {
         var id = Guid.NewGuid();
 
@@ -365,7 +411,8 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
             ProbeWaveId = waveId,
             ModuleId = moduleId,
             SignalOutputSetId = signalOutputSetId,
-            ResourceChangeSetId = resourceChangeSetId
+            ResourceChangeSetId = resourceChangeSetId,
+            ProbeModuleJobId = probeModuleJobId
         });
         await db.SaveChangesAsync();
         return id;
@@ -393,7 +440,7 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
         return id;
     }
 
-    private async Task<Guid> SeedSignalSet(Guid waveId)
+    private async Task<Guid> SeedSignalSet(Guid waveId, Guid? moduleJobId = null)
     {
         var id = Guid.NewGuid();
         _signalSets.Add(id);
@@ -405,7 +452,7 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = _originModuleId,
             ProbeWaveId = waveId,
-            ModuleJobId = Guid.NewGuid(),
+            ModuleJobId = moduleJobId ?? await AddOriginJob(_originModuleId),
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Checksum = Guid.NewGuid().ToString()
         });

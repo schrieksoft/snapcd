@@ -464,7 +464,7 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             ProbeWaveId = waveId,
-            ModuleJobId = Guid.NewGuid(),
+            ModuleJobId = await AddOriginJob(moduleId),
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Checksum = "test"
         };

@@ -49,6 +49,17 @@ public class SignalOutputSetClassMap : IEntityTypeConfiguration<SignalOutputSet>
             .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
             .OnDelete(DeleteBehavior.Restrict);
 
+
+        // Restrict, not cascade: the job already reaches this table through the wave it owns, and
+        // SQL Server allows one cascade path into a table. ModuleJobRepository's own delete clears
+        // these rows, which is what keeps a job deletable.
+        entity
+            .HasOne(e => e.ModuleJob)
+            .WithMany()
+            .HasForeignKey(e => new { e.ModuleJobId, e.OrganizationId })
+            .HasPrincipalKey(j => new { j.Id, j.OrganizationId })
+            .OnDelete(DeleteBehavior.Restrict);
+
         entity
             .HasIndex(p => new { p.ModuleId, p.Timestamp, p.OrganizationId });
     }

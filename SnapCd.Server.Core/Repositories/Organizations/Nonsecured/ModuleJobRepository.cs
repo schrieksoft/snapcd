@@ -61,6 +61,34 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         return ModuleJobMapper.ToDto(entity);
     }
 
+    /// <summary>
+    /// Removes what this job contributed to a probe wave before the job itself goes.
+    ///
+    /// A job is the origin of at most one wave, which cascades with it, but it can also be a
+    /// participant in another Module's wave: its probe's attempt and the two sets it wrote hang off
+    /// a wave that survives. Those name the job in a column that cannot cascade, because the job
+    /// already reaches those tables through the wave it owns and SQL Server allows only one such
+    /// path, so they are deleted here.
+    ///
+    /// The attempt goes before the sets it points at.
+    /// </summary>
+    public override async Task ExecuteDelete(Guid id, Guid organizationId)
+    {
+        await DbContext.ModuleProbeAttempts
+            .Where(a => a.OrganizationId == organizationId && a.ProbeModuleJobId == id)
+            .ExecuteDeleteAsync();
+
+        await DbContext.SignalOutputSets
+            .Where(s => s.OrganizationId == organizationId && s.ModuleJobId == id)
+            .ExecuteDeleteAsync();
+
+        await DbContext.ResourceChangeSets
+            .Where(s => s.OrganizationId == organizationId && s.ModuleJobId == id)
+            .ExecuteDeleteAsync();
+
+        await base.ExecuteDelete(id, organizationId);
+    }
+
     protected override async Task<QuotaCheckResult> CheckQuotaAsync(ModuleJob entity)
     {
         var currentCount = await DbContext.ModuleJobs

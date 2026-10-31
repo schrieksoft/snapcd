@@ -5022,6 +5022,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
+                    b.HasIndex("ProbeModuleJobId", "OrganizationId");
+
                     b.HasIndex("ProbeWaveId", "OrganizationId");
 
                     b.HasIndex("ResourceChangeSetId", "OrganizationId");
@@ -6853,6 +6855,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
+                    b.HasIndex("ModuleJobId", "OrganizationId");
+
                     b.HasIndex("ProbeWaveId", "OrganizationId");
 
                     b.HasIndex("ModuleId", "Timestamp", "OrganizationId");
@@ -6996,6 +7000,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("OrganizationId");
 
                     b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleJobId", "OrganizationId");
 
                     b.HasIndex("ProbeWaveId", "OrganizationId");
 
@@ -12284,6 +12290,11 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ModuleJob", "ProbeModuleJob")
+                        .WithMany()
+                        .HasForeignKey("ProbeModuleJobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.ProbeWaves.ProbeWave", "ProbeWave")
                         .WithMany("Attempts")
                         .HasForeignKey("ProbeWaveId", "OrganizationId")
@@ -12303,6 +12314,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Module");
 
                     b.Navigation("Organization");
+
+                    b.Navigation("ProbeModuleJob");
 
                     b.Navigation("ProbeWave");
 
@@ -12771,6 +12784,12 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ModuleJob", "ModuleJob")
+                        .WithMany()
+                        .HasForeignKey("ModuleJobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.ProbeWaves.ProbeWave", "ProbeWave")
                         .WithMany("ResourceChangeSets")
                         .HasForeignKey("ProbeWaveId", "OrganizationId")
@@ -12778,6 +12797,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Module");
+
+                    b.Navigation("ModuleJob");
 
                     b.Navigation("Organization");
 
@@ -12817,6 +12838,12 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ModuleJob", "ModuleJob")
+                        .WithMany()
+                        .HasForeignKey("ModuleJobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.ProbeWaves.ProbeWave", "ProbeWave")
                         .WithMany("SignalOutputSets")
                         .HasForeignKey("ProbeWaveId", "OrganizationId")
@@ -12824,6 +12851,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Module");
+
+                    b.Navigation("ModuleJob");
 
                     b.Navigation("Organization");
 

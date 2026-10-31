@@ -38,6 +38,7 @@ public class SignalOutputSet : AuditBase, IEntity, IModuleChild
 
     public List<SignalOutput> SignalOutputs { get; set; } = new();
 
+    [JsonIgnore] public ModuleJob ModuleJob { get; set; } = null!;
     [JsonIgnore] public ProbeWave ProbeWave { get; set; } = null!;
     [JsonIgnore] public Module Module { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;

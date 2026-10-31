@@ -278,7 +278,7 @@ public class SignalEdgeBlocksDeleteTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ProbeWaveId = waveId,
             ModuleId = moduleId,
-            ProbeModuleJobId = Guid.NewGuid()
+            ProbeModuleJobId = await AddOriginJob(moduleId)
         });
         await db.SaveChangesAsync();
     }

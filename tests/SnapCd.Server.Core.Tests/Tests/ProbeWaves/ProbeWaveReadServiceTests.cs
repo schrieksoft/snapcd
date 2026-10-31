@@ -152,12 +152,12 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     {
         var wave = await AddWave();
 
+        var firstJob = await AddJob(_consumerModuleId, ExecutionStatus.Completed);
         var first = await AddSignalSet(wave, _consumerModuleId, ("pet_id", KnownUpdate, false));
-        var firstJob = Guid.NewGuid();
         await AddAttempt(wave, _consumerModuleId, first, firstJob, timestamp: 100);
 
+        var secondJob = await AddJob(_consumerModuleId, ExecutionStatus.Completed);
         var second = await AddSignalSet(wave, _consumerModuleId, ("pet_id", UnknownAfter, false));
-        var secondJob = Guid.NewGuid();
         await AddAttempt(wave, _consumerModuleId, second, secondJob, timestamp: 200);
 
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
@@ -307,8 +307,8 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     [Fact]
     public async Task The_Probe_Job_Is_Reported_So_Its_Logs_Can_Be_Found()
     {
-        var jobId = Guid.NewGuid();
         var wave = await AddWave();
+        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Completed);
         await AddAttempt(wave, _consumerModuleId, probeModuleJobId: jobId);
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
 
@@ -453,7 +453,8 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         var jobId = Guid.NewGuid();
         var wave = await AddWave(jobId);
         await AddAttempt(wave, _originModuleId);
-        await AddAttempt(wave, _consumerModuleId, probeModuleJobId: Guid.NewGuid());
+        await AddAttempt(wave, _consumerModuleId,
+            probeModuleJobId: await AddJob(_consumerModuleId, ExecutionStatus.Running));
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
 
         var found = await Service().GetByOriginJob(jobId, _organizationId);
@@ -862,7 +863,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             ProbeWaveId = waveId,
-            ModuleJobId = Guid.NewGuid(),
+            ModuleJobId = await AddJob(moduleId, ExecutionStatus.Completed),
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Checksum = "test"
         };
