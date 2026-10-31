@@ -90,6 +90,28 @@ builder.Services.AddOptions<OpenIdConnectSettings>()
     .Bind(builder.Configuration.GetSection("OpenIdConnect"))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+
+SettingsBindingCheck.Report(
+    builder.Configuration,
+    LoggerFactory.Create(c => c.AddConfiguration(builder.Configuration.GetSection("Logging")).AddConsole())
+        .CreateLogger("SnapCd.Configuration"),
+    ("Server", typeof(ServerSettings)),
+    ("ServiceBus", typeof(ServiceBusSettings)),
+    ("ProductionDataSeeder", typeof(ProductionDataSeederSettings)),
+    ("DebugDataSeeder", typeof(DebugDataSeederSettings)),
+    ("SecretStore", typeof(SecretStoreSettings)),
+    ("SourceRefresh", typeof(SourceRefreshSettings)),
+    ("InvitationSettings", typeof(InvitationSettings)),
+    ("OrphanedJobCleanup", typeof(OrphanedJobCleanupSettings)),
+    ("StuckJobDetection", typeof(StuckJobDetectionSettings)),
+    ("JobLogs", typeof(JobLogSettings)),
+    ("ModuleHold", typeof(ModuleHoldSettings)),
+    ("SetRetention", typeof(SetRetentionSettings)),
+    ("License", typeof(LicenseSettings)),
+    ("Telemetry", typeof(TelemetrySettings)),
+    ("Debugging", typeof(DebuggingOptions)),
+    ("OpenIdConnect", typeof(OpenIdConnectSettings)),
+    ("BackgroundJobs", typeof(BackgroundJobsSettings)));
 // In non-debug runs, force LicenseServerBaseUrl to snapcd.io regardless of appsettings.
 // Debug runs keep whatever was bound from appsettings (e.g. Development overrides to a local license server).
 if (!Debugger.IsAttached)
