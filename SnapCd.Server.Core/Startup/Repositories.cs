@@ -18,6 +18,7 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RunnerSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Variables;
 using SnapCd.Server.Core.Repositories.System.Nonsecured;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Signals;
 
 namespace SnapCd.Server.Core.Startup;
 
@@ -104,6 +105,8 @@ public static class Repositories
         services.AddScoped<StateMigrationJobRepositoryFactory>();
         services.AddScoped<ModuleJobApprovalRepository>();
         services.AddScoped<OutputSetRepository>();
+        services.AddScoped<SignalOutputSetRepository>();
+        services.AddScoped<SignalOutputSetRepositoryFactory>();
         services.AddScoped<OutputRepository>();
         services.AddScoped<LiteralOutputRepository>();
         services.AddScoped<VariableSetRepository>();

@@ -46,6 +46,7 @@ using SnapCd.Server.Core.Services.Utils.QuotaUsage;
 using SnapCd.Server.Core.Services.Utils.Resilience;
 using SnapCd.Server.Core.Settings;
 using RunnerSelectionService = SnapCd.Server.Core.Services.Nonsecured.RunnerSelectionService;
+using SnapCd.Server.Core.Services.Nonsecured.Vaults;
 
 namespace SnapCd.Server.Core.Startup;
 
@@ -123,6 +124,8 @@ public static class MiscService
 
         // Execution Services
         services.AddScoped<SourceRefreshJob>();
+        services.AddScoped<SecretNameSweepJob>();
+        services.AddScoped<OrphanedVaultValueSweeper>();
         services.AddScoped<SourceRefreshDispatcher>();
 
         services.AddScoped<JobLogWriterFactory>();

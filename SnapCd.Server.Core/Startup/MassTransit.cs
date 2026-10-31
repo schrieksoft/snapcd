@@ -319,6 +319,13 @@ public static class MassTransit
     private static readonly Type[] ServerCompetingConsumerTypes =
     [
         // System consumers
+        // A delete is a SQL cascade that makes no vault call, so these remove what it left behind.
+        typeof(StackDeletedVaultConsumer),
+        typeof(NamespaceDeletedVaultConsumer),
+        typeof(ModuleDeletedVaultConsumer),
+        typeof(IntegrationDeletedVaultConsumer),
+        typeof(OutputSetDeletedVaultConsumer),
+        typeof(SignalOutputSetDeletedVaultConsumer),
         typeof(SelectRunnerInstanceConsumer),
         typeof(TransferSelectRunnerInstanceConsumer),
         // Selecting an instance is server-side work, so it is published to whichever server is
@@ -351,6 +358,8 @@ public static class MassTransit
         typeof(MissionRunDeadlineCheckConsumer),
 
         typeof(OutputSetWithOutputsCreatedCompetingConsumer),
+        typeof(OutputSetCullConsumer),
+        typeof(ProbeWaveCullConsumer),
         typeof(ModuleModifiedCompetingConsumer),
         typeof(NamespaceModifiedCompetingConsumer),
         typeof(StackModifiedCompetingConsumer),

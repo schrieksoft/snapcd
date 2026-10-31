@@ -9,6 +9,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using SnapCd.Server.Core.Entities.Definition.Base;
+using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Interfaces;
 
 namespace SnapCd.Server.Core.Entities.Definition.Signals;
@@ -37,6 +38,8 @@ public class SignalOutputSet : AuditBase, IEntity, IModuleChild
 
     public List<SignalOutput> SignalOutputs { get; set; } = new();
 
+    [JsonIgnore] public ModuleJob ModuleJob { get; set; } = null!;
+    [JsonIgnore] public ProbeWave ProbeWave { get; set; } = null!;
     [JsonIgnore] public Module Module { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 

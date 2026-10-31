@@ -85,6 +85,7 @@ internal static class SettingsSchemasCommand
             ["ProductionDataSeeder"] = typeof(SnapCd.Server.Core.Settings.DataSeeder.ProductionDataSeederSettings),
             ["DebugDataSeeder"] = typeof(SnapCd.Server.Core.Settings.DataSeeder.DebugDataSeederSettings),
             ["SecretStore"] = typeof(SnapCd.Server.Core.Settings.SecretStoreSettings),
+            ["BackgroundJobs"] = typeof(SnapCd.Server.Core.Settings.BackgroundJobsSettings),
             ["SourceRefresh"] = typeof(SnapCd.Server.Core.Settings.SourceRefreshSettings),
             ["InvitationSettings"] = typeof(SnapCd.Server.Core.Settings.InvitationSettings),
             ["OrphanedJobCleanup"] = typeof(SnapCd.Server.Core.Settings.OrphanedJobCleanupSettings),

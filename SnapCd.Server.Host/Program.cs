@@ -34,6 +34,7 @@ using SnapCd.Server.Core.Services.Interfaces.ViewManagement;
 using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 using SnapCd.Server.Core.Services.Nonsecured.OrganizationContext;
+using SnapCd.Server.Core.Services.Nonsecured.Vaults;
 using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Services.Utils.CallerContext;
 using SnapCd.Server.Core.Services.Utils.Dashboard;
@@ -74,13 +75,14 @@ builder.Services.AddOptions<SecretStoreSettings>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<SecretStoreSettings>, SnapCd.Server.Core.Validation.SecretStoreSettingsValidator>();
-builder.Services.Configure<SourceRefreshSettings>(builder.Configuration.GetSection("SourceRefresh"));
 builder.Services.AddSnapCdRepositorySettings(builder.Configuration);
+builder.Services.Configure<SourceRefreshSettings>(builder.Configuration.GetSection("SourceRefresh"));
 builder.Services.Configure<InvitationSettings>(builder.Configuration.GetSection("InvitationSettings"));
 builder.Services.Configure<OrphanedJobCleanupSettings>(builder.Configuration.GetSection("OrphanedJobCleanup"));
 builder.Services.Configure<StuckJobDetectionSettings>(builder.Configuration.GetSection("StuckJobDetection"));
 builder.Services.Configure<JobLogSettings>(builder.Configuration.GetSection("JobLogs"));
 builder.Services.Configure<ModuleHoldSettings>(builder.Configuration.GetSection("ModuleHold"));
+builder.Services.Configure<SetRetentionSettings>(builder.Configuration.GetSection("SetRetention"));
 builder.Services.Configure<LicenseSettings>(builder.Configuration.GetSection("License"));
 builder.Services.Configure<TelemetrySettings>(builder.Configuration.GetSection("Telemetry"));
 builder.Services.Configure<DebuggingOptions>(builder.Configuration.GetSection("Debugging"));
@@ -88,6 +90,28 @@ builder.Services.AddOptions<OpenIdConnectSettings>()
     .Bind(builder.Configuration.GetSection("OpenIdConnect"))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+
+SettingsBindingCheck.Report(
+    builder.Configuration,
+    LoggerFactory.Create(c => c.AddConfiguration(builder.Configuration.GetSection("Logging")).AddConsole())
+        .CreateLogger("SnapCd.Configuration"),
+    ("Server", typeof(ServerSettings)),
+    ("ServiceBus", typeof(ServiceBusSettings)),
+    ("ProductionDataSeeder", typeof(ProductionDataSeederSettings)),
+    ("DebugDataSeeder", typeof(DebugDataSeederSettings)),
+    ("SecretStore", typeof(SecretStoreSettings)),
+    ("SourceRefresh", typeof(SourceRefreshSettings)),
+    ("InvitationSettings", typeof(InvitationSettings)),
+    ("OrphanedJobCleanup", typeof(OrphanedJobCleanupSettings)),
+    ("StuckJobDetection", typeof(StuckJobDetectionSettings)),
+    ("JobLogs", typeof(JobLogSettings)),
+    ("ModuleHold", typeof(ModuleHoldSettings)),
+    ("SetRetention", typeof(SetRetentionSettings)),
+    ("License", typeof(LicenseSettings)),
+    ("Telemetry", typeof(TelemetrySettings)),
+    ("Debugging", typeof(DebuggingOptions)),
+    ("OpenIdConnect", typeof(OpenIdConnectSettings)),
+    ("BackgroundJobs", typeof(BackgroundJobsSettings)));
 // In non-debug runs, force LicenseServerBaseUrl to snapcd.io regardless of appsettings.
 // Debug runs keep whatever was bound from appsettings (e.g. Development overrides to a local license server).
 if (!Debugger.IsAttached)
@@ -100,7 +124,6 @@ else if (!(builder.Configuration.GetSection("Debugging").Get<DebuggingOptions>()
 }
 
 
-var sourceRefreshSettings = builder.Configuration.GetSection("SourceRefresh").Get<SourceRefreshSettings>() ?? new SourceRefreshSettings();
 var allowHttp = builder.Configuration.GetSection("AllowHttp").Get<bool>();
 var connectionString = builder.Configuration["ConnectionString"] ?? throw new Exception("Connection string not found.");
 
@@ -266,61 +289,24 @@ using (var scope = app.Services.CreateScope())
 // The flag cache has no expiry, so each boot rewrites it from the table the migration creates.
 await maintenanceModeService.SyncCacheAsync();
 
-app.UseHangfireDashboard();
+var jobLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("SnapCd.BackgroundJobs");
+var recurringJobs = app.Services.GetRequiredService<IRecurringJobManager>();
+var backgroundJobs = app.Services.GetRequiredService<IBackgroundJobClient>();
 
-RecurringJob.AddOrUpdate<SourceRefreshJob>(
-    "source-refresh-job",
-    x => x.ExecuteJob(),
-    sourceRefreshSettings.RefreshIntervalCronExpression
-);
-RecurringJob.AddOrUpdate<ServerConnectionCleanupJob>(
-    "server-connection-cleanup-job",
-    x => x.ExecuteJob(),
-    "*/1 * * * *" // Every 1 minute
-);
-RecurringJob.AddOrUpdate<RunnerConnectionJobCleanupJob>(
-    "runner-connection-job-cleanup-job",
-    x => x.ExecuteJob(),
-    "*/15 * * * *" // Every 15 minutes
-);
+RecurringJobs.RegisterCoreJobs(recurringJobs, backgroundJobs, builder.Configuration, jobLogger);
 
-var invitationSettings = builder.Configuration.GetSection("InvitationSettings").Get<InvitationSettings>() ?? new InvitationSettings();
-RecurringJob.AddOrUpdate<InvitationCleanupJob>(
-    "invitation-cleanup-job",
-    x => x.ExecuteJob(),
-    invitationSettings.CleanupJobCron
-);
+T JobSettings<T>(string name) where T : BackgroundJobSettingsBase, new() =>
+    RecurringJobs.Settings<T>(builder.Configuration, name);
 
-var orphanedJobCleanupSettings = builder.Configuration.GetSection("OrphanedJobCleanup").Get<OrphanedJobCleanupSettings>() ?? new OrphanedJobCleanupSettings();
-RecurringJob.AddOrUpdate<OrphanedJobCleanupJob>(
-    "orphaned-job-cleanup-job",
-    x => x.ExecuteJob(),
-    orphanedJobCleanupSettings.CleanupCronExpression
-);
+// Licensing and telemetry are this host's own.
+RecurringJobs.Register<LicenseRefreshJob>(recurringJobs, JobSettings<LicenseRefreshJobSettings>("LicenseRefresh"),
+    "license-refresh-job", x => x.ExecuteJob(), jobLogger);
 
-var stuckJobDetectionSettings = builder.Configuration.GetSection("StuckJobDetection").Get<StuckJobDetectionSettings>() ?? new StuckJobDetectionSettings();
-RecurringJob.AddOrUpdate<StuckJobDetectionJob>(
-    "stuck-job-detection-job",
-    x => x.ExecuteJob(),
-    stuckJobDetectionSettings.CronExpression
-);
+RecurringJobs.Register<LicensePublicKeyRefreshJob>(recurringJobs, JobSettings<LicensePublicKeyRefreshJobSettings>("LicensePublicKeyRefresh"),
+    "license-public-key-refresh-job", x => x.ExecuteJob(), jobLogger);
 
-// Scheduled messages live in the transport and do not survive a transport change.
-BackgroundJob.Enqueue<TransportReconciliationJob>(x => x.ExecuteJob());
-
-var licenseSettings = builder.Configuration.GetSection("License").Get<LicenseSettings>() ?? new LicenseSettings();
-RecurringJob.AddOrUpdate<LicenseRefreshJob>(
-    "license-refresh-job",
-    x => x.ExecuteJob(),
-    licenseSettings.RefreshJobCron
-);
-RecurringJob.AddOrUpdate<LicensePublicKeyRefreshJob>(
-    "license-public-key-refresh-job",
-    x => x.ExecuteJob(),
-    "0 4 * * *" // daily at 04:00 UTC
-);
-var telemetrySettings = builder.Configuration.GetSection("Telemetry").Get<TelemetrySettings>() ?? new TelemetrySettings();
-RecurringJob.AddOrUpdate<TelemetryReportJob>("telemetry-report-job", x => x.ExecuteJob(), telemetrySettings.Cron);
+RecurringJobs.Register<TelemetryReportJob>(recurringJobs, JobSettings<TelemetryReportJobSettings>("TelemetryReport"),
+    "telemetry-report-job", x => x.ExecuteJob(), jobLogger);
 // One run shortly after boot, so a fresh install or an upgrade has notices and the version indicator today, not tomorrow.
 BackgroundJob.Schedule<TelemetryReportJob>(x => x.ExecuteJob(), TimeSpan.FromMinutes(1));
 
@@ -355,6 +341,8 @@ app.UseCors("AllowAnyOriginCorsPolicy");
 app.UseAuthentication();
 app.UseMiddleware<SnapCd.Server.Core.Auth.AgentClaimAuditMiddleware>();
 app.UseAuthorization();
+
+app.UseSnapCdHangfireDashboard();
 app.UseMiddleware<MaintenanceModeMiddleware>();
 app.UseMiddleware<OrganizationValidationMiddleware>();
 app.UseAntiforgery();

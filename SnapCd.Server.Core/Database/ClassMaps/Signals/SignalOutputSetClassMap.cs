@@ -9,6 +9,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 
 namespace SnapCd.Server.Core.Database.ClassMaps.Signals;
@@ -29,16 +30,37 @@ public class SignalOutputSetClassMap : IEntityTypeConfiguration<SignalOutputSet>
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // The wave owns the set: a prediction has no meaning outside the episode that asked for
+        // it, so the wave's delete takes it.
+        entity
+            .HasOne(e => e.ProbeWave)
+            .WithMany(x => x.SignalOutputSets)
+            .HasForeignKey(e => new { e.ProbeWaveId, e.OrganizationId })
+            .HasPrincipalKey(w => new { w.Id, w.OrganizationId })
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // The Module reaches this table twice over, directly and through the job that owns the
+        // wave, and SQL Server refuses two cascade paths into one table. ModuleRepository's own
+        // delete clears these rows.
         entity
             .HasOne(e => e.Module)
             .WithMany(x => x.SignalOutputSets)
             .HasForeignKey(e => new { e.ModuleId, e.OrganizationId })
             .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
+
+
+        // Restrict, not cascade: the job already reaches this table through the wave it owns, and
+        // SQL Server allows one cascade path into a table. ModuleJobRepository's own delete clears
+        // these rows, which is what keeps a job deletable.
+        entity
+            .HasOne(e => e.ModuleJob)
+            .WithMany()
+            .HasForeignKey(e => new { e.ModuleJobId, e.OrganizationId })
+            .HasPrincipalKey(j => new { j.Id, j.OrganizationId })
+            .OnDelete(DeleteBehavior.Restrict);
 
         entity
             .HasIndex(p => new { p.ModuleId, p.Timestamp, p.OrganizationId });
-
-        entity.HasIndex(p => p.ProbeWaveId);
     }
 }

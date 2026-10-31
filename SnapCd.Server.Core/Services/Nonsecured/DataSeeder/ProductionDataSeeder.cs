@@ -26,6 +26,7 @@ using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.DataSeeder;
 using SnapCd.Server.Core.Settings.DataSeeder.ToSeed;
+using SnapCd.Server.Core.Services.Utils.Vaults;
 
 namespace SnapCd.Server.Core.Services.Nonsecured.DataSeeder;
 
@@ -535,14 +536,15 @@ public class ProductionDataSeeder : IDataSeeder
         }
         await _dbContext.SaveChangesAsync();
 
-        // 2. Value in the configured vault. Name convention matches
-        // SecretService.MakeRemoteSecretName: "{scope}--{orgId}--{secretId}".
+        // 2. Value in the configured vault.
         var vaultFactory = asyncServiceScope.ServiceProvider.GetRequiredService<IVaultFactory>();
         var secretStoreSettings = asyncServiceScope.ServiceProvider
             .GetRequiredService<IOptions<SecretStoreSettings>>().Value;
         var inputVaultUrl = secretStoreSettings.AzureKeyVault.DefaultInputKeyVaultUrl;
         using var vault = vaultFactory.Create(inputVaultUrl);
-        await vault.SetIfChanged($"stack--{organizationId}--{secretId}", value);
+        await vault.SetIfChanged(
+            RemoteSecretName.OwnerPrefix(SecretScope.Stack, organizationId, stackId) + secretId,
+            value);
     }
 
     protected async Task CreatePreseededOrganization(string name, Guid organizationId)

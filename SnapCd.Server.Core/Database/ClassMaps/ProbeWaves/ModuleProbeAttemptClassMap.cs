@@ -50,9 +50,24 @@ public class ModuleProbeAttemptClassMap : IEntityTypeConfiguration<ModuleProbeAt
         // attempts in one wave. At most one job per Module can be current, which is enforced by a
         // filtered unique index on ModuleJobs. Timestamp is in the key because every read of an
         // attempt wants the Module's most recent one.
+
+        // Restrict, not cascade: the job already reaches this table through the wave it owns, and
+        // SQL Server allows one cascade path into a table. ModuleJobRepository's own delete clears
+        // these rows, which is what keeps a job deletable.
+        entity
+            .HasOne(e => e.ProbeModuleJob)
+            .WithMany()
+            .HasForeignKey(e => new { e.ProbeModuleJobId, e.OrganizationId })
+            .HasPrincipalKey(j => new { j.Id, j.OrganizationId })
+            .OnDelete(DeleteBehavior.Restrict);
+
         entity
             .HasIndex(p => new { p.ProbeWaveId, p.ModuleId, p.OrganizationId, p.Timestamp });
 
+        // Restrict, and it cannot be otherwise: the foreign key is composite over OrganizationId,
+        // which is not nullable, and SQL Server refuses SET NULL where any referencing column is.
+        // So the attempt must be deleted before the set it points at, which is what the wave's own
+        // delete does by taking both.
         entity
             .HasOne(e => e.SignalOutputSet)
             .WithMany()

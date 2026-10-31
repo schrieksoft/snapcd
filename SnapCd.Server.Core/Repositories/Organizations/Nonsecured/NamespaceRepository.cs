@@ -200,75 +200,12 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
 
     public override async Task ExecuteDelete(Guid id, Guid organizationId)
     {
-        // Delete all ModuleInputFromSecret records for modules in this namespace
-        // This must be done first to avoid FK constraint violations when modules are deleted
-        await DbContext.ModuleParamFromSecrets
-            .Where(mi => mi.Module.NamespaceId == id)
-            .ExecuteDeleteAsync();
+        // The Modules go by cascade rather than through ModuleRepository, so what a Module cannot
+        // take with it is cleared here too.
+        await DbContext.ClearRowsBlockingModuleDelete(m => m.NamespaceId == id, organizationId);
 
-        await DbContext.ModuleEnvVarFromSecrets
-            .Where(mi => mi.Module.NamespaceId == id)
-            .ExecuteDeleteAsync();
+        await DbContext.ClearRowsBlockingNamespaceDelete(n => n.Id == id, organizationId);
 
-        // Delete all module-scoped secrets for modules in this namespace
-        // This prevents FK_Secrets_Modules_ModuleId constraint violations
-        await DbContext.ModuleSecrets
-            .Where(s => s.Module.NamespaceId == id)
-            .ExecuteDeleteAsync();
-
-        // Delete all NamespaceInputFromSecret records for this namespace
-        // This must be done before deleting the secrets to avoid FK constraint violations
-        await DbContext.NamespaceParamFromSecrets
-            .Where(mi => mi.NamespaceId == id)
-            .ExecuteDeleteAsync();
-
-        await DbContext.NamespaceEnvVarFromSecrets
-            .Where(mi => mi.NamespaceId == id)
-            .ExecuteDeleteAsync();
-
-        // Now we can safely delete the namespace-scoped secrets
-        await DbContext.NamespaceSecrets
-            .Where(s => s.NamespaceId == id)
-            .ExecuteDeleteAsync();
-
-        // A Transfer restricts on both of the Modules it names, so it blocks a Module that
-        // cascades away with this namespace. Cleared here as well as in ModuleRepository, because
-        // a namespace delete cascades its Modules rather than deleting them through that
-        // repository.
-        var transferIds = await DbContext.Transfers
-            .Where(t => t.OrganizationId == organizationId &&
-                        (t.Module.NamespaceId == id || t.CounterpartyModule.NamespaceId == id))
-            .Select(t => t.Id)
-            .ToListAsync();
-
-        if (transferIds.Count > 0)
-        {
-            // The jobs belong to the Module and cascade with it, so they are detached rather than
-            // deleted. Their FK to Transfers is NoAction and would otherwise block this.
-            await DbContext.StateMigrationJobs
-                .Where(j => j.OrganizationId == organizationId &&
-                            j.TransferId != null && transferIds.Contains(j.TransferId.Value))
-                .ExecuteUpdateAsync(u => u.SetProperty(j => j.TransferId, (Guid?)null));
-
-            await DbContext.Transfers
-                .Where(t => transferIds.Contains(t.Id) && t.OrganizationId == organizationId)
-                .ExecuteDeleteAsync();
-        }
-
-        // A signal edge restricts on both of the Modules it names, so it blocks a Module that
-        // cascades away with this namespace. Swept here as well as in ModuleRepository, because a
-        // namespace delete cascades its Modules rather than deleting them through that repository.
-        //
-        await DbContext.SignalEdges
-            .Where(e => e.OrganizationId == organizationId &&
-                        (e.ConsumerModule.NamespaceId == id || e.UpstreamModule.NamespaceId == id))
-            .ExecuteDeleteAsync();
-
-        await DbContext.ModuleProbeAttempts
-            .Where(a => a.OrganizationId == organizationId && a.Module.NamespaceId == id)
-            .ExecuteDeleteAsync();
-
-        // Now proceed with normal namespace deletion (which will cascade to modules)
         await base.ExecuteDelete(id, organizationId);
     }
 

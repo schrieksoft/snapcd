@@ -31,4 +31,17 @@ public interface IVault : IDisposable
     public Task<string> SetSecretAsync(string secretName, string value);
 
     public Task DeleteSecretAsync(string secretName);
+
+    /// <summary>
+    /// Whether the store holds this name in a deleted-but-recoverable state. Such a name reads as
+    /// absent through <see cref="GetSecretAsync"/> while still refusing a write, so a caller that
+    /// decides by absence alone would plan work that cannot run.
+    /// </summary>
+    public Task<bool> IsSoftDeletedAsync(string secretName, CancellationToken ct = default);
+
+    /// <summary>
+    /// Every name the store holds that begins with this prefix. Names carry the organization and
+    /// the owner, so a prefix is how everything belonging to one deleted owner is found.
+    /// </summary>
+    public Task<IReadOnlyList<string>> ListNamesAsync(string prefix, CancellationToken ct = default);
 }

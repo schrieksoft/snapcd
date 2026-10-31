@@ -5022,6 +5022,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
+                    b.HasIndex("ProbeModuleJobId", "OrganizationId");
+
                     b.HasIndex("ProbeWaveId", "OrganizationId");
 
                     b.HasIndex("ResourceChangeSetId", "OrganizationId");
@@ -6531,6 +6533,12 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<bool>("NameContainsScope")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("RemoteValueMissingSince")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ScopeKind")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -6845,9 +6853,11 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.HasIndex("ProbeWaveId");
-
                     b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleJobId", "OrganizationId");
+
+                    b.HasIndex("ProbeWaveId", "OrganizationId");
 
                     b.HasIndex("ModuleId", "Timestamp", "OrganizationId");
 
@@ -6989,9 +6999,11 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.HasIndex("ProbeWaveId");
-
                     b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleJobId", "OrganizationId");
+
+                    b.HasIndex("ProbeWaveId", "OrganizationId");
 
                     b.HasIndex("ModuleId", "Timestamp", "OrganizationId");
 
@@ -10461,6 +10473,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<DateTime?>("RemoteValueMissingSince")
+                        .HasColumnType("datetime2");
+
                     b.HasDiscriminator().HasValue("SecretOutput");
                 });
 
@@ -10964,6 +10979,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("RemoteValueMissingSince")
+                        .HasColumnType("datetime2");
 
                     b.HasDiscriminator().HasValue("SecretSignalOutput");
                 });
@@ -12272,6 +12290,11 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ModuleJob", "ProbeModuleJob")
+                        .WithMany()
+                        .HasForeignKey("ProbeModuleJobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.ProbeWaves.ProbeWave", "ProbeWave")
                         .WithMany("Attempts")
                         .HasForeignKey("ProbeWaveId", "OrganizationId")
@@ -12291,6 +12314,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Module");
 
                     b.Navigation("Organization");
+
+                    b.Navigation("ProbeModuleJob");
 
                     b.Navigation("ProbeWave");
 
@@ -12756,12 +12781,28 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
                         .WithMany("ResourceChangeSets")
                         .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ModuleJob", "ModuleJob")
+                        .WithMany()
+                        .HasForeignKey("ModuleJobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ProbeWaves.ProbeWave", "ProbeWave")
+                        .WithMany("ResourceChangeSets")
+                        .HasForeignKey("ProbeWaveId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Module");
 
+                    b.Navigation("ModuleJob");
+
                     b.Navigation("Organization");
+
+                    b.Navigation("ProbeWave");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Signals.SignalOutput", b =>
@@ -12794,12 +12835,28 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
                         .WithMany("SignalOutputSets")
                         .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ModuleJob", "ModuleJob")
+                        .WithMany()
+                        .HasForeignKey("ModuleJobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ProbeWaves.ProbeWave", "ProbeWave")
+                        .WithMany("SignalOutputSets")
+                        .HasForeignKey("ProbeWaveId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Module");
 
+                    b.Navigation("ModuleJob");
+
                     b.Navigation("Organization");
+
+                    b.Navigation("ProbeWave");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.SourceRefresherPreselection", b =>
@@ -14306,6 +14363,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Attempts");
 
                     b.Navigation("Contributions");
+
+                    b.Navigation("ResourceChangeSets");
+
+                    b.Navigation("SignalOutputSets");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Runner", b =>

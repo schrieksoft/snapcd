@@ -10,7 +10,6 @@ namespace SnapCd.Server.Core.Settings;
 
 public class StuckJobDetectionSettings
 {
-    public string CronExpression { get; set; } = "*/5 * * * *"; // Every 5 minutes
 
     /// <summary>A parked job whose runner has not returned within this window is flagged.</summary>
     public int RunnerWaitThresholdMinutes { get; set; } = 30;

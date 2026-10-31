@@ -451,6 +451,17 @@ properties:
             description: Default Key Vault URL used when writing a Secret value (including sensitive Module outputs). Often
               the same as DefaultInputKeyVaultUrl; split when read- and write-paths need different vaults for compliance or
               geo-replication reasons.
+          NetworkTimeoutSeconds:
+            type: integer
+            description: Seconds a single Key Vault call may take before it is abandoned. A Secret write happens inside an
+              open SQL transaction, so this bounds how long that transaction holds its locks. The SDK default is 100 seconds,
+              which is sized for ordinary API calls rather than ones made with a transaction open.
+            default: 10
+          MaxRetries:
+            type: integer
+            description: Retries attempted after a failed Key Vault call. With the timeout above, the worst case is (MaxRetries
+              + 1) calls plus backoff, which is the longest a Secret write can hold its locks.
+            default: 2
           CredentialOptions:
             type: object
             description: Configures how the Azure Key Vault secret store authenticates. Property type at runtime is Azure.Identity.DefaultAzureCredentialOptions;
@@ -559,22 +570,105 @@ properties:
       Namespace, and Module Secret values, plus sensitive Output Sets, live at rest. The block matching Provider is the only
       one read; the other is ignored. The Migrator utility moves secrets between stores in-place when an operator changes
       Provider.
-  SourceRefresh:
+  BackgroundJobs:
     type: object
     properties:
-      RefreshIntervalCronExpression:
-        type: string
-        description: Quartz cron expression for the source-refresh job. Defaults to every 5 minutes — fast enough that operators
-          see new commits reflected quickly, slow enough not to hammer the SCM provider's rate limits.
-        default: '*/5 * * * *'
-      TimeoutSeconds:
-        type: integer
-        description: Per-repository timeout for the refresh job, in seconds. Defaults to 120 — generous for a healthy clone
-          but short enough that one wedged repository can't stall the rest of the run.
-        default: 120
-    description: Cadence and timeout for the background job that polls Module source repositories for new commits. Defaults
-      are tuned for a moderate-sized organization with a handful of source repositories; large fleets with many Modules per
-      repository may want to lengthen the interval to reduce SCM-API load.
+      SourceRefresh:
+        type: object
+        properties:
+          Cron:
+            type: string
+            default: '*/5 * * * *'
+          Enabled:
+            type: boolean
+            description: Whether the job is scheduled at all. Defaults to true.
+      ServerConnectionCleanup:
+        type: object
+        properties:
+          Cron:
+            type: string
+            default: '*/1 * * * *'
+          Enabled:
+            type: boolean
+            description: Whether the job is scheduled at all. Defaults to true.
+      SecretNameSweep:
+        type: object
+        properties:
+          Cron:
+            type: string
+            default: 0 3 * * *
+          Enabled:
+            type: boolean
+            description: Whether the job is scheduled at all. Defaults to true.
+      RunnerConnectionJobCleanup:
+        type: object
+        properties:
+          Cron:
+            type: string
+            default: '*/15 * * * *'
+          Enabled:
+            type: boolean
+            description: Whether the job is scheduled at all. Defaults to true.
+      InvitationCleanup:
+        type: object
+        properties:
+          Cron:
+            type: string
+            default: 0 0 * * *
+          Enabled:
+            type: boolean
+            description: Whether the job is scheduled at all. Defaults to true.
+      OrphanedJobCleanup:
+        type: object
+        properties:
+          Cron:
+            type: string
+            default: '*/10 * * * *'
+          Enabled:
+            type: boolean
+            description: Whether the job is scheduled at all. Defaults to true.
+      StuckJobDetection:
+        type: object
+        properties:
+          Cron:
+            type: string
+            default: '*/5 * * * *'
+          Enabled:
+            type: boolean
+            description: Whether the job is scheduled at all. Defaults to true.
+      LicenseRefresh:
+        type: object
+        properties:
+          Cron:
+            type: string
+            default: 0 3 * * *
+          Enabled:
+            type: boolean
+            description: Whether the job is scheduled at all. Defaults to true.
+      LicensePublicKeyRefresh:
+        type: object
+        properties:
+          Cron:
+            type: string
+            default: 0 4 * * *
+          Enabled:
+            type: boolean
+            description: Whether the job is scheduled at all. Defaults to true.
+      TelemetryReport:
+        type: object
+        properties:
+          Cron:
+            type: string
+            default: 0 5 * * *
+          Enabled:
+            type: boolean
+            description: Whether the job is scheduled at all. Defaults to true.
+    description: Every recurring job's schedule, one section each. Present so the whole group appears in the settings schema
+      and can be read at a glance; each job binds its own section standalone.
+  SourceRefresh:
+    type: object
+    description: Settings for the background job that polls Module source repositories for new commits. Its schedule lives
+      with every other job's, under BackgroundJobs:SourceRefresh.
   InvitationSettings:
     type: object
     properties:
@@ -594,20 +688,10 @@ properties:
           Set false only in environments where email delivery is unreliable and the alternative-verification flow has been
           arranged out-of-band.
         default: true
-      CleanupJobCron:
-        type: string
-        description: Quartz cron expression for the invitation-cleanup background job. Defaults to 00:00 daily.
-        default: 0 0 * * *
     description: Lifecycle settings for User invitations — how long invitations remain valid, whether auto-cleanup runs for
       incomplete sign-ups, and whether email verification is required for the invited account to become active.
   OrphanedJobCleanup:
     type: object
-    properties:
-      CleanupCronExpression:
-        type: string
-        description: Quartz cron expression for the cleanup job. Defaults to every 10 minutes — frequent enough that operators
-          see a wedged Job get marked failed within a reasonable window, infrequent enough to keep the DB-scan overhead negligible.
-        default: '*/10 * * * *'
     description: Cadence for the background job that reconciles Module Jobs whose owning Runner / Agent has disappeared (process
       crash, container kill, etc.) so that they don't linger as "running" forever. The reconciler marks orphaned Jobs as failed
       and frees any locks they held.
@@ -656,12 +740,6 @@ properties:
           and the usage beacon. Fixed to https://snapcd.io whenever no debugger is attached; the setting exists so local development
           can point at a local licensing service.
         default: https://snapcd.io
-      RefreshJobCron:
-        type: string
-        description: Quartz cron expression for the background license refresh job. Defaults to 03:00 daily, which is frequent
-          enough to propagate Cloud-side state changes (cancellation, plan changes, expiry) within a day while staying well
-          under the Cloud endpoint's rate limit.
-        default: 0 3 * * *
       RefreshWithinDaysOfExpiry:
         type: integer
         description: How many days before token expiry the refresh job tries to renew. Defaults to 3 — gives the scheduled
@@ -675,9 +753,6 @@ properties:
       Enabled:
         type: boolean
         default: true
-      Cron:
-        type: string
-        default: 0 5 * * *
       ReleaseRepository:
         type: string
         default: schrieksoft/snapcd
@@ -3305,6 +3380,29 @@ properties:
             $comment: Represents a System.TimeSpan value.
             type: string
             pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+      SignalOutputSet:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a SignalOutputSet is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a SignalOutputSet is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a SignalOutputSet is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Per-SignalOutputSet repository tuning. Almost always left at defaults — operators override only when
+          they need to opt out of bus events or change the event TTL for the SignalOutputSet entity specifically.
       SourceRefresherPreselection:
         type: object
         properties:

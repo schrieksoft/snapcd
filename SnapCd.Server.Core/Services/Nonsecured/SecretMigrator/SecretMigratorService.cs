@@ -147,7 +147,8 @@ public class SecretMigratorService(
             await Parallel.ForEachAsync(indexed, parallelOptions, async (entry, token) =>
             {
                 var vault = IsOutputName(entry.name) ? outputAkv : inputAkv;
-                var exists = await TryGetAsync(vault, entry.name, token);
+                var exists = await TryGetAsync(vault, entry.name, token)
+                             || await vault.IsSoftDeletedAsync(entry.name, token);
                 resultsByIndex[entry.idx] = BuildItem(entry.name, sourceExists: true, destExists: exists);
 
                 var done = Interlocked.Increment(ref probed);
@@ -304,6 +305,10 @@ public class SecretMigratorService(
     private static bool IsOutputName(string name) =>
         name.StartsWith("output--", StringComparison.Ordinal);
 
+    /// <summary>
+    /// Whether the destination already holds the name. A soft-deleted name reads as absent here
+    /// but still refuses a write, so the caller pairs this with IsSoftDeletedAsync.
+    /// </summary>
     private static async Task<bool> TryGetAsync(IVault vault, string name, CancellationToken ct)
     {
         try

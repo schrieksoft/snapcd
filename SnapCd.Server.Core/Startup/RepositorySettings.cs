@@ -85,6 +85,7 @@ public static class RepositorySettings
         services.Configure<OrganizationUserRepositorySettings>(configuration.GetSection("Repositories:OrganizationUser"));
         services.Configure<OutputRepositorySettings>(configuration.GetSection("Repositories:Output"));
         services.Configure<OutputSetRepositorySettings>(configuration.GetSection("Repositories:OutputSet"));
+        services.Configure<SignalOutputSetRepositorySettings>(configuration.GetSection("Repositories:SignalOutputSet"));
         services.Configure<RoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:RoleAssignment"));
         services.Configure<RunnerConnectionJobRepositorySettings>(configuration.GetSection("Repositories:RunnerConnectionJob"));
         services.Configure<RunnerConnectionRepositorySettings>(configuration.GetSection("Repositories:RunnerConnection"));

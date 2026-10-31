@@ -130,70 +130,15 @@ public class StackRepository : GenericOrganizationChildRepository<Stack, StackRe
 
     public override async Task ExecuteDelete(Guid id, Guid organizationId)
     {
-        // Secrets are Restrict-FK'd from Param/EnvVar-from-Secret and from Stack, so the cascade
-        // from Stack→Namespace→Module wouldn't clear them. Sweep restricted dependents first,
-        // then let the base delete cascade everything else.
-        await DbContext.ModuleParamFromSecrets
-            .Where(x => x.Module.Namespace.StackId == id && x.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
+        // The Namespaces and their Modules go by cascade rather than through their own
+        // repositories, so what a Module cannot take with it is cleared here too.
+        await DbContext.ClearRowsBlockingModuleDelete(m => m.Namespace.StackId == id, organizationId);
 
-        await DbContext.ModuleEnvVarFromSecrets
-            .Where(x => x.Module.Namespace.StackId == id && x.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
+        await DbContext.ClearRowsBlockingNamespaceDelete(n => n.StackId == id, organizationId);
 
-        await DbContext.NamespaceParamFromSecrets
-            .Where(x => x.Namespace.StackId == id && x.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
-
-        await DbContext.NamespaceEnvVarFromSecrets
-            .Where(x => x.Namespace.StackId == id && x.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
-
-        await DbContext.ModuleSecrets
-            .Where(s => s.Module.Namespace.StackId == id && s.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
-
-        await DbContext.NamespaceSecrets
-            .Where(s => s.Namespace.StackId == id && s.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
-
+        // A stack secret is restricted from the stack that scopes it.
         await DbContext.Set<StackSecret>()
-            .Where(s => s.StackId == id && s.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
-
-        // A Transfer restricts on both of the Modules it names, so it blocks a Module that
-        // cascades away with this stack. Both sides of a transfer are in one stack, so matching
-        // on either reaches every transfer this delete would strand.
-        var transferIds = await DbContext.Transfers
-            .Where(t => t.OrganizationId == organizationId && t.Module.Namespace.StackId == id)
-            .Select(t => t.Id)
-            .ToListAsync();
-
-        if (transferIds.Count > 0)
-        {
-            // The jobs belong to the Module and cascade with it. Their FK to Transfers is NoAction
-            // and would otherwise block the delete below.
-            await DbContext.StateMigrationJobs
-                .Where(j => j.OrganizationId == organizationId &&
-                            j.TransferId != null && transferIds.Contains(j.TransferId.Value))
-                .ExecuteUpdateAsync(u => u.SetProperty(j => j.TransferId, (Guid?)null));
-
-            await DbContext.Transfers
-                .Where(t => transferIds.Contains(t.Id) && t.OrganizationId == organizationId)
-                .ExecuteDeleteAsync();
-        }
-
-        // A signal edge restricts on both of the Modules it names, so it blocks a Module that
-        // cascades away with this stack. A wave never crosses stacks, because the consumer lookup
-        // filters on a shared stack, so every edge reached here is wholly inside it and nothing
-        // outside is left waiting.
-        await DbContext.SignalEdges
-            .Where(e => e.OrganizationId == organizationId &&
-                        e.ConsumerModule.Namespace.StackId == id)
-            .ExecuteDeleteAsync();
-
-        await DbContext.ModuleProbeAttempts
-            .Where(a => a.OrganizationId == organizationId && a.Module.Namespace.StackId == id)
+            .Where(x => x.OrganizationId == organizationId && x.StackId == id)
             .ExecuteDeleteAsync();
 
         await base.ExecuteDelete(id, organizationId);

@@ -1,0 +1,190 @@
+/* Hangfire bundles Bootstrap 3 and its own sheet, both hardcoding colours and neither exposing
+   custom properties, so these override by selector and lean on !important where Bootstrap's own
+   rules are more specific.
+
+   The framed page is served to the same browser as the app, so it follows the same system
+   preference. The app's cookie cannot reach CSS, so the preference is what selects the theme. */
+
+:root {
+    --snap-ink: #12171D;
+    --snap-accent: #E85D1A;
+    --snap-accent-hover: #DC5414;
+    --snap-success: #00B368;
+    --snap-error: #DB4A3F;
+    --snap-info: #4E8AF4;
+
+    --snap-bg: #FAFBFB;
+    --snap-surface: #FFFFFF;
+    --snap-inset: #F2F4F6;
+    --snap-border: #DDE3E8;
+    --snap-text: #12171D;
+    --snap-text-2: #4A5561;
+    --snap-code-bg: #12171D;
+    --snap-code-text: #E8ECEF;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --snap-bg: #0E1216;
+        --snap-surface: #171D24;
+        --snap-inset: #0E1216;
+        --snap-border: #262E37;
+        --snap-text: #E8ECEF;
+        --snap-text-2: #9AA5B0;
+        --snap-code-bg: #000000;
+        --snap-code-text: #E8ECEF;
+    }
+}
+
+html, body {
+    background: var(--snap-bg) !important;
+    color: var(--snap-text) !important;
+    font-family: "Geist", "Geist Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+h1, h2, h3, h4, h5, .page-header {
+    color: var(--snap-text) !important;
+    border-color: var(--snap-border) !important;
+}
+
+a, a.job-method, .paginator a {
+    color: var(--snap-accent) !important;
+}
+
+a:hover, a:focus {
+    color: var(--snap-accent-hover) !important;
+}
+
+.navbar, .navbar-inverse, .navbar-default {
+    background: var(--snap-surface) !important;
+    border-color: var(--snap-border) !important;
+}
+
+.navbar-inverse .navbar-nav > li > a,
+.navbar-default .navbar-nav > li > a,
+.navbar-inverse .navbar-brand,
+.navbar-default .navbar-brand,
+.navbar-inverse .navbar-text {
+    color: var(--snap-text-2) !important;
+}
+
+.navbar-inverse .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a,
+.navbar-inverse .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:hover {
+    background: var(--snap-inset) !important;
+    color: var(--snap-text) !important;
+}
+
+/* On a solid accent fill the text is Ink, never white. */
+.btn-primary, .paginator .btn.active {
+    background: var(--snap-accent) !important;
+    border-color: var(--snap-accent) !important;
+    color: var(--snap-ink) !important;
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active,
+.paginator .btn.active:hover {
+    background: var(--snap-accent-hover) !important;
+    border-color: var(--snap-accent-hover) !important;
+    color: var(--snap-ink) !important;
+}
+
+.btn-default, .paginator .btn {
+    background: var(--snap-surface) !important;
+    border-color: var(--snap-border) !important;
+    color: var(--snap-text) !important;
+}
+
+.btn-default:hover, .btn-default:focus, .paginator .btn:hover {
+    background: var(--snap-inset) !important;
+    color: var(--snap-text) !important;
+}
+
+.btn-danger, .btn-death {
+    background: var(--snap-error) !important;
+    border-color: var(--snap-error) !important;
+    color: var(--snap-ink) !important;
+}
+
+.panel, .well, .table, .table-inner, .list-group-item {
+    background: var(--snap-surface) !important;
+    border-color: var(--snap-border) !important;
+    color: var(--snap-text) !important;
+}
+
+.panel-heading, .table > thead > tr > th {
+    background: var(--snap-inset) !important;
+    border-color: var(--snap-border) !important;
+    color: var(--snap-text-2) !important;
+}
+
+.table > tbody > tr > td, .table > tbody > tr > th {
+    border-color: var(--snap-border) !important;
+    color: var(--snap-text) !important;
+}
+
+.table > tbody > tr.hover:hover > td,
+.table > tbody > tr.hover:hover > th,
+.table > tbody > tr.highlight > td {
+    background: var(--snap-inset) !important;
+}
+
+/* The metric tiles on the overview are Hangfire's own component. */
+div.metric {
+    background: var(--snap-surface) !important;
+    border-color: var(--snap-border) !important;
+}
+
+div.metric .metric-body { color: var(--snap-text) !important; }
+div.metric .metric-description { color: var(--snap-text-2) !important; }
+div.metric.metric-default { border-color: var(--snap-border) !important; }
+
+span.metric, span.metric-default { color: var(--snap-text-2) !important; }
+span.metric-success, .metric-success, .label-state-success { color: var(--snap-success) !important; }
+span.metric-danger, .metric-danger, .label-state-danger { color: var(--snap-error) !important; }
+span.metric-info, .metric-info, .label-state-info { color: var(--snap-info) !important; }
+
+/* Plan and modify are the accent in this product, so warning is too. */
+span.metric-warning, .metric-warning, .label-state-warning { color: var(--snap-accent) !important; }
+
+.state-card-body {
+    background: var(--snap-surface) !important;
+    color: var(--snap-text) !important;
+}
+
+.state-card-body pre, .state-card-body .stack-trace {
+    background: var(--snap-code-bg) !important;
+    color: var(--snap-code-text) !important;
+}
+
+.alert {
+    background: var(--snap-surface) !important;
+    border-color: var(--snap-border) !important;
+    color: var(--snap-text) !important;
+}
+
+.alert-success { border-left: 3px solid var(--snap-success) !important; }
+.alert-danger  { border-left: 3px solid var(--snap-error) !important; }
+.alert-warning { border-left: 3px solid var(--snap-accent) !important; }
+.alert-info    { border-left: 3px solid var(--snap-info) !important; }
+
+/* Anything naming a system object is monospace. */
+code, pre, .job-snippet, .text-monospace, .cron-badge, .btn-toolbar-label {
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--snap-code-bg) !important;
+    color: var(--snap-code-text) !important;
+    border-color: var(--snap-border) !important;
+}
+
+.label-success { background: var(--snap-success) !important; color: var(--snap-ink) !important; }
+.label-danger  { background: var(--snap-error) !important;   color: var(--snap-ink) !important; }
+.label-warning { background: var(--snap-accent) !important;  color: var(--snap-ink) !important; }
+.label-info    { background: var(--snap-info) !important;    color: var(--snap-ink) !important; }
+.label-default { background: var(--snap-border) !important;  color: var(--snap-text) !important; }
+
+#footer, .footer, .navbar-fixed-bottom {
+    background: var(--snap-inset) !important;
+    border-color: var(--snap-border) !important;
+    color: var(--snap-text-2) !important;
+}

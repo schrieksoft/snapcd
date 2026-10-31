@@ -47,6 +47,7 @@ public class ModuleProbeAttempt : AuditBase, IEntity, IModuleChild
     /// <summary>The job carrying the probe, written before it starts.</summary>
     public Guid? ProbeModuleJobId { get; set; }
 
+    [JsonIgnore] public ModuleJob? ProbeModuleJob { get; set; }
     [JsonIgnore] public ProbeWave ProbeWave { get; set; } = null!;
     [JsonIgnore] public Module Module { get; set; } = null!;
     [JsonIgnore] public SignalOutputSet? SignalOutputSet { get; set; }

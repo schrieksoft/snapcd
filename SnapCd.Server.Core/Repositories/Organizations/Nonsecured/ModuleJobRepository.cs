@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Contracts;
 using System.Linq.Expressions;
@@ -59,6 +60,13 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
     protected override ModuleJobReadDto MapToDto(ModuleJob entity)
     {
         return ModuleJobMapper.ToDto(entity);
+    }
+
+    public override async Task ExecuteDelete(Guid id, Guid organizationId)
+    {
+        await DbContext.ClearRowsBlockingModuleJobDelete(id, organizationId);
+
+        await base.ExecuteDelete(id, organizationId);
     }
 
     protected override async Task<QuotaCheckResult> CheckQuotaAsync(ModuleJob entity)

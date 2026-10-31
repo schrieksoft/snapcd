@@ -10,6 +10,7 @@ using System.ComponentModel.DataAnnotations;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Services.Utils.Vaults;
 
 namespace SnapCd.Server.Core.Entities.Definition.Secrets;
 
@@ -21,6 +22,20 @@ public class Secret : AuditBase, IEntity
     [MaxLength(255)] public string Name { get; set; } = null!;
 
     public virtual SecretScope ScopeKind { get; init; }
+
+    /// <summary>
+    /// Whether this Secret's value is stored under a name carrying its owner's id as well as its
+    /// own. A scoped name is what lets a deleted Stack, Namespace or Module have its values found
+    /// by prefix. False until the sweep has moved it; new Secrets are written scoped.
+    /// </summary>
+    public bool NameContainsScope { get; set; } = true;
+
+    /// <summary>
+    /// When the value was first found to be absent from the vault under either name. Null while
+    /// the value is there. Advisory: nothing reads it to decide whether the Secret works, so a
+    /// stale value misleads rather than breaks.
+    /// </summary>
+    public DateTime? RemoteValueMissingSince { get; set; }
 
     public virtual Organization Organization { get; set; } = null!;
 

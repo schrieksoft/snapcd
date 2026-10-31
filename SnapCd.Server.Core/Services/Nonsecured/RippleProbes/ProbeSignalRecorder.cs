@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.Services.Utils.Vaults;
 
 namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
@@ -239,12 +240,13 @@ public class ProbeSignalRecorder : IDisposable
 
             if (sensitive)
             {
-                var remoteName = $"signal--{organizationId}--{set.Id}--{name}";
+                var signalId = Guid.NewGuid();
+                var remoteName = RemoteSecretName.ForSignal(organizationId, moduleId, signalId);
                 await _secretWriter.Write(remoteName, json, organizationId);
 
                 _dbContext.SecretSignalOutputs.Add(new SecretSignalOutput
                 {
-                    Id = Guid.NewGuid(),
+                    Id = signalId,
                     OrganizationId = organizationId,
                     SignalOutputSetId = set.Id,
                     Name = name,

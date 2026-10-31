@@ -271,7 +271,7 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             ProbeWaveId = waveId,
-            ModuleJobId = Guid.NewGuid(),
+            ModuleJobId = await AddOriginJob(Guid.NewGuid(), moduleId),
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Checksum = "test"
         };
