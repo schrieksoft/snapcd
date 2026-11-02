@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Health;
 using SnapCd.Server.Core.StateMachine.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
@@ -96,6 +97,9 @@ public static class MassTransit
                 sp.GetRequiredService<ILogger<DeadLetterSinkHostedService>>()));
 
         AddStateMachineActivities(services);
+
+        services.AddSingleton<BusStartupState>();
+        services.AddBusObserver<BusStartupObserver>();
 
         services.AddMassTransit(x =>
         {

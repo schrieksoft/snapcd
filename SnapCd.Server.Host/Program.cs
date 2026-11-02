@@ -11,6 +11,7 @@ using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Health;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Middleware;
 using SnapCd.Server.Core.Misc.Configuration;
@@ -362,7 +363,7 @@ app.UseMiddleware<TransientFaultRetryMiddleware>();
 app.MapControllers();
 //app.MapDefaultControllerRoute();
 app.MapRazorPages();
-app.MapHealthChecks("/health");
+app.MapSnapCdHealthChecks();
 // SignalR authenticates once per connection, so without this a hub connection outlives the token
 // it was established with and every invocation is rejected while the connection still looks live.
 app.MapHub<RunnerHub>("/runnerhub", options => options.CloseOnAuthenticationExpiration = true);
