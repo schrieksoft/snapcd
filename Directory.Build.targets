@@ -1,0 +1,9 @@
+<Project>
+
+  <!-- An appsettings.{environment}.json belongs to the environment it names and is supplied there.
+       Must be .targets: the SDK's appsettings glob does not exist yet when .props is imported. -->
+  <ItemGroup>
+    <Content Update="appsettings.*.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+</Project>

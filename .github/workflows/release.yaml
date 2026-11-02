@@ -89,10 +89,13 @@ jobs:
         run: |
           # Static linux binary for referenced-folder discovery during path-aware source
           # refreshes. Placed in SnapCd.Runner/EmbeddedTools BEFORE dotnet publish so the
-          # runner embeds it as a resource and extracts it at runtime — every distribution
+          # runner embeds it as a resource and extracts it at runtime. Every distribution
           # channel (images, zipped binaries) carries it with no separate install.
+          # -s -w: the symbol table and DWARF info are most of the binary's size.
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-            go build -C tools/snapcd-inspect -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
+            go build -C tools/snapcd-inspect \
+              -ldflags="-s -w" -trimpath -buildvcs=false \
+              -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
 
       - name: Publish binaries
         if: steps.norelease.outputs.skip != 'true'
@@ -109,14 +112,29 @@ jobs:
             /p:InformationalVersion=$SEMVER+$SHORT_SHA
           dotnet publish SnapCd.Runner/SnapCd.Runner.csproj \
             -c Release -o out/snapcd-runner \
-            -r linux-x64 --self-contained \
             /p:Version=$SEMVER \
             /p:InformationalVersion=$SEMVER+$SHORT_SHA
           dotnet publish SnapCd.Agent/SnapCd.Agent.csproj \
             -c Release -o out/snapcd-agent \
-            -r linux-x64 --self-contained \
             /p:Version=$SEMVER \
             /p:InformationalVersion=$SEMVER+$SHORT_SHA
+
+          # The runner image copies tools/ and the application from separate directories, so
+          # the 100 MB engine-inspection binary sits in a layer a release rarely changes.
+          mkdir -p out/snapcd-runner-tools
+          cp -r out/snapcd-runner/tools/. out/snapcd-runner-tools/
+          cp -r out/snapcd-runner out/snapcd-runner-app
+          rm -rf out/snapcd-runner-app/tools
+
+          # Self-contained copies for the release zips, which run on hosts with no .NET
+          # runtime. Outside out/, which the image builds and the zip step glob read.
+          for proj in Runner Agent; do
+            dotnet publish SnapCd.$proj/SnapCd.$proj.csproj \
+              -c Release -o "out-selfcontained/snapcd-$(echo $proj | tr '[:upper:]' '[:lower:]')" \
+              -r linux-x64 --self-contained \
+              /p:Version=$SEMVER \
+              /p:InformationalVersion=$SEMVER+$SHORT_SHA
+          done
 
       - name: Zip binaries
         if: steps.norelease.outputs.skip != 'true'
@@ -124,10 +142,11 @@ jobs:
           SEMVER: ${{ steps.gitversion.outputs.SemVer }}
         run: |
           mkdir -p release-assets
-          for d in out/*/; do
+          for d in out/snapcd-server/ out-selfcontained/*/; do
+            src="$(dirname "$d")"
             name="$(basename "$d")"
             cp LICENSE.md "$d"
-            (cd out && zip -r "../release-assets/${name}-${SEMVER}.zip" "$name")
+            (cd "$src" && zip -r "../release-assets/${name}-${SEMVER}.zip" "$name")
           done
           ls -la release-assets
 

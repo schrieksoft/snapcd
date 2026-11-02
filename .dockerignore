@@ -1,0 +1,4 @@
+# The images copy only from out/. Everything else is excluded, so a stray file cannot
+# reach an image through a COPY that was not written for it.
+*
+!out/

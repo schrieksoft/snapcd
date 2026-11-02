@@ -15,7 +15,10 @@ jobs:
   runner-tests:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/schrieksoft/base-image-snapcd-runner:1.2.0
+      image: ghcr.io/schrieksoft/base-image-snapcd-runner:1.2.2
+      # The image runs as its unprivileged app user; the workspace and the tool caches the
+      # setup actions write to belong to the host runner's user.
+      options: --user root
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -45,7 +48,7 @@ jobs:
         # -buildvcs=false: the binary is embedded in the Runner and never reports its own
         # build metadata, so stamping buys nothing and only couples the build to git state.
         run: |
-          CGO_ENABLED=0 go build -C tools/snapcd-inspect -buildvcs=false -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
+          CGO_ENABLED=0 go build -C tools/snapcd-inspect -ldflags="-s -w" -trimpath -buildvcs=false -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
 
       - name: Runner tests
         run: dotnet test tests/SnapCd.Runner.Tests/SnapCd.Runner.Tests.csproj --logger "console;verbosity=normal"

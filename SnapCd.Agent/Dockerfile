@@ -1,17 +1,11 @@
-# Build stage. Build context is applications/snapcd (so the sibling projects are available).
-FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
-WORKDIR /src
-
-# Copy the referenced projects + the agent project.
-COPY SnapCd.Contracts/ SnapCd.Contracts/
-COPY SnapCd.Utils/ SnapCd.Utils/
-COPY SnapCd.Agent/ SnapCd.Agent/
-
-WORKDIR /src/SnapCd.Agent
-RUN dotnet publish -c Release -o /app
-
-# Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble
 WORKDIR /app
-COPY --from=build /app .
+EXPOSE 8080
+
+COPY out/snapcd-agent/ ./
+
+# Application files stay root-owned so the unprivileged process cannot rewrite its own assemblies.
+RUN chown root:root /app
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "SnapCd.Agent.dll"]

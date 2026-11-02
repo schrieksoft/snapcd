@@ -50,8 +50,7 @@ docker build -t claude-sidecar .
 docker run --rm -p 7001:7001 --env-file .env claude-sidecar
 ```
 
-The Agent SDK shells out to the Claude Code CLI, so it must be on `PATH`
-(`npm i -g @anthropic-ai/claude-code`); the Docker image installs it.
+The Agent SDK shells out to the Claude Code CLI, so it must be on `PATH` (`curl -fsSL https://claude.ai/install.sh | bash`). In the Docker image the CLI, `git`, `gh` and `uv` come from the base image `ghcr.io/schrieksoft/base-image-claude-sidecar`, which pins the CLI version. Updating the CLI is a bump in that repo followed by a bump of the `FROM` tag here, with no Snap CD release needed; see `misc/images/base-image-claude-sidecar/README.md`.
 
 ## Notes / deviations from the plan
 
