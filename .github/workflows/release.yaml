@@ -89,10 +89,13 @@ jobs:
         run: |
           # Static linux binary for referenced-folder discovery during path-aware source
           # refreshes. Placed in SnapCd.Runner/EmbeddedTools BEFORE dotnet publish so the
-          # runner embeds it as a resource and extracts it at runtime — every distribution
+          # runner embeds it as a resource and extracts it at runtime. Every distribution
           # channel (images, zipped binaries) carries it with no separate install.
+          # -s -w: the symbol table and DWARF info are most of the binary's size.
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-            go build -C tools/snapcd-inspect -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
+            go build -C tools/snapcd-inspect \
+              -ldflags="-s -w" -trimpath -buildvcs=false \
+              -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
 
       - name: Publish binaries
         if: steps.norelease.outputs.skip != 'true'

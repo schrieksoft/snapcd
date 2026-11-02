@@ -48,7 +48,7 @@ jobs:
         # -buildvcs=false: the binary is embedded in the Runner and never reports its own
         # build metadata, so stamping buys nothing and only couples the build to git state.
         run: |
-          CGO_ENABLED=0 go build -C tools/snapcd-inspect -buildvcs=false -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
+          CGO_ENABLED=0 go build -C tools/snapcd-inspect -ldflags="-s -w" -trimpath -buildvcs=false -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
 
       - name: Runner tests
         run: dotnet test tests/SnapCd.Runner.Tests/SnapCd.Runner.Tests.csproj --logger "console;verbosity=normal"
