@@ -1,9 +1,10 @@
-# Build stage. Build context is applications/snapcd (so the sibling SnapCd.Contracts is available).
+# Build stage. Build context is applications/snapcd (so the sibling projects are available).
 FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
 WORKDIR /src
 
-# Copy the referenced contracts project + the agent project.
+# Copy the referenced projects + the agent project.
 COPY SnapCd.Contracts/ SnapCd.Contracts/
+COPY SnapCd.Utils/ SnapCd.Utils/
 COPY SnapCd.Agent/ SnapCd.Agent/
 
 WORKDIR /src/SnapCd.Agent
