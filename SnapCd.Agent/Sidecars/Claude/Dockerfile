@@ -1,4 +1,4 @@
-FROM ghcr.io/schrieksoft/base-image-claude-sidecar:1.0.0
+FROM ghcr.io/schrieksoft/base-image-claude-sidecar:1.0.1
 
 WORKDIR /app
 USER app
