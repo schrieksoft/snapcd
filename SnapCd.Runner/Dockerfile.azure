@@ -3,8 +3,12 @@ FROM ghcr.io/schrieksoft/base-image-snapcd-runner:1.2.2-azure
 WORKDIR /app
 EXPOSE 8080
 
-# The base image already runs as its non-root user, so the copy must grant it ownership.
-COPY --chown=$APP_UID:$APP_UID out/snapcd-runner/ ./
-RUN chmod +x /app/SnapCd.Runner
+COPY out/snapcd-runner/ ./
 
-ENTRYPOINT ["./SnapCd.Runner"]
+# Application files stay root-owned so the unprivileged process cannot rewrite its own
+# assemblies. runnerdata is the only path it writes, and deployments mount over it.
+USER root
+RUN chown root:root /app && install -d -o $APP_UID -g $APP_UID /app/runnerdata
+USER $APP_UID
+
+ENTRYPOINT ["dotnet", "SnapCd.Runner.dll"]
