@@ -18,6 +18,8 @@ using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Interfaces;
 
+using SnapCd.Server.Core.Entities.Definition.OutputSupplies;
+
 namespace SnapCd.Server.Core.Entities.Definition;
 
 public class Namespace : AuditBase, IEntity, ICreationTrackable
@@ -38,6 +40,8 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public List<NamespaceEnvVarFromSecret> NamespaceEnvVarFromSecrets { get; set; } = new();
 
     public List<RunnerNamespaceSupply> RunnerNamespaceSupplies { get; set; } = new();
+    public List<OutputSetNamespaceSupply> ReceivedOutputSetSupplies { get; set; } = new();
+    public List<OutputNamespaceSupply> ReceivedOutputSupplies { get; set; } = new();
 
     public List<AgentNamespaceSupply> AgentNamespaceSupplies { get; set; } = new();
 

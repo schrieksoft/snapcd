@@ -5022,6 +5022,268 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.ToTable("OutputSets");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.OutputSupplies.OutputModuleSupply", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ConsumingModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OutputName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("ConsumingModuleId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ConsumingModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "OutputName", "ConsumingModuleId", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("OutputModuleSupplies");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.OutputSupplies.OutputNamespaceSupply", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ConsumingNamespaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OutputName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("ConsumingNamespaceId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ConsumingNamespaceId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "OutputName", "ConsumingNamespaceId", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("OutputNamespaceSupplies");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.OutputSupplies.OutputSetModuleSupply", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ConsumingModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("ConsumingModuleId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ConsumingModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "ConsumingModuleId", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("OutputSetModuleSupplies");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.OutputSupplies.OutputSetNamespaceSupply", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ConsumingNamespaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("ConsumingNamespaceId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ConsumingNamespaceId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "ConsumingNamespaceId", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("OutputSetNamespaceSupplies");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ProbeWaves.ModuleProbeAttempt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -12358,6 +12620,114 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.OutputSupplies.OutputModuleSupply", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("OutputModuleSupplies")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "ConsumingModule")
+                        .WithMany("ReceivedOutputSupplies")
+                        .HasForeignKey("ConsumingModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithMany("SuppliedOutputs")
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ConsumingModule");
+
+                    b.Navigation("Module");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.OutputSupplies.OutputNamespaceSupply", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("OutputNamespaceSupplies")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "ConsumingNamespace")
+                        .WithMany("ReceivedOutputSupplies")
+                        .HasForeignKey("ConsumingNamespaceId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithMany("SuppliedOutputsToNamespaces")
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ConsumingNamespace");
+
+                    b.Navigation("Module");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.OutputSupplies.OutputSetModuleSupply", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("OutputSetModuleSupplies")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "ConsumingModule")
+                        .WithMany("ReceivedOutputSetSupplies")
+                        .HasForeignKey("ConsumingModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithMany("SuppliedOutputSets")
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ConsumingModule");
+
+                    b.Navigation("Module");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.OutputSupplies.OutputSetNamespaceSupply", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("OutputSetNamespaceSupplies")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "ConsumingNamespace")
+                        .WithMany("ReceivedOutputSetSupplies")
+                        .HasForeignKey("ConsumingNamespaceId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithMany("SuppliedOutputSetsToNamespaces")
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ConsumingNamespace");
+
+                    b.Navigation("Module");
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ProbeWaves.ModuleProbeAttempt", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
@@ -14201,6 +14571,10 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("PulumiRemotePolicies");
 
+                    b.Navigation("ReceivedOutputSetSupplies");
+
+                    b.Navigation("ReceivedOutputSupplies");
+
                     b.Navigation("ResourceChangeSets");
 
                     b.Navigation("RunnerModuleSupplies");
@@ -14210,6 +14584,14 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("SignalOutputSets");
 
                     b.Navigation("SplitMigrateSagas");
+
+                    b.Navigation("SuppliedOutputSets");
+
+                    b.Navigation("SuppliedOutputSetsToNamespaces");
+
+                    b.Navigation("SuppliedOutputs");
+
+                    b.Navigation("SuppliedOutputsToNamespaces");
 
                     b.Navigation("TerraformArrayFlags");
 
@@ -14273,6 +14655,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("PulumiLocalPolicies");
 
                     b.Navigation("PulumiRemotePolicies");
+
+                    b.Navigation("ReceivedOutputSetSupplies");
+
+                    b.Navigation("ReceivedOutputSupplies");
 
                     b.Navigation("RunnerNamespaceSupplies");
 
@@ -14368,6 +14754,14 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("OrganizationRoleAssignments");
 
                     b.Navigation("OrganizationUsers");
+
+                    b.Navigation("OutputModuleSupplies");
+
+                    b.Navigation("OutputNamespaceSupplies");
+
+                    b.Navigation("OutputSetModuleSupplies");
+
+                    b.Navigation("OutputSetNamespaceSupplies");
 
                     b.Navigation("OutputSets");
 

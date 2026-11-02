@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Entities.Definition.OutputSupplies;
 using SnapCd.Server.Core.Entities.Definition.Outputs;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
@@ -35,6 +36,8 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
     private readonly List<Guid> _outputs = [];
     private readonly List<Guid> _outputSets = [];
     private readonly List<Guid> _restrictions = [];
+    private readonly List<Guid> _supplies = [];
+    private readonly List<Guid> _outputSupplies = [];
 
     public OutputRestrictionCheckerTests(Fixture fixture) => _fixture = fixture;
 
@@ -48,6 +51,21 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
         _outputSetId = await AddOutputSet(_producerId);
         await AddLiteralOutput(_outputSetId, "vpc_id");
         await AddSecretOutput(_outputSetId, "db_password");
+
+        await ClearSuppliesFromProducer();
+    }
+
+    /// <summary>
+    /// A supply overrides every restriction, so a row left behind by another test class reading
+    /// from this producer makes every restriction assertion here pass for the wrong reason.
+    /// </summary>
+    private async Task ClearSuppliesFromProducer()
+    {
+        await using var db = _fixture.CreateDbContext();
+        await db.OutputSetModuleSupplies.Where(x => x.ModuleId == _producerId).ExecuteDeleteAsync();
+        await db.OutputSetNamespaceSupplies.Where(x => x.ModuleId == _producerId).ExecuteDeleteAsync();
+        await db.OutputModuleSupplies.Where(x => x.ModuleId == _producerId).ExecuteDeleteAsync();
+        await db.OutputNamespaceSupplies.Where(x => x.ModuleId == _producerId).ExecuteDeleteAsync();
     }
 
     public async Task DisposeAsync()
@@ -57,6 +75,18 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
         if (_restrictions.Count > 0)
             await db.ModuleOutputDownstreamRestrictions
                 .Where(r => _restrictions.Contains(r.Id)).ExecuteDeleteAsync();
+
+        if (_supplies.Count > 0)
+        {
+            await db.OutputSetModuleSupplies.Where(x => _supplies.Contains(x.Id)).ExecuteDeleteAsync();
+            await db.OutputSetNamespaceSupplies.Where(x => _supplies.Contains(x.Id)).ExecuteDeleteAsync();
+        }
+
+        if (_outputSupplies.Count > 0)
+        {
+            await db.OutputModuleSupplies.Where(x => _outputSupplies.Contains(x.Id)).ExecuteDeleteAsync();
+            await db.OutputNamespaceSupplies.Where(x => _outputSupplies.Contains(x.Id)).ExecuteDeleteAsync();
+        }
 
         if (_outputs.Count > 0)
             await db.Outputs.Where(o => _outputs.Contains(o.Id)).ExecuteDeleteAsync();
@@ -73,7 +103,7 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
     [Fact]
     public async Task An_unrestricted_producer_supplies_every_output()
     {
-        var readable = await Checker().FilterReadable(await ProducerOutputs(), _organizationId);
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
 
         Assert.Equal(2, readable.Count);
     }
@@ -91,7 +121,7 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
     {
         await SetRestriction(OutputSetDownstreamRestriction.All);
 
-        var readable = await Checker().FilterReadable(await ProducerOutputs(), _organizationId);
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
 
         Assert.Empty(readable);
     }
@@ -115,7 +145,7 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
     {
         await SetRestriction(OutputSetDownstreamRestriction.SensitiveOnly);
 
-        var readable = await Checker().FilterReadable(await ProducerOutputs(), _organizationId);
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
 
         var output = Assert.Single(readable);
         Assert.Equal("vpc_id", output.Name);
@@ -148,7 +178,7 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
     {
         await AddNamedRestriction("vpc_id");
 
-        var readable = await Checker().FilterReadable(await ProducerOutputs(), _organizationId);
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
 
         var output = Assert.Single(readable);
         Assert.Equal("db_password", output.Name);
@@ -182,7 +212,7 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
     {
         await AddNamedRestriction("vpc_id");
 
-        var readable = await Checker().FilterReadable(await ProducerOutputs(), _organizationId);
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
 
         Assert.DoesNotContain(readable, o => o.Name == "vpc_id");
     }
@@ -227,6 +257,203 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
             _consumerId,
             [(_fixture.Modules["0002"].Id, "vpc_id")],
             _organizationId);
+    }
+
+    // Supply overrides restriction, which is the rule the feature rests on.
+
+    [Fact]
+    public async Task A_module_supply_overrides_an_All_restriction()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await AddModuleSupply();
+
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
+
+        Assert.Equal(2, readable.Count);
+    }
+
+    [Fact]
+    public async Task A_module_supply_overrides_a_named_restriction()
+    {
+        await AddNamedRestriction("vpc_id");
+        await AddModuleSupply();
+
+        await Checker().EnsureReadable(_consumerId, [(_producerId, "vpc_id")], _organizationId);
+    }
+
+    [Fact]
+    public async Task A_module_supply_delivers_even_a_sensitive_output()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.SensitiveOnly);
+        await AddModuleSupply();
+
+        await Checker().EnsureReadable(_consumerId, [(_producerId, "db_password")], _organizationId);
+    }
+
+    [Fact]
+    public async Task A_namespace_supply_reaches_a_module_in_that_namespace()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await AddNamespaceSupply();
+
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
+
+        Assert.Equal(2, readable.Count);
+    }
+
+    /// <summary>A supply names one consumer, so it must not open the Output Set to the rest.</summary>
+    [Fact]
+    public async Task A_module_supply_does_not_reach_a_module_it_does_not_name()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await AddModuleSupply();
+
+        var other = _fixture.Modules["0003"].Id;
+        await Assert.ThrowsAsync<OutputRestrictedException>(
+            () => Checker().EnsureReadable(other, [(_producerId, "vpc_id")], _organizationId));
+    }
+
+    [Fact]
+    public async Task A_namespace_supply_does_not_reach_a_module_in_another_namespace()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await AddNamespaceSupply();
+
+        var elsewhere = _fixture.Modules["0010"].Id;
+        await Assert.ThrowsAsync<OutputRestrictedException>(
+            () => Checker().EnsureReadable(elsewhere, [(_producerId, "vpc_id")], _organizationId));
+    }
+
+    // A single Output supplied by name, not the whole Output Set.
+
+    [Fact]
+    public async Task An_output_supply_overrides_an_All_restriction_for_that_output_only()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await AddOutputModuleSupply("vpc_id");
+
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
+
+        var output = Assert.Single(readable);
+        Assert.Equal("vpc_id", output.Name);
+    }
+
+    [Fact]
+    public async Task An_output_supply_allows_that_output_by_name()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await AddOutputModuleSupply("vpc_id");
+
+        await Checker().EnsureReadable(_consumerId, [(_producerId, "vpc_id")], _organizationId);
+    }
+
+    [Fact]
+    public async Task An_output_supply_does_not_allow_a_different_output()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await AddOutputModuleSupply("vpc_id");
+
+        await Assert.ThrowsAsync<OutputRestrictedException>(
+            () => Checker().EnsureReadable(_consumerId, [(_producerId, "db_password")], _organizationId));
+    }
+
+    [Fact]
+    public async Task An_output_supply_overrides_a_named_restriction_on_that_output()
+    {
+        await AddNamedRestriction("vpc_id");
+        await AddOutputModuleSupply("vpc_id");
+
+        await Checker().EnsureReadable(_consumerId, [(_producerId, "vpc_id")], _organizationId);
+    }
+
+    [Fact]
+    public async Task An_output_namespace_supply_reaches_a_module_in_that_namespace()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await AddOutputNamespaceSupply("vpc_id");
+
+        await Checker().EnsureReadable(_consumerId, [(_producerId, "vpc_id")], _organizationId);
+    }
+
+    [Fact]
+    public async Task An_output_supply_does_not_reach_a_module_it_does_not_name()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await AddOutputModuleSupply("vpc_id");
+
+        var other = _fixture.Modules["0003"].Id;
+        await Assert.ThrowsAsync<OutputRestrictedException>(
+            () => Checker().EnsureReadable(other, [(_producerId, "vpc_id")], _organizationId));
+    }
+
+    private async Task AddOutputModuleSupply(string outputName)
+    {
+        var supply = new OutputModuleSupply
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            ModuleId = _producerId,
+            ConsumingModuleId = _consumerId,
+            OutputName = outputName
+        };
+
+        await using var db = _fixture.CreateDbContext();
+        db.OutputModuleSupplies.Add(supply);
+        await db.SaveChangesAsync();
+
+        _outputSupplies.Add(supply.Id);
+    }
+
+    private async Task AddOutputNamespaceSupply(string outputName)
+    {
+        var supply = new OutputNamespaceSupply
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            ModuleId = _producerId,
+            ConsumingNamespaceId = _fixture.Namespaces["000"].Id,
+            OutputName = outputName
+        };
+
+        await using var db = _fixture.CreateDbContext();
+        db.OutputNamespaceSupplies.Add(supply);
+        await db.SaveChangesAsync();
+
+        _outputSupplies.Add(supply.Id);
+    }
+
+    private async Task AddModuleSupply()
+    {
+        var supply = new OutputSetModuleSupply
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            ModuleId = _producerId,
+            ConsumingModuleId = _consumerId
+        };
+
+        await using var db = _fixture.CreateDbContext();
+        db.OutputSetModuleSupplies.Add(supply);
+        await db.SaveChangesAsync();
+
+        _supplies.Add(supply.Id);
+    }
+
+    private async Task AddNamespaceSupply()
+    {
+        var supply = new OutputSetNamespaceSupply
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            ModuleId = _producerId,
+            ConsumingNamespaceId = _fixture.Namespaces["000"].Id
+        };
+
+        await using var db = _fixture.CreateDbContext();
+        db.OutputSetNamespaceSupplies.Add(supply);
+        await db.SaveChangesAsync();
+
+        _supplies.Add(supply.Id);
     }
 
     private OutputRestrictionChecker Checker() => new(_fixture.CreateDbContext());

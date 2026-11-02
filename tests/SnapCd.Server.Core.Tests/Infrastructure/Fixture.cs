@@ -53,6 +53,8 @@ using Stack = SnapCd.Server.Core.Entities.Definition.Stack;
 using Variable = SnapCd.Server.Core.Entities.Definition.Variable;
 using VariableSet = SnapCd.Server.Core.Entities.Definition.VariableSet;
 
+using SnapCd.Server.Core.Entities.Definition.OutputSupplies;
+
 namespace SnapCd.Server.Core.Tests.Infrastructure;
 
 [CollectionDefinition("NewRoleBasedSharedFixture")]
@@ -132,6 +134,10 @@ public class Fixture : IAsyncLifetime
     public Dictionary<string, Module> SmokeModules { get; } = new();
     public Dictionary<string, ModuleHook> SmokeModuleHooks { get; } = new();
     public Dictionary<string, ModuleOutputDownstreamRestriction> SmokeModuleOutputDownstreamRestrictions { get; } = new();
+    public Dictionary<string, OutputSetModuleSupply> SmokeOutputSetModuleSupplies { get; } = new();
+    public Dictionary<string, OutputSetNamespaceSupply> SmokeOutputSetNamespaceSupplies { get; } = new();
+    public Dictionary<string, OutputModuleSupply> SmokeOutputModuleSupplies { get; } = new();
+    public Dictionary<string, OutputNamespaceSupply> SmokeOutputNamespaceSupplies { get; } = new();
     public Dictionary<string, AgentModuleSupply> SmokeAgentSupplies { get; } = new();
     public Dictionary<string, RunnerModuleSupply> SmokeRunnerSupplies { get; } = new();
 
@@ -1447,6 +1453,64 @@ public class Fixture : IAsyncLifetime
         SmokeModuleOutputDownstreamRestrictions["ModuleOutputDownstreamRestriction_SmokeTests_DeleteCan"] =
             CreateAndAddModuleOutputDownstreamRestriction(dbContext, org0.Id, Modules["0000"].Id, "smoke_delete_can");
 
+        // Output supply smoke tests: producer Module0000, consumers vary so the unique indexes
+        // on (producer, consumer) and (producer, output name, consumer) each hold.
+        SmokeOutputSetModuleSupplies["OutputSetModuleSupply_SmokeTests_UpdateCan"] =
+            AddSmoke(dbContext, new OutputSetModuleSupply
+            {
+                Id = Guid.NewGuid(), OrganizationId = org0.Id,
+                ModuleId = Modules["0000"].Id, ConsumingModuleId = Modules["0010"].Id
+            });
+        SmokeOutputSetModuleSupplies["OutputSetModuleSupply_SmokeTests_DeleteCan"] =
+            AddSmoke(dbContext, new OutputSetModuleSupply
+            {
+                Id = Guid.NewGuid(), OrganizationId = org0.Id,
+                ModuleId = Modules["0000"].Id, ConsumingModuleId = Modules["0011"].Id
+            });
+
+        SmokeOutputSetNamespaceSupplies["OutputSetNamespaceSupply_SmokeTests_UpdateCan"] =
+            AddSmoke(dbContext, new OutputSetNamespaceSupply
+            {
+                Id = Guid.NewGuid(), OrganizationId = org0.Id,
+                ModuleId = Modules["0000"].Id, ConsumingNamespaceId = Namespaces["001"].Id
+            });
+        SmokeOutputSetNamespaceSupplies["OutputSetNamespaceSupply_SmokeTests_DeleteCan"] =
+            AddSmoke(dbContext, new OutputSetNamespaceSupply
+            {
+                Id = Guid.NewGuid(), OrganizationId = org0.Id,
+                ModuleId = Modules["0000"].Id, ConsumingNamespaceId = Namespaces["010"].Id
+            });
+
+        SmokeOutputModuleSupplies["OutputModuleSupply_SmokeTests_UpdateCan"] =
+            AddSmoke(dbContext, new OutputModuleSupply
+            {
+                Id = Guid.NewGuid(), OrganizationId = org0.Id,
+                ModuleId = Modules["0000"].Id, ConsumingModuleId = Modules["0010"].Id,
+                OutputName = "smoke_update_can"
+            });
+        SmokeOutputModuleSupplies["OutputModuleSupply_SmokeTests_DeleteCan"] =
+            AddSmoke(dbContext, new OutputModuleSupply
+            {
+                Id = Guid.NewGuid(), OrganizationId = org0.Id,
+                ModuleId = Modules["0000"].Id, ConsumingModuleId = Modules["0010"].Id,
+                OutputName = "smoke_delete_can"
+            });
+
+        SmokeOutputNamespaceSupplies["OutputNamespaceSupply_SmokeTests_UpdateCan"] =
+            AddSmoke(dbContext, new OutputNamespaceSupply
+            {
+                Id = Guid.NewGuid(), OrganizationId = org0.Id,
+                ModuleId = Modules["0000"].Id, ConsumingNamespaceId = Namespaces["001"].Id,
+                OutputName = "smoke_update_can"
+            });
+        SmokeOutputNamespaceSupplies["OutputNamespaceSupply_SmokeTests_DeleteCan"] =
+            AddSmoke(dbContext, new OutputNamespaceSupply
+            {
+                Id = Guid.NewGuid(), OrganizationId = org0.Id,
+                ModuleId = Modules["0000"].Id, ConsumingNamespaceId = Namespaces["001"].Id,
+                OutputName = "smoke_delete_can"
+            });
+
         // AgentModuleSupply_SmokeTests: dedicated under Agent0Sibling.
         // Use Modules 0002 + 0003 (created by the orphaned-job seed elsewhere) to avoid
         // duplicate-assignment conflicts with the Tier B seed.
@@ -1503,6 +1567,12 @@ public class Fixture : IAsyncLifetime
         };
         dbContext.ModuleHooks.Add(hook);
         return hook;
+    }
+
+    private static T AddSmoke<T>(SnapCdDbContext dbContext, T entity) where T : class
+    {
+        dbContext.Add(entity);
+        return entity;
     }
 
     private static ModuleOutputDownstreamRestriction CreateAndAddModuleOutputDownstreamRestriction(

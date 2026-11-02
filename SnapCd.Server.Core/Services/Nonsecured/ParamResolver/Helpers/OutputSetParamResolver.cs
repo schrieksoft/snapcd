@@ -150,7 +150,7 @@ public class OutputSetParamResolver
             outputs = outputs.Where(o => variableNames.Contains(o.Name)).ToList();
 
         // An Output Set input names no Output, so a withheld one is dropped and the rest resolve.
-        outputs = await _restrictionChecker.FilterReadable(outputs, organizationId);
+        outputs = await _restrictionChecker.FilterReadable(outputs, moduleId, organizationId);
 
         // Apply stack-aware secret store validation and mapping
         var mappedOutputs = await _outputMapper.MapOutputs(outputs, organizationId);

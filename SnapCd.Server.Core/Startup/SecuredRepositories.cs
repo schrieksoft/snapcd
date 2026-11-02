@@ -76,6 +76,10 @@ public static class SecuredRepositories
         services.AddScoped<NamespaceExtraFileSecuredRepository>();
         services.AddScoped<ModuleAdditionalTriggerPathSecuredRepository>();
         services.AddScoped<ModuleOutputDownstreamRestrictionSecuredRepository>();
+        services.AddScoped<OutputSetModuleSupplySecuredRepository>();
+        services.AddScoped<OutputSetNamespaceSupplySecuredRepository>();
+        services.AddScoped<OutputModuleSupplySecuredRepository>();
+        services.AddScoped<OutputNamespaceSupplySecuredRepository>();
         services.AddScoped<NamespaceAdditionalTriggerPathSecuredRepository>();
         services.AddScoped<ModuleTerraformInlinePolicySecuredRepository>();
         services.AddScoped<ModuleTerraformRemotePolicySecuredRepository>();

@@ -89,6 +89,10 @@ public static class CrudService
         services.AddScoped<NamespaceExtraFileService>();
         services.AddScoped<ModuleAdditionalTriggerPathService>();
         services.AddScoped<ModuleOutputDownstreamRestrictionService>();
+        services.AddScoped<OutputSetModuleSupplyService>();
+        services.AddScoped<OutputSetNamespaceSupplyService>();
+        services.AddScoped<OutputModuleSupplyService>();
+        services.AddScoped<OutputNamespaceSupplyService>();
         services.AddScoped<NamespaceAdditionalTriggerPathService>();
         services.AddScoped<ModuleTerraformInlinePolicyService>();
         services.AddScoped<ModuleTerraformRemotePolicyService>();

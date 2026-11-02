@@ -34,9 +34,10 @@ public class DeleteBlockerCoverageTests
         [
             "Secrets", "ModuleInputs", "DependsOnModules",
             "Transfers", "StateMigrationJobs", "SignalEdges",
-            "ModuleProbeAttempts", "SignalOutputSets", "ResourceChangeSets"
+            "ModuleProbeAttempts", "SignalOutputSets", "ResourceChangeSets",
+            "OutputSetModuleSupplies", "OutputModuleSupplies"
         ],
-        [typeof(Namespace)] = ["Secrets", "ModuleInputs"],
+        [typeof(Namespace)] = ["Secrets", "ModuleInputs", "OutputSetNamespaceSupplies", "OutputNamespaceSupplies"],
         [typeof(Stack)] = ["Secrets"],
         [typeof(ModuleJob)] =
         [

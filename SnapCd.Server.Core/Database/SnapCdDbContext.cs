@@ -42,6 +42,8 @@ using Definition_User = SnapCd.Server.Core.Entities.Definition.User;
 using Stack = SnapCd.Server.Core.Entities.Definition.Stack;
 using SnapCd.Server.Core.Views;
 
+using SnapCd.Server.Core.Entities.Definition.OutputSupplies;
+
 namespace SnapCd.Server.Core.Database;
 
 public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
@@ -108,6 +110,10 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ModuleExtraFile> ModuleExtraFiles { get; set; }
     public DbSet<ModuleAdditionalTriggerPath> ModuleAdditionalTriggerPaths { get; set; }
     public DbSet<ModuleOutputDownstreamRestriction> ModuleOutputDownstreamRestrictions { get; set; }
+    public DbSet<OutputSetModuleSupply> OutputSetModuleSupplies { get; set; }
+    public DbSet<OutputSetNamespaceSupply> OutputSetNamespaceSupplies { get; set; }
+    public DbSet<OutputModuleSupply> OutputModuleSupplies { get; set; }
+    public DbSet<OutputNamespaceSupply> OutputNamespaceSupplies { get; set; }
     public DbSet<NamespaceAdditionalTriggerPath> NamespaceAdditionalTriggerPaths { get; set; }
     public DbSet<ModuleTerraformInlinePolicy> ModuleTerraformInlinePolicies { get; set; }
     public DbSet<ModuleTerraformRemotePolicy> ModuleTerraformRemotePolicies { get; set; }
@@ -426,6 +432,10 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new ModuleExtraFileClassMap());
         modelBuilder.ApplyConfiguration(new ModuleAdditionalTriggerPathClassMap());
         modelBuilder.ApplyConfiguration(new ModuleOutputDownstreamRestrictionClassMap());
+        modelBuilder.ApplyConfiguration(new OutputSetModuleSupplyClassMap());
+        modelBuilder.ApplyConfiguration(new OutputSetNamespaceSupplyClassMap());
+        modelBuilder.ApplyConfiguration(new OutputModuleSupplyClassMap());
+        modelBuilder.ApplyConfiguration(new OutputNamespaceSupplyClassMap());
         modelBuilder.ApplyConfiguration(new NamespaceAdditionalTriggerPathClassMap());
         modelBuilder.ApplyConfiguration(new ModuleTerraformInlinePolicyClassMap());
         modelBuilder.ApplyConfiguration(new ModuleTerraformRemotePolicyClassMap());
