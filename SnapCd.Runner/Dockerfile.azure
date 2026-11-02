@@ -3,7 +3,10 @@ FROM ghcr.io/schrieksoft/base-image-snapcd-runner:1.2.2-azure
 WORKDIR /app
 EXPOSE 8080
 
-COPY out/snapcd-runner/ ./
+# tools/ is most of the image and changes far less often than the application, so it gets
+# its own layer. The two source directories are disjoint: the app one has tools/ removed.
+COPY out/snapcd-runner-tools/ ./tools/
+COPY out/snapcd-runner-app/ ./
 
 # Application files stay root-owned so the unprivileged process cannot rewrite its own
 # assemblies. runnerdata is the only path it writes, and deployments mount over it.

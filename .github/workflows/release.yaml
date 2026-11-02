@@ -119,6 +119,13 @@ jobs:
             /p:Version=$SEMVER \
             /p:InformationalVersion=$SEMVER+$SHORT_SHA
 
+          # The runner image copies tools/ and the application from separate directories, so
+          # the 100 MB engine-inspection binary sits in a layer a release rarely changes.
+          mkdir -p out/snapcd-runner-tools
+          cp -r out/snapcd-runner/tools/. out/snapcd-runner-tools/
+          cp -r out/snapcd-runner out/snapcd-runner-app
+          rm -rf out/snapcd-runner-app/tools
+
           # Self-contained copies for the release zips, which run on hosts with no .NET
           # runtime. Outside out/, which the image builds and the zip step glob read.
           for proj in Runner Agent; do

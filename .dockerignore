@@ -1,5 +1,4 @@
-# The server, runner and agent images copy only from out/. Everything else in the repo is
-# context the daemon would have to walk, and anything matching a future COPY would be
-# included silently.
+# The images copy only from out/. Everything else is excluded, so a stray file cannot
+# reach an image through a COPY that was not written for it.
 *
 !out/

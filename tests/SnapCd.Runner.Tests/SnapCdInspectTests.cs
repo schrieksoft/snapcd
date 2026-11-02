@@ -101,6 +101,37 @@ echo '{"closures":[{"rootPath":"modules/app-a","referencedPaths":["shared/naming
         Assert.Equal(new[] { "shared" }, closures.Single(c => c.RootPath == "app").ReferencedPaths);
     }
 
+    [Fact]
+    public void Shipped_Binary_Is_Used_Without_Extracting()
+    {
+        // The binary ships under tools/ beside the Runner on every distribution channel.
+        var shipped = Path.Combine(AppContext.BaseDirectory, "tools", "snapcd-inspect");
+        if (!File.Exists(shipped) || !OperatingSystem.IsLinux()) return;
+
+        var workingDir = Path.Combine(_root, "wd-shipped");
+        var inspect = new SnapCdInspect(
+            Options.Create(new SourceCacheSettings()),
+            Options.Create(new WorkingDirectorySettings { WorkingDirectory = workingDir }),
+            NullLogger<SnapCdInspect>.Instance);
+
+        var repoDir = Path.Combine(_root, "repo-shipped");
+        Directory.CreateDirectory(Path.Combine(repoDir, "app"));
+        Directory.CreateDirectory(Path.Combine(repoDir, "shared"));
+        File.WriteAllText(Path.Combine(repoDir, "app", "main.tf"), "module \"s\" {\n  source = \"../shared\"\n}\n");
+        File.WriteAllText(Path.Combine(repoDir, "shared", "main.tf"), "output \"x\" { value = 1 }\n");
+        RunGit(repoDir, "init", "-q", "-b", "main");
+        RunGit(repoDir, "config", "user.name", "Test");
+        RunGit(repoDir, "config", "user.email", "test@example.com");
+        RunGit(repoDir, "add", "-A");
+        RunGit(repoDir, "commit", "-q", "-m", "fixture");
+        var head = RunGit(repoDir, "rev-parse", "HEAD").Trim();
+
+        var closures = inspect.Discover(repoDir, head, new[] { "app" });
+
+        Assert.False(Directory.Exists(Path.Combine(workingDir, "tools")));
+        Assert.Equal(new[] { "shared" }, closures.Single(c => c.RootPath == "app").ReferencedPaths);
+    }
+
     private static string RunGit(string workingDirectory, params string[] arguments)
     {
         var startInfo = new System.Diagnostics.ProcessStartInfo
