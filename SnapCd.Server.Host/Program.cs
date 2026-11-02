@@ -25,6 +25,7 @@ using SnapCd.Server.Host.CapAlerts;
 using SnapCd.Server.Host.Installations;
 using SnapCd.Server.Host.Telemetry;
 using SnapCd.Contracts.Logging;
+using SnapCd.Utils.Configuration;
 using SnapCd.Server.Core.Services.Interfaces;
 using SnapCd.Server.Core.Services.Interfaces.Admin;
 using SnapCd.Server.Core.Services.Interfaces.DataSeeder;

@@ -10,7 +10,7 @@ using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 
-namespace SnapCd.Server.Core.Misc.Configuration.DataLoaders;
+namespace SnapCd.Utils.Configuration.DataLoaders;
 
 public class AzureKeyVaultDataLoaderConfiguration
 {

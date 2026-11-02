@@ -7,9 +7,9 @@
 // for terms covering either use.
 
 using Newtonsoft.Json;
-using SnapCd.Server.Core.Misc.Configuration.DataLoaders;
+using SnapCd.Utils.Configuration.DataLoaders;
 
-namespace SnapCd.Server.Core.Misc.Configuration;
+namespace SnapCd.Utils.Configuration;
 
 public static class DataLoaderFactory
 {

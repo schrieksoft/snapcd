@@ -9,7 +9,7 @@
 using Amazon.SecretsManager;
 using Amazon.SecretsManager.Model;
 
-namespace SnapCd.Runner.Configuration.DataLoaders;
+namespace SnapCd.Utils.Configuration.DataLoaders;
 
 public class AmazonSecretsManagerDataLoaderConfiguration
 {

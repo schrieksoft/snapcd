@@ -6,9 +6,10 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 
-namespace SnapCd.Runner.Configuration;
+namespace SnapCd.Utils.Configuration;
 
 public class ExternalConfigurationSource : IConfigurationSource
 {

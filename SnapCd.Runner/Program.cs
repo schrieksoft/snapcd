@@ -8,7 +8,7 @@
 
 using Microsoft.Extensions.Options;
 using Quartz;
-using SnapCd.Runner.Configuration;
+using SnapCd.Utils.Configuration;
 using SnapCd.Runner.Factories;
 using SnapCd.Runner.Hub;
 using SnapCd.Runner.Logging;
