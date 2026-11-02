@@ -75,6 +75,7 @@ public static class Controllers
             typeof(ModuleExtraFileController),
             typeof(NamespaceAdditionalTriggerPathController),
             typeof(ModuleAdditionalTriggerPathController),
+            typeof(ModuleOutputDownstreamRestrictionController),
             typeof(ModuleTerraformInlinePolicyController),
             typeof(ModuleTerraformRemotePolicyController),
             typeof(ModuleTerraformLocalPolicyController),

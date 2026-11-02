@@ -42,6 +42,7 @@ public static class RepositorySettings
         services.Configure<ModuleHookRepositorySettings>(configuration.GetSection("Repositories:ModuleHook"));
         services.Configure<ModuleExtraFileRepositorySettings>(configuration.GetSection("Repositories:ModuleExtraFile"));
         services.Configure<ModuleAdditionalTriggerPathRepositorySettings>(configuration.GetSection("Repositories:ModuleAdditionalTriggerPath"));
+        services.Configure<ModuleOutputDownstreamRestrictionRepositorySettings>(configuration.GetSection("Repositories:ModuleOutputDownstreamRestriction"));
         services.Configure<NamespaceAdditionalTriggerPathRepositorySettings>(configuration.GetSection("Repositories:NamespaceAdditionalTriggerPath"));
         services.Configure<ModuleTerraformInlinePolicyRepositorySettings>(configuration.GetSection("Repositories:ModuleTerraformInlinePolicy"));
         services.Configure<ModuleTerraformRemotePolicyRepositorySettings>(configuration.GetSection("Repositories:ModuleTerraformRemotePolicy"));

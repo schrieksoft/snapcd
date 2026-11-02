@@ -2013,6 +2013,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("NamespaceId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("OutputSetDownstreamRestriction")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<Guid>("RunnerId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2903,6 +2907,65 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleJobMissionRunId", "OrganizationId");
 
                     b.ToTable("ModuleJobMissionRunMilestones");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleOutputDownstreamRestriction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OutputName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "OutputName")
+                        .IsUnique();
+
+                    b.ToTable("ModuleOutputDownstreamRestrictions");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModulePulumiArrayFlag", b =>
@@ -11763,6 +11826,25 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleOutputDownstreamRestriction", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("ModuleOutputDownstreamRestrictions")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithMany("ModuleOutputDownstreamRestrictions")
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Module");
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModulePulumiArrayFlag", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
@@ -14087,6 +14169,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("ModuleMissions");
 
+                    b.Navigation("ModuleOutputDownstreamRestrictions");
+
                     b.Navigation("ModuleParamFromDefinitions");
 
                     b.Navigation("ModuleParamFromLiterals");
@@ -14236,6 +14320,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("ModuleJobs");
 
                     b.Navigation("ModuleMissions");
+
+                    b.Navigation("ModuleOutputDownstreamRestrictions");
 
                     b.Navigation("ModuleProbeAttempts");
 

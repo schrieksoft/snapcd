@@ -12961,6 +12961,456 @@ paths:
         - Agent.Contributor
         - Agent.Owner
         - Agent.Reader
+  /api/{organizationId}/ModuleOutputDownstreamRestriction:
+    post:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: Create a new ModuleOutputDownstreamRestriction
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ModuleOutputDownstreamRestriction to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: List all ModuleOutputDownstreamRestrictions
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleOutputDownstreamRestriction/{id}:
+    get:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: Get a single ModuleOutputDownstreamRestriction
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleOutputDownstreamRestriction ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: Update an existing ModuleOutputDownstreamRestriction
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleOutputDownstreamRestriction ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ModuleOutputDownstreamRestriction values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: Delete a ModuleOutputDownstreamRestriction
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleOutputDownstreamRestriction ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/ModuleOutputDownstreamRestriction/Metadata:
+    get:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: List all ModuleOutputDownstreamRestrictions
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleOutputDownstreamRestriction/Metadata/{id}:
+    get:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: Get a single ModuleOutputDownstreamRestriction
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleOutputDownstreamRestriction ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
   /api/{organizationId}/ModulePulumiArrayFlag:
     post:
       tags:
@@ -38859,6 +39309,16 @@ components:
             tags containing a fully spelled-out `X.Y.Z` version are accepted. NOTE that ''SemanticVersionRange'' is currently
             only supported in combination with the ''Git'' `source_type`.'
           $ref: '#/components/schemas/SourceRevisionType'
+        outputSetDownstreamRestriction:
+          oneOf:
+          - type: 'null'
+          - description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+              unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only
+              the secret ones.
+            $ref: '#/components/schemas/OutputSetDownstreamRestriction'
+          description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+            unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only the
+            secret ones.
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
             Valid values are 'Always', 'Never', or 'OnFirstApply'. 'Always' means the Module will always wait for Modules
@@ -40073,6 +40533,63 @@ components:
           type: boolean
           description: Indicates whether or not the Mission is disabled.
       description: DTO for updating an existing ModuleMission (PUT operations).
+    ModuleOutputDownstreamRestrictionCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output being restricted.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output to withhold from downstream Modules unless it is explicitly supplied to them. Must
+            be unique in combination with `module_id`.
+      description: DTO for creating a new ModuleOutputDownstreamRestriction (POST operations).
+    ModuleOutputDownstreamRestrictionMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module Output Downstream Restriction.
+          format: uuid
+        moduleId:
+          type: string
+          description: Module Id of the Module Output Downstream Restriction.
+          format: uuid
+      description: Name and ID of a Module Output Downstream Restriction, for a principal who may identify it without reading
+        it.
+    ModuleOutputDownstreamRestrictionReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module Output Downstream Restriction.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output being restricted.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output to withhold from downstream Modules unless it is explicitly supplied to them. Must
+            be unique in combination with `module_id`.
+      description: DTO for ModuleOutputDownstreamRestriction responses (GET operations).
+    ModuleOutputDownstreamRestrictionUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module Output Downstream Restriction.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output being restricted.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output to withhold from downstream Modules unless it is explicitly supplied to them. Must
+            be unique in combination with `module_id`.
+      description: DTO for updating an existing ModuleOutputDownstreamRestriction (PUT operations).
     ModulePauseDto:
       type: object
       properties:
@@ -40648,6 +41165,16 @@ components:
             tags containing a fully spelled-out `X.Y.Z` version are accepted. NOTE that ''SemanticVersionRange'' is currently
             only supported in combination with the ''Git'' `source_type`.'
           $ref: '#/components/schemas/SourceRevisionType'
+        outputSetDownstreamRestriction:
+          oneOf:
+          - type: 'null'
+          - description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+              unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only
+              the secret ones.
+            $ref: '#/components/schemas/OutputSetDownstreamRestriction'
+          description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+            unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only the
+            secret ones.
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
             Valid values are 'Always', 'Never', or 'OnFirstApply'. 'Always' means the Module will always wait for Modules
@@ -41452,6 +41979,16 @@ components:
             tags containing a fully spelled-out `X.Y.Z` version are accepted. NOTE that ''SemanticVersionRange'' is currently
             only supported in combination with the ''Git'' `source_type`.'
           $ref: '#/components/schemas/SourceRevisionType'
+        outputSetDownstreamRestriction:
+          oneOf:
+          - type: 'null'
+          - description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+              unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only
+              the secret ones.
+            $ref: '#/components/schemas/OutputSetDownstreamRestriction'
+          description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+            unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only the
+            secret ones.
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
             Valid values are 'Always', 'Never', or 'OnFirstApply'. 'Always' means the Module will always wait for Modules
@@ -43876,6 +44413,11 @@ components:
           description: Name of the Role that is assigned.
           $ref: '#/components/schemas/OrganizationRole'
       description: DTO for updating an existing OrganizationRoleAssignment (PUT operations).
+    OutputSetDownstreamRestriction:
+      enum:
+      - All
+      - SensitiveOnly
+      - null
     PolicyEvaluateOn:
       enum:
       - ApplyAndDestroy
@@ -45222,6 +45764,7 @@ tags:
 - name: ModuleInputFromSecret
 - name: ModuleIntegrationEvent
 - name: ModuleMission
+- name: ModuleOutputDownstreamRestriction
 - name: ModulePulumiArrayFlag
 - name: ModulePulumiFlag
 - name: ModulePulumiInlinePolicy
@@ -45277,8 +45820,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 607
+  documented: 614
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1431
+  documented: 1448
   missing: 0

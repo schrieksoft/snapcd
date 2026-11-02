@@ -77,6 +77,7 @@ public static class Repositories
         services.AddScoped<ModuleExtraFileRepository>();
         services.AddScoped<NamespaceExtraFileRepository>();
         services.AddScoped<ModuleAdditionalTriggerPathRepository>();
+        services.AddScoped<ModuleOutputDownstreamRestrictionRepository>();
         services.AddScoped<NamespaceAdditionalTriggerPathRepository>();
         services.AddScoped<ModuleTerraformInlinePolicyRepository>();
         services.AddScoped<ModuleTerraformRemotePolicyRepository>();

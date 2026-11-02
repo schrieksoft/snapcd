@@ -107,6 +107,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ModuleInput> ModuleInputs { get; set; }
     public DbSet<ModuleExtraFile> ModuleExtraFiles { get; set; }
     public DbSet<ModuleAdditionalTriggerPath> ModuleAdditionalTriggerPaths { get; set; }
+    public DbSet<ModuleOutputDownstreamRestriction> ModuleOutputDownstreamRestrictions { get; set; }
     public DbSet<NamespaceAdditionalTriggerPath> NamespaceAdditionalTriggerPaths { get; set; }
     public DbSet<ModuleTerraformInlinePolicy> ModuleTerraformInlinePolicies { get; set; }
     public DbSet<ModuleTerraformRemotePolicy> ModuleTerraformRemotePolicies { get; set; }
@@ -424,6 +425,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new NamespaceExtraFileClassMap());
         modelBuilder.ApplyConfiguration(new ModuleExtraFileClassMap());
         modelBuilder.ApplyConfiguration(new ModuleAdditionalTriggerPathClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleOutputDownstreamRestrictionClassMap());
         modelBuilder.ApplyConfiguration(new NamespaceAdditionalTriggerPathClassMap());
         modelBuilder.ApplyConfiguration(new ModuleTerraformInlinePolicyClassMap());
         modelBuilder.ApplyConfiguration(new ModuleTerraformRemotePolicyClassMap());

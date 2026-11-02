@@ -32,9 +32,11 @@ public class OutputSetParamResolverFactory
 
     public virtual OutputSetParamResolver Create()
     {
+        var dbContext = _dbContextFactory.CreateDbContext();
         return new OutputSetParamResolver(
             _repositoryFactory.Create(),
             _outputMapper,
-            _dbContextFactory.CreateDbContext());
+            dbContext,
+            new OutputRestrictionChecker(dbContext));
     }
 }

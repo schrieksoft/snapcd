@@ -2008,6 +2008,33 @@ properties:
               whose downstream consumers might be offline long enough to miss the default window.
         description: Per-ModuleMission repository tuning. Almost always left at defaults — operators override only when they
           need to opt out of bus events or change the event TTL for the ModuleMission entity specifically.
+      ModuleOutputDownstreamRestriction:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a ModuleOutputDownstreamRestriction is
+              created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a ModuleOutputDownstreamRestriction
+              is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a ModuleOutputDownstreamRestriction is
+              deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes - increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Per-ModuleOutputDownstreamRestriction repository tuning. Almost always left at defaults - operators override
+          only when they need to opt out of bus events or change the event TTL for the ModuleOutputDownstreamRestriction entity
+          specifically.
       ModulePulumiArrayFlag:
         type: object
         properties:

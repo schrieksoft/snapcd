@@ -29,15 +29,18 @@ public class OutputSetParamResolver
     private readonly OutputRepository _repository;
     private readonly CustomOutputMapper _outputMapper;
     private readonly SnapCdDbContext _dbContext;
+    private readonly OutputRestrictionChecker _restrictionChecker;
 
     public OutputSetParamResolver(
         OutputRepository repository,
         CustomOutputMapper outputMapper,
-        SnapCdDbContext dbContext)
+        SnapCdDbContext dbContext,
+        OutputRestrictionChecker restrictionChecker)
     {
         _repository = repository;
         _outputMapper = outputMapper;
         _dbContext = dbContext;
+        _restrictionChecker = restrictionChecker;
     }
 
     public async Task<List<ModuleResolvedInput>> ListByModuleInputFromOutputSets(Guid moduleId, Guid organizationId, string engine, bool formatStrings = true)
@@ -145,6 +148,9 @@ public class OutputSetParamResolver
         // Filter outputs by variable names if VariableSet exists
         if (variableNames != null)
             outputs = outputs.Where(o => variableNames.Contains(o.Name)).ToList();
+
+        // An Output Set input names no Output, so a withheld one is dropped and the rest resolve.
+        outputs = await _restrictionChecker.FilterReadable(outputs, organizationId);
 
         // Apply stack-aware secret store validation and mapping
         var mappedOutputs = await _outputMapper.MapOutputs(outputs, organizationId);

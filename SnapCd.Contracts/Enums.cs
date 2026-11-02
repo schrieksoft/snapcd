@@ -112,6 +112,12 @@ public enum WaitForDestroyDependencies
     Never
 }
 
+public enum OutputSetDownstreamRestriction
+{
+    All,
+    SensitiveOnly
+}
+
 public enum PrincipalDiscriminator
 {
     User,

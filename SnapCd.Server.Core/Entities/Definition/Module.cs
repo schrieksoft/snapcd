@@ -47,6 +47,8 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public int? ApprovalTimeoutMinutes { get; set; }
     public SourceType SourceType { get; set; } = SourceType.Git;
     public SourceRevisionType SourceRevisionType { get; set; } = SourceRevisionType.Default;
+    public OutputSetDownstreamRestriction? OutputSetDownstreamRestriction { get; set; }
+    public List<ModuleOutputDownstreamRestriction> ModuleOutputDownstreamRestrictions { get; set; } = new();
     public List<ModuleParamFromDefinition> ModuleParamFromDefinitions { get; set; } = new();
     public List<ModuleParamFromNamespace> ModuleParamFromNamespaces { get; set; } = new();
     public List<ModuleParamFromLiteral> ModuleParamFromLiterals { get; set; } = new();

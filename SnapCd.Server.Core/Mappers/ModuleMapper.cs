@@ -27,6 +27,7 @@ public static class ModuleMapper
             SourceSubdirectory = dto.SourceSubdirectory,
             SourceType = dto.SourceType,
             SourceRevisionType = dto.SourceRevisionType,
+            OutputSetDownstreamRestriction = dto.OutputSetDownstreamRestriction,
             RunnerId = dto.RunnerId,
             RunnerInstanceName = dto.RunnerInstanceName,
             IgnoreNamespaceExtraFiles = dto.IgnoreNamespaceExtraFiles,
@@ -62,6 +63,7 @@ public static class ModuleMapper
             SourceSubdirectory = entity.SourceSubdirectory,
             SourceType = entity.SourceType,
             SourceRevisionType = entity.SourceRevisionType,
+            OutputSetDownstreamRestriction = entity.OutputSetDownstreamRestriction,
             RunnerId = entity.RunnerId,
             RunnerInstanceName = entity.RunnerInstanceName,
             IgnoreNamespaceExtraFiles = entity.IgnoreNamespaceExtraFiles,
@@ -105,6 +107,7 @@ public static class ModuleMapper
         entity.SourceSubdirectory = dto.SourceSubdirectory;
         entity.SourceType = dto.SourceType;
         entity.SourceRevisionType = dto.SourceRevisionType;
+        entity.OutputSetDownstreamRestriction = dto.OutputSetDownstreamRestriction;
         entity.RunnerId = dto.RunnerId;
         entity.RunnerInstanceName = dto.RunnerInstanceName;
         entity.IgnoreNamespaceExtraFiles = dto.IgnoreNamespaceExtraFiles;

@@ -20,6 +20,7 @@ public static class ExceptionHandler
         {
             InvalidStackReferenceException => "Invalid reference: The selected item belongs to a different stack.",
             InvalidSecretScopeException => "Invalid secret scope: The secret cannot be used in this context.",
+            OutputRestrictedException => "Restricted output: The producing Module withholds it from this Module.",
             UniqueConstraintException => "A record with this name or identifier already exists.",
             EntityNotFoundException => "The requested item was not found. It may have been deleted.",
             IdIsEmptyException => "Invalid operation: Entity ID is missing.",
