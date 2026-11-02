@@ -179,6 +179,8 @@ jobs:
         run: |
           dotnet pack SnapCd.Contracts/SnapCd.Contracts.csproj \
             -c Release -o nupkgs /p:Version=$SEMVER
+          dotnet pack SnapCd.Utils/SnapCd.Utils.csproj \
+            -c Release -o nupkgs /p:Version=$SEMVER
           dotnet pack SnapCd.Server.Core/SnapCd.Server.Core.csproj \
             -c Release -o nupkgs /p:Version=$SEMVER
 

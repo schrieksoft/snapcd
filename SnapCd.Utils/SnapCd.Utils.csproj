@@ -5,9 +5,23 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>SnapCd.Utils</RootNamespace>
-        <!-- Internal shared library, consumed by the applications, codegen tools and tests; not a NuGet artifact. -->
-        <IsPackable>false</IsPackable>
+
+        <!-- NuGet Package Metadata. SnapCd.Server.Core's package declares a dependency on this id,
+             so it must be published for a package-based restore to resolve. -->
+        <PackageId>SnapCd.Utils</PackageId>
+        <Authors>Schrieksoft</Authors>
+        <Company>Schrieksoft</Company>
+        <Description>Shared configuration and settings utilities for SnapCD</Description>
+        <PackageProjectUrl>https://github.com/schrieksoft/snapcd-lib</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/schrieksoft/snapcd-lib</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+        <PackageTags>snapcd</PackageTags>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\LICENSE.md" Pack="true" PackagePath="\" Visible="false" />
+    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\SnapCd.Contracts\SnapCd.Contracts.csproj" />
