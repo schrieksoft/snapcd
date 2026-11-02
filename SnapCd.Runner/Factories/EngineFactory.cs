@@ -49,9 +49,11 @@ public class EngineFactory
             _workingDirectorySettings
         );
 
-        // snapcd-inspect is extracted beside the working directory and runs the probe, so the
-        // engine resolves it by name the way it resolves any other tool.
+        // snapcd-inspect runs the probe, so the engine resolves it by name the way it resolves any
+        // other tool. It ships under the application's tools/, and a build that embeds it instead
+        // extracts to the working directory's tools/, so both are on the search path.
         var additionalBinaryPaths = _engineSettings.Value.AdditionalBinaryPaths
+            .Append(Path.Combine(AppContext.BaseDirectory, "tools"))
             .Append(Path.Combine(_workingDirectorySettings.Value.WorkingDirectory, "tools"))
             .ToList();
         var runnerEnvVars = _runnerEnvVarsSettings.Value;
