@@ -27,7 +27,7 @@ public static class HealthEndpoints
 
     public static async Task<IResult> Ready(BusStartupState busStartup, HealthCheckService healthChecks, CancellationToken cancellationToken)
     {
-        // A bus still starting is not a failure, and running the checks now would log it as one.
+        // The health check service logs every unhealthy check at Error; a bus that is still starting is not one.
         if (!busStartup.HasStarted)
             return Results.Text("Starting", "text/plain", statusCode: StatusCodes.Status503ServiceUnavailable);
 
