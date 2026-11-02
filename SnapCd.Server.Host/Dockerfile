@@ -1,9 +1,9 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
-EXPOSE 80
-EXPOSE 443
-ENV ASPNETCORE_URLS=http://*:80
+EXPOSE 8080
 
-COPY out/snapcd-server/ ./
+COPY --chown=$APP_UID:$APP_UID out/snapcd-server/ ./
+
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "SnapCd.Server.Host.dll"]
