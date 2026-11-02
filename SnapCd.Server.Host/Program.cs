@@ -128,6 +128,17 @@ else if (!(builder.Configuration.GetSection("Debugging").Get<DebuggingOptions>()
 var allowHttp = builder.Configuration.GetSection("AllowHttp").Get<bool>();
 var connectionString = builder.Configuration["ConnectionString"] ?? throw new Exception("Connection string not found.");
 
+// Before any service that opens a connection is registered, so a database that is still starting
+// delays the Server rather than killing it.
+builder.Services.Configure<WaitForDatabaseStartupSettings>(builder.Configuration.GetSection("WaitForDatabaseStartup"));
+using (var startupLoggerFactory = LoggerFactory.Create(b => b.AddConsole()))
+{
+    await DatabaseAvailability.WaitAsync(
+        connectionString,
+        builder.Configuration.GetSection("WaitForDatabaseStartup").Get<WaitForDatabaseStartupSettings>() ?? new WaitForDatabaseStartupSettings(),
+        startupLoggerFactory.CreateLogger(nameof(DatabaseAvailability)));
+}
+
 builder.Services.AddSelfHostedDbContextConfiguration(connectionString);
 builder.Services.AddSnapCdControllers([typeof(SnapCd.Server.Host.Controllers.LicenseController)]);
 builder.Services.AddSnapCdEmailSender(builder.Configuration);
