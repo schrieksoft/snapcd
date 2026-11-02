@@ -118,6 +118,8 @@ builder.Services.AddSingleton<TokenInitializationService>();
 
 var app = builder.Build();
 
+WorkingDirectoryCheck.Verify(app.Services.GetRequiredService<IOptions<WorkingDirectorySettings>>().Value);
+
 // Block startup until token is obtained
 using var scope = app.Services.CreateScope();
 var tokenInitializer = scope.ServiceProvider.GetRequiredService<TokenInitializationService>();
