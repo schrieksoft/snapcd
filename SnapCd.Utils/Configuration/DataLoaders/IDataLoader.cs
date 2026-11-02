@@ -6,12 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-namespace SnapCd.Runner.Configuration.DataLoaders;
+namespace SnapCd.Utils.Configuration.DataLoaders;
 
-public class LiteralDataLoader : IDataLoader
+public interface IDataLoader
 {
-    public IDictionary<string, string> Load(IDictionary<string, string> input)
-    {
-        return input;
-    }
+    public IDictionary<string, string> Load(IDictionary<string, string> input);
 }

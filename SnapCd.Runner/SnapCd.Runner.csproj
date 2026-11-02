@@ -51,6 +51,7 @@
         <PackageReference Include="Google.Protobuf" Version="3.33.1" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
         <ProjectReference Include="..\SnapCd.Contracts\SnapCd.Contracts.csproj" />
+        <ProjectReference Include="..\SnapCd.Utils\SnapCd.Utils.csproj" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
         <PackageReference Include="OpenIddict.AspNetCore" Version="7.0.0" />
         <PackageReference Include="OpenIddict.Abstractions" Version="7.0.0" />

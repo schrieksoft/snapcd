@@ -26,6 +26,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\SnapCd.Contracts\SnapCd.Contracts.csproj"/>
+        <ProjectReference Include="..\SnapCd.Utils\SnapCd.Utils.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

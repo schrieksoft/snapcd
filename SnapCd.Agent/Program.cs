@@ -11,10 +11,19 @@ using SnapCd.Agent.Configuration;
 using SnapCd.Agent.Hub;
 using SnapCd.Agent.Services;
 using SnapCd.Agent.Services.Sidecars;
+using SnapCd.Utils.Configuration;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Config: appsettings.json + appsettings.{Environment}.json + Agent__* environment variables.
+builder.Configuration.Sources.Clear();
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables()
+    .AddCommandLine(args)
+    .AddExternalConfiguration();
+
 builder.Services
     .AddOptions<AgentOptions>()
     .Bind(builder.Configuration.GetSection(AgentOptions.SectionName))
