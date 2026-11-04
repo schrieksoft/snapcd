@@ -27,7 +27,14 @@
 
 
 
-@if (_source != null)
+@if (_source != null && !_isWaitingForApproval)
+{
+    <MudAlert Severity="Severity.Info">
+        This job is not waiting for approval.
+    </MudAlert>
+}
+
+@if (_source != null && _isWaitingForApproval)
 {
     <ApprovalPanel @ref="_panelRef"
                    Source="@_source"
@@ -107,6 +114,7 @@
     private DownstreamImpact? _impact;
     private ApprovalPanel? _panelRef;
     private IApprovalSource _source = null!;
+    private bool _isWaitingForApproval;
 
     protected override async Task OnInitializedAsync()
     {
@@ -232,10 +240,7 @@
         using var repo = ModuleJobRepoFactory.Create(new LiteralPrincipalProvider(principalId, principalDiscriminator, [OrganizationId]));
 
         _moduleJob = await repo.Get(ModuleJobId, OrganizationId);
-
-        // // TODO this is not working for some reason!
-        // var foo = await repo.Get<bool?>(ModuleJobId, x => x.Select(y => y.WaitingForApproval));
-        //
+        _isWaitingForApproval = _moduleJob.WaitingForApproval.GetValueOrDefault();
     }
 
 
