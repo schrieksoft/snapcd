@@ -61,12 +61,6 @@ public class
         return await GetByCriteria(repo => repo.Get(stackId, name, organizationId));
     }
 
-    public async Task<List<NamespaceMetadataReadDto>> ListMetadata(Guid organizationId)
-    {
-        var views = await SecuredRepository.ListMetadata(organizationId);
-        return views.Select(NamespaceMapper.ToMetadataDto).ToList();
-    }
-
     public async Task<NamespaceMetadataReadDto> GetMetadata(Guid stackId, string name, Guid organizationId)
     {
         var view = await SecuredRepository.GetMetadata(stackId, name, organizationId);

@@ -62,12 +62,6 @@ public class RunnerService : GenericCrudService<
         return await GetByCriteria(repo => repo.GetByName(name, organizationId));
     }
 
-    public async Task<List<RunnerMetadataReadDto>> ListMetadata(Guid organizationId)
-    {
-        var views = await SecuredRepository.ListMetadata(organizationId);
-        return views.Select(RunnerMapper.ToMetadataDto).ToList();
-    }
-
     public async Task<RunnerMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
     {
         var view = await SecuredRepository.GetMetadataByName(name, organizationId);

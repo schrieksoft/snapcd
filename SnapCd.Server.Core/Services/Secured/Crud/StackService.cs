@@ -62,12 +62,6 @@ public class StackService : GenericCrudService<
         return await GetByCriteria(repo => repo.GetByName(name, organizationId));
     }
 
-    public async Task<List<StackMetadataReadDto>> ListMetadata(Guid organizationId)
-    {
-        var views = await SecuredRepository.ListMetadata(organizationId);
-        return views.Select(StackMapper.ToMetadataDto).ToList();
-    }
-
     public async Task<StackMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
     {
         var view = await SecuredRepository.GetMetadataByName(name, organizationId);
