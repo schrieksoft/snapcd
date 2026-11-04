@@ -9,7 +9,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using SnapCd.Contracts;
-using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Runner.Services.ModuleSourceRefresher;
 
 namespace SnapCd.Runner.Services;

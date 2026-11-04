@@ -17,7 +17,6 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Services.Utils;

@@ -14,7 +14,6 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Services.Interfaces.ViewManagement;
@@ -55,10 +54,9 @@ public class DependencyGraphConcurrencyFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _databaseContainer = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+        _databaseContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
             .WithPassword(SaPassword)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(1433))
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(1433))
             .Build();
 
         await _databaseContainer.StartAsync();

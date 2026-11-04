@@ -9,7 +9,6 @@
 using SnapCd.Contracts;
 using SnapCd.Runner.Services.PolicyEvaluation;
 using SnapCd.Runner.Settings;
-using Xunit;
 
 namespace SnapCd.Runner.Tests;
 

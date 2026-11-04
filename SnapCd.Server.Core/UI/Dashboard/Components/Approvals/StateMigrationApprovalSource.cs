@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
-using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;

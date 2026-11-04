@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Services.Interfaces.Vaults;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Vaults;
 

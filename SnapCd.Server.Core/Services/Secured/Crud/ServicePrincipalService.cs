@@ -125,21 +125,9 @@ public class ServicePrincipalService : GenericCrudService<
         return dto;
     }
 
-    public async Task<List<ServicePrincipalMetadataReadDto>> ListMetadata(Guid organizationId)
-    {
-        var views = await SecuredRepository.ListMetadata(organizationId);
-        return views.Select(ServicePrincipalMapper.ToMetadataDto).ToList();
-    }
-
     public async Task<ServicePrincipalMetadataReadDto> GetMetadataByClientId(string clientId, Guid organizationId)
     {
         var view = await SecuredRepository.GetMetadataByClientId(clientId, organizationId);
-        return ServicePrincipalMapper.ToMetadataDto(view);
-    }
-
-    public async Task<ServicePrincipalMetadataReadDto> GetMetadata(Guid id, Guid organizationId)
-    {
-        var view = await SecuredRepository.GetMetadata(id, organizationId);
         return ServicePrincipalMapper.ToMetadataDto(view);
     }
 }

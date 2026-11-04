@@ -19,7 +19,6 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Settings.Interfaces;
 using System.Linq.Expressions;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
-using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.System.Nonsecured;

@@ -232,7 +232,7 @@
         var principals = await repo.ListMetadata(OrganizationId,
             q => string.IsNullOrWhiteSpace(searchText)
                 ? q
-                : q.Where(sp => sp.ClientId.Contains(searchText)),
+                : q.Where(sp => sp.ClientId != null && sp.ClientId.Contains(searchText)),
             q => q.OrderBy(sp => sp.ClientId));
 
         return principals

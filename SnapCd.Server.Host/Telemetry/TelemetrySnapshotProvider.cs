@@ -10,7 +10,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Interfaces;
 using SnapCd.Server.Core.Telemetry;
 using SnapCd.Server.Host.Installations;

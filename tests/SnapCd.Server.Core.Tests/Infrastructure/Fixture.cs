@@ -18,7 +18,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using SnapCd.Contracts;
-using Microsoft.Extensions.Caching.Memory;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Host.Database;
@@ -32,14 +31,11 @@ using SnapCd.Server.Core.Entities.Definition.IntegrationSupplies;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Interfaces.ViewManagement;
 using SnapCd.Server.Core.Services.Nonsecured.ViewManagement;
 using SnapCd.Server.Core.Services.Utils;
-using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
-using SnapCd.Server.Core.StateMachine;
 using Testcontainers.MsSql;
 using Group = SnapCd.Server.Core.Entities.Definition.Group;
 using Module = SnapCd.Server.Core.Entities.Definition.Module;
@@ -69,12 +65,12 @@ public class NewRoleBasedSharedCollection : ICollectionFixture<Fixture>
 /// </summary>
 public class RolePrincipals
 {
-    public SnapCd.Server.Core.Entities.Definition.User DirectUser { get; set; } = null!;
-    public SnapCd.Server.Core.Entities.Definition.ServicePrincipal DirectServicePrincipal { get; set; } = null!;
-    public SnapCd.Server.Core.Entities.Definition.User GroupUser { get; set; } = null!;
-    public SnapCd.Server.Core.Entities.Definition.ServicePrincipal GroupServicePrincipal { get; set; } = null!;
-    public SnapCd.Server.Core.Entities.Definition.User NestedGroupUser { get; set; } = null!;
-    public SnapCd.Server.Core.Entities.Definition.ServicePrincipal NestedGroupServicePrincipal { get; set; } = null!;
+    public User DirectUser { get; set; } = null!;
+    public ServicePrincipal DirectServicePrincipal { get; set; } = null!;
+    public User GroupUser { get; set; } = null!;
+    public ServicePrincipal GroupServicePrincipal { get; set; } = null!;
+    public User NestedGroupUser { get; set; } = null!;
+    public ServicePrincipal NestedGroupServicePrincipal { get; set; } = null!;
     public Group Group { get; set; } = null!;
 }
 
@@ -125,7 +121,9 @@ public class Fixture : IAsyncLifetime
     public Dictionary<string, ModuleSecret> ModuleSecrets { get; } = new();
     public Dictionary<string, ModuleParamFromSecret> ModuleInputFromSecrets { get; } = new();
     public Dictionary<string, NamespaceParamFromSecret> NamespaceInputFromSecrets { get; } = new();
+
     public Dictionary<string, ModuleJob> ModuleJobs { get; } = new();
+
     // Tier A (Smoke) — dedicated per-test-class Update/Delete entities. Keyed by
     // "{TestClassName}_UpdateCan" or "{TestClassName}_DeleteCan". Each entity is mutated/deleted
     // by exactly one test, so they're cheap to allocate one-per-test-class up front.
@@ -143,10 +141,10 @@ public class Fixture : IAsyncLifetime
     public Dictionary<string, IntegrationModuleSupply> IntegrationModuleSupplies { get; } = new();
     public Dictionary<string, IntegrationNamespaceSupply> IntegrationNamespaceSupplies { get; } = new();
     public Dictionary<string, IntegrationStackSupply> IntegrationStackSupplies { get; } = new();
-    public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.OrganizationMission> OrganizationMissions { get; } = new();
-    public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.StackMission> StackMissions { get; } = new();
-    public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.NamespaceMission> NamespaceMissions { get; } = new();
-    public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.ModuleMission> ModuleMissions { get; } = new();
+    public Dictionary<string, Entities.Definition.Missions.OrganizationMission> OrganizationMissions { get; } = new();
+    public Dictionary<string, Entities.Definition.Missions.StackMission> StackMissions { get; } = new();
+    public Dictionary<string, Entities.Definition.Missions.NamespaceMission> NamespaceMissions { get; } = new();
+    public Dictionary<string, Entities.Definition.Missions.ModuleMission> ModuleMissions { get; } = new();
     public Dictionary<string, UserOrganizationRoleAssignment> UserOrganizationRoleAssignments { get; } = new();
     public Dictionary<string, UserStackRoleAssignment> UserStackRoleAssignments { get; } = new();
     public Dictionary<string, UserNamespaceRoleAssignment> UserNamespaceRoleAssignments { get; } = new();
@@ -160,7 +158,7 @@ public class Fixture : IAsyncLifetime
     // Only "Reader" of each scope-role is seeded; Tier B asserts visibility, which the minimal
     // sufficient role grants. Keyed by Tier B test naming convention:
     //   "Stack00.Reader" / "Stack01.Reader" / "Namespace000.Reader" / "Module0000.Reader" / etc.
-    public Dictionary<string, SnapCd.Server.Core.Entities.Definition.User> ScopeReaderUsers { get; } = new();
+    public Dictionary<string, User> ScopeReaderUsers { get; } = new();
 
     // Test-specific entities for Update/Delete operations (not shared, will be modified/deleted)
     public Dictionary<string, Stack> StackAdditionalTestEntities { get; } = new();
@@ -186,14 +184,13 @@ public class Fixture : IAsyncLifetime
     public Dictionary<string, ApplyJobSaga> OrphanedJobTestSagas { get; } = new();
 
     // User with no permissions (for negative testing)
-    public SnapCd.Server.Core.Entities.Definition.User NoPermissionUser { get; private set; } = null!;
-    public SnapCd.Server.Core.Entities.Definition.ServicePrincipal NoPermissionServicePrincipal { get; private set; } = null!;
+    public User NoPermissionUser { get; private set; } = null!;
+    public ServicePrincipal NoPermissionServicePrincipal { get; private set; } = null!;
 
     /// <summary>The container reports ready before SQL Server accepts logins, so retry briefly.</summary>
     private static async Task CreateDatabaseAsync(string masterConnectionString)
     {
-        for (var attempt = 1; ; attempt++)
-        {
+        for (var attempt = 1;; attempt++)
             try
             {
                 await using var master = new SqlConnection(masterConnectionString);
@@ -206,17 +203,15 @@ public class Fixture : IAsyncLifetime
             {
                 await Task.Delay(TimeSpan.FromSeconds(2));
             }
-        }
     }
 
     public async Task InitializeAsync()
     {
         // Start SQL Server container
-        _databaseContainer = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+        _databaseContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
             .WithPassword(SaPassword)
             .WithWaitStrategy(Wait.ForUnixContainer()
-                .UntilPortIsAvailable(1433))
+                .UntilInternalTcpPortIsAvailable(1433))
             .Build();
 
         await _databaseContainer.StartAsync();
@@ -238,10 +233,7 @@ public class Fixture : IAsyncLifetime
         // expose SnapCdDbContext as the same scoped instance so existing test code can resolve it.
         services.AddDbContext<SelfHostedSnapCdDbContext>(options =>
         {
-            options.UseSqlServer(_connectionString, sqlServerOptions =>
-            {
-                sqlServerOptions.MigrationsAssembly("SnapCd.Server.Host");
-            });
+            options.UseSqlServer(_connectionString, sqlServerOptions => { sqlServerOptions.MigrationsAssembly("SnapCd.Server.Host"); });
             options.EnableSensitiveDataLogging();
             options.EnableDetailedErrors();
             options.ConfigureWarnings(w =>
@@ -276,12 +268,12 @@ public class Fixture : IAsyncLifetime
         Organizations["0"] = new Organization
         {
             Id = Guid.NewGuid(),
-            Name = "Org0",
+            Name = "Org0"
         };
         Organizations["1"] = new Organization
         {
             Id = Guid.NewGuid(),
-            Name = "Org1",
+            Name = "Org1"
         };
 
         dbContext.Organizations.AddRange(Organizations.Values);
@@ -577,6 +569,11 @@ public class Fixture : IAsyncLifetime
         // Seed orphaned job cleanup test data
         SeedOrphanedJobTestData(dbContext);
 
+        // A stack of its own for each test class that attaches children to Modules. Sharing is
+        // fine while nothing mutates; adding or removing children is a mutation, so those classes
+        // cannot share a tree with each other or with the Modules the read-only tests assert on.
+        CreateProbeTestStacks(dbContext);
+
         await dbContext.SaveChangesAsync();
     }
 
@@ -672,7 +669,7 @@ public class Fixture : IAsyncLifetime
         await Task.CompletedTask;
     }
 
-    private (SnapCd.Server.Core.Entities.Definition.User User, SnapCd.Server.Core.Entities.Definition.ServicePrincipal ServicePrincipal) CreateNestedGroupHierarchy(
+    private (User User, ServicePrincipal ServicePrincipal) CreateNestedGroupHierarchy(
         OrganizationRole role, Organization org, SnapCdDbContext dbContext)
     {
         // Create Grandchild → Child → Parent group hierarchy for this role
@@ -857,7 +854,7 @@ public class Fixture : IAsyncLifetime
         await Task.CompletedTask;
     }
 
-    private (SnapCd.Server.Core.Entities.Definition.User User, SnapCd.Server.Core.Entities.Definition.ServicePrincipal ServicePrincipal) CreateNestedRunnerGroupHierarchy(
+    private (User User, ServicePrincipal ServicePrincipal) CreateNestedRunnerGroupHierarchy(
         RunnerRole role, Organization org, Runner runner, SnapCdDbContext dbContext)
     {
         // Create Grandchild → Child → Parent group hierarchy for this role
@@ -988,7 +985,7 @@ public class Fixture : IAsyncLifetime
             OrganizationId = orgId,
             StackId = stackId,
             UserId = user.Id,
-            RoleName = StackRole.Owner,
+            RoleName = StackRole.Owner
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1004,7 +1001,7 @@ public class Fixture : IAsyncLifetime
             OrganizationId = orgId,
             StackId = stackId,
             UserId = user.Id,
-            RoleName = StackRole.MetadataReader,
+            RoleName = StackRole.MetadataReader
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1020,7 +1017,7 @@ public class Fixture : IAsyncLifetime
             OrganizationId = orgId,
             NamespaceId = namespaceId,
             UserId = user.Id,
-            RoleName = NamespaceRole.MetadataReader,
+            RoleName = NamespaceRole.MetadataReader
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1036,7 +1033,7 @@ public class Fixture : IAsyncLifetime
             OrganizationId = orgId,
             ModuleId = moduleId,
             UserId = user.Id,
-            RoleName = ModuleRole.MetadataReader,
+            RoleName = ModuleRole.MetadataReader
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1051,7 +1048,7 @@ public class Fixture : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = orgId,
             UserId = user.Id,
-            RoleName = OrganizationRole.StackMetadataReader,
+            RoleName = OrganizationRole.StackMetadataReader
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1066,7 +1063,7 @@ public class Fixture : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = orgId,
             UserId = user.Id,
-            RoleName = OrganizationRole.IdentityAccessMetadataReader,
+            RoleName = OrganizationRole.IdentityAccessMetadataReader
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1082,7 +1079,7 @@ public class Fixture : IAsyncLifetime
             OrganizationId = orgId,
             StackId = stackId,
             UserId = user.Id,
-            RoleName = StackRole.Reader,
+            RoleName = StackRole.Reader
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1098,7 +1095,7 @@ public class Fixture : IAsyncLifetime
             OrganizationId = orgId,
             NamespaceId = namespaceId,
             UserId = user.Id,
-            RoleName = NamespaceRole.Reader,
+            RoleName = NamespaceRole.Reader
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1114,7 +1111,7 @@ public class Fixture : IAsyncLifetime
             OrganizationId = orgId,
             ModuleId = moduleId,
             UserId = user.Id,
-            RoleName = ModuleRole.Reader,
+            RoleName = ModuleRole.Reader
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1151,7 +1148,7 @@ public class Fixture : IAsyncLifetime
             Name = "Agent0",
             IsDisabled = false,
             AllowMultipleInstances = false,
-            IsSuppliedToAllModules = false,
+            IsSuppliedToAllModules = false
         };
         dbContext.Agents.Add(Agents["0"]);
 
@@ -1166,7 +1163,7 @@ public class Fixture : IAsyncLifetime
             Name = "Agent0Sibling",
             IsDisabled = false,
             AllowMultipleInstances = false,
-            IsSuppliedToAllModules = false,
+            IsSuppliedToAllModules = false
         };
         dbContext.Agents.Add(Agents["0Sibling"]);
 
@@ -1181,7 +1178,7 @@ public class Fixture : IAsyncLifetime
             Name = "Agent1",
             IsDisabled = false,
             AllowMultipleInstances = false,
-            IsSuppliedToAllModules = false,
+            IsSuppliedToAllModules = false
         };
         dbContext.Agents.Add(Agents["1"]);
 
@@ -1191,7 +1188,7 @@ public class Fixture : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0"].Id,
-            ModuleId = Modules["0000"].Id,
+            ModuleId = Modules["0000"].Id
         };
         dbContext.AgentModuleSupplies.Add(AgentModuleSupplies["0"]);
 
@@ -1201,7 +1198,7 @@ public class Fixture : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0Sibling"].Id,
-            ModuleId = Modules["0001"].Id,
+            ModuleId = Modules["0001"].Id
         };
         dbContext.AgentModuleSupplies.Add(AgentModuleSupplies["0Sibling"]);
 
@@ -1220,7 +1217,7 @@ public class Fixture : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             RunnerId = runner0Sibling.Id,
-            ModuleId = Modules["0001"].Id,
+            ModuleId = Modules["0001"].Id
         };
         dbContext.RunnerModuleSupplies.Add(RunnerModuleSupplies["0Sibling"]);
 
@@ -1241,7 +1238,7 @@ public class Fixture : IAsyncLifetime
             Name = "IntegrationOnModule0000",
             IntegrationType = IntegrationType.Slack,
             Enabled = true,
-            IsSuppliedToAllModules = false,
+            IsSuppliedToAllModules = false
         };
         Integrations["ModuleSibling"] = new Integration
         {
@@ -1250,7 +1247,7 @@ public class Fixture : IAsyncLifetime
             Name = "IntegrationOnModule0001",
             IntegrationType = IntegrationType.Slack,
             Enabled = true,
-            IsSuppliedToAllModules = false,
+            IsSuppliedToAllModules = false
         };
         Integrations["Namespace"] = new Integration
         {
@@ -1259,7 +1256,7 @@ public class Fixture : IAsyncLifetime
             Name = "IntegrationOnNamespace000",
             IntegrationType = IntegrationType.Slack,
             Enabled = true,
-            IsSuppliedToAllModules = false,
+            IsSuppliedToAllModules = false
         };
         Integrations["Stack"] = new Integration
         {
@@ -1268,7 +1265,7 @@ public class Fixture : IAsyncLifetime
             Name = "IntegrationOnStack00",
             IntegrationType = IntegrationType.Slack,
             Enabled = true,
-            IsSuppliedToAllModules = false,
+            IsSuppliedToAllModules = false
         };
         Integrations["AllModules"] = new Integration
         {
@@ -1277,7 +1274,7 @@ public class Fixture : IAsyncLifetime
             Name = "IntegrationOnAllModules",
             IntegrationType = IntegrationType.Slack,
             Enabled = true,
-            IsSuppliedToAllModules = true,
+            IsSuppliedToAllModules = true
         };
         Integrations["Unsupplied"] = new Integration
         {
@@ -1286,7 +1283,7 @@ public class Fixture : IAsyncLifetime
             Name = "IntegrationSuppliedNowhere",
             IntegrationType = IntegrationType.Slack,
             Enabled = true,
-            IsSuppliedToAllModules = false,
+            IsSuppliedToAllModules = false
         };
         dbContext.Integrations.AddRange(Integrations.Values);
 
@@ -1295,14 +1292,14 @@ public class Fixture : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             IntegrationId = Integrations["Module"].Id,
-            ModuleId = Modules["0000"].Id,
+            ModuleId = Modules["0000"].Id
         };
         IntegrationModuleSupplies["ModuleSibling"] = new IntegrationModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             IntegrationId = Integrations["ModuleSibling"].Id,
-            ModuleId = Modules["0001"].Id,
+            ModuleId = Modules["0001"].Id
         };
         dbContext.IntegrationModuleSupplies.AddRange(IntegrationModuleSupplies.Values);
 
@@ -1311,7 +1308,7 @@ public class Fixture : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             IntegrationId = Integrations["Namespace"].Id,
-            NamespaceId = Namespaces["000"].Id,
+            NamespaceId = Namespaces["000"].Id
         };
         dbContext.IntegrationNamespaceSupplies.AddRange(IntegrationNamespaceSupplies.Values);
 
@@ -1320,65 +1317,65 @@ public class Fixture : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             IntegrationId = Integrations["Stack"].Id,
-            StackId = Stacks["00"].Id,
+            StackId = Stacks["00"].Id
         };
         dbContext.IntegrationStackSupplies.AddRange(IntegrationStackSupplies.Values);
 
         // ---- Missions at each scope, owned by Agent0 ----
         // Used by MissionCrossScope_RoleResolutionTests to verify both scope-side and agent-side
         // visibility on the bespoke ReadQuery overrides.
-        OrganizationMissions["0"] = new SnapCd.Server.Core.Entities.Definition.Missions.OrganizationMission
+        OrganizationMissions["0"] = new Entities.Definition.Missions.OrganizationMission
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0"].Id,
             MissionType = MissionType.AutoDiagnose,
-            IsDisabled = false,
+            IsDisabled = false
         };
         dbContext.OrganizationMissions.Add(OrganizationMissions["0"]);
 
-        StackMissions["0"] = new SnapCd.Server.Core.Entities.Definition.Missions.StackMission
+        StackMissions["0"] = new Entities.Definition.Missions.StackMission
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0"].Id,
             StackId = Stacks["00"].Id,
             MissionType = MissionType.AutoDiagnose,
-            IsDisabled = false,
+            IsDisabled = false
         };
         dbContext.StackMissions.Add(StackMissions["0"]);
 
-        NamespaceMissions["0"] = new SnapCd.Server.Core.Entities.Definition.Missions.NamespaceMission
+        NamespaceMissions["0"] = new Entities.Definition.Missions.NamespaceMission
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0"].Id,
             NamespaceId = Namespaces["000"].Id,
             MissionType = MissionType.AutoDiagnose,
-            IsDisabled = false,
+            IsDisabled = false
         };
         dbContext.NamespaceMissions.Add(NamespaceMissions["0"]);
 
-        ModuleMissions["0"] = new SnapCd.Server.Core.Entities.Definition.Missions.ModuleMission
+        ModuleMissions["0"] = new Entities.Definition.Missions.ModuleMission
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0"].Id,
             ModuleId = Modules["0000"].Id,
             MissionType = MissionType.AutoDiagnose,
-            IsDisabled = false,
+            IsDisabled = false
         };
         dbContext.ModuleMissions.Add(ModuleMissions["0"]);
 
         // Sibling mission rows owned by Agent0Sibling — for cross-agent isolation assertions.
-        ModuleMissions["0Sibling"] = new SnapCd.Server.Core.Entities.Definition.Missions.ModuleMission
+        ModuleMissions["0Sibling"] = new Entities.Definition.Missions.ModuleMission
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0Sibling"].Id,
             ModuleId = Modules["0001"].Id,
             MissionType = MissionType.AutoDiagnose,
-            IsDisabled = false,
+            IsDisabled = false
         };
         dbContext.ModuleMissions.Add(ModuleMissions["0Sibling"]);
     }
@@ -1394,7 +1391,7 @@ public class Fixture : IAsyncLifetime
             OrganizationId = orgId,
             AgentId = agentId,
             UserId = user.Id,
-            RoleName = AgentRole.Reader,
+            RoleName = AgentRole.Reader
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1410,7 +1407,7 @@ public class Fixture : IAsyncLifetime
             OrganizationId = orgId,
             RunnerId = runnerId,
             UserId = user.Id,
-            RoleName = RunnerRole.Reader,
+            RoleName = RunnerRole.Reader
         });
         ScopeReaderUsers[key] = user;
     }
@@ -1450,14 +1447,14 @@ public class Fixture : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0Sibling"].Id,
-            ModuleId = Modules["0002"].Id,
+            ModuleId = Modules["0002"].Id
         };
         var agentDelete = new AgentModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0Sibling"].Id,
-            ModuleId = Modules["0003"].Id,
+            ModuleId = Modules["0003"].Id
         };
         dbContext.AgentModuleSupplies.Add(agentUpdate);
         dbContext.AgentModuleSupplies.Add(agentDelete);
@@ -1470,14 +1467,14 @@ public class Fixture : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             RunnerId = Runners["0Sibling"].Id,
-            ModuleId = Modules["0002"].Id,
+            ModuleId = Modules["0002"].Id
         };
         var runnerDelete = new RunnerModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             RunnerId = Runners["0Sibling"].Id,
-            ModuleId = Modules["0003"].Id,
+            ModuleId = Modules["0003"].Id
         };
         dbContext.RunnerModuleSupplies.Add(runnerUpdate);
         dbContext.RunnerModuleSupplies.Add(runnerDelete);
@@ -1494,7 +1491,7 @@ public class Fixture : IAsyncLifetime
             ModuleId = moduleId,
             Task = task,
             Phase = phase,
-            Script = $"echo 'hook-{nameSuffix}'",
+            Script = $"echo 'hook-{nameSuffix}'"
         };
         dbContext.ModuleHooks.Add(hook);
         return hook;
@@ -1560,6 +1557,47 @@ public class Fixture : IAsyncLifetime
             IsDisabled = false,
             OrganizationId = organizationId
         };
+    }
+
+
+    /// <summary>
+    /// One stack, namespace and three modules per test class that attaches probe children.
+    /// Keyed by class name so a reader can see which tree belongs to which test.
+    /// </summary>
+    private void CreateProbeTestStacks(SnapCdDbContext dbContext)
+    {
+        string[] owners =
+        [
+            "ProbeInputsBuilder", "ProbeWaveSchema", "ProbeWaveStarter", "SignalEdgeResolver"
+        ];
+
+        foreach (var owner in owners)
+        {
+            var stack = CreateStack($"Stack{owner}", Organizations["0"].Id);
+            Stacks[owner] = stack;
+            dbContext.Stacks.Add(stack);
+
+            var ns = CreateNamespace($"Namespace{owner}", stack.Id, Organizations["0"].Id);
+            Namespaces[owner] = ns;
+            dbContext.Namespaces.Add(ns);
+
+            foreach (var suffix in new[] { "A", "B", "C", "D" })
+            {
+                var module = CreateModule($"Module{owner}{suffix}", ns.Id, Runners["0"].Id, Organizations["0"].Id);
+                Modules[$"{owner}{suffix}"] = module;
+                dbContext.Modules.Add(module);
+
+                // An output set is what "this Module has applied and has state" looks like, and
+                // the probe consumer lookup drops any Module without one.
+                var outputSet = CreateOutputSet($"OutputSet{owner}{suffix}", module.Id, Organizations["0"].Id);
+                OutputSets[$"{owner}{suffix}"] = outputSet;
+                dbContext.OutputSets.Add(outputSet);
+
+                var output = CreateOutput("vpc_id", outputSet.Id, Organizations["0"].Id);
+                Outputs[$"{owner}{suffix}"] = output;
+                dbContext.Outputs.Add(output);
+            }
+        }
     }
 
     private Stack CreateStack(string name, Guid organizationId)

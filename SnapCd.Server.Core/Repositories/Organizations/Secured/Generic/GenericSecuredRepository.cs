@@ -17,8 +17,6 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Settings.Interfaces;
-using SnapCd.Server.Core.Views;
-using System.Linq.Expressions;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
 using SnapCd.Server.Core.Views.Metadata;
@@ -245,10 +243,11 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TMetadata, TReposi
     /// id the lookup resolved. Mirrors <see cref="Get(Guid, Guid, Func{IQueryable{TEntity}, IQueryable{TEntity}}?)"/>:
     /// a missing key is not found, a key the principal may not read is not authorized.
     /// </summary>
+    /// <param name="organizationId">The organization the entity belongs to.</param>
     /// <param name="resolveId">Finds the entity's id from the natural key, ignoring permission.</param>
     /// <param name="readMetadata">Reads the view once permission is established.</param>
     /// <param name="describeKey">The key as it should read in an error, e.g. <c>name "payments"</c>.</param>
-    protected async Task<TMetadata> GetMetadataByKey<TMetadata>(
+    protected async Task<TMetadata> GetMetadataByKey(
         Guid organizationId,
         Func<Task<Guid?>> resolveId,
         Func<Guid, Task<TMetadata>> readMetadata,

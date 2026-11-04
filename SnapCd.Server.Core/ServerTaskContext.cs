@@ -6,8 +6,6 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using Microsoft.Extensions.Logging;
-using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using JobMetadata = SnapCd.Contracts.RunnerRequests.HelperClasses.JobMetadata;
 
 namespace SnapCd.Server.Core;

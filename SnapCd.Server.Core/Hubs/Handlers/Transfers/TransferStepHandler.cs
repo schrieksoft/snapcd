@@ -8,7 +8,6 @@
 
 using MassTransit;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
-using SnapCd.Server.Core.Events.Steps.Transfer;
 
 namespace SnapCd.Server.Core.Hubs.Handlers.Transfers;
 

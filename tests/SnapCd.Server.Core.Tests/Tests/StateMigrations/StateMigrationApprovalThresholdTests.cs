@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.StateMigrations;
 

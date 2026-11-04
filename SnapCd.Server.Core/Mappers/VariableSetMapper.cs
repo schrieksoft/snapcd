@@ -9,7 +9,6 @@
 using MassTransit;
 using SnapCd.Contracts.Dto.VariableSets;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 

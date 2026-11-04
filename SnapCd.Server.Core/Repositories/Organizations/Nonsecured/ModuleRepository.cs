@@ -16,7 +16,6 @@ using SnapCd.Server.Core.Dtos;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Sagas;
-using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Mappers;

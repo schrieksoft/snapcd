@@ -8,7 +8,6 @@
 
 using System.Diagnostics;
 using MassTransit;
-using Microsoft.Extensions.Logging;
 
 namespace SnapCd.Server.Core.Health;
 

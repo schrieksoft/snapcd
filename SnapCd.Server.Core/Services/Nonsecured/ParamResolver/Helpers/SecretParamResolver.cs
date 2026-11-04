@@ -9,7 +9,6 @@
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts.Dto.Secrets;
 using SnapCd.Server.Core.Entities.Definition.Secrets;
-using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Factories.Vaults;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Settings;

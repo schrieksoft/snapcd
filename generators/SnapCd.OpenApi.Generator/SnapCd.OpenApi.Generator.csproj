@@ -15,7 +15,7 @@
              assembly, builds its service provider and writes the OpenAPI document
              to disk. It targets THIS project (no infrastructure) rather than
              SnapCd.Server.Host (which migrates the DB and starts Hangfire on boot). -->
-        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.10">
+        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.14">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>

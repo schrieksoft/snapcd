@@ -14,7 +14,6 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Repositories;
 

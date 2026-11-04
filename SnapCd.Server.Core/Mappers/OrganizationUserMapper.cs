@@ -8,8 +8,6 @@
 
 using SnapCd.Server.Core.Dtos.OrganizationUsers;
 using SnapCd.Server.Core.Entities.Definition;
-
-using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;

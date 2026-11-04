@@ -22,7 +22,6 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
@@ -34,8 +33,6 @@ using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using SnapCd.Server.Core.Tests.Infrastructure.Fakes;
-using Xunit;
-
 using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Entities.Sagas.ApplyJobSaga,
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleRequested,

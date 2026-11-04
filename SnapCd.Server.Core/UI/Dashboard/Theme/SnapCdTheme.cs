@@ -115,6 +115,11 @@ public static class SnapCdTheme
     /// <summary>Every input is outlined, so a form reads as one set of controls.</summary>
     public static void ApplyInputDefaults()
     {
+        // Deprecated in MudBlazor 8 and removed in 9, with no replacement: theming is leaving
+        // MudGlobal, and the alternative is Variant on each input or a CSS rule. Decided with the
+        // MudBlazor 9 upgrade rather than spread across the inputs that rely on this default.
+#pragma warning disable CS0618
         MudGlobal.InputDefaults.Variant = Variant.Outlined;
+#pragma warning restore CS0618
     }
 }

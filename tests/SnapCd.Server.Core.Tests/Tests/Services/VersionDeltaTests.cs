@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using SnapCd.Server.Host.Telemetry;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 

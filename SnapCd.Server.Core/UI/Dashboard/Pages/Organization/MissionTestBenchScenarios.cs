@@ -14,7 +14,7 @@ using SnapCd.Server.Core.Services.Nonsecured.Logs;
 namespace SnapCd.Server.Core.UI.Dashboard.Pages.Organization;
 
 /// <summary>
-/// Canned <see cref="ModuleJob"/> log content used by the dev harness, in the production shape — a
+/// Canned <see cref="SnapCd.Server.Core.Entities.Definition.ModuleJob"/> log content used by the dev harness, in the production shape — a
 /// <see cref="List{ModuleJobLogEntryDto}"/> serialised to <c>ModuleJob.Logs</c>. Each scenario is a sequence of
 /// per-phase snippets (one <see cref="PhaseSnippet"/> per <c>TaskName</c>) so the synthesised job
 /// reads like a real runner trace and the agent's <c>TaskName</c>-based filtering works the way the

@@ -12,7 +12,6 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using SnapCd.Server.Host.Database;
 using SnapCd.Server.Host.Installations;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 

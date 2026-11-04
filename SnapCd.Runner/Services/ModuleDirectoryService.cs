@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using Microsoft.Extensions.Options;
-using SnapCd.Contracts;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Runner.Settings;
 

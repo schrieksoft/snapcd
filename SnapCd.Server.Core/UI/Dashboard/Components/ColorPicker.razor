@@ -7,7 +7,6 @@
    for terms covering either use. *@
 
 @using SnapCd.Contracts
-@using SnapCd.Server.Core.Enums
 @using SnapCd.Server.Core.Repositories.Custom.Secured
 @using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
 @using SnapCd.Server.Core.Services.Utils.Notification
@@ -41,7 +40,7 @@
             @if (_color != null)
             {
                 <MudDivider Class="my-1"/>
-                <MudMenuItem OnClick="@(() => Set(null))" Dense="true">
+                <MudMenuItem OnClick="@(() => Set(null))">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span class="color-swatch color-swatch-empty"></span>
                         <span>Remove colour</span>

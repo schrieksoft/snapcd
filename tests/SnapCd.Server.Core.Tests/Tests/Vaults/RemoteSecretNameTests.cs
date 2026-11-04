@@ -8,7 +8,6 @@
 
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Services.Utils.Vaults;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Vaults;
 

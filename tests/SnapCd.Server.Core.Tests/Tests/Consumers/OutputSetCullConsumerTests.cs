@@ -12,7 +12,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using SnapCd.Contracts;
-using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Dtos;
 using SnapCd.Server.Core.Entities.Definition;
@@ -22,7 +21,6 @@ using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Consumers;
 

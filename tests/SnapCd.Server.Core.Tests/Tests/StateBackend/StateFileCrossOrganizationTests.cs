@@ -16,7 +16,6 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.StateBackend;
 

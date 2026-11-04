@@ -17,7 +17,6 @@
 @inject IQuotaGatingService QuotaGatingService
 @inject IOptions<DebuggingOptions> DebuggingOptions
 @using System.Diagnostics
-@using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Options
 @using SnapCd.Contracts
@@ -28,7 +27,6 @@
 @using SnapCd.Server.Core.Licensing.Services
 @using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
 @using SnapCd.Server.Core.Settings
-@using SnapCd.Server.Core.UI.Dashboard.Layout
 
 @attribute [Authorize]
 @attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.SubscriptionManager)]

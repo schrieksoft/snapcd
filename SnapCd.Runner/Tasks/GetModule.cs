@@ -11,7 +11,6 @@ using SnapCd.Runner.Logging;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests;
-using SnapCd.Contracts.RunnerRequests.HelperClasses;
 
 namespace SnapCd.Runner.Tasks;
 

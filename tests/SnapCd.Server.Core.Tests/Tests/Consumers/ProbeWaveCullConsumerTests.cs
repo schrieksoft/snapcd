@@ -24,7 +24,6 @@ using SnapCd.Server.Core.Services.Nonsecured.Vaults;
 using SnapCd.Server.Core.Services.Utils.Vaults;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Consumers;
 

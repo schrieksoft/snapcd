@@ -62,12 +62,6 @@ public class AgentService : GenericCrudService<
         return await GetByCriteria(repo => repo.GetByName(name, organizationId));
     }
 
-    public async Task<List<AgentMetadataReadDto>> ListMetadata(Guid organizationId)
-    {
-        var views = await SecuredRepository.ListMetadata(organizationId);
-        return views.Select(AgentMapper.ToMetadataDto).ToList();
-    }
-
     public async Task<AgentMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
     {
         var view = await SecuredRepository.GetMetadataByName(name, organizationId);

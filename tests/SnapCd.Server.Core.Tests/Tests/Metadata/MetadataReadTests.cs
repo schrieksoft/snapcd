@@ -16,8 +16,6 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using SnapCd.Contracts.Dto.Stacks;
 using SnapCd.Server.Core.Services.Secured.Crud;
-using SnapCd.Server.Core.Views;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Metadata;
 

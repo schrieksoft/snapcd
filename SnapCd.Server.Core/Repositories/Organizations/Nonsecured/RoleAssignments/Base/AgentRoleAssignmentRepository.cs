@@ -14,13 +14,11 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Mappers.RoleAssignments.Base;
-using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
 using System.Linq.Expressions;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
-using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments.Base;

@@ -12,8 +12,6 @@ using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using SnapCd.Server.Core.Settings;
-using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
@@ -29,8 +27,6 @@ using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
-
 using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Entities.Sagas.ApplyJobSaga,
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleRequested,

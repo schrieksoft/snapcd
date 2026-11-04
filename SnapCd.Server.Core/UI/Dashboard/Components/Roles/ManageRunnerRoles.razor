@@ -5,11 +5,8 @@
    system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
-
-@using SnapCd.Server.Core.Views
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.RoleAssignments
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
-@using Microsoft.EntityFrameworkCore
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
@@ -72,7 +69,7 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudTooltip Text="Select a user first." Disabled="@(!((_selectedUser == null)))">
+                    <MudTooltip Text="Select a user first." Disabled="@(!(_selectedUser == null))">
                         <MudButton Color="Color.Secondary"
                                    Variant="Variant.Filled"
                                    OnClick="@CreateUserRoleAssignment"
@@ -159,7 +156,8 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudTooltip Text="Select a service principal first." Disabled="@(!((_selectedServicePrincipal == null)))">
+                    <MudTooltip Text="Select a service principal first."
+                                Disabled="@(!(_selectedServicePrincipal == null))">
                         <MudButton Color="Color.Secondary"
                                    Variant="Variant.Filled"
                                    OnClick="@CreateSpRoleAssignment"
@@ -246,7 +244,7 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudTooltip Text="Select a group first." Disabled="@(!((_selectedGroup == null)))">
+                    <MudTooltip Text="Select a group first." Disabled="@(!(_selectedGroup == null))">
                         <MudButton Color="Color.Secondary"
                                    Variant="Variant.Filled"
                                    OnClick="@CreateGroupRoleAssignment"
@@ -342,8 +340,6 @@
     private bool _showGroupCreateForm;
     private RunnerRole _selectedGroupRole = RunnerRole.Reader;
     private GroupMetadata? _selectedGroup;
-
-
 
 
     protected override void OnParametersSet()
@@ -455,12 +451,12 @@
     {
         using var repo = OrganizationUserRepoFactory.Create();
         return await repo.ListMetadata(OrganizationId,
-            queryModifier: q => string.IsNullOrWhiteSpace(searchText)
+            q => string.IsNullOrWhiteSpace(searchText)
                 ? q
                 : q.Where(ou => ou.User.Email!.ToLower().Contains(searchText.ToLower())),
-            orderBy: q => q.OrderBy(u => u.UserName),
-            pageNumber: 1,
-            pageSize: 20);
+            q => q.OrderBy(u => u.UserName),
+            1,
+            20);
     }
 
     private async Task CreateUserRoleAssignment()
@@ -534,10 +530,10 @@
         return await repo.ListMetadata(OrganizationId,
             q => string.IsNullOrWhiteSpace(searchText)
                 ? q
-                : q.Where(sp => sp.ClientId.ToLower().Contains(searchText.ToLower())),
+                : q.Where(sp => sp.ClientId != null && sp.ClientId.ToLower().Contains(searchText.ToLower())),
             q => q.OrderBy(sp => sp.ClientId),
-            pageNumber: 1,
-            pageSize: 20);
+            1,
+            20);
     }
 
     private async Task CreateSpRoleAssignment()
@@ -591,7 +587,6 @@
     }
 
 
-
     // Group methods
     private void ShowGroupCreateForm()
     {
@@ -614,8 +609,8 @@
                 ? q
                 : q.Where(g => g.Name.ToLower().Contains(searchText.ToLower())),
             q => q.OrderBy(g => g.Name),
-            pageNumber: 1,
-            pageSize: 20);
+            1,
+            20);
     }
 
     private async Task CreateGroupRoleAssignment()

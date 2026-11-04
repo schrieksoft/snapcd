@@ -6,9 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using SnapCd.Contracts;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Runner.Hub;

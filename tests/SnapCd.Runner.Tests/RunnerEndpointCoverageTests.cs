@@ -9,7 +9,6 @@
 using System.Reflection;
 using SnapCd.Contracts.Endpoints;
 using SnapCd.Runner.Hub;
-using Xunit;
 
 namespace SnapCd.Runner.Tests;
 

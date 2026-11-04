@@ -8,7 +8,6 @@
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.StateMigrations;
 

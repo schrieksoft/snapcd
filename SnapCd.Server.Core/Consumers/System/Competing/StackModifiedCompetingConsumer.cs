@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using MassTransit;
-using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Gatekeeping;

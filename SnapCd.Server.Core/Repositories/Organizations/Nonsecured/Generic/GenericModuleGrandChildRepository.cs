@@ -12,8 +12,6 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization.Base;
 using SnapCd.Server.Core.Settings.Interfaces;
-using SnapCd.Server.Core.Views;
-using System.Linq.Expressions;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Views.Metadata;
 
@@ -28,6 +26,7 @@ namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 /// <typeparam name="TEntity">The entity type (e.g., Input, Output)</typeparam>
 /// <typeparam name="TEntityParent">The parent entity type that is a child of Module (e.g., VariableSet, OutputSet)</typeparam>
 /// <typeparam name="TDto">The DTO type for the entity</typeparam>
+/// <typeparam name="TMetadata">The metadata view type for the entity</typeparam>
 /// <typeparam name="TCreateEvent">The create event type</typeparam>
 /// <typeparam name="TUpdateEvent">The update event type</typeparam>
 /// <typeparam name="TDeleteEvent">The delete event type</typeparam>

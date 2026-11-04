@@ -10,7 +10,6 @@ using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 

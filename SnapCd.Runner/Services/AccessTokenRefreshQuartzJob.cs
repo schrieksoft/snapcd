@@ -36,13 +36,13 @@ public class AccessTokenCacheQuartzJob : IJob
         _logger = logger;
     }
 
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Refreshing token");
 
         try
         {
-            var result = await GetTokenAsync();
+            var result = await GetTokenAsync(cancellationToken);
 
             if (result != null && result.ExpiresIn > 0)
             {
@@ -62,12 +62,12 @@ public class AccessTokenCacheQuartzJob : IJob
                     if (triggerTime > DateTime.UtcNow)
                     {
                         _logger.LogDebug("Next token refresh scheduled for {TriggerTime}", triggerTime);
-                        await ScheduleNextExecution(context, triggerTime);
+                        await ScheduleNextExecution(context, triggerTime, cancellationToken);
                     }
                     else
                     {
                         _logger.LogDebug("Trigger time is in the past. Immediate re-run scheduled.");
-                        await context.Scheduler.TriggerJob(context.JobDetail.Key);
+                        await context.Scheduler.TriggerJob(context.JobDetail.Key, cancellationToken);
                     }
                 }
                 else
@@ -78,17 +78,17 @@ public class AccessTokenCacheQuartzJob : IJob
             else
             {
                 _logger.LogWarning("Token refresh failed. Scheduling retry in 30 seconds");
-                await ScheduleNextExecution(context, DateTimeOffset.UtcNow.AddSeconds(30));
+                await ScheduleNextExecution(context, DateTimeOffset.UtcNow.AddSeconds(30), cancellationToken);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Token refresh failed. Scheduling retry in 30 seconds");
-            await ScheduleNextExecution(context, DateTimeOffset.UtcNow.AddSeconds(30));
+            await ScheduleNextExecution(context, DateTimeOffset.UtcNow.AddSeconds(30), cancellationToken);
         }
     }
 
-    private async Task<TokenResponse?> GetTokenAsync()
+    private async Task<TokenResponse?> GetTokenAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -96,7 +96,8 @@ public class AccessTokenCacheQuartzJob : IJob
                 _serverSettings.Url,
                 _runnerSettings.OrganizationId,
                 _runnerSettings.Credentials.ClientId,
-                _runnerSettings.Credentials.ClientSecret);
+                _runnerSettings.Credentials.ClientSecret,
+                cancellationToken);
 
             return result;
         }
@@ -106,13 +107,13 @@ public class AccessTokenCacheQuartzJob : IJob
         }
     }
 
-    private async Task ScheduleNextExecution(IJobExecutionContext context, DateTimeOffset nextExecutionTime)
+    private async Task ScheduleNextExecution(IJobExecutionContext context, DateTimeOffset nextExecutionTime, CancellationToken cancellationToken)
     {
         var trigger = TriggerBuilder.Create()
             .StartAt(nextExecutionTime)
             .ForJob(context.JobDetail)
             .Build();
 
-        await context.Scheduler.ScheduleJob(trigger);
+        await context.Scheduler.ScheduleJob(trigger, new ScheduleJobOptions(), cancellationToken);
     }
 }

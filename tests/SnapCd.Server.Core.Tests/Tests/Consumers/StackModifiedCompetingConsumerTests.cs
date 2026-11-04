@@ -14,7 +14,6 @@ using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Consumers;
 

@@ -8,8 +8,6 @@
 
 using System.IO.Compression;
 using Newtonsoft.Json.Linq;
-using SnapCd.Contracts;
-using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Runner.Exceptions;
 using SnapCd.Runner.Services.Plan;

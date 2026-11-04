@@ -8,7 +8,6 @@
 
 using System.Linq.Expressions;
 using Hangfire;
-using Microsoft.Extensions.Configuration;
 using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Services.Nonsecured.Vaults;
 using SnapCd.Server.Core.Settings;

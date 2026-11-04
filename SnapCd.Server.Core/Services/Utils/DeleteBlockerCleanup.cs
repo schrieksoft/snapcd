@@ -36,7 +36,9 @@ public static class DeleteBlockerCleanup
     /// A Stack and a Namespace both delete Namespaces, the first by cascade, so both need these
     /// rows gone and differ only in which Namespaces they mean.
     /// </summary>
+    /// <param name="dbContext">The context the deletes run on.</param>
     /// <param name="namespaces">Which Namespaces are being deleted: by id, or by stack.</param>
+    /// <param name="organizationId">The organization the rows belong to.</param>
     public static async Task ClearRowsBlockingNamespaceDelete(
         this SnapCdDbContext dbContext,
         Expression<Func<Namespace, bool>> namespaces,
@@ -98,7 +100,9 @@ public static class DeleteBlockerCleanup
     /// Clears what would refuse the delete of these Modules. A secret's readers are included,
     /// because they restrict on the secret rather than on the Module.
     /// </summary>
+    /// <param name="dbContext">The context the deletes run on.</param>
     /// <param name="modules">Which Modules are being deleted: by id, by namespace, or by stack.</param>
+    /// <param name="organizationId">The organization the rows belong to.</param>
     public static async Task ClearRowsBlockingModuleDelete(
         this SnapCdDbContext dbContext,
         Expression<Func<Module, bool>> modules,

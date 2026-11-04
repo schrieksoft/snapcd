@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Utils;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;

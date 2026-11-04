@@ -6,8 +6,6 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Events.Steps.Base;
-
 namespace SnapCd.Server.Core.Events.Steps;
 
 /// <summary>

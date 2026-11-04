@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 
-using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Telemetry;

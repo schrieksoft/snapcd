@@ -6,10 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Options;
-using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Runner.Factories;
 using SnapCd.Runner.Logging;

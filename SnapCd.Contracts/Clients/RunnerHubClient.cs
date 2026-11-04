@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
-using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.OutputSets;

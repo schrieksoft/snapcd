@@ -5,9 +5,6 @@
    system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
-
-@using MudBlazor
-@using SnapCd.Server.Core.UI.Dashboard.Theme
 @using YamlDotNet.Serialization
 @using YamlDotNet.Serialization.NamingConventions
 
@@ -25,6 +22,10 @@
         </MudStack>
     </TitleContent>
     <DialogContent>
+        @if (RefusalReason is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3" Dense="true">@RefusalReason</MudAlert>
+        }
         @if (_asCode)
         {
             <MudText Typo="Typo.body2" Class="mb-2">A list of addresses.</MudText>
@@ -70,11 +71,14 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudTooltip Text="@SubmitDisabledReason" Disabled="@(SubmitDisabledReason is null)">
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                       Disabled="@(!HasSomething)"
-                       OnClick="Confirm">Look up</MudButton>
-        </MudTooltip>
+        @if (RefusalReason is null)
+        {
+            <MudTooltip Text="@SubmitDisabledReason" Disabled="@(SubmitDisabledReason is null)">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                           Disabled="@(!HasSomething)"
+                           OnClick="Confirm">Look up</MudButton>
+            </MudTooltip>
+        }
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                    OnClick="Cancel">Cancel</MudButton>
     </DialogActions>
@@ -82,6 +86,9 @@
 
 @code {
     private string? SubmitDisabledReason => HasSomething ? null : "Enter at least one address to look up.";
+
+    /// <summary>Set to explain why the job will be refused. The confirm button is then not offered.</summary>
+    [Parameter] public string? RefusalReason { get; set; }
 
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 

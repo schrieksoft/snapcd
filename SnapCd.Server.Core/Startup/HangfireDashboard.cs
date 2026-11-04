@@ -6,10 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System.Reflection;
 using Hangfire;
 using Hangfire.Dashboard;
-using Microsoft.AspNetCore.Builder;
 
 namespace SnapCd.Server.Core.Startup;
 

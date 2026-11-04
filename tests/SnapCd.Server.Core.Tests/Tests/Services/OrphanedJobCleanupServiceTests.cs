@@ -9,7 +9,6 @@
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Tests.Infrastructure;
 

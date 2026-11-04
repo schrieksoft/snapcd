@@ -13,7 +13,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Services.Nonsecured.MaintenanceMode;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 

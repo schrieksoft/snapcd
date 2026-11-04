@@ -13,8 +13,6 @@ using SnapCd.Server.Core.Events.Repository.Organization.Base;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Settings.Interfaces;
-using SnapCd.Server.Core.Views;
-using System.Linq.Expressions;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Views.Metadata;
 
@@ -23,7 +21,7 @@ namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 /// <summary>
 /// Secured-repo base for entities that are children of an Integration (have an <c>IntegrationId</c> column).
 /// Read paths consume both <c>OrganizationRoles</c> and <c>IntegrationRoles</c>; write paths consume both
-/// too. Mirrors <see cref="GenericAgentChildSecuredRepository{TEntity,TDto,TRepository,TCreateEvent,TUpdateEvent,TDeleteEvent,TOptions}"/>.
+/// too. Mirrors <c>GenericAgentChildSecuredRepository</c>.
 /// </summary>
 public abstract class GenericIntegrationChildSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> :
     GenericSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>

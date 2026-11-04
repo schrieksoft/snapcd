@@ -10,12 +10,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Serilog.Events;
 using SnapCd.Contracts;
-using SnapCd.Contracts.Dto;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Nonsecured.Logs;
 using SnapCd.Server.Core.Tests.Infrastructure;
 
