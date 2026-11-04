@@ -32,9 +32,6 @@ public class TransferMigrateSaga : StateMigrationSagaBase
     /// <summary>The ref this Module runs against: the source's from the initiator, the receiver's from its consent.</summary>
     [MaxLength(255)] public string? ProveRef { get; set; }
 
-    /// <summary>The commit that ref resolved to, recorded against the work.</summary>
-    [MaxLength(255)] public string? DefinitiveRevision { get; set; }
-
     /// <summary>
     /// Output names this Module's plan consumes from the counterparty, as JSON. Set at map time and
     /// cleared once they are all available.
