@@ -39,7 +39,8 @@ public class SnapCdInspectTests : IDisposable
     {
         var path = Path.Combine(_root, "stub.sh");
         File.WriteAllText(path, "#!/usr/bin/env bash\n" + script);
-        File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return path;
     }
 

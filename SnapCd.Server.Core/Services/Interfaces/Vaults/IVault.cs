@@ -15,6 +15,7 @@ namespace SnapCd.Server.Core.Services.Interfaces.Vaults;
 /// <param name="WasChanged">True if the secret was created or updated, false if it already existed with the same value.</param>
 public record SetIfChangedResult(string Version, bool WasChanged);
 
+/// <param name="Value">The secret value as the store returned it.</param>
 /// <param name="Version">The version identifier the store holds this value under.</param>
 public record VersionedSecret(string Value, string Version);
 

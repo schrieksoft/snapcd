@@ -59,7 +59,7 @@
         {
             <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
                 <MudProgressCircular Color="Color.Secondary" Indeterminate="true" Size="Size.Small"/>
-                <MudText Typo="Typo.body2"><strong>Waiting for the current job to finish.</strong> @_blockedReason</MudText>
+                <MudText Typo="Typo.body2"><strong>Waiting for the current job to finish.</strong> Manual jobs become available once it is quiet.</MudText>
             </MudStack>
         }
         else
@@ -151,12 +151,12 @@
                                     </MudStack>
                                 </TitleContent>
                                 <ChildContent>
-                                    <MudText Typo="Typo.body2" Component="ul" Class="snapcd-substeps">
+                                    <ul class="snapcd-substeps">
                                         @foreach (var step in choice.Steps)
                                         {
                                             <li>@step</li>
                                         }
-                                    </MudText>
+                                    </ul>
                                 </ChildContent>
                             </MudExpansionPanel>
                         }
@@ -381,6 +381,7 @@ else
 
     private string? _blockedReason;
     private List<StateMigrationJob> _jobs = [];
+    private bool _isDraining;
     private Dictionary<Guid, List<StateMigrationJobAddress>> _addresses = [];
 
     /// <summary>
@@ -474,11 +475,9 @@ else
     private StateMigrationJob? RunningStateMigration =>
         _jobs.FirstOrDefault(j => j.Status == ExecutionStatus.Running);
 
-    /// Inside a paused module, any remaining block is work still draining: the pause itself is not
-    /// one, and neither is an engine that has no state migrations, which never drains.
-    private bool IsDraining =>
-        ModuleSaga is { Paused: true } && _blockedReason is not null && RunningStateMigration is null
-        && EngineSupportsStateMigrations;
+    /// Draining is a job still finishing, not any reason a manual job cannot start. The other
+    /// reasons, no connected runner among them, are raised when one is chosen rather than here.
+    private bool IsDraining => ModuleSaga is { Paused: true } && _isDraining;
 
     /// <summary>The manual jobs this page can start, as the radio list names them.</summary>
     private enum StateMigrationKind
@@ -702,7 +701,12 @@ else
             CloseButton = true, CloseOnEscapeKey = true,
             MaxWidth = MaxWidth.Medium, FullWidth = true
         };
-        var dialog = await DialogService.ShowAsync<LookupAddressesDialog>("Lookup addresses", options);
+        string? lookupRefusal;
+        using (var check = StateMigrationServiceFactory.Create(PrincipalProvider))
+            lookupRefusal = await check.GetBlockedReason(Module.Id, OrganizationId);
+
+        var lookupParameters = new DialogParameters { { "RefusalReason", lookupRefusal } };
+        var dialog = await DialogService.ShowAsync<LookupAddressesDialog>("Lookup addresses", lookupParameters, options);
 
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
@@ -751,6 +755,7 @@ else
 
         using var stateMigrationService = StateMigrationServiceFactory.Create(PrincipalProvider);
         _blockedReason = await stateMigrationService.GetBlockedReason(Module.Id, OrganizationId);
+        _isDraining = await stateMigrationService.IsDraining(Module.Id, OrganizationId);
 
         using var jobRepo = StateMigrationRepoFactory.Create(PrincipalProvider);
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
@@ -850,7 +855,14 @@ else
             FullWidth = true
         };
 
-        var dialog = await DialogService.ShowAsync<TDialog>(verb, options);
+        // Read now rather than from the panel's state: the block is a question asked when a job is
+        // chosen, and a runner can connect or drop between the page loading and this click.
+        string? refusal;
+        using (var check = StateMigrationServiceFactory.Create(PrincipalProvider))
+            refusal = await check.GetBlockedReason(Module.Id, OrganizationId);
+
+        var parameters = new DialogParameters { { "RefusalReason", refusal } };
+        var dialog = await DialogService.ShowAsync<TDialog>(verb, parameters, options);
 
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
@@ -996,6 +1008,7 @@ else
 
         using var stateMigrationService = StateMigrationServiceFactory.Create(PrincipalProvider);
         _blockedReason = await stateMigrationService.GetBlockedReason(Module.Id, OrganizationId);
+        _isDraining = await stateMigrationService.IsDraining(Module.Id, OrganizationId);
 
         await InvokeAsync(StateHasChanged);
     }
@@ -1041,6 +1054,7 @@ else
     {
         using var stateMigrationService = StateMigrationServiceFactory.Create(PrincipalProvider);
         _blockedReason = await stateMigrationService.GetBlockedReason(Module.Id, OrganizationId);
+        _isDraining = await stateMigrationService.IsDraining(Module.Id, OrganizationId);
 
         using var jobRepo = StateMigrationRepoFactory.Create(PrincipalProvider);
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);

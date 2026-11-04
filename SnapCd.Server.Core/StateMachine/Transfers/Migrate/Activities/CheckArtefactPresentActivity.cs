@@ -19,8 +19,7 @@ namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 /// can arrive before this half has parked, while the store answers whenever it is read.
 /// </summary>
 public class CheckArtefactPresentActivity(
-    TransferArtefactService artefacts,
-    ILogger<CheckArtefactPresentActivity> logger)
+    TransferArtefactService artefacts)
     : IStateMachineActivity<TransferMigrateSaga>
 {
     public async Task Execute(

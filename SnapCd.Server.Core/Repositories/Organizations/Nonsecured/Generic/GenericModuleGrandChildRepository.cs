@@ -26,6 +26,7 @@ namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 /// <typeparam name="TEntity">The entity type (e.g., Input, Output)</typeparam>
 /// <typeparam name="TEntityParent">The parent entity type that is a child of Module (e.g., VariableSet, OutputSet)</typeparam>
 /// <typeparam name="TDto">The DTO type for the entity</typeparam>
+/// <typeparam name="TMetadata">The metadata view type for the entity</typeparam>
 /// <typeparam name="TCreateEvent">The create event type</typeparam>
 /// <typeparam name="TUpdateEvent">The update event type</typeparam>
 /// <typeparam name="TDeleteEvent">The delete event type</typeparam>

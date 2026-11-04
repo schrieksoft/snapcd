@@ -208,8 +208,7 @@ public class Fixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         // Start SQL Server container
-        _databaseContainer = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+        _databaseContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
             .WithPassword(SaPassword)
             .WithWaitStrategy(Wait.ForUnixContainer()
                 .UntilInternalTcpPortIsAvailable(1433))

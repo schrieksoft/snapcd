@@ -11,7 +11,7 @@ using SnapCd.Server.Core.Events.Jobs.Base;
 namespace SnapCd.Server.Core.Events.Jobs.Module;
 
 /// <summary>
-/// Published when a <see cref="ModuleJob"/> enters the awaiting-approval state — i.e., the runner
+/// Published when a <see cref="SnapCd.Server.Core.Entities.Definition.ModuleJob"/> enters the awaiting-approval state — i.e., the runner
 /// has produced a plan and the job is now blocked on human approval. The Layer-1
 /// <c>ApprovalRequestedCompetingConsumer</c> uses it to trigger the <c>ApprovalRecommend</c> mission.
 /// </summary>

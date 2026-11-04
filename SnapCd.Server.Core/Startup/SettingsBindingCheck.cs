@@ -15,7 +15,7 @@ namespace SnapCd.Server.Core.Startup;
 ///
 /// A key that does not bind leaves its property at the default and says nothing, so a rename or a
 /// typo looks exactly like a setting that works. The two cases are a key under a section that is
-/// still bound, which <see cref="Check"/> finds by walking the section against the type, and a
+/// still bound, which <c>Check</c> finds by walking the section against the type, and a
 /// section the server no longer reads at all, which nothing can find by binding and which
 /// <see cref="Retired"/> names.
 /// </summary>

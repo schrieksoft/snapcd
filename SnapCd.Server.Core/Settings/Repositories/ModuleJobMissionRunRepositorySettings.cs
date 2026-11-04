@@ -21,7 +21,7 @@ public class ModuleJobMissionRunRepositorySettings : IEntitySettings
     /// <summary>
     /// When true (default), publish an UpdatedEvent on the bus when a run is updated. Overridable per
     /// environment via config (<c>Repositories:ModuleJobMissionRun</c>). The hub additionally suppresses
-    /// it per-call (<see cref="Generic.GenericRepository{T,TD,TC,TU,TDel,TS}.SuppressEvents"/>) for the
+    /// it per-call (<c>SuppressEvents</c>) for the
     /// high-frequency streamed log-append update, where a per-batch event would be noise.
     /// </summary>
     public bool EmitUpdateEvents { get; set; } = true;

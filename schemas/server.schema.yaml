@@ -1948,8 +1948,8 @@ properties:
           EmitUpdateEvents:
             type: boolean
             description: When true (default), publish an UpdatedEvent on the bus when a run is updated. Overridable per environment
-              via config ( Repositories:ModuleJobMissionRun ). The hub additionally suppresses it per-call (SuppressEvents)
-              for the high-frequency streamed log-append update, where a per-batch event would be noise.
+              via config ( Repositories:ModuleJobMissionRun ). The hub additionally suppresses it per-call ( SuppressEvents
+              ) for the high-frequency streamed log-append update, where a per-batch event would be noise.
             default: true
           EmitDeleteEvents:
             type: boolean

@@ -10,7 +10,7 @@ namespace SnapCd.Contracts.Constants;
 
 /// <summary>
 /// Named SignalR methods the server invokes on a connected SnapCd.Agent — one per mission type,
-/// mirroring <see cref="RunnerEndpoints"/> (one constant per runner task). Each endpoint has its
+/// mirroring <c>RunnerEndpoints</c> (one constant per runner task). Each endpoint has its
 /// own request DTO under <c>SnapCd.Contracts.AgentRequests</c> and its own orchestrator-side
 /// handler. There is no single generic invocation endpoint.
 /// </summary>

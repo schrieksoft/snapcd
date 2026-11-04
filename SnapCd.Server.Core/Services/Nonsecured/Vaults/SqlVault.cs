@@ -17,7 +17,7 @@ namespace SnapCd.Server.Core.Services.Nonsecured.Vaults;
 
 /// <summary>
 /// SQL-backed <see cref="IVault"/> implementation. Stores AES-256-GCM ciphertext in the
-/// <c>VaultSecrets</c> table (registered on the self-hosted context). <paramref name="vaultUrl"/>
+/// <c>VaultSecrets</c> table (registered on the self-hosted context). The <c>vaultUrl</c>
 /// passed in by the caller is ignored — the SQL store is one logical vault.
 /// </summary>
 /// A context per operation: one vault instance is shared across a Parallel.ForEachAsync in the

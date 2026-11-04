@@ -59,7 +59,7 @@ public abstract class StateMigrationInitConsumer<TRequested, TFaulted>(
     {
         var msg = context.Message;
         var resolvedEnvVars = await StepRequestBuilders.ResolveInitEnvVars(
-            paramResolverFactory, jobId, msg.OrganizationId, msg.Declared, logger);
+            paramResolverFactory, jobId, msg.OrganizationId, msg.Declared, _logger);
 
         return StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, resolvedEnvVars);
     }

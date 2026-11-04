@@ -21,7 +21,7 @@ namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 /// <summary>
 /// Secured-repo base for entities that are children of an Integration (have an <c>IntegrationId</c> column).
 /// Read paths consume both <c>OrganizationRoles</c> and <c>IntegrationRoles</c>; write paths consume both
-/// too. Mirrors <see cref="GenericAgentChildSecuredRepository{TEntity,TDto,TRepository,TCreateEvent,TUpdateEvent,TDeleteEvent,TOptions}"/>.
+/// too. Mirrors <c>GenericAgentChildSecuredRepository</c>.
 /// </summary>
 public abstract class GenericIntegrationChildSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> :
     GenericSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>

@@ -70,6 +70,21 @@ public class StateMigrationService : IDisposable
     /// Why a manual job cannot start on this Module, or null when it can. Drives the UI's
     /// explanation of a disabled launcher; the launch itself re-checks rather than trusting this.
     /// </summary>
+    /// <summary>
+    /// Whether a deployment job is still finishing on this Module. The only block that clears on
+    /// its own, so it is the only one worth showing as a wait rather than raising when a manual
+    /// job is chosen.
+    /// </summary>
+    public async Task<bool> IsDraining(Guid moduleId, Guid organizationId)
+    {
+        if (!_moduleSecuredRepository.CanRead(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Principal is not allowed to read Module with Id {moduleId}");
+
+        return await _dbContext.ModuleJobs.AsNoTracking()
+            .AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.IsCurrent == true);
+    }
+
     public async Task<string?> GetBlockedReason(Guid moduleId, Guid organizationId)
     {
         if (!_moduleSecuredRepository.CanRead(moduleId, organizationId))

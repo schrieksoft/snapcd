@@ -293,7 +293,7 @@ public sealed class AgentHubConnection : IAsyncDisposable
     }
 
     /// <summary>
-    /// Initial connect with capped backoff. <see cref="HubConnectionBuilder.WithAutomaticReconnect()"/>
+    /// Initial connect with capped backoff. <c>WithAutomaticReconnect()</c>
     /// only retries *after* a successful connection drops, so the first connect needs its own retry —
     /// the server may not be up yet. Never throws: a startup failure must not stop the host.
     /// </summary>
