@@ -40,14 +40,17 @@ public class SignalEdgeResolverTests : IAsyncLifetime
     private readonly List<Guid> _originJobs = [];
     private readonly List<Guid> _inputs = [];
 
-    public SignalEdgeResolverTests(Fixture fixture) => _fixture = fixture;
+    public SignalEdgeResolverTests(Fixture fixture)
+    {
+        _fixture = fixture;
+    }
 
     public Task InitializeAsync()
     {
         _organizationId = _fixture.Organizations["0"].Id;
-        _producerModuleId = _fixture.Modules["0000"].Id;
-        _consumerModuleId = _fixture.Modules["0001"].Id;
-        _secondHopModuleId = _fixture.Modules["0002"].Id;
+        _producerModuleId = _fixture.Modules["SignalEdgeResolverA"].Id;
+        _consumerModuleId = _fixture.Modules["SignalEdgeResolverB"].Id;
+        _secondHopModuleId = _fixture.Modules["SignalEdgeResolverC"].Id;
         return Task.CompletedTask;
     }
 
@@ -55,7 +58,7 @@ public class SignalEdgeResolverTests : IAsyncLifetime
     {
         await using var db = _fixture.CreateDbContext();
 
-                var setIds = await db.SignalOutputSets
+        var setIds = await db.SignalOutputSets
             .Where(s => _waves.Contains(s.ProbeWaveId)).Select(s => s.Id).ToListAsync();
 
         await db.SignalEdges.Where(e => _waves.Contains(e.ProbeWaveId)).ExecuteDeleteAsync();
@@ -238,11 +241,13 @@ public class SignalEdgeResolverTests : IAsyncLifetime
         Assert.DoesNotContain(wave, await afterBuilder.FindWavesToProbeFor(_consumerModuleId, _organizationId));
     }
 
-    private static ProbeInputsBuilder NewInputsBuilder(SnapCdDbContext dbContext) =>
-        new(dbContext,
+    private static ProbeInputsBuilder NewInputsBuilder(SnapCdDbContext dbContext)
+    {
+        return new ProbeInputsBuilder(dbContext,
             new RippleProbeConsumerLookup(dbContext),
             Mock.Of<ISignalSecretReader>(),
             NullLogger<ProbeInputsBuilder>.Instance);
+    }
 
     private async Task Resolve(Guid probeWaveId, Guid moduleId)
     {

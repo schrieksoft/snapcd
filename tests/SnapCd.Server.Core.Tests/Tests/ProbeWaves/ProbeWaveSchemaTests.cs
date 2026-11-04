@@ -38,13 +38,16 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
     private readonly List<Guid> _signalSets = [];
     private readonly List<Guid> _resourceChangeSets = [];
 
-    public ProbeWaveSchemaTests(Fixture fixture) => _fixture = fixture;
+    public ProbeWaveSchemaTests(Fixture fixture)
+    {
+        _fixture = fixture;
+    }
 
     public Task InitializeAsync()
     {
         _organizationId = _fixture.Organizations["0"].Id;
-        _originModuleId = _fixture.Modules["0000"].Id;
-        _consumerModuleId = _fixture.Modules["0001"].Id;
+        _originModuleId = _fixture.Modules["ProbeWaveSchemaA"].Id;
+        _consumerModuleId = _fixture.Modules["ProbeWaveSchemaB"].Id;
         return Task.CompletedTask;
     }
 
@@ -94,8 +97,7 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
 
         await SeedEdge(waveId, _consumerModuleId, _originModuleId);
 
-        await Assert.ThrowsAnyAsync<DbUpdateException>(
-            () => SeedEdge(waveId, _consumerModuleId, _originModuleId));
+        await Assert.ThrowsAnyAsync<DbUpdateException>(() => SeedEdge(waveId, _consumerModuleId, _originModuleId));
     }
 
     /// <summary>
@@ -108,7 +110,7 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
         var waveId = await SeedWave();
 
         await SeedEdge(waveId, _consumerModuleId, _originModuleId);
-        await SeedEdge(waveId, _consumerModuleId, _fixture.Modules["0002"].Id);
+        await SeedEdge(waveId, _consumerModuleId, _fixture.Modules["ProbeWaveSchemaC"].Id);
 
         await using var db = _fixture.CreateDbContext();
         var edges = await db.SignalEdges.AsNoTracking()

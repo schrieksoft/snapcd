@@ -32,7 +32,10 @@ public class ProbeWaveStarterTests : IAsyncLifetime
 
     private readonly List<Guid> _inputs = [];
 
-    public ProbeWaveStarterTests(Fixture fixture) => _fixture = fixture;
+    public ProbeWaveStarterTests(Fixture fixture)
+    {
+        _fixture = fixture;
+    }
 
     private Guid _consumerAppliedJobId;
     private readonly List<Guid> _originJobs = [];
@@ -40,8 +43,8 @@ public class ProbeWaveStarterTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _organizationId = _fixture.Organizations["0"].Id;
-        _originModuleId = _fixture.Modules["0001"].Id;
-        _consumerModuleId = _fixture.Modules["0000"].Id;
+        _originModuleId = _fixture.Modules["ProbeWaveStarterB"].Id;
+        _consumerModuleId = _fixture.Modules["ProbeWaveStarterA"].Id;
 
         // Only a Module with state to plan against is enrolled, so the consumer needs an apply
         // behind it for these tests to be about edge creation rather than about that filter.
@@ -290,7 +293,7 @@ public class ProbeWaveStarterTests : IAsyncLifetime
     public async Task A_Consumer_Of_An_Unchanged_Output_Gets_No_Edge()
     {
         await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
-        await AddParamFromOutput(_fixture.Modules["0002"].Id, "untouched", "from_untouched");
+        await AddParamFromOutput(_fixture.Modules["ProbeWaveStarterC"].Id, "untouched", "from_untouched");
 
         var waveId = await Start(["vpc_id"]);
 
@@ -302,7 +305,7 @@ public class ProbeWaveStarterTests : IAsyncLifetime
             .ToListAsync();
 
         Assert.Contains(_consumerModuleId, moduleIds);
-        Assert.DoesNotContain(_fixture.Modules["0002"].Id, moduleIds);
+        Assert.DoesNotContain(_fixture.Modules["ProbeWaveStarterC"].Id, moduleIds);
     }
 
     /// <summary>
@@ -316,8 +319,8 @@ public class ProbeWaveStarterTests : IAsyncLifetime
 
         // Reads an output of the consumer rather than of the origin.
         await AddParamFromOutput(
-            _fixture.Modules["0002"].Id, "downstream_id", "from_consumer",
-            outputModuleId: _consumerModuleId);
+            _fixture.Modules["ProbeWaveStarterC"].Id, "downstream_id", "from_consumer",
+            _consumerModuleId);
 
         var waveId = await Start(["vpc_id"]);
 
@@ -329,7 +332,7 @@ public class ProbeWaveStarterTests : IAsyncLifetime
             .ToListAsync();
 
         Assert.Single(moduleIds);
-        Assert.DoesNotContain(_fixture.Modules["0002"].Id, moduleIds);
+        Assert.DoesNotContain(_fixture.Modules["ProbeWaveStarterC"].Id, moduleIds);
     }
 
     /// <summary>
@@ -344,8 +347,8 @@ public class ProbeWaveStarterTests : IAsyncLifetime
 
         // The origin reads from a third Module, which puts that Module upstream of the origin and
         // so outside the wave.
-        var upstreamOfOrigin = _fixture.Modules["0010"].Id;
-        await AddParamFromOutput(_originModuleId, "db_host", "database_host", outputModuleId: upstreamOfOrigin);
+        var upstreamOfOrigin = _fixture.Modules["ProbeWaveStarterD"].Id;
+        await AddParamFromOutput(_originModuleId, "db_host", "database_host", upstreamOfOrigin);
 
         var waveId = await Start(["vpc_id"]);
 
@@ -371,18 +374,18 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
 
         var signals = """
-            {
-              "format_version": "1",
-              "outputs": {
-                "vpc_id": {
-                  "action": "unknown",
-                  "type": "InN0cmluZyI=",
-                  "before": "rHRydXN0aW5nLWxhYg==",
-                  "after": "1AAA"
-                }
-              }
-            }
-            """;
+                      {
+                        "format_version": "1",
+                        "outputs": {
+                          "vpc_id": {
+                            "action": "unknown",
+                            "type": "InN0cmluZyI=",
+                            "before": "rHRydXN0aW5nLWxhYg==",
+                            "after": "1AAA"
+                          }
+                        }
+                      }
+                      """;
 
         var waveId = await Start(["vpc_id"], outputSignalsJson: signals);
 
@@ -477,7 +480,10 @@ public class ProbeWaveStarterTests : IAsyncLifetime
 
     private sealed class FixtureDbContextFactory(Fixture fixture) : IDbContextFactory<SnapCdDbContext>
     {
-        public SnapCdDbContext CreateDbContext() => fixture.CreateDbContext();
+        public SnapCdDbContext CreateDbContext()
+        {
+            return fixture.CreateDbContext();
+        }
     }
 
     /// <summary>
@@ -490,8 +496,8 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         {
             Id = Guid.NewGuid(),
             Name = $"never-applied-{Guid.NewGuid():N}",
-            NamespaceId = _fixture.Modules["0000"].NamespaceId,
-            RunnerId = _fixture.Modules["0000"].RunnerId,
+            NamespaceId = _fixture.Modules["ProbeWaveStarterA"].NamespaceId,
+            RunnerId = _fixture.Modules["ProbeWaveStarterA"].RunnerId,
             OrganizationId = _organizationId,
             SourceUrl = "https://github.com/test/never-applied",
             SourceRevision = "main",

@@ -44,14 +44,17 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     private readonly List<Guid> _inputs = [];
     private readonly List<Guid> _variableSets = [];
 
-    public ProbeInputsBuilderTests(Fixture fixture) => _fixture = fixture;
+    public ProbeInputsBuilderTests(Fixture fixture)
+    {
+        _fixture = fixture;
+    }
 
     public Task InitializeAsync()
     {
         _organizationId = _fixture.Organizations["0"].Id;
-        _consumerId = _fixture.Modules["0000"].Id;
-        _upstreamAId = _fixture.Modules["0001"].Id;
-        _upstreamBId = _fixture.Modules["0002"].Id;
+        _consumerId = _fixture.Modules["ProbeInputsBuilderA"].Id;
+        _upstreamAId = _fixture.Modules["ProbeInputsBuilderB"].Id;
+        _upstreamBId = _fixture.Modules["ProbeInputsBuilderC"].Id;
         return Task.CompletedTask;
     }
 
@@ -358,16 +361,24 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
         Assert.Null(await builder.BuildInputsJson(wave, _consumerId, _organizationId));
     }
 
-    private ProbeReadinessReader Readiness() => new(_fixture.CreateDbContext());
+    private ProbeReadinessReader Readiness()
+    {
+        return new ProbeReadinessReader(_fixture.CreateDbContext());
+    }
 
-    private ProbeInputsBuilder Builder(ISignalSecretReader? secretReader = null) =>
-        new(
+    private ProbeInputsBuilder Builder(ISignalSecretReader? secretReader = null)
+    {
+        return new ProbeInputsBuilder(
             _fixture.CreateDbContext(),
             new RippleProbeConsumerLookup(_fixture.CreateDbContext()),
             secretReader ?? new FakeSignalSecretReader(),
             NullLogger<ProbeInputsBuilder>.Instance);
+    }
 
-    private static string RemoteNameFor(Guid setId, string name) => $"signal--{setId}--{name}";
+    private static string RemoteNameFor(Guid setId, string name)
+    {
+        return $"signal--{setId}--{name}";
+    }
 
 
     /// <summary>
@@ -471,7 +482,6 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
         db.SignalOutputSets.Add(set);
 
         foreach (var (name, json, sensitive) in signals)
-        {
             if (sensitive)
                 db.SecretSignalOutputs.Add(new SecretSignalOutput
                 {
@@ -492,7 +502,6 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
                     Sensitive = false,
                     SignalJson = json
                 });
-        }
 
         await db.SaveChangesAsync();
 
@@ -565,7 +574,9 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
 
     private class FakeSignalSecretReader : Dictionary<string, string>, ISignalSecretReader
     {
-        public Task<string?> Read(SecretSignalOutput signal, Guid organizationId) =>
-            Task.FromResult(TryGetValue(signal.RemoteSecretName, out var value) ? value : null);
+        public Task<string?> Read(SecretSignalOutput signal, Guid organizationId)
+        {
+            return Task.FromResult(TryGetValue(signal.RemoteSecretName, out var value) ? value : null);
+        }
     }
 }
