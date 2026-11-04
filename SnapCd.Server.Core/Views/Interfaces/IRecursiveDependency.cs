@@ -26,6 +26,8 @@ public interface IRecursiveDependency
     DesiredStateHeadline? DefinedDesiredState { get; }
     DesiredStateHeadline? DefinedQueuedDesiredState { get; }
     bool DefinedIsRunning { get; }
+    Guid? DefinedCurrentModuleJobId { get; }
+    bool DefinedWaitingForApproval { get; }
     bool DefinedIsQueued { get; }
     DesiredStateHeadline? DefinedRunningDesiredState { get; }
 
@@ -41,6 +43,8 @@ public interface IRecursiveDependency
     DesiredStateHeadline? ReferencedDesiredState { get; }
     DesiredStateHeadline? ReferencedQueuedDesiredState { get; }
     bool? ReferencedIsRunning { get; }
+    Guid? ReferencedCurrentModuleJobId { get; }
+    bool? ReferencedWaitingForApproval { get; }
     bool? ReferencedIsQueued { get; }
     DesiredStateHeadline? ReferencedRunningDesiredState { get; }
 

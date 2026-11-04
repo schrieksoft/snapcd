@@ -124,6 +124,8 @@ public class DependencyGraphService : IDisposable
                 RunningDesiredState = saga != null && currentJob != null ? currentJob.IsCurrent == true ? saga.DesiredStateHeadline : null : null,
                 QueuedDesiredState = saga != null ? saga.QueuedDesiredStateHeadline : null,
                 IsRunning = currentJob != null && currentJob.IsCurrent == true,
+                CurrentModuleJobId = currentJob != null ? currentJob.Id : (Guid?)null,
+                WaitingForApproval = currentJob != null && currentJob.WaitingForApproval == true,
                 IsQueued = saga != null && saga.QueuedDesiredStateHeadline != null,
                 LatestExecutionStatus = currentJob != null ? currentJob.Status : ExecutionStatus.Unknown
             };

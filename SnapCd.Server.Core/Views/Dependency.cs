@@ -28,6 +28,8 @@ public class Dependency
     public DesiredStateHeadline? DefinedDesiredState { get; set; }
     public DesiredStateHeadline? DefinedQueuedDesiredState { get; set; }
     public bool DefinedIsRunning { get; set; }
+    public Guid? DefinedCurrentModuleJobId { get; set; }
+    public bool DefinedWaitingForApproval { get; set; }
     public bool DefinedIsQueued { get; set; }
     public DesiredStateHeadline? DefinedRunningDesiredState { get; set; }
 
@@ -44,6 +46,8 @@ public class Dependency
     public DesiredStateHeadline? ReferencedDesiredState { get; set; }
     public DesiredStateHeadline? ReferencedQueuedDesiredState { get; set; }
     public bool? ReferencedIsRunning { get; set; }
+    public Guid? ReferencedCurrentModuleJobId { get; set; }
+    public bool? ReferencedWaitingForApproval { get; set; }
     public bool? ReferencedIsQueued { get; set; }
     public DesiredStateHeadline? ReferencedRunningDesiredState { get; set; }
 
@@ -69,6 +73,8 @@ public class Dependency
         DesiredState = DefinedDesiredState,
         QueuedDesiredState = DefinedQueuedDesiredState,
         IsRunning = DefinedIsRunning,
+        CurrentModuleJobId = DefinedCurrentModuleJobId,
+        WaitingForApproval = DefinedWaitingForApproval,
         IsQueued = DefinedIsQueued,
         RunningDesiredState = DefinedRunningDesiredState
     };
@@ -87,6 +93,8 @@ public class Dependency
             DesiredState = ReferencedDesiredState,
             QueuedDesiredState = ReferencedQueuedDesiredState,
             IsRunning = ReferencedIsRunning ?? false,
+            CurrentModuleJobId = ReferencedCurrentModuleJobId,
+            WaitingForApproval = ReferencedWaitingForApproval ?? false,
             IsQueued = ReferencedIsQueued ?? false,
             RunningDesiredState = ReferencedRunningDesiredState
         }
@@ -106,6 +114,8 @@ public class Dependency
         DefinedDesiredState = rd.DefinedDesiredState,
         DefinedQueuedDesiredState = rd.DefinedQueuedDesiredState,
         DefinedIsRunning = rd.DefinedIsRunning,
+        DefinedCurrentModuleJobId = rd.DefinedCurrentModuleJobId,
+        DefinedWaitingForApproval = rd.DefinedWaitingForApproval,
         DefinedIsQueued = rd.DefinedIsQueued,
         DefinedRunningDesiredState = rd.DefinedRunningDesiredState,
         ReferencedModuleId = rd.ReferencedModuleId,
@@ -119,6 +129,8 @@ public class Dependency
         ReferencedDesiredState = rd.ReferencedDesiredState,
         ReferencedQueuedDesiredState = rd.ReferencedQueuedDesiredState,
         ReferencedIsRunning = rd.ReferencedIsRunning,
+        ReferencedCurrentModuleJobId = rd.ReferencedCurrentModuleJobId,
+        ReferencedWaitingForApproval = rd.ReferencedWaitingForApproval,
         ReferencedIsQueued = rd.ReferencedIsQueued,
         ReferencedRunningDesiredState = rd.ReferencedRunningDesiredState,
         DefinedModule = rd.DefinedModule,

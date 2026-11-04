@@ -22,6 +22,8 @@ public class DependencyGraphNodeStateDto
     public DesiredStateHeadline? QueuedDesiredState { get; set; } // The module's queued desired state from ModuleSaga
     public DesiredStateHeadline? RunningDesiredState { get; set; } // The desired state if a job is currently running
     public bool IsRunning { get; set; }
+    public Guid? CurrentModuleJobId { get; set; }
+    public bool WaitingForApproval { get; set; }
     public bool IsQueued { get; set; }
     public DesiredStateHeadline TargetState { get; set; } // The target state for this dependency graph view
     public int Stage { get; set; }

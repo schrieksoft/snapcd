@@ -44,6 +44,8 @@ public class RecursiveApplyDependency : IRecursiveDependency
     public DesiredStateHeadline? DefinedDesiredState { get; set; }
     public DesiredStateHeadline? DefinedQueuedDesiredState { get; set; }
     public bool DefinedIsRunning { get; set; }
+    public Guid? DefinedCurrentModuleJobId { get; set; }
+    public bool DefinedWaitingForApproval { get; set; }
     public bool DefinedIsQueued { get; set; }
     public DesiredStateHeadline? DefinedRunningDesiredState { get; set; }
 
@@ -60,6 +62,8 @@ public class RecursiveApplyDependency : IRecursiveDependency
     public DesiredStateHeadline? ReferencedDesiredState { get; set; }
     public DesiredStateHeadline? ReferencedQueuedDesiredState { get; set; }
     public bool? ReferencedIsRunning { get; set; }
+    public Guid? ReferencedCurrentModuleJobId { get; set; }
+    public bool? ReferencedWaitingForApproval { get; set; }
     public bool? ReferencedIsQueued { get; set; }
     public DesiredStateHeadline? ReferencedRunningDesiredState { get; set; }
 

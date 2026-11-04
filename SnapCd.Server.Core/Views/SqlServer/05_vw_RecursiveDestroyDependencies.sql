@@ -36,6 +36,8 @@ SELECT
     DefinedState.DesiredStateHeadline AS DefinedDesiredState,
     DefinedState.QueuedDesiredStateHeadline AS DefinedQueuedDesiredState,
     COALESCE(DefinedState.IsRunning, CAST(0 AS BIT)) AS DefinedIsRunning,
+    DefinedState.CurrentModuleJobId AS DefinedCurrentModuleJobId,
+    CAST(CASE WHEN DefinedCurrentJob.WaitingForApproval = 1 THEN 1 ELSE 0 END AS BIT) AS DefinedWaitingForApproval,
     CAST(CASE WHEN DefinedState.QueuedDesiredStateHeadline IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS DefinedIsQueued,
     CASE WHEN DefinedState.IsRunning = 1 THEN DefinedState.DesiredStateHeadline ELSE NULL END AS DefinedRunningDesiredState,
 
@@ -51,6 +53,8 @@ SELECT
     ReferencedState.DesiredStateHeadline AS ReferencedDesiredState,
     ReferencedState.QueuedDesiredStateHeadline AS ReferencedQueuedDesiredState,
     ReferencedState.IsRunning AS ReferencedIsRunning,
+    ReferencedState.CurrentModuleJobId AS ReferencedCurrentModuleJobId,
+    CAST(CASE WHEN ReferencedCurrentJob.WaitingForApproval = 1 THEN 1 ELSE 0 END AS BIT) AS ReferencedWaitingForApproval,
     CAST(CASE WHEN ReferencedState.QueuedDesiredStateHeadline IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS ReferencedIsQueued,
     CASE WHEN ReferencedState.IsRunning = 1 THEN ReferencedState.DesiredStateHeadline ELSE NULL END AS ReferencedRunningDesiredState,
 
@@ -61,6 +65,8 @@ FROM RecursiveDependencyEdges re
 LEFT JOIN ModuleState RootState ON RootState.ModuleId = re.RootModuleId
 LEFT JOIN ModuleState DefinedState ON DefinedState.ModuleId = re.DefinedModuleId
 LEFT JOIN ModuleState ReferencedState ON ReferencedState.ModuleId = re.ReferencedModuleId
+LEFT JOIN ModuleJobs DefinedCurrentJob ON DefinedCurrentJob.Id = DefinedState.CurrentModuleJobId
+LEFT JOIN ModuleJobs ReferencedCurrentJob ON ReferencedCurrentJob.Id = ReferencedState.CurrentModuleJobId
 
 WHERE re.Direction = 2
 
@@ -95,6 +101,8 @@ SELECT
     ms.DesiredStateHeadline AS DefinedDesiredState,
     ms.QueuedDesiredStateHeadline AS DefinedQueuedDesiredState,
     COALESCE(ms.IsRunning, CAST(0 AS BIT)) AS DefinedIsRunning,
+    ms.CurrentModuleJobId AS DefinedCurrentModuleJobId,
+    CAST(CASE WHEN DefinedCurrentJob.WaitingForApproval = 1 THEN 1 ELSE 0 END AS BIT) AS DefinedWaitingForApproval,
     CAST(CASE WHEN ms.QueuedDesiredStateHeadline IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS DefinedIsQueued,
     CASE WHEN ms.IsRunning = 1 THEN ms.DesiredStateHeadline ELSE NULL END AS DefinedRunningDesiredState,
 
@@ -110,6 +118,8 @@ SELECT
     CAST(NULL AS NVARCHAR(MAX)) AS ReferencedDesiredState,
     CAST(NULL AS NVARCHAR(MAX)) AS ReferencedQueuedDesiredState,
     CAST(NULL AS BIT) AS ReferencedIsRunning,
+    CAST(NULL AS UNIQUEIDENTIFIER) AS ReferencedCurrentModuleJobId,
+    CAST(NULL AS BIT) AS ReferencedWaitingForApproval,
     CAST(NULL AS BIT) AS ReferencedIsQueued,
     CAST(NULL AS NVARCHAR(MAX)) AS ReferencedRunningDesiredState,
 
@@ -119,6 +129,7 @@ FROM Modules m
 INNER JOIN Namespaces ns ON ns.Id = m.NamespaceId
 INNER JOIN Stacks st ON st.Id = ns.StackId
 LEFT JOIN ModuleState ms ON ms.ModuleId = m.Id
+LEFT JOIN ModuleJobs DefinedCurrentJob ON DefinedCurrentJob.Id = ms.CurrentModuleJobId
 WHERE NOT EXISTS (
     SELECT 1 FROM DependencyEdges de
     WHERE de.DefinedModuleId = m.Id OR de.ReferencedModuleId = m.Id

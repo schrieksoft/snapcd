@@ -86,6 +86,8 @@ public abstract class ModuleGraphServiceBase
         node.DesiredState = state.DesiredState;
         node.QueuedDesiredState = state.QueuedDesiredState;
         node.IsRunning = state.IsRunning;
+        node.CurrentModuleJobId = state.CurrentModuleJobId;
+        node.WaitingForApproval = state.WaitingForApproval;
         node.IsQueued = state.IsQueued;
         node.RunningDesiredState = state.RunningDesiredState;
 
@@ -134,6 +136,8 @@ public abstract class ModuleGraphServiceBase
             DesiredState = moduleInfo.DesiredState,
             QueuedDesiredState = moduleInfo.QueuedDesiredState,
             IsRunning = moduleInfo.IsRunning,
+            CurrentModuleJobId = moduleInfo.CurrentModuleJobId,
+            WaitingForApproval = moduleInfo.WaitingForApproval,
             IsQueued = moduleInfo.IsQueued,
             RunningDesiredState = moduleInfo.RunningDesiredState,
             TargetState = targetState,

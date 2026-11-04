@@ -631,6 +631,13 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 entity.Property(e => e.ReferencedIsRunning).IsRequired(false);
                 entity.Property(e => e.ReferencedIsQueued).IsRequired(false);
 
+                // vw_Dependencies does not carry the job ids or the approval flag; only the
+                // recursive views do. Mapping them here would select columns the view has not got.
+                entity.Ignore(e => e.DefinedCurrentModuleJobId);
+                entity.Ignore(e => e.DefinedWaitingForApproval);
+                entity.Ignore(e => e.ReferencedCurrentModuleJobId);
+                entity.Ignore(e => e.ReferencedWaitingForApproval);
+
                 // Configure navigation properties
                 entity.HasOne(e => e.DefinedModule)
                     .WithMany()
@@ -706,6 +713,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
             entity.Property(e => e.ReferencedIsRunning).IsRequired(false);
             entity.Property(e => e.ReferencedIsQueued).IsRequired(false);
+            entity.Property(e => e.ReferencedCurrentModuleJobId).IsRequired(false);
+            entity.Property(e => e.ReferencedWaitingForApproval).IsRequired(false);
 
             // Configure navigation properties
             entity.HasOne(e => e.DefinedModule)
@@ -781,6 +790,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
             entity.Property(e => e.ReferencedIsRunning).IsRequired(false);
             entity.Property(e => e.ReferencedIsQueued).IsRequired(false);
+            entity.Property(e => e.ReferencedCurrentModuleJobId).IsRequired(false);
+            entity.Property(e => e.ReferencedWaitingForApproval).IsRequired(false);
 
             // Configure navigation properties with composite keys
             entity.HasOne(e => e.DefinedModule)
