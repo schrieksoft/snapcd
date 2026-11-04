@@ -10,13 +10,13 @@ CREATE OR ALTER VIEW vw_Dependencies AS
 -- Real dependency edges
 SELECT DISTINCT
     e.DefinedModuleId,
-    e.DefinedOrganizationId,
-    e.DefinedModuleName,
-    e.DefinedNamespaceId,
-    e.DefinedNamespaceName,
-    e.DefinedStackId,
-    e.DefinedStackName,
-    e.DefinedDisplayName,
+    dm.OrganizationId AS DefinedOrganizationId,
+    dm.Name AS DefinedModuleName,
+    dm.NamespaceId AS DefinedNamespaceId,
+    dns.Name AS DefinedNamespaceName,
+    dns.StackId AS DefinedStackId,
+    dst.Name AS DefinedStackName,
+    CONCAT(dst.Name, '/', dns.Name, '/', dm.Name) AS DefinedDisplayName,
     DefinedState.LatestActualStateHeadline AS DefinedLatestActualState,
     DefinedState.DesiredStateHeadline AS DefinedDesiredState,
     DefinedState.QueuedDesiredStateHeadline AS DefinedQueuedDesiredState,
@@ -25,13 +25,13 @@ SELECT DISTINCT
     CASE WHEN DefinedState.IsRunning = 1 THEN DefinedState.DesiredStateHeadline ELSE NULL END AS DefinedRunningDesiredState,
 
     CAST(e.ReferencedModuleId AS UNIQUEIDENTIFIER) AS ReferencedModuleId,
-    CAST(e.ReferencedOrganizationId AS UNIQUEIDENTIFIER) AS ReferencedOrganizationId,
-    CAST(e.ReferencedModuleName AS NVARCHAR(450)) AS ReferencedModuleName,
-    CAST(e.ReferencedNamespaceId AS UNIQUEIDENTIFIER) AS ReferencedNamespaceId,
-    CAST(e.ReferencedNamespaceName AS NVARCHAR(450)) AS ReferencedNamespaceName,
-    CAST(e.ReferencedStackId AS UNIQUEIDENTIFIER) AS ReferencedStackId,
-    CAST(e.ReferencedStackName AS NVARCHAR(450)) AS ReferencedStackName,
-    CAST(e.ReferencedDisplayName AS NVARCHAR(MAX)) AS ReferencedDisplayName,
+    CAST(rm.OrganizationId AS UNIQUEIDENTIFIER) AS ReferencedOrganizationId,
+    CAST(rm.Name AS NVARCHAR(450)) AS ReferencedModuleName,
+    CAST(rm.NamespaceId AS UNIQUEIDENTIFIER) AS ReferencedNamespaceId,
+    CAST(rns.Name AS NVARCHAR(450)) AS ReferencedNamespaceName,
+    CAST(rns.StackId AS UNIQUEIDENTIFIER) AS ReferencedStackId,
+    CAST(rst.Name AS NVARCHAR(450)) AS ReferencedStackName,
+    CAST(CONCAT(rst.Name, '/', rns.Name, '/', rm.Name) AS NVARCHAR(MAX)) AS ReferencedDisplayName,
     ReferencedState.LatestActualStateHeadline AS ReferencedLatestActualState,
     ReferencedState.DesiredStateHeadline AS ReferencedDesiredState,
     ReferencedState.QueuedDesiredStateHeadline AS ReferencedQueuedDesiredState,
@@ -39,7 +39,16 @@ SELECT DISTINCT
     CAST(CASE WHEN ReferencedState.QueuedDesiredStateHeadline IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS ReferencedIsQueued,
     CASE WHEN ReferencedState.IsRunning = 1 THEN ReferencedState.DesiredStateHeadline ELSE NULL END AS ReferencedRunningDesiredState
 
-FROM vw_DependencyEdges e
+-- The trigger-maintained edge cache. The joins below name both ends of the edge.
+FROM DependencyEdges e
+
+INNER JOIN Modules dm ON dm.Id = e.DefinedModuleId
+INNER JOIN Namespaces dns ON dns.Id = dm.NamespaceId
+INNER JOIN Stacks dst ON dst.Id = dns.StackId
+
+INNER JOIN Modules rm ON rm.Id = e.ReferencedModuleId
+INNER JOIN Namespaces rns ON rns.Id = rm.NamespaceId
+INNER JOIN Stacks rst ON rst.Id = rns.StackId
 
 LEFT JOIN ModuleState DefinedState ON DefinedState.ModuleId = e.DefinedModuleId
 LEFT JOIN ModuleState ReferencedState ON ReferencedState.ModuleId = e.ReferencedModuleId
@@ -82,7 +91,7 @@ FROM Modules m
 INNER JOIN Namespaces ns ON ns.Id = m.NamespaceId
 INNER JOIN Stacks st ON st.Id = ns.StackId
 LEFT JOIN ModuleState ms ON ms.ModuleId = m.Id
-WHERE NOT EXISTS (
-    SELECT 1 FROM DependencyEdges de
-    WHERE de.DefinedModuleId = m.Id OR de.ReferencedModuleId = m.Id
-);
+-- Two clauses rather than one with an OR: each side has its own index, and an OR across
+-- both defeats the seek, so the edge table gets rescanned once per Module.
+WHERE NOT EXISTS (SELECT 1 FROM DependencyEdges de WHERE de.DefinedModuleId = m.Id)
+  AND NOT EXISTS (SELECT 1 FROM DependencyEdges de WHERE de.ReferencedModuleId = m.Id);
