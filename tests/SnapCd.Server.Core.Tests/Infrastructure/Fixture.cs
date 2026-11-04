@@ -216,7 +216,7 @@ public class Fixture : IAsyncLifetime
             .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
             .WithPassword(SaPassword)
             .WithWaitStrategy(Wait.ForUnixContainer()
-                .UntilPortIsAvailable(1433))
+                .UntilInternalTcpPortIsAvailable(1433))
             .Build();
 
         await _databaseContainer.StartAsync();

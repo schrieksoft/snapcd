@@ -58,7 +58,7 @@ public class DependencyGraphConcurrencyFixture : IAsyncLifetime
         _databaseContainer = new MsSqlBuilder()
             .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
             .WithPassword(SaPassword)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(1433))
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(1433))
             .Build();
 
         await _databaseContainer.StartAsync();

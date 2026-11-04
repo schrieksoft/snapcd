@@ -14,7 +14,7 @@
         <!-- Syntax-only parsing of the controller sources (ControllerSyntaxIndex); no workspace,
              no compilation — everything else the MCP emitter needs comes from reflection over the
              referenced SnapCd.Server.Core assembly. -->
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     </ItemGroup>
 
     <ItemGroup>
