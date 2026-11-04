@@ -149,13 +149,11 @@
                     <div>
                         @if (IsDraining)
                         {
-                            @:This module is pausing. The job already in flight runs to completion; no further work is
-                            dispatched.
+                            @:This module is pausing. The job already in flight runs to completion; no further work is dispatched.
                         }
                         else
                         {
-                            @:This module is paused. Triggered and dependency-driven work is queued rather than
-                            dispatched,
+                            @:This module is paused. Triggered and dependency-driven work is queued rather than dispatched,
                             @:and apply and destroy are unavailable until it is resumed.
                         }
                         @if (!string.IsNullOrEmpty(_moduleSaga.PauseReason))

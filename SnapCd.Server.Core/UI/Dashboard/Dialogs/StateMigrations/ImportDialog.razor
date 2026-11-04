@@ -101,6 +101,8 @@
     private string? _yaml;
     private string? _error;
 
+    // Const so the three state-migration dialogs stay the same shape; the branch it does not
+    // take is unreachable by design.
     private const bool NeedsTarget = true;
 
     private bool HasSomething => _asCode
