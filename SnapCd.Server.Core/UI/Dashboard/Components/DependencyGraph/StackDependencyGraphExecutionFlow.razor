@@ -78,16 +78,14 @@
                                                                  @onclick:stopPropagation="true">
                                                             @nodeState.ModuleName
                                                         </MudLink>
+                                                        @if (nodeState.WaitingForApproval)
+                                                        {
+                                                            <AwaitingApprovalChip Node="@nodeState"/>
+                                                        }
                                                     </div>
                                                     <MudText Typo="Typo.caption" Color="@nodeState.StateColor" Style="font-size: 0.75rem;">
                                                         @nodeState.StateDisplayText
                                                     </MudText>
-                                                    @if (nodeState.WaitingForApproval)
-                                                    {
-                                                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ma-0">
-                                                            Awaiting approval
-                                                        </MudChip>
-                                                    }
                                                 </TitleContent>
                                                 <ChildContent>
                                                     <MudStack Spacing="1" Class="pa-1">
@@ -147,16 +145,14 @@
                                                          Style="font-size: 0.8rem;">
                                                     @nodeState.ModuleName
                                                 </MudLink>
+                                                @if (nodeState.WaitingForApproval)
+                                                {
+                                                    <AwaitingApprovalChip Node="@nodeState"/>
+                                                }
                                             </div>
                                             <MudText Typo="Typo.caption" Color="@nodeState.StateColor" Style="font-size: 0.75rem;">
                                                 @nodeState.StateDisplayText
                                             </MudText>
-                                            @if (nodeState.WaitingForApproval)
-                                            {
-                                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ma-0">
-                                                    Awaiting approval
-                                                </MudChip>
-                                            }
                                         </div>
                                     }
                                 }

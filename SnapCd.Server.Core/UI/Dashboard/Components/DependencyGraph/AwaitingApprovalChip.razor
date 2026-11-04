@@ -1,0 +1,45 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Server.Core.Dtos
+
+<MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ma-0 awaiting-approval-chip">
+    @if (Href is not null)
+    {
+        <a href="@Href" @onclick:stopPropagation="true">awaiting approval</a>
+    }
+    else
+    {
+        @:awaiting approval
+    }
+</MudChip>
+
+<style>
+    /* Inherits the chip's Ink-on-accent colour; the underline on hover is what marks it a link. */
+    .awaiting-approval-chip a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .awaiting-approval-chip a:hover,
+    .awaiting-approval-chip a:focus-visible {
+        text-decoration: underline;
+    }
+</style>
+
+@code {
+    [Parameter] public required DependencyGraphNodeStateDto Node { get; set; }
+
+    /// <summary>
+    /// The job's Approvals tab, in the shape ModulePage routes and IntegrationEventDispatcher
+    /// builds for the same purpose. Null where no job is in flight, which leaves plain text.
+    /// </summary>
+    private string? Href => Node.CurrentModuleJobId is { } jobId
+        ? $"/Module/{Node.DisplayName}?action=Jobs&job={jobId}&tab=approvals"
+        : null;
+}
