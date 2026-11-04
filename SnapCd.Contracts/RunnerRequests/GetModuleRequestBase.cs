@@ -6,8 +6,6 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Contracts.Dto;
-using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Contracts.Dto.Misc;
 
 namespace SnapCd.Contracts.RunnerRequests;

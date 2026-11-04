@@ -7,11 +7,9 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
-using SnapCd.Runner.Logging;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests;
-using SnapCd.Runner.Services.PolicyEvaluation;
 
 namespace SnapCd.Runner.Tasks;
 

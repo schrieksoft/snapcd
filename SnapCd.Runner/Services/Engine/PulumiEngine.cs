@@ -8,9 +8,6 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using SnapCd.Contracts;
-using SnapCd.Contracts.Dto.OutputSets;
-using SnapCd.Contracts.Dto.Outputs;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Runner.Factories;
 using SnapCd.Runner.Services.Plan;

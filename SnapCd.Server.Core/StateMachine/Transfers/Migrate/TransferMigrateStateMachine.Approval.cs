@@ -7,9 +7,7 @@
 // for terms covering either use.
 
 using MassTransit;
-using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
-using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Transfer;

@@ -10,7 +10,6 @@ using System.Reflection;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.Constants;
 using SnapCd.Server.Core.Hubs;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Misc;
 

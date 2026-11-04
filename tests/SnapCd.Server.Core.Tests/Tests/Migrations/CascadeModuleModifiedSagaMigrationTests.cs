@@ -15,7 +15,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Host.Database;
 using Testcontainers.MsSql;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Migrations;
 

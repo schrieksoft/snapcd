@@ -9,7 +9,6 @@
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 
 using SnapCd.Server.Core.Events.Jobs.Base;
-using SnapCd.Server.Core.Events.Steps.StateMigrations;
 
 namespace SnapCd.Server.Core.Events.Jobs.Module;
 

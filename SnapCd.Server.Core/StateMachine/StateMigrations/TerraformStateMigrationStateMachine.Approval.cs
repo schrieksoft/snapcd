@@ -8,17 +8,11 @@
 
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using MassTransit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using SnapCd.Server.Core.Entities.Sagas;
-using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
-using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
-using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.Events.Runners;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;

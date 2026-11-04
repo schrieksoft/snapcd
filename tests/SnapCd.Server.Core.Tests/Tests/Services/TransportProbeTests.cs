@@ -12,11 +12,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 

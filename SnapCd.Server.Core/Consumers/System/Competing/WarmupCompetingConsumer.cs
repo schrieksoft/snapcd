@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using MassTransit;
-using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Events.System;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;

@@ -8,7 +8,6 @@
 
 using System.Diagnostics;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Startup;

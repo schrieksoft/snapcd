@@ -8,8 +8,6 @@
 
 using Hangfire.Annotations;
 using Hangfire.Dashboard;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Services.Nonsecured.Admin;
 
 namespace SnapCd.Server.Core.Startup;

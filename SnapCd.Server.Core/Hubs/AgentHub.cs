@@ -15,7 +15,6 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Contracts.AgentResults;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Agents;
 using SnapCd.Server.Core.Events.Missions;

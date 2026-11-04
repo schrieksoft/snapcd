@@ -8,7 +8,6 @@
 
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Server.Core.Hubs.Filters;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Services.Nonsecured.RunnerConnectionValidator;
 using SnapCd.Server.Core.Services.Utils;

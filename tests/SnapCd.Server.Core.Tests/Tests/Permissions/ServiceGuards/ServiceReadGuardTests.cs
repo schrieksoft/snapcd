@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
@@ -17,7 +16,6 @@ using SnapCd.Server.Core.Services.Secured.Crud;
 using SnapCd.Server.Core.Services.Secured.Crud.Jobs;
 using SnapCd.Server.Core.Services.Secured.Crud.Transfers;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Permissions.ServiceGuards;
 

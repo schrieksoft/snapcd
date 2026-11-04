@@ -11,11 +11,8 @@ using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
-using SnapCd.Server.Core.StateMachine.SplitMigrate;
 using SnapCd.Server.Core.StateMachine.StateMigrations;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate;
-using Xunit;
-
 using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Entities.Sagas.ApplyJobSaga,
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleRequested,

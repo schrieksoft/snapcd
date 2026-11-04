@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using MassTransit;
-using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;

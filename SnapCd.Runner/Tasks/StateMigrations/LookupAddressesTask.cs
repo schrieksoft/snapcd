@@ -8,7 +8,6 @@
 
 
 using Microsoft.AspNetCore.SignalR.Client;
-using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests.StateMigrations;
 using SnapCd.Runner.Services;
 

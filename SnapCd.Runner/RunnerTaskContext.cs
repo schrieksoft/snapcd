@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using SnapCd.Runner.Services;
-using Microsoft.Extensions.Logging;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Runner.Logging;
 

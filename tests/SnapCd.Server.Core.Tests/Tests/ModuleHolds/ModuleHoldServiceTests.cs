@@ -15,7 +15,6 @@ using Moq;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.ModuleHolds;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Nonsecured.ModuleHold;
 using SnapCd.Server.Core.Services.Secured.ModuleHold;

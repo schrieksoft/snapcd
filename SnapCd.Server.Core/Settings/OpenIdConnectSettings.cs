@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using System.ComponentModel.DataAnnotations;
-using SnapCd.Server.Core.Settings.ExternalLoginProviderSettings;
 
 namespace SnapCd.Server.Core.Settings;
 

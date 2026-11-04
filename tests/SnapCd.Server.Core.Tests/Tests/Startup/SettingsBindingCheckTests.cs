@@ -10,7 +10,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Startup;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Startup;
 

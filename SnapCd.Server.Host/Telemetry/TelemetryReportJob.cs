@@ -10,7 +10,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Host.Installations;
-using SnapCd.Server.Core.Telemetry;
 
 namespace SnapCd.Server.Host.Telemetry;
 

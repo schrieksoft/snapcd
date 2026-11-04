@@ -8,7 +8,6 @@
 
 using System.Text.Json.Serialization;
 using MassTransit;
-using MassTransit.SqlTransport;
 using SnapCd.Server.Core.Enums;
 
 namespace SnapCd.Server.Core.Settings;

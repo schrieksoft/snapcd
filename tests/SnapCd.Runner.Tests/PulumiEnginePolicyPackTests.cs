@@ -12,7 +12,6 @@ using Moq;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Settings;
-using Xunit;
 
 namespace SnapCd.Runner.Tests;
 

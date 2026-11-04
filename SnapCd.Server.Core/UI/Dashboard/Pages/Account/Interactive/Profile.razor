@@ -13,15 +13,12 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
-@using MudBlazor
 @using SnapCd.Server.Core.Database
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Factories
 @using SnapCd.Server.Core.Repositories.System.Secured
-@using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Nonsecured
 @using SnapCd.Server.Core.Views
-@using SnapCd.Server.Core.UI.Dashboard.Layout
 @implements IDisposable
 
 @inject UserManagerFactory<User, IdentityRole<Guid>, SnapCdDbContext> UserManagerFactory

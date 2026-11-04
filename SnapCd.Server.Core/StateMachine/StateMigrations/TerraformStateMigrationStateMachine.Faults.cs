@@ -7,9 +7,6 @@
 // for terms covering either use.
 
 using MassTransit;
-using SnapCd.Server.Core.Entities.Sagas;
-using SnapCd.Server.Core.Events.Steps;
-using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 

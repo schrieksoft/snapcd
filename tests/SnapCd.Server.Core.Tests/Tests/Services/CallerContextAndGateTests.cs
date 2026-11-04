@@ -23,7 +23,6 @@ using SnapCd.Server.Core.Services.Utils.CallerContext;
 using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
-using Xunit;
 using CallerCtx = SnapCd.Server.Core.Services.Utils.CallerContext.CallerContext;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;

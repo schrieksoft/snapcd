@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using SnapCd.Runner.Services.PolicyEvaluation;
-using Xunit;
 
 namespace SnapCd.Runner.Tests;
 

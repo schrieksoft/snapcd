@@ -7,8 +7,6 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
-using SnapCd.Contracts;
-using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Runner.Services.SplitMigrate;
 using SnapCd.Runner.Services.Transfers;

@@ -8,7 +8,6 @@
 
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.OpenApi;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi;
 
 namespace SnapCd.Server.Core.Startup;

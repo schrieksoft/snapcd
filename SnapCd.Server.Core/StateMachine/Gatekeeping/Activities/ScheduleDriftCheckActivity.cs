@@ -8,11 +8,9 @@
 
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Gatekeeping;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;

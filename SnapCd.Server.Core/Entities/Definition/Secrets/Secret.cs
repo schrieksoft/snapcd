@@ -10,7 +10,6 @@ using System.ComponentModel.DataAnnotations;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Services.Utils.Vaults;
 
 namespace SnapCd.Server.Core.Entities.Definition.Secrets;
 

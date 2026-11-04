@@ -8,7 +8,6 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 
 namespace SnapCd.Server.Core.Database.ClassMaps.ProbeWaves;

@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using SnapCd.Server.Core.Health;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Health;
 

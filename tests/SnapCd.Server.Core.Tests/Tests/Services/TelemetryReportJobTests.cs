@@ -15,7 +15,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Interfaces;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Host.Database;
@@ -24,7 +23,6 @@ using SnapCd.Server.Core.Telemetry;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using SnapCd.Server.Host.Licensing.Services;
 using SnapCd.Server.Host.Telemetry;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 

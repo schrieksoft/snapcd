@@ -9,9 +9,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using SnapCd.Contracts;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
-using SnapCd.Runner.Logging;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Services.ModuleSourceRefresher;
 

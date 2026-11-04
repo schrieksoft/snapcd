@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace SnapCd.Utils.Settings;
 

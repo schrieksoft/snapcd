@@ -14,13 +14,11 @@ using SnapCd.Server.Core.Dtos.Organizations;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Repository.System;
 using SnapCd.Server.Core.Repositories.System.Nonsecured;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Interfaces;
 using SnapCd.Server.Core.Services.Interfaces.Edition;
 using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider;
 using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
-using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.System.Secured;

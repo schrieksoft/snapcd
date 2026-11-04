@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using MassTransit;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Hubs;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Events.Server;

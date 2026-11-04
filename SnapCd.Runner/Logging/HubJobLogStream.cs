@@ -7,8 +7,6 @@
 // for terms covering either use.
 
 using System.Collections.Concurrent;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Serilog.Events;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Misc;

@@ -8,7 +8,6 @@
 
 
 using MassTransit;
-using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
@@ -18,7 +17,6 @@ using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Services.Nonsecured.Crud.Transfers;

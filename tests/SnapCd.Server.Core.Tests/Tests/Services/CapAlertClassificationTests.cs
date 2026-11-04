@@ -8,7 +8,6 @@
 
 using SnapCd.Server.Core.Telemetry;
 using SnapCd.Server.Host.CapAlerts;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 

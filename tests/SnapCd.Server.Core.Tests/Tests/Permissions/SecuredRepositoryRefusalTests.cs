@@ -5,7 +5,6 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Permissions;
 

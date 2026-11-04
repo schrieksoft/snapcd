@@ -9,7 +9,6 @@
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 

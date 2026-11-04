@@ -10,11 +10,8 @@
 @layout OrganizationMainLayout
 
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.IdentityModel.Tokens
 @using SnapCd.Server.Core.UI.Dashboard.Components.Module
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Queue
-@using SnapCd.Server.Core.UI.Dashboard.Components.DependencyGraph
-@using SnapCd.Contracts.Dto
 @using System.Threading
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Dtos
@@ -26,7 +23,6 @@
 @using SnapCd.Server.Core.Repositories.Custom.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Nonsecured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
-@using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
 @using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider
 @using SnapCd.Server.Core.Services.Nonsecured.DependencyGraph
@@ -35,7 +31,6 @@
 @using SnapCd.Server.Core.Services.Secured.Crud.Jobs
 @using SnapCd.Server.Core.Services.Utils.Notification
 @using SnapCd.Server.Core.Services.Utils.PrincipalProvider
-@using SnapCd.Server.Core.Views
 @using SnapCd.Server.Core.Views.Metadata
 
 @implements IDisposable

@@ -8,7 +8,6 @@
 
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
-using SnapCd.Contracts;
 using SnapCd.Contracts.AgentRequests;
 using SnapCd.Contracts.Constants;
 using SnapCd.Server.Core.Events.Missions;

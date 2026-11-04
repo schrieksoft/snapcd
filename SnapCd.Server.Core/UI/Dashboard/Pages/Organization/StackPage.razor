@@ -10,14 +10,12 @@
 @layout OrganizationMainLayout
 @using Microsoft.AspNetCore.Authorization
 @using SnapCd.Contracts
-@using SnapCd.Contracts.Dto
 @using SnapCd.Server.Core.Dtos
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Enums
 @using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Misc.Exceptions
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
-@using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
 @using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider
 @using SnapCd.Server.Core.Services.Nonsecured.DependencyGraph
@@ -25,14 +23,10 @@
 @using SnapCd.Server.Core.Services.Secured
 @using SnapCd.Server.Core.Services.Secured.Crud.Jobs
 @using SnapCd.Server.Core.Services.Utils.PrincipalProvider
-@using SnapCd.Server.Core.Views
-@using SnapCd.Server.Core.UI.Dashboard.Components.DependencyGraph
 @using Stack = SnapCd.Server.Core.Entities.Definition.Stack
-@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 @using SnapCd.Server.Core.UI.Dashboard.Components.Stack
 @using SnapCd.Server.Core.UI.Dashboard.Components.Namespace
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Namespaces
-@using SnapCd.Server.Core.UI.Dashboard.Dialogs.ModuleJobs
 @using SnapCd.Server.Core.Views.Metadata
 
 @implements IDisposable

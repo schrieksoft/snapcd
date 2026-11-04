@@ -10,8 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Architecture;
 

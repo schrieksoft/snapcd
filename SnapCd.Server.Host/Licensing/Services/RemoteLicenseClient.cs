@@ -6,7 +6,6 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Licensing.Protocol;
 using SnapCd.Server.Host.Installations;

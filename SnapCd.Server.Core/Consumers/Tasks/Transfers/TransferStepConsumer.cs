@@ -9,9 +9,7 @@
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
-using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Hubs;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Nonsecured;
 
 namespace SnapCd.Server.Core.Consumers.Tasks.Transfers;

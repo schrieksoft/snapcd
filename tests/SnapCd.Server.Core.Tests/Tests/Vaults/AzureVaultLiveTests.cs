@@ -11,7 +11,6 @@ using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Logging.Abstractions;
 using SnapCd.Server.Core.Services.Utils.Vaults;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Vaults;
 

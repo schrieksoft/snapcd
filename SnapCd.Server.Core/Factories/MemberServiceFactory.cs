@@ -13,7 +13,6 @@ using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Interfaces.Email;
 using SnapCd.Server.Core.Services.Nonsecured;
 using SnapCd.Server.Core.Settings;

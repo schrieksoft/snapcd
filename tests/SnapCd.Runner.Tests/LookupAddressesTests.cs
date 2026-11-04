@@ -8,7 +8,6 @@
 
 
 using SnapCd.Runner.Services;
-using Xunit;
 
 namespace SnapCd.Runner.Tests;
 

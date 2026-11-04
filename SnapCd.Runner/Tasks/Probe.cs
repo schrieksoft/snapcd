@@ -8,7 +8,6 @@
 
 using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts;
-using SnapCd.Runner.Logging;
 using SnapCd.Runner.Services;
 using SnapCd.Contracts.RunnerRequests;
 

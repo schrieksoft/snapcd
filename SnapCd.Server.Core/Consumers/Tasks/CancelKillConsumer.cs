@@ -9,7 +9,6 @@
 using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
-using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Hubs;

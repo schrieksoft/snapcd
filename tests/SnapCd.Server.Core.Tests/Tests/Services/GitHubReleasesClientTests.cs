@@ -14,13 +14,11 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Interfaces;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using SnapCd.Server.Host.Database;
 using SnapCd.Server.Host.Installations;
 using SnapCd.Server.Host.Telemetry;
-using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 
