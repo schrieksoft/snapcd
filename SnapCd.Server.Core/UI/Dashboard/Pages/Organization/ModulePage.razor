@@ -69,7 +69,8 @@
                 <MudText Typo="Typo.h4" Class="module-page-title">@ModuleName</MudText>
                 @if (_actualStateSummary != null)
                 {
-                    <span class="module-status-badge module-status-badge--@GetStatusBadgeClass(_actualStateSummary.State)">
+                    <span
+                        class="module-status-badge module-status-badge--@GetStatusBadgeClass(_actualStateSummary.State)">
                         <span class="module-status-dot"></span>
                         @FormatActualState(_actualStateSummary.State)
                     </span>
@@ -87,7 +88,8 @@
                 <span class="module-page-parents">
                     Stack: <MudLink Href="@($"/Stack/{StackName}{_parentQuery}")">@StackName</MudLink>
                     ·
-                    Namespace: <MudLink Href="@($"/Namespace/{StackName}/{NamespaceName}{_parentQuery}")">@NamespaceName</MudLink>
+                    Namespace: <MudLink
+                        Href="@($"/Namespace/{StackName}/{NamespaceName}{_parentQuery}")">@NamespaceName</MudLink>
                 </span>
                 @if (_moduleSaga?.ActualResourceCount.HasValue == true
                      || _revisionSummary != null
@@ -139,18 +141,21 @@
             <MudAlert Severity="Severity.Info" Class="mb-4">
                 @* The button leads the sentence it acts on, rather than sitting at the far end of it. *@
                 <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
-                    <MudTooltip Text="A resume is already in progress." Disabled="@(!(_resuming))">
+                    <MudTooltip Text="A resume is already in progress." Disabled="@(!_resuming)">
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@_resuming" OnClick="Resume">resume</MudButton>
+                                   Disabled="@_resuming" OnClick="Resume">resume
+                        </MudButton>
                     </MudTooltip>
                     <div>
                         @if (IsDraining)
                         {
-                            @:This module is pausing. The job already in flight runs to completion; no further work is dispatched.
+                            @:This module is pausing. The job already in flight runs to completion; no further work is
+                            dispatched.
                         }
                         else
                         {
-                            @:This module is paused. Triggered and dependency-driven work is queued rather than dispatched,
+                            @:This module is paused. Triggered and dependency-driven work is queued rather than
+                            dispatched,
                             @:and apply and destroy are unavailable until it is resumed.
                         }
                         @if (!string.IsNullOrEmpty(_moduleSaga.PauseReason))
@@ -180,53 +185,53 @@
         }
         else
         {
-        <div @key="_module!.Id">
-            @if (_showing == ShowingType.Jobs)
-            {
-                <ManageModuleJobs Module="_module"
-                                  InitialJobId="@(Guid.TryParse(Job, out var __jid) ? __jid : (Guid?)null)"
-                                  InitialTab="@Tab"
-                                  InitialTask="@Task"
-                                  OnJobsStateChanged="HandleJobsStateChanged"
-                                  IsQueued="@(_queuedSummary is { State: true })"
-                                  QueuedText="@(_queuedSummary?.Text)"
-                                  QueuedReasonText="@GetQueuedReasonDisplayText()"
-                                  ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin && _runnerAvailabilitySummary is not { ActiveCount: 0 })"
-                                  IsPaused="@(_moduleSaga is { Paused: true })"
-                                  OnRunQueueNow="RunQueueNow"
-                                  OnClearQueue="ClearQueue"/>
-            }
+            <div @key="_module!.Id">
+                @if (_showing == ShowingType.Jobs)
+                {
+                    <ManageModuleJobs Module="_module"
+                                      InitialJobId="@(Guid.TryParse(Job, out var __jid) ? __jid : (Guid?)null)"
+                                      InitialTab="@Tab"
+                                      InitialTask="@Task"
+                                      OnJobsStateChanged="HandleJobsStateChanged"
+                                      IsQueued="@(_queuedSummary is { State: true })"
+                                      QueuedText="@(_queuedSummary?.Text)"
+                                      QueuedReasonText="@GetQueuedReasonDisplayText()"
+                                      ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin && _runnerAvailabilitySummary is not { ActiveCount: 0 })"
+                                      IsPaused="@(_moduleSaga is { Paused: true })"
+                                      OnRunQueueNow="RunQueueNow"
+                                      OnClearQueue="ClearQueue"/>
+                }
 
-            @if (_showing == ShowingType.Configure)
-            {
-                <ConfigureModule Module="_module"
-                                 StackId="_stackId"
-                                 StackName="@StackName"
-                                 NamespaceName="@NamespaceName"
-                                 PrincipalProvider="_literalPrincipalProvider"
-                                 InitialSection="@_configureSection"
-                                 OnSectionChanged="HandleConfigureSectionChanged"
-                                 OnModuleDeleted="HandleModuleDeleted"
-                                 OnModuleSaved="HandleModuleSaved"/>
-            }
+                @if (_showing == ShowingType.Configure)
+                {
+                    <ConfigureModule Module="_module"
+                                     StackId="_stackId"
+                                     StackName="@StackName"
+                                     NamespaceName="@NamespaceName"
+                                     PrincipalProvider="_literalPrincipalProvider"
+                                     InitialSection="@_configureSection"
+                                     OnSectionChanged="HandleConfigureSectionChanged"
+                                     OnModuleDeleted="HandleModuleDeleted"
+                                     OnModuleSaved="HandleModuleSaved"/>
+                }
 
-            @if (_showing == ShowingType.Outputs)
-            {
-                <ViewOutputs Module="_module" StackName="@StackName"/>
-            }
+                @if (_showing == ShowingType.Outputs)
+                {
+                    <ViewOutputs Module="_module" StackName="@StackName"/>
+                }
 
-            @if (_showing == ShowingType.Variables)
-            {
-                <ViewVariables Module="_module" StackName="@StackName"/>
-            }
+                @if (_showing == ShowingType.Variables)
+                {
+                    <ViewVariables Module="_module" StackName="@StackName"/>
+                }
 
-            @if (_showing == ShowingType.StateMigrations)
-            {
-                <ManageStateMigrations Module="_module"
-                                  ModuleSaga="_moduleSaga"
-                                  PrincipalProvider="_literalPrincipalProvider"/>
-            }
-        </div>
+                @if (_showing == ShowingType.StateMigrations)
+                {
+                    <ManageStateMigrations Module="_module"
+                                           ModuleSaga="_moduleSaga"
+                                           PrincipalProvider="_literalPrincipalProvider"/>
+                }
+            </div>
         }
     }
 </CascadingValue>
@@ -352,7 +357,9 @@
     }
 
     @@keyframes job-status-spin {
-        to { transform: rotate(360deg); }
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>
 
@@ -423,6 +430,7 @@
 
     /// A paused module is still draining while its in-flight job runs; the gate stops new work only.
     private bool IsDraining => _moduleSaga is { Paused: true } && GetJobState() == JobState.Running;
+
     private Timer? _runnerAvailabilityRefreshTimer;
     private bool? _isWaitingOnDependencies = null;
 
@@ -454,6 +462,8 @@
 
     private async Task RunQueueNow()
     {
+        ArgumentNullException.ThrowIfNull(_module);
+
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
 
         var parameters = new DialogParameters<RunQueueNowDialog>
@@ -475,6 +485,8 @@
 
     private async Task ClearQueue()
     {
+        ArgumentNullException.ThrowIfNull(_module);
+
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
         var parameters = new DialogParameters<ClearQueueDialog>
         {
@@ -572,6 +584,8 @@
     /// </summary>
     private async Task Resume()
     {
+        ArgumentNullException.ThrowIfNull(_module);
+
         _resuming = true;
         try
         {
@@ -592,6 +606,8 @@
 
     private async Task ReloadModuleSaga(bool invokeAsync)
     {
+        ArgumentNullException.ThrowIfNull(_module);
+
         using var moduleSagaRepo = SagaRepoFactory.Create(
             // when notification callback there is no HttpContext, so we have to persist the principal beforehand in _principalId and _principalDiscriminator, the create the secured repo with a permission service that uses a LiteralPrincipalProvider
             new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId])
@@ -957,32 +973,38 @@
 
     # endregion
 
-    private string FormatActualState(ActualStateHeadline state) => state switch
+    private string FormatActualState(ActualStateHeadline state)
     {
-        ActualStateHeadline.Applied => "Applied",
-        ActualStateHeadline.Destroyed => "Destroyed",
-        ActualStateHeadline.ApplyFailed => "Apply Failed",
-        ActualStateHeadline.DestroyFailed => "Destroy Failed",
-        ActualStateHeadline.ApplyCancelled => "Apply Cancelled",
-        ActualStateHeadline.DestroyCancelled => "Destroy Cancelled",
-        ActualStateHeadline.ApplyTimeout => "Apply Timeout",
-        ActualStateHeadline.DestroyTimeout => "Destroy Timeout",
-        ActualStateHeadline.ApplyNotApproved => "Apply Not Approved",
-        ActualStateHeadline.DestroyNotApproved => "Destroy Not Approved",
-        ActualStateHeadline.ApplyOrphaned => "Apply Orphaned",
-        ActualStateHeadline.DestroyOrphaned => "Destroy Orphaned",
-        ActualStateHeadline.ApplyUnknown => "No state available yet",
-        ActualStateHeadline.DestroyUnknown => "No state available yet",
-        ActualStateHeadline.None => "None",
-        _ => state.ToString()
-    };
+        return state switch
+        {
+            ActualStateHeadline.Applied => "Applied",
+            ActualStateHeadline.Destroyed => "Destroyed",
+            ActualStateHeadline.ApplyFailed => "Apply Failed",
+            ActualStateHeadline.DestroyFailed => "Destroy Failed",
+            ActualStateHeadline.ApplyCancelled => "Apply Cancelled",
+            ActualStateHeadline.DestroyCancelled => "Destroy Cancelled",
+            ActualStateHeadline.ApplyTimeout => "Apply Timeout",
+            ActualStateHeadline.DestroyTimeout => "Destroy Timeout",
+            ActualStateHeadline.ApplyNotApproved => "Apply Not Approved",
+            ActualStateHeadline.DestroyNotApproved => "Destroy Not Approved",
+            ActualStateHeadline.ApplyOrphaned => "Apply Orphaned",
+            ActualStateHeadline.DestroyOrphaned => "Destroy Orphaned",
+            ActualStateHeadline.ApplyUnknown => "No state available yet",
+            ActualStateHeadline.DestroyUnknown => "No state available yet",
+            ActualStateHeadline.None => "None",
+            _ => state.ToString()
+        };
+    }
 
-    private string GetStatusBadgeClass(ActualStateHeadline state) => state switch
+    private string GetStatusBadgeClass(ActualStateHeadline state)
     {
-        ActualStateHeadline.Applied => "success",
-        ActualStateHeadline.ApplyFailed or ActualStateHeadline.DestroyFailed => "error",
-        _ => "default"
-    };
+        return state switch
+        {
+            ActualStateHeadline.Applied => "success",
+            ActualStateHeadline.ApplyFailed or ActualStateHeadline.DestroyFailed => "error",
+            _ => "default"
+        };
+    }
 
     # region actual state
 
@@ -1068,6 +1090,8 @@
 
     private async Task<bool> IsWaitingOnDependencies()
     {
+        ArgumentNullException.ThrowIfNull(_module);
+
         // Only check if there's a queued desired state
         if (!_moduleSaga.QueuedDesiredStateHeadline.HasValue)
             return false;
@@ -1122,6 +1146,8 @@
 
     private async Task<bool> CheckApplyDependenciesBlocked()
     {
+        ArgumentNullException.ThrowIfNull(_module);
+
         using var dependencyService = DependencyGraphServiceFactory.Create();
         // For Apply: this module (DefinedModule) depends on ReferencedModules
         var dependencies = await dependencyService.ListForDefinedModule(_module.Id);
@@ -1132,6 +1158,8 @@
 
     private async Task<bool> CheckDestroyDependenciesBlocked()
     {
+        ArgumentNullException.ThrowIfNull(_module);
+
         using var destroyService = DependencyGraphServiceFactory.Create();
         // For Destroy: DefinedModules depend on this module (ReferencedModule)
         var dependencies = await destroyService.ListForReferencedModule(_module.Id);
@@ -1363,7 +1391,7 @@
             queryParams.Add($"search={Uri.EscapeDataString(Search)}");
 
         var newUrl = $"/Module/{StackName}/{NamespaceName}/{ModuleName}?" + string.Join("&", queryParams);
-        NavigationManager.NavigateTo(newUrl, forceLoad: false, replace: true);
+        NavigationManager.NavigateTo(newUrl, false, true);
     }
 
     private void HandleConfigureSectionChanged(string? section)
@@ -1384,7 +1412,7 @@
         // The route carries the name, so a rename makes ModuleName stale. The edit form writes to
         // its own copy of the entity, so the current name has to be read back by id rather than
         // taken from _module. Navigating re-binds the parameters and reloads against the new name.
-        if (_module is null) return;
+        ArgumentNullException.ThrowIfNull(_module);
 
         var current = await moduleRepo.GetMetadata(_module.Id, OrganizationId);
         if (!string.Equals(current.Name, ModuleName, StringComparison.Ordinal))
@@ -1536,6 +1564,8 @@
 
     private async Task LoadApplyModules()
     {
+        ArgumentNullException.ThrowIfNull(_module);
+
         try
         {
             using var applyService = ApplyModuleGraphServiceFactory.Create();
@@ -1580,6 +1610,8 @@
 
     private async Task LoadDestroyModules()
     {
+        ArgumentNullException.ThrowIfNull(_module);
+
         try
         {
             using var destroyService = DestroyModuleGraphServiceFactory.Create();
@@ -1652,6 +1684,7 @@
     private async Task ExecuteApply()
     {
         if (_isApplying) return;
+        ArgumentNullException.ThrowIfNull(_module);
 
         _isApplying = true;
         StateHasChanged();
@@ -1721,6 +1754,7 @@
     private async Task ExecuteDestroy()
     {
         if (_isDestroying) return;
+        ArgumentNullException.ThrowIfNull(_module);
 
         if (_destroyConfirmationText != "DESTROY")
         {

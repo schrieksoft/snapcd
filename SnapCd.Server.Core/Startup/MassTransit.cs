@@ -44,8 +44,10 @@ public static class MassTransit
     public static IServiceCollection AddSnapCdMassTransitConfiguration(
         this IServiceCollection services,
         ConfigurationManager configuration,
-        params Type[] additionalCompetingConsumerTypes) =>
-        services.AddSnapCdMassTransitConfiguration(configuration, [], additionalCompetingConsumerTypes);
+        params Type[] additionalCompetingConsumerTypes)
+    {
+        return services.AddSnapCdMassTransitConfiguration(configuration, [], additionalCompetingConsumerTypes);
+    }
 
     /// <summary>Fan-out consumers get a per-instance queue, so every server hears every event; competing consumers share one.</summary>
     public static IServiceCollection AddSnapCdMassTransitConfiguration(
@@ -64,17 +66,17 @@ public static class MassTransit
         if (serviceBusSettings.BusType == BusType.SqlServer)
         {
             var sqlOptions = serviceBusSettings.TransportOptions.SqlServer
-                ?? new SqlTransportOptions();
+                             ?? new SqlTransportOptions();
             var sqlConnectionString = sqlOptions.ConnectionString
-                ?? configuration["ConnectionString"]
-                ?? throw new Exception("SqlServer bus requires either ServiceBus:TransportOptions:SqlServer:ConnectionString or the app's top-level ConnectionString");
+                                      ?? configuration["ConnectionString"]
+                                      ?? throw new Exception("SqlServer bus requires either ServiceBus:TransportOptions:SqlServer:ConnectionString or the app's top-level ConnectionString");
 
             services.AddOptions<SqlTransportOptions>().Configure(o =>
             {
                 o.ConnectionString = sqlConnectionString;
                 o.Schema = sqlOptions.Schema;
             });
-            services.AddSqlServerMigrationHostedService(create: true, delete: false);
+            services.AddSqlServerMigrationHostedService(true, false);
         }
 
         services.AddScoped<MissionDispatcher>();
@@ -87,7 +89,7 @@ public static class MassTransit
 
         if (serviceBusSettings.BusType == BusType.AzureServiceBus)
             services.AddHostedService(sp => new DeadLetterSinkHostedService(
-                serviceBusSettings.TransportOptions.AzureServiceBus.ConnectionString,
+                AzureServiceBusConnectionString(serviceBusSettings),
                 sp.GetRequiredService<ILogger<DeadLetterSinkHostedService>>()));
 
         AddStateMachineActivities(services);
@@ -129,7 +131,7 @@ public static class MassTransit
 
                         AddSagaReceiveEndpoints<IServiceBusBusFactoryConfigurator>(serviceBusSettings, context, cfg, truncatedFormatter);
 
-                        var connectionString = serviceBusSettings.TransportOptions.AzureServiceBus.ConnectionString;
+                        var connectionString = AzureServiceBusConnectionString(serviceBusSettings);
 
                         // Check if it's a URI format (sb://) or a connection string format (Endpoint=)
                         if (connectionString.StartsWith("sb://", StringComparison.OrdinalIgnoreCase))
@@ -311,7 +313,7 @@ public static class MassTransit
         typeof(ApprovalRecommendMissionConsumer),
         typeof(SummarizeJobMissionConsumer),
         typeof(AutoFixMissionConsumer),
-        typeof(CancelMissionConsumer),
+        typeof(CancelMissionConsumer)
     ];
 
     private static readonly Type[] ServerCompetingConsumerTypes =
@@ -333,7 +335,7 @@ public static class MassTransit
         typeof(ImportSelectRunnerInstanceConsumer),
         typeof(RemoveSelectRunnerInstanceConsumer),
         // A request the saga could not handle at all, so the job it was created for is closed here.
-        typeof(SnapCd.Server.Core.Consumers.Jobs.StateMigrationRequestFaultConsumer),
+        typeof(Consumers.Jobs.StateMigrationRequestFaultConsumer),
 
         // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
         typeof(ModuleJobHeartbeatConsumer),
@@ -380,7 +382,7 @@ public static class MassTransit
         // Admin notification consumers
 
         // Cache invalidation consumers
-        typeof(OrganizationMembershipCacheInvalidationConsumer),
+        typeof(OrganizationMembershipCacheInvalidationConsumer)
     ];
 
     private static readonly Type[] ServerFanoutConsumerTypes =
@@ -535,55 +537,55 @@ public static class MassTransit
             ApplyJobSaga>(x);
 
         AddSagaStateMachine<StateMachine.Jobs.JobStateMachine<
-                DestroyJobSaga,
-                DestroyModuleRequested,
-                DestroyModuleFailed,
-                DestroyModuleCompleted,
-                DestroyModuleCancelled,
-                DestroyGetDefinitiveRevisionRequested,
-                DestroyGetDefinitiveRevisionCompleted,
-                DestroyGetDefinitiveRevisionCancelled,
-                DestroyGetDefinitiveRevisionFaulted,
-                DestroyPolicyValidateRequested,
-                DestroyPolicyValidateCompleted,
-                DestroyPolicyValidateCancelled,
-                DestroyPolicyValidateFaulted,
-                DestroyOutputRequested,
-                DestroyOutputCompleted,
-                DestroyOutputCancelled,
-                DestroyOutputFaulted,
-                DestroyGetModuleRequested,
-                DestroyGetModuleCompleted,
-                DestroyGetModuleCancelled,
-                DestroyGetModuleFaulted,
-                DestroyInitRequested,
-                DestroyInitCompleted,
-                DestroyInitCancelled,
-                DestroyInitFaulted,
-                DestroyValidateRequested,
-                DestroyValidateCompleted,
-                DestroyValidateCancelled,
-                DestroyValidateFaulted,
-                DestroyVariablesRequested,
-                DestroyVariablesCompleted,
-                DestroyVariablesCancelled,
-                DestroyVariablesFaulted,
-                DestroyPlanRequested,
-                DestroyPlanCompleted,
-                DestroyPlanCancelled,
-                DestroyPlanFaulted,
-                DestroyFromPlanRequested,
-                DestroyFromPlanCompleted,
-                DestroyFromPlanCancelled,
-                DestroyProbeRequested,
-                DestroyProbeCompleted,
-                DestroyProbeCancelled,
-                DestroyProbeFaulted,
-                DestroyFromPlanFaulted,
-                DestroyCancelKillRequested,
-                DummyDestroyCancelKillCompleted,
-                DestroyCancelKillCompleted
-            >, DestroyJobSaga>(x);
+            DestroyJobSaga,
+            DestroyModuleRequested,
+            DestroyModuleFailed,
+            DestroyModuleCompleted,
+            DestroyModuleCancelled,
+            DestroyGetDefinitiveRevisionRequested,
+            DestroyGetDefinitiveRevisionCompleted,
+            DestroyGetDefinitiveRevisionCancelled,
+            DestroyGetDefinitiveRevisionFaulted,
+            DestroyPolicyValidateRequested,
+            DestroyPolicyValidateCompleted,
+            DestroyPolicyValidateCancelled,
+            DestroyPolicyValidateFaulted,
+            DestroyOutputRequested,
+            DestroyOutputCompleted,
+            DestroyOutputCancelled,
+            DestroyOutputFaulted,
+            DestroyGetModuleRequested,
+            DestroyGetModuleCompleted,
+            DestroyGetModuleCancelled,
+            DestroyGetModuleFaulted,
+            DestroyInitRequested,
+            DestroyInitCompleted,
+            DestroyInitCancelled,
+            DestroyInitFaulted,
+            DestroyValidateRequested,
+            DestroyValidateCompleted,
+            DestroyValidateCancelled,
+            DestroyValidateFaulted,
+            DestroyVariablesRequested,
+            DestroyVariablesCompleted,
+            DestroyVariablesCancelled,
+            DestroyVariablesFaulted,
+            DestroyPlanRequested,
+            DestroyPlanCompleted,
+            DestroyPlanCancelled,
+            DestroyPlanFaulted,
+            DestroyFromPlanRequested,
+            DestroyFromPlanCompleted,
+            DestroyFromPlanCancelled,
+            DestroyProbeRequested,
+            DestroyProbeCompleted,
+            DestroyProbeCancelled,
+            DestroyProbeFaulted,
+            DestroyFromPlanFaulted,
+            DestroyCancelKillRequested,
+            DummyDestroyCancelKillCompleted,
+            DestroyCancelKillCompleted
+        >, DestroyJobSaga>(x);
     }
 
 
@@ -634,8 +636,8 @@ public static class MassTransit
     private static Type GetMessageType(Type consumerType)
     {
         var consumerInterface = consumerType.GetInterfaces()
-            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
-            ?? throw new InvalidOperationException($"Consumer type {consumerType.Name} does not implement IConsumer<>");
+                                    .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
+                                ?? throw new InvalidOperationException($"Consumer type {consumerType.Name} does not implement IConsumer<>");
         return consumerInterface.GetGenericArguments()[0];
     }
 
@@ -715,5 +717,20 @@ public static class MassTransit
                 r.ConcurrencyMode = ConcurrencyMode.Optimistic;
                 r.ExistingDbContext<SnapCdDbContext>();
             });
+    }
+
+    /// <summary>
+    /// The Azure Service Bus section is optional in configuration, so a deployment can select that
+    /// transport without supplying one. Failing by name here beats a null reference at startup.
+    /// </summary>
+    private static string AzureServiceBusConnectionString(ServiceBusSettings serviceBusSettings)
+    {
+        var connectionString = serviceBusSettings.TransportOptions.AzureServiceBus?.ConnectionString;
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException(
+                "BusType is AzureServiceBus but TransportOptions:AzureServiceBus:ConnectionString is not set.");
+
+        return connectionString;
     }
 }

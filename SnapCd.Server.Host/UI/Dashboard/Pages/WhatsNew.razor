@@ -46,24 +46,29 @@ else
 {
     @if (!TelemetrySettings.Value.Enabled)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">Telemetry is disabled on this server, so it receives no alerts or notices.</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">Telemetry is disabled on this server, so it
+            receives no alerts or notices.
+        </MudText>
     }
 
     @if (_alerts.Count > 0 || ShowCapAlert)
     {
         <MudText Typo="Typo.h4" Class="wn-section">Alerts</MudText>
-        @if (ShowCapAlert)
+        @if (ShowCapAlert && _capAlert is { } capAlert)
         {
             <div class="wn-notice wn-alert">
                 <div class="wn-notice-head">
-                    <MudText Typo="Typo.subtitle1" Class="wn-notice-title">@_capAlert!.Title</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="DismissCapAlertAsync">Dismiss</MudButton>
+                    <MudText Typo="Typo.subtitle1" Class="wn-notice-title">@capAlert.Title</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                               OnClick="DismissCapAlertAsync">Dismiss
+                    </MudButton>
                 </div>
                 <div class="blog-content">
-                    @((MarkupString)WhatsNewMarkdown.ToHtml(_capAlert.Markdown))
+                    @((MarkupString)WhatsNewMarkdown.ToHtml(capAlert.Markdown))
                 </div>
             </div>
         }
+
         @foreach (var e in _alerts)
         {
             @RenderEntry(e, true)
@@ -72,14 +77,19 @@ else
 
     @if (_notices.Count > 0)
     {
-        <MudText Typo="Typo.h4" Class="@(_alerts.Count > 0 || ShowCapAlert ? "wn-section wn-section-gap" : "wn-section")">Notices</MudText>
+        <MudText Typo="Typo.h4"
+                 Class="@(_alerts.Count > 0 || ShowCapAlert ? "wn-section wn-section-gap" : "wn-section")">Notices
+        </MudText>
         @foreach (var e in _notices)
         {
             @RenderEntry(e, false)
         }
     }
 
-    <MudText Typo="Typo.h4" Class="@(_alerts.Count + _notices.Count > 0 || ShowCapAlert ? "wn-section wn-section-gap" : "wn-section")">Releases</MudText>
+    <MudText Typo="Typo.h4"
+             Class="@(_alerts.Count + _notices.Count > 0 || ShowCapAlert ? "wn-section wn-section-gap" : "wn-section")">
+        Releases
+    </MudText>
     @if (_releases.Count == 0)
     {
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
@@ -88,7 +98,9 @@ else
     }
     else
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">The following additional changes have been released:</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">The following additional changes have been
+            released:
+        </MudText>
         <div class="wn-releases mb-6">
             @foreach (var r in _releases)
             {
@@ -103,7 +115,8 @@ else
                         }
                         else if (r.Bump == "major")
                         {
-                            <MudTooltip Text="A major release: read the notes before upgrading, something may have changed incompatibly.">
+                            <MudTooltip
+                                Text="A major release: read the notes before upgrading, something may have changed incompatibly.">
                                 <MudChip T="string" Color="Color.Primary" Size="Size.Small" Text="major"/>
                             </MudTooltip>
                         }
@@ -304,4 +317,5 @@ else
             // Storage unavailable: the badge simply stays and the alert shows.
         }
     }
+
 }
