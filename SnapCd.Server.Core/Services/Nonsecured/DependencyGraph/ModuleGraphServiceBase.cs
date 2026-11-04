@@ -20,32 +20,12 @@ public abstract class ModuleGraphServiceBase
     {
         var actualDisplay = latestActualState?.ToString() ?? "Unknown";
 
-        // If not running and not queued, just show actual
-        if (!isRunning && !isQueued) return actualDisplay;
+        // What is running is what the Module is doing; anything queued behind it is a plan that
+        // the running job may still change.
+        if (isRunning) return $"{actualDisplay} → {runningDesiredState} (running)";
 
-        // Rule 1: If running, always show "→ Applied/Destroyed (running)"
-        if (isRunning)
-        {
-            // Also check if queued
-            if (isQueued)
-            {
-                // Show both running and queued
-                return $"{actualDisplay} → {runningDesiredState} (running) → {queuedDesiredState} (queued)";
-            }
-            else
-            {
-                // Only running, no queued
-                return $"{actualDisplay} → {runningDesiredState} (running)";
-            }
-        }
+        if (isQueued) return $"{actualDisplay} → {queuedDesiredState} (queued)";
 
-        // Rule 2: If not running but queued, show only "→ Applied/Destroyed (queued)"
-        if (isQueued)
-        {
-            return $"{actualDisplay} → {queuedDesiredState} (queued)";
-        }
-
-        // Rule 3: If neither running nor queued, show only current status
         return actualDisplay;
     }
 

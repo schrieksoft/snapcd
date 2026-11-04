@@ -55,22 +55,13 @@
     </MudPaper>
 }
 
-@* A job awaiting approval has asked for probes, and the wave carrying them is created after the
-   plan that starts it. Until it arrives there is nothing to list, but saying nothing reads as
-   nothing downstream, which is the one thing a reader must not conclude while it is unknown. *@
+@* The wave is started before the job is marked awaiting approval, so no wave here means none
+   is coming. *@
 @if (_wave == null && _propagationFailure is not { Length: > 0 })
 {
     <MudPaper Elevation="0" Class="pa-4 mb-4">
         <MudText Typo="Typo.overline" Class="mud-text-secondary mb-2">Downstream Impacts</MudText>
-
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-            <span class="job-status-running" style="color: var(--snap-running, #EB753C);">
-                <span class="job-status-dot" style="background-color: var(--snap-running, #EB753C);"></span>
-            </span>
-            <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                Working out what this change affects downstream.
-            </MudText>
-        </MudStack>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Nothing downstream reads what this plan changes.</MudText>
     </MudPaper>
 }
 
@@ -253,9 +244,8 @@
         _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
         _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
 
-        // Before the first read, because the wave this job starts may not exist yet and its
-        // creation is the event this panel most needs: keyed on the wave alone there is nothing
-        // to subscribe to until a wave has already been found.
+        // By Module as well as by wave: a wave subscription needs a wave id, which a panel
+        // mounted before the wave is read does not have.
         ProbeWaveUpdatedNotificationService.SubscribeByModule(ModuleId, HandleWaveUpdated);
 
         await Reload();
@@ -271,8 +261,7 @@
     }
 
     /// <summary>
-    /// The subscription is keyed on the wave, which is only known once it has been read, and a
-    /// job's wave is created after its plan completes, so the first read can find none.
+    /// The subscription is keyed on the wave, which is only known once it has been read.
     /// </summary>
     private void Resubscribe()
     {
