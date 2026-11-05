@@ -43,7 +43,7 @@ public class MissionRunActiveLockTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             ModuleId = _module.Id,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             JobType = "Apply",
             IsCurrent = null
         });

@@ -459,7 +459,7 @@ else
                     {
                         Id = jobId, OrganizationId = orgId, ModuleId = moduleId,
                         TimestampStart = now, TimestampEnd = now,
-                        Status = ModuleJobStatus.Failed, JobType = nameof(ApplyJobSaga),
+                        Status = ExecutionStatus.Failed, JobType = nameof(ApplyJobSaga),
                         Logs = logsJson,
                         ServerSideErrorHeader = scenario.Header,
                         ServerSideError = scenario.ErrorText
@@ -473,7 +473,7 @@ else
                     {
                         Id = jobId, OrganizationId = orgId, ModuleId = moduleId,
                         TimestampStart = now, TimestampEnd = now,
-                        Status = ModuleJobStatus.Failed, JobType = nameof(ApplyJobSaga),
+                        Status = ExecutionStatus.Failed, JobType = nameof(ApplyJobSaga),
                         Logs = logsJson,
                         ServerSideErrorHeader = scenario.Header,
                         ServerSideError = scenario.ErrorText
@@ -487,7 +487,7 @@ else
                     {
                         Id = jobId, OrganizationId = orgId, ModuleId = moduleId,
                         TimestampStart = now, TimestampEnd = now,
-                        Status = ModuleJobStatus.Cancelled, JobType = nameof(ApplyJobSaga),
+                        Status = ExecutionStatus.Cancelled, JobType = nameof(ApplyJobSaga),
                         Logs = logsJson
                     },
                     (object)new ApplyModuleCancelled { OrganizationId = orgId, ModuleId = moduleId, ModuleJobId = jobId },
@@ -498,7 +498,7 @@ else
                     {
                         Id = jobId, OrganizationId = orgId, ModuleId = moduleId,
                         TimestampStart = now, TimestampEnd = now,
-                        Status = ModuleJobStatus.Completed, JobType = nameof(ApplyJobSaga),
+                        Status = ExecutionStatus.Completed, JobType = nameof(ApplyJobSaga),
                         Logs = logsJson
                     },
                     (object)new ApplyModuleCompleted { OrganizationId = orgId, ModuleId = moduleId, ModuleJobId = jobId },
@@ -509,7 +509,7 @@ else
                     {
                         Id = jobId, OrganizationId = orgId, ModuleId = moduleId,
                         TimestampStart = now, TimestampEnd = null,
-                        Status = ModuleJobStatus.Running, JobType = nameof(ApplyJobSaga),
+                        Status = ExecutionStatus.Running, JobType = nameof(ApplyJobSaga),
                         Logs = logsJson,
                         WaitingForApproval = true
                     },

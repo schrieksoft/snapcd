@@ -219,7 +219,7 @@ public class FromPlanStepStateMachineTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             ModuleId = _module.Id,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             JobType = destroy ? "Destroy" : "Apply",
             IsCurrent = null
         });
@@ -260,7 +260,7 @@ public class FromPlanStepStateMachineTests : IAsyncLifetime
         {
             await using var db = _fixture.CreateDbContext();
             var job = await db.ModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId && j.OrganizationId == _module.OrganizationId);
-            if (job.Status != ModuleJobStatus.Running || DateTime.UtcNow >= deadline) return job;
+            if (job.Status != ExecutionStatus.Running || DateTime.UtcNow >= deadline) return job;
             await Task.Delay(100);
         }
     }
@@ -283,7 +283,7 @@ public class FromPlanStepStateMachineTests : IAsyncLifetime
         await PublishFaulted(destroy, jobId, serverSide: false);
 
         var job = await WaitForEnd(jobId);
-        Assert.Equal(ModuleJobStatus.Failed, job.Status);
+        Assert.Equal(ExecutionStatus.Failed, job.Status);
         Assert.Null(job.ServerSideErrorHeader);
     }
 
@@ -297,7 +297,7 @@ public class FromPlanStepStateMachineTests : IAsyncLifetime
         await PublishFaulted(destroy, jobId, serverSide: true);
 
         var job = await WaitForEnd(jobId);
-        Assert.Equal(ModuleJobStatus.Failed, job.Status);
+        Assert.Equal(ExecutionStatus.Failed, job.Status);
         Assert.Equal(expectedStep, job.FailedOnServerSideStep);
         Assert.Contains("resource still in use", job.ServerSideError);
     }
@@ -315,6 +315,6 @@ public class FromPlanStepStateMachineTests : IAsyncLifetime
             await _harness.Bus.Publish(new ApplyFromPlanCancelled { CorrelationId = jobId, OrganizationId = _module.OrganizationId });
 
         var job = await WaitForEnd(jobId);
-        Assert.Equal(ModuleJobStatus.Cancelled, job.Status);
+        Assert.Equal(ExecutionStatus.Cancelled, job.Status);
     }
 }

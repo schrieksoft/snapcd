@@ -66,7 +66,7 @@ public class QuiescenceProbeTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             ModuleId = _module.Id,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             JobType = "Apply",
             IsCurrent = null
         });
@@ -132,7 +132,7 @@ public class QuiescenceProbeTests : IAsyncLifetime
             moduleSaga.QueuedReason = QueuedReason.Maintenance;
 
             var jobId = Guid.NewGuid();
-            db.ModuleJobs.Add(new ModuleJob { Id = jobId, OrganizationId = _module.OrganizationId, ModuleId = _module.Id, TimestampStart = DateTimeOffset.UtcNow, Status = ModuleJobStatus.Running, JobType = "Apply", IsCurrent = null });
+            db.ModuleJobs.Add(new ModuleJob { Id = jobId, OrganizationId = _module.OrganizationId, ModuleId = _module.Id, TimestampStart = DateTimeOffset.UtcNow, Status = ExecutionStatus.Running, JobType = "Apply", IsCurrent = null });
             var missionId = Guid.NewGuid();
             db.ModuleJobMissions.Add(new ModuleJobMission { Id = missionId, OrganizationId = _module.OrganizationId, ModuleJobId = jobId, MissionId = Guid.NewGuid(), AgentId = Guid.NewGuid(), MissionType = MissionType.AutoDiagnose, Status = MissionStatus.Running });
             runId = Guid.NewGuid();

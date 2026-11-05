@@ -40,7 +40,7 @@ public class CompleteModuleJobActivity<TSaga, TMessage> :
         await _repository.Finalize(
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
-            ModuleJobStatus.Completed,
+            ExecutionStatus.Completed,
             typeof(TMessage).Name,
             DateTimeOffset.UtcNow,
             null,

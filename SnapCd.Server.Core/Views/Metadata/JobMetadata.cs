@@ -20,5 +20,5 @@ public class JobMetadata : EntityMetadataBase
     public Guid ModuleId { get; set; }
     [MaxLength(255)] public string ModuleName { get; set; } = null!;
     [MaxLength(255)] public string NamespaceName { get; set; } = null!;
-    public ModuleJobStatus Status { get; set; }
+    public ExecutionStatus Status { get; set; }
 }

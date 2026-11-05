@@ -155,7 +155,7 @@ public class WithdrawApprovalTests : IAsyncLifetime
             ModuleId = _moduleId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             JobType = "Apply",
             WaitingForApproval = waitingForApproval,
             IsCurrent = false

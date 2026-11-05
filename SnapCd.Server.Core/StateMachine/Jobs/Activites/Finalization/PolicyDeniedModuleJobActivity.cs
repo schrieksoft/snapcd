@@ -39,7 +39,7 @@ public class PolicyDeniedModuleJobActivity<TSaga, TMessage> :
         await _repository.Finalize(
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
-            ModuleJobStatus.PolicyDenied,
+            ExecutionStatus.PolicyDenied,
             typeof(TMessage).Name,
             DateTimeOffset.UtcNow,
             null,

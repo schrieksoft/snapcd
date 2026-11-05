@@ -160,7 +160,7 @@ public class PauseGateTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = _moduleId,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             JobType = "Apply",
             IsCurrent = true
         });
@@ -174,7 +174,7 @@ public class PauseGateTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
         var job = await db.ModuleJobs.SingleAsync(j => j.Id == jobId);
         job.IsCurrent = null;
-        job.Status = ModuleJobStatus.Completed;
+        job.Status = ExecutionStatus.Completed;
         job.TimestampEnd = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
     }

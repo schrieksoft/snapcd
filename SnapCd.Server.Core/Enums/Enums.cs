@@ -119,11 +119,6 @@ public enum ModuleJobSagaState
     WaitingForOutputs
 }
 
-/// <summary>
-/// How a state migration job ended. A migration moves several addresses and can succeed at some
-/// and fail at others, which is what PartiallyCompleted carries; a Module job cannot, so it has
-/// its own type.
-/// </summary>
 public enum ExecutionStatus
 {
     Running,
@@ -140,23 +135,6 @@ public enum ExecutionStatus
     /// remedy, rather than a failure: the part that succeeded did succeed.
     /// </summary>
     PartiallyCompleted
-}
-
-/// <summary>
-/// How a Module's apply or destroy job ended. An apply either applied or it did not, so there is
-/// no partial outcome. Persisted as text, and the names match ExecutionStatus so the two read the
-/// same in the database.
-/// </summary>
-public enum ModuleJobStatus
-{
-    Running,
-    Completed,
-    Cancelled,
-    NotApproved,
-    Failed,
-    Orphaned,
-    Unknown,
-    PolicyDenied
 }
 
 public enum ActualStateHeadline

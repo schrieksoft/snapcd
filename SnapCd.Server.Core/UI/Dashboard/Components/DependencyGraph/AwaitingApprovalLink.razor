@@ -8,29 +8,23 @@
 
 @using SnapCd.Server.Core.Dtos
 
-<MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ma-0 awaiting-approval-chip">
-    @if (Href is not null)
-    {
-        <a href="@Href" @onclick:stopPropagation="true">awaiting approval</a>
-    }
-    else
-    {
-        @:awaiting approval
-    }
-</MudChip>
-
-<style>
-    /* Inherits the chip's Ink-on-accent colour; the underline on hover is what marks it a link. */
-    .awaiting-approval-chip a {
-        color: inherit;
-        text-decoration: none;
-    }
-
-    .awaiting-approval-chip a:hover,
-    .awaiting-approval-chip a:focus-visible {
-        text-decoration: underline;
-    }
-</style>
+@if (Href is not null)
+{
+    <MudLink Href="@Href"
+             Color="Color.Info"
+             Typo="Typo.caption"
+             Class="font-weight-medium"
+             Style="font-size: 0.8rem;"
+             @onclick:stopPropagation="true">
+        awaiting approval
+    </MudLink>
+}
+else
+{
+    <MudText Color="Color.Info" Typo="Typo.caption" Class="font-weight-medium" Style="font-size: 0.8rem;">
+        awaiting approval
+    </MudText>
+}
 
 @code {
     [Parameter] public required DependencyGraphNodeStateDto Node { get; set; }

@@ -55,7 +55,7 @@ public class CancelOnTimeoutModuleJobActivity<TSaga, TMessage> :
         await _repository.Finalize(
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
-            ModuleJobStatus.Cancelled,
+            ExecutionStatus.Cancelled,
             typeof(TMessage).Name,
             DateTimeOffset.UtcNow,
             null,

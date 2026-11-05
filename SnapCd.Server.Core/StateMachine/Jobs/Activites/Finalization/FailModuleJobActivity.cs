@@ -77,7 +77,7 @@ public class FailModuleJobActivity<TSaga, TFailedMessage> :
             await _repository.Finalize(
                 context.Saga.CorrelationId,
                 context.Saga.OrganizationId,
-                ModuleJobStatus.Failed,
+                ExecutionStatus.Failed,
                 typeof(TFailedMessage).Name,
                 DateTimeOffset.UtcNow,
                 null,

@@ -146,7 +146,7 @@ public class JobCancelReliabilityTests : IAsyncLifetime
 
         Assert.Null(await ConsumedCancel(jobId));
         await using var db = _fixture.CreateDbContext();
-        Assert.Equal(ModuleJobStatus.Running, (await db.ModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId)).Status);
+        Assert.Equal(ExecutionStatus.Running, (await db.ModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId)).Status);
         Assert.Equal(state, db.ApplyJobSagas.AsNoTracking().Single(s => s.CorrelationId == jobId).CurrentState);
     }
 
@@ -161,7 +161,7 @@ public class JobCancelReliabilityTests : IAsyncLifetime
         Assert.True(await WaitUntil(() =>
         {
             using var db = _fixture.CreateDbContext();
-            return db.ModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ModuleJobStatus.Cancelled;
+            return db.ModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
         }), "the stuck job was not forced closed");
         Assert.True(_harness.Published.Select<ApplyModuleCancelled>().Any(m => m.Context.Message.ModuleJobId == jobId));
     }
@@ -239,7 +239,7 @@ public class JobCancelReliabilityTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             ModuleId = _module.Id,
             TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-20),
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             JobType = "Apply",
             IsCurrent = null
         });

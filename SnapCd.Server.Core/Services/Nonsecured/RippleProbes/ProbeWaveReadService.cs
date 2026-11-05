@@ -18,7 +18,7 @@ namespace SnapCd.Server.Core.Services.Nonsecured.RippleProbes;
 
 /// <summary>What a job ran against, for judging whether a prediction made from it still holds.</summary>
 public record JobFingerprint(
-    ModuleJobStatus Status,
+    ExecutionStatus Status,
     string? Revision,
     string? DeclarationHash,
     string? ParamsHash,
@@ -246,7 +246,7 @@ public class ProbeWaveReadService : IDisposable
             .AsNoTracking()
             .AnyAsync(j => j.Id == wave.OriginModuleJobId &&
                            j.OrganizationId == organizationId &&
-                           j.Status == ModuleJobStatus.Running &&
+                           j.Status == ExecutionStatus.Running &&
                            j.WaitingForApproval == true);
 
         // What each Module most recently ran against, which is what a probe's own fingerprint is

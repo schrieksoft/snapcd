@@ -196,7 +196,7 @@ public partial class JobStateMachine<
                 await repository.Finalize(
                     context.Message.CorrelationId,
                     context.Message.OrganizationId,
-                    ModuleJobStatus.Cancelled,
+                    ExecutionStatus.Cancelled,
                     nameof(CancelModuleRequested),
                     DateTimeOffset.UtcNow,
                     null,
@@ -250,7 +250,7 @@ public partial class JobStateMachine<
                 await repository.Finalize(
                     context.Message.CorrelationId,
                     context.Message.OrganizationId,
-                    ModuleJobStatus.Cancelled,
+                    ExecutionStatus.Cancelled,
                     typeof(TCancelKillCompleted).Name,
                     DateTimeOffset.UtcNow,
                     null,

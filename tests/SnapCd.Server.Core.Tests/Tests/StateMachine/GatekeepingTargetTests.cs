@@ -149,7 +149,7 @@ public class GatekeepingTargetTests : IAsyncLifetime
             ModuleId = _moduleId,
             TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-5),
             TimestampEnd = running ? null : DateTimeOffset.UtcNow,
-            Status = running ? ModuleJobStatus.Running : ModuleJobStatus.Completed,
+            Status = running ? ExecutionStatus.Running : ExecutionStatus.Completed,
             JobType = jobType,
             IsCurrent = running ? true : null,
             ActualStateHeadline = leftItIn

@@ -250,7 +250,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             ModuleId = _module.Id,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             JobType = destroy ? "Destroy" : "Apply",
             IsCurrent = null
         });
@@ -357,12 +357,12 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
 
         var deadline = DateTime.UtcNow.AddSeconds(10);
         ModuleJob job = await GetJob(jobId);
-        while (job.Status != ModuleJobStatus.PolicyDenied && DateTime.UtcNow < deadline)
+        while (job.Status != ExecutionStatus.PolicyDenied && DateTime.UtcNow < deadline)
         {
             await Task.Delay(100);
             job = await GetJob(jobId);
         }
-        Assert.Equal(ModuleJobStatus.PolicyDenied, job.Status);
+        Assert.Equal(ExecutionStatus.PolicyDenied, job.Status);
         Assert.Equal(ActualStateHeadline.ApplyPolicyDenied, job.ActualStateHeadline);
         Assert.Equal(PolicyOutcome.HardDenied, job.PolicyOutcome);
     }
@@ -379,12 +379,12 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
 
         var deadline = DateTime.UtcNow.AddSeconds(10);
         ModuleJob job = await GetJob(jobId);
-        while (job.Status != ModuleJobStatus.PolicyDenied && DateTime.UtcNow < deadline)
+        while (job.Status != ExecutionStatus.PolicyDenied && DateTime.UtcNow < deadline)
         {
             await Task.Delay(100);
             job = await GetJob(jobId);
         }
-        Assert.Equal(ModuleJobStatus.PolicyDenied, job.Status);
+        Assert.Equal(ExecutionStatus.PolicyDenied, job.Status);
         Assert.Equal(ActualStateHeadline.DestroyPolicyDenied, job.ActualStateHeadline);
     }
 
@@ -414,12 +414,12 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
 
         var deadline = DateTime.UtcNow.AddSeconds(10);
         ModuleJob job = await GetJob(jobId);
-        while (job.Status != ModuleJobStatus.Failed && DateTime.UtcNow < deadline)
+        while (job.Status != ExecutionStatus.Failed && DateTime.UtcNow < deadline)
         {
             await Task.Delay(100);
             job = await GetJob(jobId);
         }
-        Assert.Equal(ModuleJobStatus.Failed, job.Status);
+        Assert.Equal(ExecutionStatus.Failed, job.Status);
         Assert.NotEqual(ActualStateHeadline.ApplyPolicyDenied, job.ActualStateHeadline);
     }
 
@@ -435,12 +435,12 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
 
         var deadline = DateTime.UtcNow.AddSeconds(10);
         ModuleJob job = await GetJob(jobId);
-        while (job.Status != ModuleJobStatus.PolicyDenied && DateTime.UtcNow < deadline)
+        while (job.Status != ExecutionStatus.PolicyDenied && DateTime.UtcNow < deadline)
         {
             await Task.Delay(100);
             job = await GetJob(jobId);
         }
-        Assert.Equal(ModuleJobStatus.PolicyDenied, job.Status);
+        Assert.Equal(ExecutionStatus.PolicyDenied, job.Status);
         Assert.Equal(PolicyOutcome.HardDenied, job.PolicyOutcome);
     }
 
@@ -478,12 +478,12 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
 
         var deadline = DateTime.UtcNow.AddSeconds(10);
         ModuleJob job = await GetJob(jobId);
-        while (job.Status != ModuleJobStatus.PolicyDenied && DateTime.UtcNow < deadline)
+        while (job.Status != ExecutionStatus.PolicyDenied && DateTime.UtcNow < deadline)
         {
             await Task.Delay(100);
             job = await GetJob(jobId);
         }
-        Assert.Equal(ModuleJobStatus.PolicyDenied, job.Status);
+        Assert.Equal(ExecutionStatus.PolicyDenied, job.Status);
         Assert.Equal(ActualStateHeadline.DestroyPolicyDenied, job.ActualStateHeadline);
     }
 

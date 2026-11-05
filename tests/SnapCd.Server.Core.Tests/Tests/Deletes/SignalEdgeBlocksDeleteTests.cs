@@ -220,7 +220,7 @@ public class SignalEdgeBlocksDeleteTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             JobType = "ApplyJobSaga",
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             WaitingForApproval = true,
             TimestampStart = DateTimeOffset.UtcNow.AddTicks(_originJobs.Count),
             CreatedDateTime = DateTime.UtcNow

@@ -370,7 +370,7 @@ public class JobService : IDisposable
                 OrganizationId = organizationId,
                 TimestampStart = DateTimeOffset.UtcNow,
                 JobType = jobType,
-                Status = ModuleJobStatus.Running,
+                Status = ExecutionStatus.Running,
                 IsCurrent = true
             });
         else
@@ -381,7 +381,7 @@ public class JobService : IDisposable
                 OrganizationId = organizationId,
                 TimestampStart = DateTimeOffset.UtcNow,
                 JobType = jobType,
-                Status = ModuleJobStatus.Running,
+                Status = ExecutionStatus.Running,
                 IsCurrent = true
             });
     }
@@ -411,7 +411,7 @@ public class JobService : IDisposable
                 ServerSideErrorHeader = "This job failed due to a error occuring on the Server. The full error can be seen below.",
                 FailedOnServerSideStep = ServerSideStep.Start,
                 JobType = jobType,
-                Status = ModuleJobStatus.Failed,
+                Status = ExecutionStatus.Failed,
                 IsCurrent = false // Failed jobs shouldn't be current
             }
         );
@@ -432,7 +432,7 @@ public class JobService : IDisposable
             existingJob.ServerSideErrorHeader = "This job failed due to a error occuring on the Server. The full error can be seen below.";
             existingJob.FailedOnServerSideStep = failedOnServerSideStep;
             existingJob.IsCurrent = false;
-            existingJob.Status = ModuleJobStatus.Failed;
+            existingJob.Status = ExecutionStatus.Failed;
             existingJob.TimestampEnd = timeStamp;
 
             await _dbContext.SaveChangesAsync();

@@ -158,7 +158,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             ModuleId = _module.Id,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             JobType = "Apply",
             IsCurrent = null
         });
@@ -202,7 +202,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
         {
             await using var db = _fixture.CreateDbContext();
             var job = await db.ModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId && j.OrganizationId == _module.OrganizationId);
-            if (job.Status != ModuleJobStatus.Running || DateTime.UtcNow >= deadline) return job;
+            if (job.Status != ExecutionStatus.Running || DateTime.UtcNow >= deadline) return job;
             await Task.Delay(100);
         }
     }
@@ -220,7 +220,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
         await _harness.Bus.Publish(new ApplyInitFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "init dispatch failed", IsServerSideError = true });
 
         var job = await WaitForEnd(jobId);
-        Assert.Equal(ModuleJobStatus.Cancelled, job.Status);
+        Assert.Equal(ExecutionStatus.Cancelled, job.Status);
         Assert.Equal(ServerSideStep.Init, job.FailedOnServerSideStep);
         Assert.Equal("Server error during Init while cancelling", job.ServerSideErrorHeader);
         Assert.Contains("init dispatch failed", job.ServerSideError);
@@ -234,7 +234,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
         await _harness.Bus.Publish(new ApplyInitFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "tofu init failed" });
 
         var job = await WaitForEnd(jobId);
-        Assert.Equal(ModuleJobStatus.Cancelled, job.Status);
+        Assert.Equal(ExecutionStatus.Cancelled, job.Status);
         Assert.Null(job.ServerSideErrorHeader);
     }
 
@@ -246,7 +246,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
         await _harness.Bus.Publish(new ApplyInitCancelled { CorrelationId = jobId, OrganizationId = _module.OrganizationId });
 
         var job = await WaitForEnd(jobId);
-        Assert.Equal(ModuleJobStatus.Cancelled, job.Status);
+        Assert.Equal(ExecutionStatus.Cancelled, job.Status);
     }
 
     [Fact]
@@ -260,7 +260,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
             c => c.RequestId = heartbeatRequestId);
 
         var job = await WaitForEnd(jobId);
-        Assert.Equal(ModuleJobStatus.Cancelled, job.Status);
+        Assert.Equal(ExecutionStatus.Cancelled, job.Status);
         Assert.Equal("Runner stopped responding", job.ServerSideErrorHeader);
         Assert.Contains("Runner instance 'harness' is not connected.", job.ServerSideError);
     }
@@ -280,7 +280,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
         });
 
         var job = await WaitForEnd(jobId);
-        Assert.Equal(ModuleJobStatus.Cancelled, job.Status);
+        Assert.Equal(ExecutionStatus.Cancelled, job.Status);
         Assert.Equal("Runner did not confirm the cancel", job.ServerSideErrorHeader);
     }
 
@@ -292,7 +292,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
         await PublishFault(new ApplyInitRequested { CorrelationId = jobId, OrganizationId = _module.OrganizationId });
 
         var job = await WaitForEnd(jobId);
-        Assert.Equal(ModuleJobStatus.Failed, job.Status);
+        Assert.Equal(ExecutionStatus.Failed, job.Status);
         Assert.Equal(ServerSideStep.Init, job.FailedOnServerSideStep);
         Assert.Equal("Server error while handling ApplyInitRequested", job.ServerSideErrorHeader);
         Assert.Contains("dispatch blew up", job.ServerSideError);
@@ -306,7 +306,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
         await PublishFault(new ApplyInitCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId });
 
         var job = await WaitForEnd(jobId);
-        Assert.Equal(ModuleJobStatus.Failed, job.Status);
+        Assert.Equal(ExecutionStatus.Failed, job.Status);
         Assert.Equal("Server error while handling ApplyInitCompleted", job.ServerSideErrorHeader);
         Assert.Contains("dispatch blew up", job.ServerSideError);
     }
@@ -349,7 +349,7 @@ public class ServerSideJobErrorTests : IAsyncLifetime
                 ModuleId = _module.Id,
                 TimestampStart = DateTimeOffset.UtcNow,
                 TimestampEnd = DateTimeOffset.UtcNow,
-                Status = ModuleJobStatus.Failed,
+                Status = ExecutionStatus.Failed,
                 JobType = "Apply",
                 IsCurrent = false
             });

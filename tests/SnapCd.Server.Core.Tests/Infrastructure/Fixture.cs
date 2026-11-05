@@ -1801,7 +1801,7 @@ public class Fixture : IAsyncLifetime
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             JobType = "Apply"
         };
     }
@@ -2074,7 +2074,7 @@ public class Fixture : IAsyncLifetime
             TimestampStart = DateTimeOffset.UtcNow,
             TimestampEnd = null, // Unfinalized
             JobType = nameof(ApplyJobSaga),
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             CreatedDateTime = DateTime.UtcNow
         };
         dbContext.ModuleJobs.Add(OrphanedJobTestData["OrphanedApply"]);
@@ -2088,7 +2088,7 @@ public class Fixture : IAsyncLifetime
             TimestampStart = DateTimeOffset.UtcNow,
             TimestampEnd = null, // Unfinalized
             JobType = nameof(DestroyJobSaga),
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             CreatedDateTime = DateTime.UtcNow
         };
         dbContext.ModuleJobs.Add(OrphanedJobTestData["OrphanedDestroy"]);
@@ -2102,7 +2102,7 @@ public class Fixture : IAsyncLifetime
             TimestampStart = DateTimeOffset.UtcNow,
             TimestampEnd = null, // Unfinalized
             JobType = nameof(ApplyJobSaga),
-            Status = ModuleJobStatus.Running,
+            Status = ExecutionStatus.Running,
             CreatedDateTime = DateTime.UtcNow
         };
         dbContext.ModuleJobs.Add(OrphanedJobTestData["NonOrphanedApply"]);
@@ -2129,7 +2129,7 @@ public class Fixture : IAsyncLifetime
             TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-5),
             TimestampEnd = DateTimeOffset.UtcNow, // Finalized
             JobType = nameof(ApplyJobSaga),
-            Status = ModuleJobStatus.Completed,
+            Status = ExecutionStatus.Completed,
             CreatedDateTime = DateTime.UtcNow
         };
         dbContext.ModuleJobs.Add(OrphanedJobTestData["FinalizedNoSaga"]);

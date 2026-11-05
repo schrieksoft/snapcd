@@ -83,7 +83,7 @@
                                                         </MudLink>
                                                         @if (nodeState.WaitingForApproval)
                                                         {
-                                                            <AwaitingApprovalChip Node="@nodeState"/>
+                                                            <AwaitingApprovalLink Node="@nodeState"/>
                                                         }
                                                     </div>
                                                     @if (isRoot)
@@ -165,7 +165,7 @@
                                                 </MudLink>
                                                 @if (nodeState.WaitingForApproval)
                                                 {
-                                                    <AwaitingApprovalChip Node="@nodeState"/>
+                                                    <AwaitingApprovalLink Node="@nodeState"/>
                                                 }
                                             </div>
                                             @if (isRoot)

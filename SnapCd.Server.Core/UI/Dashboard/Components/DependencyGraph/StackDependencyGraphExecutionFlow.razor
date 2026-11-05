@@ -80,7 +80,7 @@
                                                         </MudLink>
                                                         @if (nodeState.WaitingForApproval)
                                                         {
-                                                            <AwaitingApprovalChip Node="@nodeState"/>
+                                                            <AwaitingApprovalLink Node="@nodeState"/>
                                                         }
                                                     </div>
                                                     <MudText Typo="Typo.caption" Color="@nodeState.StateColor" Style="font-size: 0.75rem;">
@@ -147,7 +147,7 @@
                                                 </MudLink>
                                                 @if (nodeState.WaitingForApproval)
                                                 {
-                                                    <AwaitingApprovalChip Node="@nodeState"/>
+                                                    <AwaitingApprovalLink Node="@nodeState"/>
                                                 }
                                             </div>
                                             <MudText Typo="Typo.caption" Color="@nodeState.StateColor" Style="font-size: 0.75rem;">

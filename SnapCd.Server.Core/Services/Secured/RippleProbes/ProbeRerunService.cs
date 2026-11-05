@@ -100,7 +100,7 @@ public class ProbeRerunService(
         if (!CanRerun(job.ModuleId, organizationId))
             return "you are not allowed to run jobs on this Module";
 
-        if (job.Status != ModuleJobStatus.Running || job.WaitingForApproval != true)
+        if (job.Status != ExecutionStatus.Running || job.WaitingForApproval != true)
             return "the approval this would inform has already been decided";
 
         if (await dbContext.ProbeWaves.AnyAsync(w =>
@@ -170,7 +170,7 @@ public class ProbeRerunService(
             .AsNoTracking()
             .AnyAsync(j => j.Id == wave.OriginModuleJobId &&
                            j.OrganizationId == organizationId &&
-                           j.Status == ModuleJobStatus.Running &&
+                           j.Status == ExecutionStatus.Running &&
                            j.WaitingForApproval == true);
 
         if (!stillOpen) return "the approval this propagation informs has already been decided";
