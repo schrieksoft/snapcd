@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Services.Nonsecured.DependencyGraph;
 using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Interfaces;
 using SnapCd.Server.Host.Database;
 using Xunit;
 using Xunit.Abstractions;
@@ -69,6 +70,84 @@ public class ViewParityAgainstSeededGraph
         Assert.Empty(viewKeys.Except(linqKeys));
         Assert.Empty(linqKeys.Except(viewKeys));
         Assert.Equal(fromView.Count, fromLinq.Count);
+    }
+
+    [Fact]
+    public async Task RecursiveApply_LinqMatchesTheView()
+    {
+        if (string.IsNullOrWhiteSpace(Connection)) { _output.WriteLine("SKIPPED: SNAPCD_PARITY_CONNECTION not set."); return; }
+
+        await using var db = CreateContext();
+
+        var fromView = await db.RecursiveApplyDependencies.AsNoTracking().ToListAsync();
+        var fromLinq = await DependencyGraphQueries.RecursiveApply(db).AsNoTracking().ToListAsync();
+
+        CompareRecursive(fromView, fromLinq, "vw_RecursiveApplyDependencies");
+    }
+
+    [Fact]
+    public async Task RecursiveDestroy_LinqMatchesTheView()
+    {
+        if (string.IsNullOrWhiteSpace(Connection)) { _output.WriteLine("SKIPPED: SNAPCD_PARITY_CONNECTION not set."); return; }
+
+        await using var db = CreateContext();
+
+        var fromView = await db.RecursiveDestroyDependencies.AsNoTracking().ToListAsync();
+        var fromLinq = await DependencyGraphQueries.RecursiveDestroy(db).AsNoTracking().ToListAsync();
+
+        CompareRecursive(fromView, fromLinq, "vw_RecursiveDestroyDependencies");
+    }
+
+    /// <summary>
+    /// The recursive rows compared whole, Root side and Depth included, rather than converted to
+    /// a Dependency first: that conversion drops both.
+    /// </summary>
+    private void CompareRecursive<T>(IReadOnlyList<T> view, IReadOnlyList<T> linq, string what)
+        where T : IRecursiveDependency
+    {
+        _output.WriteLine($"{what}: view {view.Count}, LINQ {linq.Count}");
+        _output.WriteLine($"  standalone: view {view.Count(d => d.ReferencedModuleId == null)}, "
+                          + $"LINQ {linq.Count(d => d.ReferencedModuleId == null)}");
+
+        Assert.True(view.Count > 100, $"only {view.Count} rows: this is not the seeded bench database.");
+        Assert.Contains(view, d => d.ReferencedModuleId == null);
+        Assert.Contains(view, d => d.ReferencedModuleId != null);
+        Assert.Contains(view, d => d.Depth > 0);
+
+        var viewKeys = view.Select(d => DependencyKey.OfRecursive(d)).ToHashSet();
+        var linqKeys = linq.Select(d => DependencyKey.OfRecursive(d)).ToHashSet();
+
+        foreach (var row in viewKeys.Except(linqKeys).Take(3)) _output.WriteLine($"  view only: {row}");
+        foreach (var row in linqKeys.Except(viewKeys).Take(3)) _output.WriteLine($"  LINQ only: {row}");
+
+        Assert.Empty(viewKeys.Except(linqKeys));
+        Assert.Empty(linqKeys.Except(viewKeys));
+        Assert.Equal(view.Count, linq.Count);
+    }
+
+    /// <summary>
+    /// Both sides as keys over every scalar column, diffed as sets. The guards reject a pass over
+    /// data that would not have exercised both halves of the UNION.
+    /// </summary>
+    private void Compare(IReadOnlyList<Dependency> view, IReadOnlyList<Dependency> linq, string what)
+    {
+        _output.WriteLine($"{what}: view {view.Count}, LINQ {linq.Count}");
+        _output.WriteLine($"  standalone: view {view.Count(d => d.ReferencedModuleId == null)}, "
+                          + $"LINQ {linq.Count(d => d.ReferencedModuleId == null)}");
+
+        Assert.True(view.Count > 100, $"only {view.Count} rows: this is not the seeded bench database.");
+        Assert.Contains(view, d => d.ReferencedModuleId == null);
+        Assert.Contains(view, d => d.ReferencedModuleId != null);
+
+        var viewKeys = view.Select(DependencyKey.Of).ToHashSet();
+        var linqKeys = linq.Select(DependencyKey.Of).ToHashSet();
+
+        foreach (var row in viewKeys.Except(linqKeys).Take(3)) _output.WriteLine($"  view only: {row}");
+        foreach (var row in linqKeys.Except(viewKeys).Take(3)) _output.WriteLine($"  LINQ only: {row}");
+
+        Assert.Empty(viewKeys.Except(linqKeys));
+        Assert.Empty(linqKeys.Except(viewKeys));
+        Assert.Equal(view.Count, linq.Count);
     }
 
     private static SnapCdDbContext CreateContext()

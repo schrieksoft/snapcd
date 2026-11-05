@@ -15,6 +15,22 @@ namespace SnapCd.Server.Core.Views.Interfaces;
 public interface IRecursiveDependency
 {
     // Defined Module (source of edge)
+    Guid RootModuleId { get; }
+    Guid RootOrganizationId { get; }
+    string RootModuleName { get; }
+    Guid RootNamespaceId { get; }
+    string RootNamespaceName { get; }
+    Guid RootStackId { get; }
+    string RootStackName { get; }
+    string RootDisplayName { get; }
+    ActualStateHeadline? RootLatestActualState { get; }
+    DesiredStateHeadline? RootDesiredState { get; }
+    DesiredStateHeadline? RootQueuedDesiredState { get; }
+    bool RootIsRunning { get; }
+    bool RootIsQueued { get; }
+    DesiredStateHeadline? RootRunningDesiredState { get; }
+    int Depth { get; }
+
     Guid DefinedModuleId { get; }
     string DefinedModuleName { get; }
     Guid DefinedNamespaceId { get; }

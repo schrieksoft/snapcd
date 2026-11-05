@@ -78,6 +78,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     /// <summary>Trigger-maintained. Read-only: nothing in the application writes to these.</summary>
     public DbSet<DependencyEdge> DependencyEdges { get; set; }
 
+    public DbSet<RecursiveDependencyEdge> RecursiveDependencyEdges { get; set; }
+
     public DbSet<ModuleStateRow> ModuleStates { get; set; }
     public DbSet<RecursiveApplyDependency> RecursiveApplyDependencies { get; set; }
     public DbSet<RecursiveDestroyDependency> RecursiveDestroyDependencies { get; set; }
@@ -610,6 +612,12 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         {
             entity.HasKey(e => new { e.DefinedModuleId, e.ReferencedModuleId });
             entity.ToTable("DependencyEdges", t => t.ExcludeFromMigrations());
+        });
+
+        modelBuilder.Entity<RecursiveDependencyEdge>(entity =>
+        {
+            entity.HasNoKey();
+            entity.ToTable("RecursiveDependencyEdges", t => t.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<ModuleStateRow>(entity =>

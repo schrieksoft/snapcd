@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Interfaces;
 
 namespace SnapCd.Server.Core.Tests.Tests.DependencyGraph;
 
@@ -52,4 +53,28 @@ public static class DependencyKey
         d.ReferencedRunningDesiredState,
         d.ReferencedCurrentModuleJobId,
         d.ReferencedWaitingForApproval);
+
+    /// <summary>
+    /// Every scalar column of a recursive row, including the Root side and Depth.
+    ///
+    /// Dependency.FromRecursive drops both, so converting before comparing would leave fifteen
+    /// Root columns and the Depth untested.
+    /// </summary>
+    public static string OfRecursive(IRecursiveDependency d) => string.Join("|",
+        d.RootModuleId,
+        d.RootOrganizationId,
+        d.RootModuleName,
+        d.RootNamespaceId,
+        d.RootNamespaceName,
+        d.RootStackId,
+        d.RootStackName,
+        d.RootDisplayName,
+        d.RootLatestActualState,
+        d.RootDesiredState,
+        d.RootQueuedDesiredState,
+        d.RootIsRunning,
+        d.RootIsQueued,
+        d.RootRunningDesiredState,
+        d.Depth,
+        Of(Dependency.FromRecursive(d)));
 }
