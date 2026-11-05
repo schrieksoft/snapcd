@@ -15,6 +15,22 @@ namespace SnapCd.Server.Core.Views.Interfaces;
 public interface IRecursiveDependency
 {
     // Defined Module (source of edge)
+    Guid RootModuleId { get; }
+    Guid RootOrganizationId { get; }
+    string RootModuleName { get; }
+    Guid RootNamespaceId { get; }
+    string RootNamespaceName { get; }
+    Guid RootStackId { get; }
+    string RootStackName { get; }
+    string RootDisplayName { get; }
+    ActualStateHeadline? RootLatestActualState { get; }
+    DesiredStateHeadline? RootDesiredState { get; }
+    DesiredStateHeadline? RootQueuedDesiredState { get; }
+    bool RootIsRunning { get; }
+    bool RootIsQueued { get; }
+    DesiredStateHeadline? RootRunningDesiredState { get; }
+    int Depth { get; }
+
     Guid DefinedModuleId { get; }
     string DefinedModuleName { get; }
     Guid DefinedNamespaceId { get; }
@@ -26,6 +42,8 @@ public interface IRecursiveDependency
     DesiredStateHeadline? DefinedDesiredState { get; }
     DesiredStateHeadline? DefinedQueuedDesiredState { get; }
     bool DefinedIsRunning { get; }
+    Guid? DefinedCurrentModuleJobId { get; }
+    bool DefinedWaitingForApproval { get; }
     bool DefinedIsQueued { get; }
     DesiredStateHeadline? DefinedRunningDesiredState { get; }
 
@@ -41,6 +59,8 @@ public interface IRecursiveDependency
     DesiredStateHeadline? ReferencedDesiredState { get; }
     DesiredStateHeadline? ReferencedQueuedDesiredState { get; }
     bool? ReferencedIsRunning { get; }
+    Guid? ReferencedCurrentModuleJobId { get; }
+    bool? ReferencedWaitingForApproval { get; }
     bool? ReferencedIsQueued { get; }
     DesiredStateHeadline? ReferencedRunningDesiredState { get; }
 

@@ -30,5 +30,10 @@ public class ModuleStateInfo
     public DesiredStateHeadline? QueuedDesiredState { get; set; }
     public ExecutionStatus LatestExecutionStatus { get; set; }
     public bool IsRunning { get; set; }
+
+    /// <summary>The in-flight job, where there is one. Null for an idle Module.</summary>
+    public Guid? CurrentModuleJobId { get; set; }
+
+    public bool WaitingForApproval { get; set; }
     public bool IsQueued { get; set; }
 }

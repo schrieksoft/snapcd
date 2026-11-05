@@ -14,6 +14,7 @@ using SnapCd.Server.Core.Dtos.ModuleJobs;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.Utils;
@@ -118,12 +119,22 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
     public async Task WaitingForApproval(Guid id, Guid organizationId, bool waitingForApproval, bool wrapInTransaction = false)
     {
         var job = await Get(id, organizationId);
+
+        var previous = DbContext.Entry(job).OriginalValues
+            .GetValue<bool?>(nameof(ModuleJob.WaitingForApproval)) ?? false;
+        var changed = previous != waitingForApproval;
+
         job.WaitingForApproval = waitingForApproval;
 
         if (wrapInTransaction)
             await Update(job);
         else
             await ExecuteUpdate(job); //E.g. if calling from MassTransit state machine, a transaction is already running
+
+        if (changed)
+            await Bus.Publish(
+                new ModuleStateModifiedEvent { ModuleId = job.ModuleId, OrganizationId = organizationId },
+                publishContext => { publishContext.TimeToLive = TimeSpan.FromSeconds(120); });
     }
 
     public async Task RecordSelectedRunner(Guid id, Guid organizationId, Guid selectedRunnerId, bool wrapInTransaction = false)

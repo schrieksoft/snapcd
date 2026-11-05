@@ -81,6 +81,10 @@
                                                                  @onclick:stopPropagation="true">
                                                             @nodeState.ModuleName@(isRoot ? " (This module)" : "")
                                                         </MudLink>
+                                                        @if (nodeState.WaitingForApproval)
+                                                        {
+                                                            <AwaitingApprovalLink Node="@nodeState"/>
+                                                        }
                                                     </div>
                                                     @if (isRoot)
                                                     {
@@ -159,6 +163,10 @@
                                                          Style="@(isRoot ? "color: white !important; font-size: 0.8rem;" : "font-size: 0.8rem;")">
                                                     @nodeState.ModuleName@(isRoot ? " (This module)" : "")
                                                 </MudLink>
+                                                @if (nodeState.WaitingForApproval)
+                                                {
+                                                    <AwaitingApprovalLink Node="@nodeState"/>
+                                                }
                                             </div>
                                             @if (isRoot)
                                             {

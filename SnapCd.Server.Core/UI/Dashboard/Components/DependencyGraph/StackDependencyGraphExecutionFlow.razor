@@ -78,6 +78,10 @@
                                                                  @onclick:stopPropagation="true">
                                                             @nodeState.ModuleName
                                                         </MudLink>
+                                                        @if (nodeState.WaitingForApproval)
+                                                        {
+                                                            <AwaitingApprovalLink Node="@nodeState"/>
+                                                        }
                                                     </div>
                                                     <MudText Typo="Typo.caption" Color="@nodeState.StateColor" Style="font-size: 0.75rem;">
                                                         @nodeState.StateDisplayText
@@ -141,6 +145,10 @@
                                                          Style="font-size: 0.8rem;">
                                                     @nodeState.ModuleName
                                                 </MudLink>
+                                                @if (nodeState.WaitingForApproval)
+                                                {
+                                                    <AwaitingApprovalLink Node="@nodeState"/>
+                                                }
                                             </div>
                                             <MudText Typo="Typo.caption" Color="@nodeState.StateColor" Style="font-size: 0.75rem;">
                                                 @nodeState.StateDisplayText

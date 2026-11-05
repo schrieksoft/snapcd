@@ -6,7 +6,6 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System.Reflection;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
@@ -32,15 +31,9 @@ public class IdempotentSqlManager : IIdempotentSqlManager
     {
         _logger.LogDebug("Applying idempotent SQL scripts");
 
-        var assemblySources = new List<(Assembly Assembly, string Prefix)>
-        {
-            (typeof(IdempotentSqlManager).Assembly, "SnapCd.Server.Core.Views.SqlServer.")
-        };
-
-        foreach (var source in _additionalSources)
-        {
-            assemblySources.Add((source.Assembly, source.ResourcePrefix));
-        }
+        var assemblySources = _additionalSources
+            .Select(source => (source.Assembly, Prefix: source.ResourcePrefix))
+            .ToList();
 
         var totalApplied = 0;
 
@@ -92,7 +85,7 @@ public class IdempotentSqlManager : IIdempotentSqlManager
 
         if (totalApplied == 0)
         {
-            _logger.LogWarning("No SQL script files found");
+            _logger.LogDebug("No idempotent SQL scripts to apply");
             return;
         }
 

@@ -73,9 +73,13 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Module> Modules { get; set; }
 
     // Views for dependency graph
-    public DbSet<Dependency> Dependencies { get; set; }
-    public DbSet<RecursiveApplyDependency> RecursiveApplyDependencies { get; set; }
-    public DbSet<RecursiveDestroyDependency> RecursiveDestroyDependencies { get; set; }
+
+    /// <summary>Trigger-maintained. Read-only: nothing in the application writes to these.</summary>
+    public DbSet<DependencyEdge> DependencyEdges { get; set; }
+
+    public DbSet<RecursiveDependencyEdge> RecursiveDependencyEdges { get; set; }
+
+    public DbSet<ModuleStateRow> ModuleStates { get; set; }
 
     // Views for group organizationUser
     public DbSet<RecursiveGroupMember> RecursiveGroupMembers { get; set; }
@@ -600,224 +604,32 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .HasIndex(e => e.CreatedDateTime)
             .HasDatabaseName("IX_User_CreatedDateTime");
 
+        // Created and altered by hand-written SQL, so the scaffolder must not see them.
+        modelBuilder.Entity<DependencyEdge>(entity =>
+        {
+            entity.HasKey(e => new { e.DefinedModuleId, e.ReferencedModuleId });
+            entity.ToTable("DependencyEdges", t => t.ExcludeFromMigrations());
+        });
+
+        modelBuilder.Entity<RecursiveDependencyEdge>(entity =>
+        {
+            entity.HasNoKey();
+            entity.ToTable("RecursiveDependencyEdges", t => t.ExcludeFromMigrations());
+        });
+
+        modelBuilder.Entity<ModuleStateRow>(entity =>
+        {
+            entity.HasKey(e => e.ModuleId);
+            entity.ToTable("ModuleState", t => t.ExcludeFromMigrations());
+
+            entity.Property(e => e.LatestActualStateHeadline).HasConversion<string>();
+            entity.Property(e => e.DesiredStateHeadline).HasConversion<string>();
+            entity.Property(e => e.QueuedDesiredStateHeadline).HasConversion<string>();
+        });
+
         // Configure dependency graph views
-        modelBuilder.Entity<Dependency>(entity =>
-            {
-                entity.HasNoKey();
-                entity.ToView("vw_Dependencies");
-
-                // Configure enum conversions
-                entity.Property(e => e.DefinedLatestActualState)
-                    .HasConversion<string>();
-                entity.Property(e => e.ReferencedLatestActualState)
-                    .HasConversion<string>();
-
-
-                entity.Property(e => e.DefinedDesiredState)
-                    .HasConversion<string>();
-                entity.Property(e => e.ReferencedDesiredState)
-                    .HasConversion<string>();
-
-                entity.Property(e => e.DefinedQueuedDesiredState)
-                    .HasConversion<string>();
-                entity.Property(e => e.ReferencedQueuedDesiredState)
-                    .HasConversion<string>();
-
-                entity.Property(e => e.DefinedRunningDesiredState)
-                    .HasConversion<string>();
-                entity.Property(e => e.ReferencedRunningDesiredState)
-                    .HasConversion<string>();
-
-                entity.Property(e => e.ReferencedIsRunning).IsRequired(false);
-                entity.Property(e => e.ReferencedIsQueued).IsRequired(false);
-
-                // Configure navigation properties
-                entity.HasOne(e => e.DefinedModule)
-                    .WithMany()
-                    .HasForeignKey(e => new { e.DefinedModuleId, e.DefinedOrganizationId })
-                    .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
-                    .OnDelete(DeleteBehavior.NoAction);
-
-                entity.HasOne(e => e.ReferencedModule)
-                    .WithMany()
-                    .HasForeignKey(e => new { e.ReferencedModuleId, e.ReferencedOrganizationId })
-                    .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
-                    .OnDelete(DeleteBehavior.NoAction);
-
-                entity.HasOne(e => e.DefinedNamespace)
-                    .WithMany()
-                    .HasForeignKey(e => new { e.DefinedNamespaceId, e.DefinedOrganizationId })
-                    .HasPrincipalKey(n => new { n.Id, n.OrganizationId })
-                    .OnDelete(DeleteBehavior.NoAction);
-
-                entity.HasOne(e => e.ReferencedNamespace)
-                    .WithMany()
-                    .HasForeignKey(e => new { e.ReferencedNamespaceId, e.ReferencedOrganizationId })
-                    .HasPrincipalKey(n => new { n.Id, n.OrganizationId })
-                    .OnDelete(DeleteBehavior.NoAction);
-
-                entity.HasOne(e => e.DefinedStack)
-                    .WithMany()
-                    .HasForeignKey(e => new { e.DefinedStackId, e.DefinedOrganizationId })
-                    .HasPrincipalKey(s => new { s.Id, s.OrganizationId })
-                    .OnDelete(DeleteBehavior.NoAction);
-
-                entity.HasOne(e => e.ReferencedStack)
-                    .WithMany()
-                    .HasForeignKey(e => new { e.ReferencedStackId, e.ReferencedOrganizationId })
-                    .HasPrincipalKey(s => new { s.Id, s.OrganizationId })
-                    .OnDelete(DeleteBehavior.NoAction);
-            }
-        );
 
         // Configure recursive dependency graph view
-        modelBuilder.Entity<RecursiveApplyDependency>(entity =>
-        {
-            entity.HasNoKey();
-            entity.ToView("vw_RecursiveApplyDependencies");
 
-            // Configure enum conversions
-            entity.Property(e => e.DefinedLatestActualState)
-                .HasConversion<string>();
-            entity.Property(e => e.ReferencedLatestActualState)
-                .HasConversion<string>();
-            entity.Property(e => e.RootLatestActualState)
-                .HasConversion<string>();
-            entity.Property(e => e.DefinedDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.ReferencedDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.RootDesiredState)
-                .HasConversion<string>();
-
-            entity.Property(e => e.DefinedQueuedDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.ReferencedQueuedDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.RootQueuedDesiredState)
-                .HasConversion<string>();
-
-            entity.Property(e => e.DefinedRunningDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.ReferencedRunningDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.RootRunningDesiredState)
-                .HasConversion<string>();
-
-            entity.Property(e => e.ReferencedIsRunning).IsRequired(false);
-            entity.Property(e => e.ReferencedIsQueued).IsRequired(false);
-
-            // Configure navigation properties
-            entity.HasOne(e => e.DefinedModule)
-                .WithMany()
-                .HasForeignKey(e => new { e.DefinedModuleId, e.DefinedOrganizationId })
-                .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.ReferencedModule)
-                .WithMany()
-                .HasForeignKey(e => new { e.ReferencedModuleId, e.ReferencedOrganizationId })
-                .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.DefinedNamespace)
-                .WithMany()
-                .HasForeignKey(e => new { e.DefinedNamespaceId, e.DefinedOrganizationId })
-                .HasPrincipalKey(n => new { n.Id, n.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.ReferencedNamespace)
-                .WithMany()
-                .HasForeignKey(e => new { e.ReferencedNamespaceId, e.ReferencedOrganizationId })
-                .HasPrincipalKey(n => new { n.Id, n.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.DefinedStack)
-                .WithMany()
-                .HasForeignKey(e => new { e.DefinedStackId, e.DefinedOrganizationId })
-                .HasPrincipalKey(s => new { s.Id, s.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.ReferencedStack)
-                .WithMany()
-                .HasForeignKey(e => new { e.ReferencedStackId, e.ReferencedOrganizationId })
-                .HasPrincipalKey(s => new { s.Id, s.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-        });
-
-        modelBuilder.Entity<RecursiveDestroyDependency>(entity =>
-        {
-            entity.HasNoKey();
-            entity.ToView("vw_RecursiveDestroyDependencies");
-
-            // Configure enum conversions
-            entity.Property(e => e.DefinedLatestActualState)
-                .HasConversion<string>();
-            entity.Property(e => e.ReferencedLatestActualState)
-                .HasConversion<string>();
-            entity.Property(e => e.RootLatestActualState)
-                .HasConversion<string>();
-
-            entity.Property(e => e.DefinedDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.ReferencedDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.RootDesiredState)
-                .HasConversion<string>();
-
-            entity.Property(e => e.DefinedQueuedDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.ReferencedQueuedDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.RootQueuedDesiredState)
-                .HasConversion<string>();
-
-            entity.Property(e => e.DefinedRunningDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.ReferencedRunningDesiredState)
-                .HasConversion<string>();
-            entity.Property(e => e.RootRunningDesiredState)
-                .HasConversion<string>();
-
-            entity.Property(e => e.ReferencedIsRunning).IsRequired(false);
-            entity.Property(e => e.ReferencedIsQueued).IsRequired(false);
-
-            // Configure navigation properties with composite keys
-            entity.HasOne(e => e.DefinedModule)
-                .WithMany()
-                .HasForeignKey(e => new { e.DefinedModuleId, e.DefinedOrganizationId })
-                .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.ReferencedModule)
-                .WithMany()
-                .HasForeignKey(e => new { e.ReferencedModuleId, e.ReferencedOrganizationId })
-                .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.DefinedNamespace)
-                .WithMany()
-                .HasForeignKey(e => new { e.DefinedNamespaceId, e.DefinedOrganizationId })
-                .HasPrincipalKey(n => new { n.Id, n.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.ReferencedNamespace)
-                .WithMany()
-                .HasForeignKey(e => new { e.ReferencedNamespaceId, e.ReferencedOrganizationId })
-                .HasPrincipalKey(n => new { n.Id, n.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.DefinedStack)
-                .WithMany()
-                .HasForeignKey(e => new { e.DefinedStackId, e.DefinedOrganizationId })
-                .HasPrincipalKey(s => new { s.Id, s.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.ReferencedStack)
-                .WithMany()
-                .HasForeignKey(e => new { e.ReferencedStackId, e.ReferencedOrganizationId })
-                .HasPrincipalKey(s => new { s.Id, s.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-        });
     }
 }

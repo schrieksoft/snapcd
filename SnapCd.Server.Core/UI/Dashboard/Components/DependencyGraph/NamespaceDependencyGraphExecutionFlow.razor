@@ -82,6 +82,10 @@
                                                                  @onclick:stopPropagation="true">
                                                             @nodeState.ModuleName
                                                         </MudLink>
+                                                        @if (nodeState.WaitingForApproval)
+                                                        {
+                                                            <AwaitingApprovalLink Node="@nodeState"/>
+                                                        }
                                                     </div>
                                                     @if (isUninvolved)
                                                     {
@@ -154,6 +158,10 @@
                                                          Style="font-size: 0.8rem;">
                                                     @nodeState.ModuleName
                                                 </MudLink>
+                                                @if (nodeState.WaitingForApproval)
+                                                {
+                                                    <AwaitingApprovalLink Node="@nodeState"/>
+                                                }
                                             </div>
                                             @if (isUninvolved)
                                             {

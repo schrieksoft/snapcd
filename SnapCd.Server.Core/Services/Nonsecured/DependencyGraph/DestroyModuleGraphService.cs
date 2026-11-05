@@ -44,7 +44,7 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
     public async Task<List<Dependency>> ListRecursiveDestroyDependenciesForReferencedModule(Guid moduleId)
     {
         // Use the recursive view to get all dependencies at once
-        var recursiveDependencies = await _dbContext.RecursiveDestroyDependencies
+        var recursiveDependencies = await DependencyGraphQueries.RecursiveDestroy(_dbContext)
             .Where(rd => rd.RootModuleId == moduleId)
             .ToListAsync();
 
@@ -215,7 +215,7 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
     public async Task<List<Dependency>> ListRecursiveDestroyDependenciesForNamespace(Guid namespaceId)
     {
         // Get all dependencies where the namespace is involved (either as defined or referenced namespace)
-        var recursiveDependencies = await _dbContext.RecursiveDestroyDependencies
+        var recursiveDependencies = await DependencyGraphQueries.RecursiveDestroy(_dbContext)
             .Where(rd => rd.ReferencedNamespaceId == namespaceId || rd.DefinedNamespaceId == namespaceId)
             .ToListAsync();
 

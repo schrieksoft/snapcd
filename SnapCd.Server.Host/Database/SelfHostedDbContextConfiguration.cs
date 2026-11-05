@@ -14,12 +14,19 @@ namespace SnapCd.Server.Host.Database;
 
 public static class SelfHostedDbContextConfiguration
 {
-    public static IServiceCollection AddSelfHostedDbContextConfiguration(this IServiceCollection services, string connectionString)
+    public static IServiceCollection AddSelfHostedDbContextConfiguration(this IServiceCollection services, string connectionString, bool logSensitiveData = false)
     {
         services.AddDbContextFactory<SelfHostedSnapCdDbContext>(options =>
         {
             options.UseSqlServer(connectionString,
                 m => { m.MigrationsHistoryTable("__EFMigrationsHistory"); });
+            if (logSensitiveData)
+            {
+                // Parameter values are redacted unless this is set, which makes a failing
+                // statement unreadable.
+                options.EnableSensitiveDataLogging();
+                options.EnableDetailedErrors();
+            }
             options.UseOpenIddict();
             options.UseOpenIddict<ServicePrincipal, Authorization, Scope, Token, Guid>();
         });

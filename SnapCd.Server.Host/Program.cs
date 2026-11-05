@@ -137,7 +137,7 @@ using (var startupLoggerFactory = LoggerFactory.Create(b => b.AddConsole()))
         startupLoggerFactory.CreateLogger(nameof(DatabaseAvailability)));
 }
 
-builder.Services.AddSelfHostedDbContextConfiguration(connectionString);
+builder.Services.AddSelfHostedDbContextConfiguration(connectionString, builder.Environment.IsDevelopment());
 builder.Services.AddSnapCdControllers([typeof(SnapCd.Server.Host.Controllers.LicenseController)]);
 builder.Services.AddSnapCdEmailSender(builder.Configuration);
 builder.Services.AddSnapCdFactories();
