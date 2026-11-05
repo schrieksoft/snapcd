@@ -230,3 +230,20 @@ GO
 
 EXEC sp_RecomputeModuleState;
 GO
+
+-- ============================================================================
+-- The dependency graph is read through LINQ in DependencyGraphQueries, so the views it used
+-- to read are gone. vw_DependencyEdges went with them: it only ever fed vw_Dependencies.
+-- ============================================================================
+
+DROP VIEW IF EXISTS vw_Dependencies;
+GO
+
+DROP VIEW IF EXISTS vw_RecursiveApplyDependencies;
+GO
+
+DROP VIEW IF EXISTS vw_RecursiveDestroyDependencies;
+GO
+
+DROP VIEW IF EXISTS vw_DependencyEdges;
+GO
