@@ -2432,8 +2432,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ServerSideErrorHeader")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -7650,8 +7650,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ServerSideErrorHeader")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Status")
                         .IsRequired()

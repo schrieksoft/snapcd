@@ -13,6 +13,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Dtos.ModuleJobs;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Mappers;
@@ -254,8 +255,8 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
             job.ActualStateHeadline = actualStateHeadline;
 
         job.FailedOnServerSideStep = failedStep;
-        job.ServerSideErrorHeader = Truncate(errorHeader, 255);
-        job.ServerSideError = Truncate(errorMessage, 16000);
+        job.ServerSideErrorHeader = ErrorText.FitHeader(errorHeader);
+        job.ServerSideError = ErrorText.Body(errorMessage);
 
         await ExecuteUpdate(job); // Called from MassTransit state machine, transaction already running
     }
@@ -275,8 +276,8 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
     {
         var job = await Get(id, organizationId);
         job.FailedOnServerSideStep = failedStep;
-        job.ServerSideErrorHeader = Truncate(errorHeader, 255);
-        job.ServerSideError = Truncate(errorMessage, 16000);
+        job.ServerSideErrorHeader = ErrorText.FitHeader(errorHeader);
+        job.ServerSideError = ErrorText.Body(errorMessage);
         await ExecuteUpdate(job); // Called from MassTransit state machine, transaction already running
     }
 

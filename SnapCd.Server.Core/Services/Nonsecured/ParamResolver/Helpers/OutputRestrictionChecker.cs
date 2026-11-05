@@ -73,7 +73,7 @@ public class OutputRestrictionChecker
 
         var producers = await _dbContext.Modules
             .Where(m => producerIds.Contains(m.Id) && m.OrganizationId == organizationId)
-            .Select(m => new ProducerRestriction(m.Id, m.Name, m.OutputSetDownstreamRestriction))
+            .Select(m => new ProducerRestriction(m.Id, m.Name, m.Namespace.Name, m.OutputSetDownstreamRestriction))
             .ToListAsync();
 
         var namedRestrictions = await NamedRestrictions(producerIds, organizationId);
@@ -97,7 +97,7 @@ public class OutputRestrictionChecker
             var reason = WithholdingReason(producer, outputName, isSensitive, namedRestrictions);
 
             if (reason != null)
-                refusals.Add($"\"{outputName}\" from Module \"{producer.Name}\", which {reason}");
+                refusals.Add($"\"{outputName}\" from Module \"{producer.Name}\"{Located(producer)}, which {reason}.");
         }
 
         if (refusals.Count == 0) return;
@@ -107,9 +107,11 @@ public class OutputRestrictionChecker
             .Select(m => m.Name)
             .FirstOrDefaultAsync() ?? consumingModuleId.ToString();
 
+        var list = string.Join("\n", refusals.Select(r => $"- {r}"));
+
         throw new OutputRestrictedException(
-            $"Module \"{consumerName}\" cannot read {string.Join("; ", refusals)}. " +
-            "Supply the Output to this Module or its Namespace to allow it.");
+            $"Module \"{consumerName}\" cannot read:\n{list}\n" +
+            "Supply the mentioned Outputs (or full OutputSets) to this Module or its Namespace to allow it.");
     }
 
     private async Task<Dictionary<Guid, ProducerRestriction>> ProducerByOutputSet(List<Output> outputs, Guid organizationId)
@@ -121,7 +123,7 @@ public class OutputRestrictionChecker
             .Select(os => new
             {
                 os.Id,
-                Producer = new ProducerRestriction(os.Module.Id, os.Module.Name, os.Module.OutputSetDownstreamRestriction)
+                Producer = new ProducerRestriction(os.Module.Id, os.Module.Name, os.Module.Namespace.Name, os.Module.OutputSetDownstreamRestriction)
             })
             .ToListAsync();
 
@@ -230,7 +232,7 @@ public class OutputRestrictionChecker
         Dictionary<Guid, HashSet<string>> namedRestrictions)
     {
         if (producer.Restriction == OutputSetDownstreamRestriction.All)
-            return "withholds its whole Output Set";
+            return "withholds all its Outputs";
 
         if (producer.Restriction == OutputSetDownstreamRestriction.SensitiveOnly && isSensitive)
             return "withholds its sensitive Outputs";
@@ -241,5 +243,8 @@ public class OutputRestrictionChecker
         return null;
     }
 
-    private record ProducerRestriction(Guid Id, string Name, OutputSetDownstreamRestriction? Restriction);
+    private static string Located(ProducerRestriction producer) =>
+        string.IsNullOrEmpty(producer.NamespaceName) ? "" : $" (in Namespace \"{producer.NamespaceName}\")";
+
+    private record ProducerRestriction(Guid Id, string Name, string? NamespaceName, OutputSetDownstreamRestriction? Restriction);
 }

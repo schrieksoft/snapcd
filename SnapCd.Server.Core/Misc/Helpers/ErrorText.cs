@@ -11,14 +11,14 @@ using SnapCd.Server.Core.Enums;
 namespace SnapCd.Server.Core.Misc.Helpers;
 
 /// <summary>
-/// Fitting an error to the column that holds it. A header is a fixed 255 and a body is 16000, and
+/// Fitting an error to the column that holds it. A header is a fixed 1000 and a body is 16000, and
 /// what arrives is a runner's exception message, which carries a path and the engine's own output
 /// and is bounded by nothing. Writing one over its column throws, and the throw lands in a saga
 /// consume that is recording a failure, so the job stops where it is rather than failing cleanly.
 /// </summary>
 public static class ErrorText
 {
-    public const int HeaderLength = 255;
+    public const int HeaderLength = 1000;
     public const int BodyLength = 16000;
 
     /// <summary>A last guard at the write, for a header composed somewhere this does not see.</summary>

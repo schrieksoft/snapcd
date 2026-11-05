@@ -135,7 +135,7 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
             () => Checker().EnsureReadable(_consumerId, [(_producerId, "vpc_id")], _organizationId));
 
         Assert.Contains("vpc_id", ex.Message);
-        Assert.Contains("whole Output Set", ex.Message);
+        Assert.Contains("withholds all its Outputs", ex.Message);
     }
 
     // SensitiveOnly: the SecretOutput rows are withheld, the LiteralOutput rows are not.
