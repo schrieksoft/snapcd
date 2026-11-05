@@ -43,7 +43,7 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
     public async Task<List<Dependency>> ListRecursiveApplyDependenciesForReferencedModule(Guid moduleId)
     {
         // Use the recursive view to get all dependencies at once
-        var recursiveDependencies = await _dbContext.RecursiveApplyDependencies
+        var recursiveDependencies = await DependencyGraphQueries.RecursiveApply(_dbContext)
             .Where(rd => rd.RootModuleId == moduleId)
             .ToListAsync();
 
@@ -71,7 +71,7 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
     public async Task<List<Dependency>> ListRecursiveApplyDependenciesForNamespace(Guid namespaceId)
     {
         // Get all dependencies where the namespace is involved (either as defined or referenced namespace)
-        var recursiveDependencies = await _dbContext.RecursiveApplyDependencies
+        var recursiveDependencies = await DependencyGraphQueries.RecursiveApply(_dbContext)
             .Where(rd => rd.ReferencedNamespaceId == namespaceId || rd.DefinedNamespaceId == namespaceId)
             .ToListAsync();
 

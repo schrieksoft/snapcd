@@ -32,14 +32,14 @@ public class DependencyGraphService : IDisposable
 
     public async Task<List<Dependency>> ListForDefinedModule(Guid moduleId)
     {
-        return await _dbContext.Dependencies
+        return await DependencyGraphQueries.Dependencies(_dbContext)
             .Where(e => e.DefinedModuleId == moduleId)
             .ToListAsync();
     }
 
     public async Task<List<Dependency>> ListForReferencedModule(Guid moduleId)
     {
-        return await _dbContext.Dependencies
+        return await DependencyGraphQueries.Dependencies(_dbContext)
             .Where(e => e.ReferencedModuleId == moduleId)
             .ToListAsync();
     }
@@ -47,7 +47,7 @@ public class DependencyGraphService : IDisposable
 
     public async Task<List<Guid>> ListModuleIdsForDefinedModule(Guid moduleId)
     {
-        return await _dbContext.Dependencies
+        return await DependencyGraphQueries.Dependencies(_dbContext)
             .Where(e => e.DefinedModuleId == moduleId && e.ReferencedModuleId.HasValue)
             .Select(x => x.ReferencedModuleId!.Value)
             .ToListAsync();
@@ -55,7 +55,7 @@ public class DependencyGraphService : IDisposable
 
     public async Task<List<Guid>> ListModuleIdsForReferencedModule(Guid moduleId)
     {
-        return await _dbContext.Dependencies
+        return await DependencyGraphQueries.Dependencies(_dbContext)
             .Where(e => e.ReferencedModuleId == moduleId)
             .Select(x => x.DefinedModuleId)
             .ToListAsync();
@@ -64,28 +64,28 @@ public class DependencyGraphService : IDisposable
 
     public virtual async Task<List<Dependency>> ListForDefinedNamespace(Guid namespaceId)
     {
-        return await _dbContext.Dependencies
+        return await DependencyGraphQueries.Dependencies(_dbContext)
             .Where(e => e.DefinedNamespaceId == namespaceId)
             .ToListAsync();
     }
 
     public virtual async Task<List<Dependency>> ListForReferencedNamespace(Guid namespaceId)
     {
-        return await _dbContext.Dependencies
+        return await DependencyGraphQueries.Dependencies(_dbContext)
             .Where(e => e.ReferencedNamespaceId == namespaceId)
             .ToListAsync();
     }
 
     public virtual async Task<List<Dependency>> ListForDefinedStack(Guid stackId)
     {
-        return await _dbContext.Dependencies
+        return await DependencyGraphQueries.Dependencies(_dbContext)
             .Where(e => e.DefinedStackId == stackId)
             .ToListAsync();
     }
 
     public virtual async Task<List<Dependency>> ListForReferencedStack(Guid stackId)
     {
-        return await _dbContext.Dependencies
+        return await DependencyGraphQueries.Dependencies(_dbContext)
             .Where(e => e.ReferencedStackId == stackId)
             .ToListAsync();
     }
