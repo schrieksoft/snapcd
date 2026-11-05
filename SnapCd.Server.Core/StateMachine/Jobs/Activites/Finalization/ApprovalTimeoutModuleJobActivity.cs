@@ -43,7 +43,7 @@ public class ApprovalTimeoutModuleJobActivity<TSaga, TMessage> :
         await _repository.Finalize(
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
-            ExecutionStatus.NotApproved,
+            ModuleJobStatus.NotApproved,
             typeof(TMessage).Name,
             DateTimeOffset.UtcNow,
             null,

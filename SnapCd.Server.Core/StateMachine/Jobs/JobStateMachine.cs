@@ -355,7 +355,7 @@ public partial class JobStateMachine<
                 await repository.Finalize(
                     context.Message.CorrelationId,
                     context.Message.OrganizationId,
-                    ExecutionStatus.Orphaned,
+                    ModuleJobStatus.Orphaned,
                     nameof(CancelKillCompleted),
                     DateTimeOffset.UtcNow,
                     null,

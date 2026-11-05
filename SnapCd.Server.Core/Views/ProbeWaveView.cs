@@ -115,7 +115,7 @@ public class ProbeWaveModuleView
     /// How the probe job ended, where one was started. The attempt row keeps no status of its own,
     /// because the job carrying the probe already has one.
     /// </summary>
-    public ExecutionStatus? ProbeJobStatus => Latest?.ProbeJobStatus;
+    public ModuleJobStatus? ProbeJobStatus => Latest?.ProbeJobStatus;
 
     /// <summary>Still waiting while any upstream might yet signal something it reads.</summary>
     public bool IsWaiting => Edges.Any(e => e.Status == SignalEdgeStatus.Potential);
@@ -144,11 +144,11 @@ public class ProbeWaveModuleView
     /// </summary>
     public bool HasFaulted =>
         !HasProbed &&
-        ProbeJobStatus is ExecutionStatus.Failed
-            or ExecutionStatus.Orphaned
-            or ExecutionStatus.PolicyDenied
-            or ExecutionStatus.Cancelled
-            or ExecutionStatus.NotApproved;
+        ProbeJobStatus is ModuleJobStatus.Failed
+            or ModuleJobStatus.Orphaned
+            or ModuleJobStatus.PolicyDenied
+            or ModuleJobStatus.Cancelled
+            or ModuleJobStatus.NotApproved;
 
     /// <summary>
     /// This Module is why the wave is not finished: an upstream still owes it an answer, or it
@@ -248,7 +248,7 @@ public class ProbeAttemptView
     public bool HasProbed { get; set; }
 
     /// <summary>How the probe job ended, where one was started.</summary>
-    public ExecutionStatus? ProbeJobStatus { get; set; }
+    public ModuleJobStatus? ProbeJobStatus { get; set; }
 
     /// <summary>What this probe predicted.</summary>
     public List<SignalOutputView> Signals { get; set; } = [];

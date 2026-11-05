@@ -121,7 +121,7 @@ public class SignalEdgeResolver : IDisposable
         await _dbContext.ProbeWaves.AsNoTracking()
             .Where(w => w.Id == probeWaveId && w.OrganizationId == organizationId)
             .Join(_dbContext.ModuleJobs.Where(j =>
-                    j.Status == ExecutionStatus.Running && j.WaitingForApproval == true),
+                    j.Status == ModuleJobStatus.Running && j.WaitingForApproval == true),
                 w => w.OriginModuleJobId, j => j.Id, (w, _) => w.Id)
             .AnyAsync();
 

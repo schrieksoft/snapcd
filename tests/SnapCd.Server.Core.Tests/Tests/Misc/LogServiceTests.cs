@@ -49,7 +49,7 @@ public class LogServiceTests : IAsyncLifetime
             OrganizationId = _fixture.Organizations["0"].Id,
             ModuleId = _fixture.Modules["0000"].Id,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ExecutionStatus.Running,
+            Status = ModuleJobStatus.Running,
             JobType = "Test"
         };
 
@@ -59,7 +59,7 @@ public class LogServiceTests : IAsyncLifetime
             OrganizationId = _fixture.Organizations["0"].Id,
             ModuleId = _fixture.Modules["0001"].Id,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ExecutionStatus.Running,
+            Status = ModuleJobStatus.Running,
             JobType = "Test"
         };
 

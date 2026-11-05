@@ -622,7 +622,7 @@ public class DebugDataSeeder : ProductionDataSeeder
                 OrganizationId = PreseededOrganizationId,
                 ModuleId = moduleId,
                 JobType = nameof(ApplyJobSaga),
-                Status = ExecutionStatus.Completed,
+                Status = ModuleJobStatus.Completed,
                 ActualStateHeadline = ActualStateHeadline.Applied,
                 IsCurrent = null,
                 TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-5),

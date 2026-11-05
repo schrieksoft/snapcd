@@ -362,7 +362,7 @@ public class StateMigrationServiceTests : IAsyncLifetime
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
             JobType = "ApplyJobSaga",
-            Status = ExecutionStatus.Running,
+            Status = ModuleJobStatus.Running,
             IsCurrent = true
         });
         await db.SaveChangesAsync();

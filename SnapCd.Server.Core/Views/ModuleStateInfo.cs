@@ -28,7 +28,7 @@ public class ModuleStateInfo
     public DesiredStateHeadline? DesiredState { get; set; }
     public DesiredStateHeadline? RunningDesiredState { get; set; }
     public DesiredStateHeadline? QueuedDesiredState { get; set; }
-    public ExecutionStatus LatestExecutionStatus { get; set; }
+    public ModuleJobStatus LatestExecutionStatus { get; set; }
     public bool IsRunning { get; set; }
 
     /// <summary>The in-flight job, where there is one. Null for an idle Module.</summary>

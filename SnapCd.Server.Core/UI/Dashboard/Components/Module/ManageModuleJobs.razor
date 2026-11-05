@@ -91,21 +91,21 @@ else
             {
                 // Running gets a lighter accent and Failed a deeper red — the theme's warning
                 // (accent) and error colors are too close to tell apart at dot size
-                ExecutionStatus.Running => "var(--snap-running, #EB753C)",
-                ExecutionStatus.Completed => "var(--mud-palette-success)",
-                ExecutionStatus.Failed => "var(--snap-failed, #C62828)",
-                ExecutionStatus.NotApproved => "var(--snap-failed, #C62828)",
-                ExecutionStatus.Cancelled => "var(--mud-palette-text-disabled)",
+                ModuleJobStatus.Running => "var(--snap-running, #EB753C)",
+                ModuleJobStatus.Completed => "var(--mud-palette-success)",
+                ModuleJobStatus.Failed => "var(--snap-failed, #C62828)",
+                ModuleJobStatus.NotApproved => "var(--snap-failed, #C62828)",
+                ModuleJobStatus.Cancelled => "var(--mud-palette-text-disabled)",
                 _ => "var(--mud-palette-text-disabled)"
             };
 
             var statusLabel = job.Status switch
             {
-                ExecutionStatus.Running => "Running",
-                ExecutionStatus.Completed => FormatJobType(job.JobType) == "Apply" ? "Applied" : "Destroyed",
-                ExecutionStatus.Failed => "Failed",
-                ExecutionStatus.NotApproved => "Not Approved",
-                ExecutionStatus.Cancelled => "Cancelled",
+                ModuleJobStatus.Running => "Running",
+                ModuleJobStatus.Completed => FormatJobType(job.JobType) == "Apply" ? "Applied" : "Destroyed",
+                ModuleJobStatus.Failed => "Failed",
+                ModuleJobStatus.NotApproved => "Not Approved",
+                ModuleJobStatus.Cancelled => "Cancelled",
                 _ => job.Status.ToString()
             };
 
@@ -122,7 +122,7 @@ else
                 <TitleContent>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
                         <MudTooltip Text="@job.Status.ToString()">
-                            @if (job.Status == ExecutionStatus.Running)
+                            @if (job.Status == ModuleJobStatus.Running)
                             {
                                 <span class="job-status-running" style="color: @dotColor;">
                                     <span class="job-status-dot" style="background-color: @dotColor;"></span>
@@ -147,7 +147,7 @@ else
                         <span style="font-size: 14px; color: var(--mud-palette-text-secondary); white-space: nowrap;">
                             @statusLabel · @elapsedDisplay
                         </span>
-                        @if (job.Status == ExecutionStatus.Running)
+                        @if (job.Status == ModuleJobStatus.Running)
                         {
                             <MudTooltip Text="Cancel Job">
                                 <MudIconButton Icon="@SnapCdIcons.Cancel"
@@ -346,7 +346,7 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task HandleJobUpdated(Guid jobId, Guid moduleId, ExecutionStatus status)
+    private async Task HandleJobUpdated(Guid jobId, Guid moduleId, ModuleJobStatus status)
     {
         if (moduleId != Module.Id) return;
 

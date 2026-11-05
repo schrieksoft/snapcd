@@ -902,7 +902,7 @@ else
         return Task.CompletedTask;
     }
 
-    private Task HandleJobUpdated(Guid jobId, Guid moduleId, ExecutionStatus status)
+    private Task HandleJobUpdated(Guid jobId, Guid moduleId, ModuleJobStatus status)
     {
         _ = ScheduleReload();
         return Task.CompletedTask;
@@ -1152,7 +1152,7 @@ else
     {
         using var jobRepo = JobRepoFactory.Create(Principal());
         _pendingApprovals = await jobRepo.List(OrganizationId, q => q
-                .Where(j => j.WaitingForApproval == true && j.Status == ExecutionStatus.Running)
+                .Where(j => j.WaitingForApproval == true && j.Status == ModuleJobStatus.Running)
                 .Select(j => new PendingApprovalRow
                 {
                     JobId = j.Id,
@@ -1234,8 +1234,8 @@ else
         buckets = buckets.Where(b => b.Date >= windowStart && b.Date <= DateTime.UtcNow.Date).ToList();
 
         _weekTotal = buckets.Sum(b => b.Count);
-        var succeeded = buckets.Where(b => b.Status == ExecutionStatus.Completed).Sum(b => b.Count);
-        var failed = buckets.Where(b => b.Status == ExecutionStatus.Failed).Sum(b => b.Count);
+        var succeeded = buckets.Where(b => b.Status == ModuleJobStatus.Completed).Sum(b => b.Count);
+        var failed = buckets.Where(b => b.Status == ModuleJobStatus.Failed).Sum(b => b.Count);
         _weekSuccessRate = succeeded + failed > 0 ? (int)Math.Round(100.0 * succeeded / (succeeded + failed)) : null;
 
         // Every job in the window lands in exactly one of ok/fail/other, so the bars
@@ -1243,9 +1243,9 @@ else
         var byDay = buckets
             .GroupBy(b => b.Date)
             .ToDictionary(g => g.Key, g => (
-                Ok: g.Where(b => b.Status == ExecutionStatus.Completed).Sum(b => b.Count),
-                Fail: g.Where(b => b.Status == ExecutionStatus.Failed).Sum(b => b.Count),
-                Other: g.Where(b => b.Status != ExecutionStatus.Completed && b.Status != ExecutionStatus.Failed).Sum(b => b.Count)));
+                Ok: g.Where(b => b.Status == ModuleJobStatus.Completed).Sum(b => b.Count),
+                Fail: g.Where(b => b.Status == ModuleJobStatus.Failed).Sum(b => b.Count),
+                Other: g.Where(b => b.Status != ModuleJobStatus.Completed && b.Status != ModuleJobStatus.Failed).Sum(b => b.Count)));
 
         var maxCount = byDay.Values.Select(v => v.Ok + v.Fail + v.Other).DefaultIfEmpty(0).Max();
 
@@ -1416,31 +1416,31 @@ else
 
     private static string GetJobDotClass(ActivityRow job)
     {
-        if (job.Status == ExecutionStatus.Running && job.WaitingForApproval == true)
+        if (job.Status == ModuleJobStatus.Running && job.WaitingForApproval == true)
             return "dash-dot-accent";
 
         return job.Status switch
         {
-            ExecutionStatus.Running => "dash-dot-running",
-            ExecutionStatus.Completed => job.JobType == "DestroyJobSaga" ? "dash-dot-neutral" : "dash-dot-success",
-            ExecutionStatus.Failed => "dash-dot-error",
-            ExecutionStatus.NotApproved => "dash-dot-error",
+            ModuleJobStatus.Running => "dash-dot-running",
+            ModuleJobStatus.Completed => job.JobType == "DestroyJobSaga" ? "dash-dot-neutral" : "dash-dot-success",
+            ModuleJobStatus.Failed => "dash-dot-error",
+            ModuleJobStatus.NotApproved => "dash-dot-error",
             _ => "dash-dot-neutral"
         };
     }
 
     private static string GetJobStatusLabel(ActivityRow job)
     {
-        if (job.Status == ExecutionStatus.Running && job.WaitingForApproval == true)
+        if (job.Status == ModuleJobStatus.Running && job.WaitingForApproval == true)
             return "Waiting for approval";
 
         return job.Status switch
         {
-            ExecutionStatus.Running => "Running",
-            ExecutionStatus.Completed => job.JobType == "DestroyJobSaga" ? "Destroyed" : "Applied",
-            ExecutionStatus.Failed => "Failed",
-            ExecutionStatus.NotApproved => "Not approved",
-            ExecutionStatus.Cancelled => "Cancelled",
+            ModuleJobStatus.Running => "Running",
+            ModuleJobStatus.Completed => job.JobType == "DestroyJobSaga" ? "Destroyed" : "Applied",
+            ModuleJobStatus.Failed => "Failed",
+            ModuleJobStatus.NotApproved => "Not approved",
+            ModuleJobStatus.Cancelled => "Cancelled",
             _ => job.Status.ToString()
         };
     }
@@ -1528,7 +1528,7 @@ else
     private class WeekBucket
     {
         public DateTime Date { get; set; }
-        public ExecutionStatus Status { get; set; }
+        public ModuleJobStatus Status { get; set; }
         public int Count { get; set; }
     }
 
@@ -1548,7 +1548,7 @@ else
         public Guid JobId { get; set; }
         public int JobNumber { get; set; }
         public string JobType { get; set; } = null!;
-        public ExecutionStatus Status { get; set; }
+        public ModuleJobStatus Status { get; set; }
         public bool? WaitingForApproval { get; set; }
         public DateTimeOffset TimestampStart { get; set; }
         public DateTimeOffset? TimestampEnd { get; set; }

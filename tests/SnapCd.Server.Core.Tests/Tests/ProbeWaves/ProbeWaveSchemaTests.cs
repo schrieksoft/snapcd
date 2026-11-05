@@ -383,7 +383,7 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             JobType = "ApplyJobSaga",
-            Status = ExecutionStatus.Running,
+            Status = ModuleJobStatus.Running,
             WaitingForApproval = true,
             TimestampStart = DateTimeOffset.UtcNow.AddTicks(_originJobs.Count),
             CreatedDateTime = DateTime.UtcNow

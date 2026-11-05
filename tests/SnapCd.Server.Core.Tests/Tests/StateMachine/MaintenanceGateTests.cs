@@ -292,7 +292,7 @@ public class MaintenanceGateTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = _moduleId,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ExecutionStatus.Running,
+            Status = ModuleJobStatus.Running,
             JobType = "Apply",
             IsCurrent = null
         });

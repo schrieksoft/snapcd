@@ -151,11 +151,11 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     {
         var wave = await AddWave();
 
-        var firstJob = await AddJob(_consumerModuleId, ExecutionStatus.Completed);
+        var firstJob = await AddJob(_consumerModuleId, ModuleJobStatus.Completed);
         var first = await AddSignalSet(wave, _consumerModuleId, ("pet_id", KnownUpdate, false));
         await AddAttempt(wave, _consumerModuleId, first, firstJob, timestamp: 100);
 
-        var secondJob = await AddJob(_consumerModuleId, ExecutionStatus.Completed);
+        var secondJob = await AddJob(_consumerModuleId, ModuleJobStatus.Completed);
         var second = await AddSignalSet(wave, _consumerModuleId, ("pet_id", UnknownAfter, false));
         await AddAttempt(wave, _consumerModuleId, second, secondJob, timestamp: 200);
 
@@ -307,7 +307,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     public async Task The_Probe_Job_Is_Reported_So_Its_Logs_Can_Be_Found()
     {
         var wave = await AddWave();
-        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Completed);
+        var jobId = await AddJob(_consumerModuleId, ModuleJobStatus.Completed);
         await AddAttempt(wave, _consumerModuleId, probeModuleJobId: jobId);
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
 
@@ -453,7 +453,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         var wave = await AddWave(jobId);
         await AddAttempt(wave, _originModuleId);
         await AddAttempt(wave, _consumerModuleId,
-            probeModuleJobId: await AddJob(_consumerModuleId, ExecutionStatus.Running));
+            probeModuleJobId: await AddJob(_consumerModuleId, ModuleJobStatus.Running));
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
 
         var found = await Service().GetByOriginJob(jobId, _organizationId);
@@ -623,7 +623,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     {
         var wave = await AddWave();
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
-        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Failed);
+        var jobId = await AddJob(_consumerModuleId, ModuleJobStatus.Failed);
         await AddAttempt(wave, _consumerModuleId, probeModuleJobId: jobId);
 
         using var service = Service();
@@ -643,10 +643,10 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         var wave = await AddWave();
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
 
-        var failedJob = await AddJob(_consumerModuleId, ExecutionStatus.Failed);
+        var failedJob = await AddJob(_consumerModuleId, ModuleJobStatus.Failed);
         await AddAttempt(wave, _consumerModuleId, probeModuleJobId: failedJob, timestamp: 1);
 
-        var secondJob = await AddJob(_consumerModuleId, ExecutionStatus.Completed);
+        var secondJob = await AddJob(_consumerModuleId, ModuleJobStatus.Completed);
         var set = await AddSignalSet(wave, _consumerModuleId);
         await AddAttempt(wave, _consumerModuleId, signalOutputSetId: set, probeModuleJobId: secondJob, timestamp: 2);
 
@@ -669,7 +669,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     {
         var wave = await AddWave();
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
-        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Failed);
+        var jobId = await AddJob(_consumerModuleId, ModuleJobStatus.Failed);
         await AddAttempt(wave, _consumerModuleId, probeModuleJobId: jobId);
 
         var stillWaiting = _fixture.Modules["0002"].Id;
@@ -691,7 +691,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     {
         var wave = await AddWave();
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
-        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Failed);
+        var jobId = await AddJob(_consumerModuleId, ModuleJobStatus.Failed);
         await AddAttempt(wave, _consumerModuleId, probeModuleJobId: jobId);
 
         using var service = Service();
@@ -713,7 +713,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     {
         var wave = await AddWave();
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
-        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Completed);
+        var jobId = await AddJob(_consumerModuleId, ModuleJobStatus.Completed);
         var set = await AddSignalSet(wave, _consumerModuleId);
         await AddAttempt(wave, _consumerModuleId, set, jobId);
 
@@ -737,7 +737,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     {
         var wave = await AddWave();
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
-        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Running);
+        var jobId = await AddJob(_consumerModuleId, ModuleJobStatus.Running);
         await AddAttempt(wave, _consumerModuleId, probeModuleJobId: jobId);
 
         using var service = Service();
@@ -756,7 +756,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     {
         var wave = await AddWave();
         await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
-        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Cancelled);
+        var jobId = await AddJob(_consumerModuleId, ModuleJobStatus.Cancelled);
         var set = await AddSignalSet(wave, _consumerModuleId, ("id", KnownUpdate, false));
         await AddAttempt(wave, _consumerModuleId, set, jobId);
 
@@ -767,7 +767,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         Assert.Equal(ProbeProgress.Reported, view.Modules.Single().Progress);
     }
 
-    private async Task<Guid> AddJob(Guid moduleId, ExecutionStatus status, Guid? id = null)
+    private async Task<Guid> AddJob(Guid moduleId, ModuleJobStatus status, Guid? id = null)
     {
         // ModuleJobs is unique on (ModuleId, TimestampStart, OrganizationId), so a Module probed
         // twice needs two distinct start times.
@@ -800,7 +800,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             OriginModuleJobId = await AddJob(
-                _originModuleId, ExecutionStatus.Running, originModuleJobId)
+                _originModuleId, ModuleJobStatus.Running, originModuleJobId)
         };
 
         await using var db = _fixture.CreateDbContext();
@@ -862,7 +862,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             ProbeWaveId = waveId,
-            ModuleJobId = await AddJob(moduleId, ExecutionStatus.Completed),
+            ModuleJobId = await AddJob(moduleId, ModuleJobStatus.Completed),
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Checksum = "test"
         };

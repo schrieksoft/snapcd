@@ -127,7 +127,7 @@ public class DependencyGraphService : IDisposable
                 CurrentModuleJobId = currentJob != null ? currentJob.Id : (Guid?)null,
                 WaitingForApproval = currentJob != null && currentJob.WaitingForApproval == true,
                 IsQueued = saga != null && saga.QueuedDesiredStateHeadline != null,
-                LatestExecutionStatus = currentJob != null ? currentJob.Status : ExecutionStatus.Unknown
+                LatestExecutionStatus = currentJob != null ? currentJob.Status : ModuleJobStatus.Unknown
             };
 
         return await query.FirstOrDefaultAsync();

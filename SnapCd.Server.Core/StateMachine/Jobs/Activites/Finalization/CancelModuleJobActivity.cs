@@ -40,7 +40,7 @@ public class CancelModuleJobActivity<TSaga, TMessage> :
         await _repository.Finalize(
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
-            ExecutionStatus.Cancelled,
+            ModuleJobStatus.Cancelled,
             typeof(TMessage).Name,
             DateTimeOffset.UtcNow,
             null,

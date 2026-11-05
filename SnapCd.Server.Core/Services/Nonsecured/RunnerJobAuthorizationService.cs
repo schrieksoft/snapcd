@@ -148,7 +148,7 @@ public class RunnerJobAuthorizationService
         var note = $"{LateReportNote}, at {DateTimeOffset.UtcNow:u}. Its result was not recorded; check the runner's logs for what it did.";
 
         var moduleJob = await _dbContext.ModuleJobs
-            .Where(j => j.Id == jobId && j.OrganizationId == organizationId && j.Status != ExecutionStatus.Running && j.Module.RunnerId == runnerId)
+            .Where(j => j.Id == jobId && j.OrganizationId == organizationId && j.Status != ModuleJobStatus.Running && j.Module.RunnerId == runnerId)
             .FirstOrDefaultAsync();
         if (moduleJob != null)
         {

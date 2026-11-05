@@ -21,7 +21,7 @@ public class ModuleJobView
     public required int JobNumber { get; init; }
     public required DateTimeOffset TimestampStart { get; init; }
     public DateTimeOffset? TimestampEnd { get; set; }
-    public required ExecutionStatus Status { get; set; }
+    public required ModuleJobStatus Status { get; set; }
     public required string JobType { get; init; }
     public ServerSideStep? FailedOnServerSideStep { get; set; }
     public string? ServerSideErrorHeader { get; set; }

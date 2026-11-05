@@ -74,6 +74,11 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     // Views for dependency graph
     public DbSet<Dependency> Dependencies { get; set; }
+
+    /// <summary>Trigger-maintained. Read-only: nothing in the application writes to these.</summary>
+    public DbSet<DependencyEdge> DependencyEdges { get; set; }
+
+    public DbSet<ModuleStateRow> ModuleStates { get; set; }
     public DbSet<RecursiveApplyDependency> RecursiveApplyDependencies { get; set; }
     public DbSet<RecursiveDestroyDependency> RecursiveDestroyDependencies { get; set; }
 
@@ -600,6 +605,23 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .HasIndex(e => e.CreatedDateTime)
             .HasDatabaseName("IX_User_CreatedDateTime");
 
+        // Created and altered by hand-written SQL, so the scaffolder must not see them.
+        modelBuilder.Entity<DependencyEdge>(entity =>
+        {
+            entity.HasKey(e => new { e.DefinedModuleId, e.ReferencedModuleId });
+            entity.ToTable("DependencyEdges", t => t.ExcludeFromMigrations());
+        });
+
+        modelBuilder.Entity<ModuleStateRow>(entity =>
+        {
+            entity.HasKey(e => e.ModuleId);
+            entity.ToTable("ModuleState", t => t.ExcludeFromMigrations());
+
+            entity.Property(e => e.LatestActualStateHeadline).HasConversion<string>();
+            entity.Property(e => e.DesiredStateHeadline).HasConversion<string>();
+            entity.Property(e => e.QueuedDesiredStateHeadline).HasConversion<string>();
+        });
+
         // Configure dependency graph views
         modelBuilder.Entity<Dependency>(entity =>
             {
@@ -631,12 +653,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 entity.Property(e => e.ReferencedIsRunning).IsRequired(false);
                 entity.Property(e => e.ReferencedIsQueued).IsRequired(false);
 
-                // vw_Dependencies does not carry the job ids or the approval flag; only the
-                // recursive views do. Mapping them here would select columns the view has not got.
-                entity.Ignore(e => e.DefinedCurrentModuleJobId);
-                entity.Ignore(e => e.DefinedWaitingForApproval);
-                entity.Ignore(e => e.ReferencedCurrentModuleJobId);
-                entity.Ignore(e => e.ReferencedWaitingForApproval);
+                entity.Property(e => e.ReferencedCurrentModuleJobId).IsRequired(false);
+                entity.Property(e => e.ReferencedWaitingForApproval).IsRequired(false);
 
                 // Configure navigation properties
                 entity.HasOne(e => e.DefinedModule)

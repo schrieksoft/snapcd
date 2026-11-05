@@ -254,7 +254,7 @@ public class ProbeWaveCullConsumerTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             JobType = "ApplyJobSaga",
-            Status = ExecutionStatus.Running,
+            Status = ModuleJobStatus.Running,
             WaitingForApproval = true,
             TimestampStart = DateTimeOffset.UtcNow.AddTicks(_jobs.Count),
             CreatedDateTime = DateTime.UtcNow

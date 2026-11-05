@@ -27,7 +27,7 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
     public DateTimeOffset TimestampStart { get; set; }
     public DateTimeOffset? TimestampEnd { get; set; }
 
-    public ExecutionStatus Status { get; set; }
+    public ModuleJobStatus Status { get; set; }
 
     [MaxLength(100)] public string JobType { get; set; } = null!;
 

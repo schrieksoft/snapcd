@@ -77,7 +77,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         return await CheckQuotaWithServiceAsync(entity.OrganizationId, nameof(Settings.QuotaLimits.ModuleJobQuota), currentCount);
     }
 
-    public async Task Finalize(Guid id, Guid organizationId, ExecutionStatus status, string finalMessageType, DateTimeOffset endTime, string? definitiveRevision = null,
+    public async Task Finalize(Guid id, Guid organizationId, ModuleJobStatus status, string finalMessageType, DateTimeOffset endTime, string? definitiveRevision = null,
         ActualStateHeadline? actualStateHeadline = null, bool wrapInTransaction = false)
     {
         var job = await Get(id, organizationId);
@@ -103,7 +103,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
     // with both a terminal status and an end date counts as ended, so an inconsistent row can still be closed.
     private static bool HasEnded(ModuleJob job) =>
         job.TimestampEnd != null
-        && job.Status is ExecutionStatus.Completed or ExecutionStatus.Cancelled or ExecutionStatus.NotApproved or ExecutionStatus.Failed or ExecutionStatus.Orphaned or ExecutionStatus.PolicyDenied or ExecutionStatus.PartiallyCompleted;
+        && job.Status is ModuleJobStatus.Completed or ModuleJobStatus.Cancelled or ModuleJobStatus.NotApproved or ModuleJobStatus.Failed or ModuleJobStatus.Orphaned or ModuleJobStatus.PolicyDenied;
 
     public async Task SetPolicyOutcome(Guid id, Guid organizationId, PolicyOutcome outcome, bool wrapInTransaction = false)
     {
@@ -164,7 +164,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
     {
         return await DbContext.ModuleJobs
             .Where(j => j.ModuleId == moduleId &&
-                        j.Status == ExecutionStatus.Completed &&
+                        j.Status == ModuleJobStatus.Completed &&
                         j.TimestampEnd != null  && j.OrganizationId == organizationId)
             .OrderByDescending(j => j.JobNumber)
             .Select(j => j.DefinitiveRevision)
@@ -175,7 +175,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
     {
         var job = await DbContext.ModuleJobs
             .Where(j => j.ModuleId == moduleId &&
-                        j.Status == ExecutionStatus.Completed &&
+                        j.Status == ModuleJobStatus.Completed &&
                         j.TimestampEnd != null && j.OrganizationId == organizationId)
             .OrderByDescending(j => j.JobNumber)
             .Select(j => new { j.DefinitiveRevision, j.DefinitiveClosureHash })
@@ -245,7 +245,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
 
         if (HasEnded(job)) return;
 
-        job.Status = ExecutionStatus.Failed;
+        job.Status = ModuleJobStatus.Failed;
         job.TimestampEnd = endTime;
         job.WaitingForApproval = false;
         job.IsCurrent = false;

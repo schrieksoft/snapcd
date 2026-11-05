@@ -248,7 +248,7 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             ModuleId = _module.Id,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ExecutionStatus.Running,
+            Status = ModuleJobStatus.Running,
             JobType = destroy ? "Destroy" : "Apply",
             IsCurrent = null
         });
@@ -289,7 +289,7 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
         {
             await using var db = _fixture.CreateDbContext();
             var job = await db.ModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId && j.OrganizationId == _module.OrganizationId);
-            if (job.Status == ExecutionStatus.Failed || DateTime.UtcNow >= deadline) return job;
+            if (job.Status == ModuleJobStatus.Failed || DateTime.UtcNow >= deadline) return job;
             await Task.Delay(100);
         }
     }
@@ -323,7 +323,7 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
 
         var job = await WaitForFailedJob(jobId);
 
-        Assert.Equal(ExecutionStatus.Failed, job.Status);
+        Assert.Equal(ModuleJobStatus.Failed, job.Status);
         Assert.Equal(ServerSideStep.Variables, job.FailedOnServerSideStep);
         Assert.Equal("Server error during Variables", job.ServerSideErrorHeader);
         Assert.Contains("extra_tenant_id", job.ServerSideError);
@@ -348,7 +348,7 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
 
         var job = await WaitForFailedJob(jobId);
 
-        Assert.Equal(ExecutionStatus.Failed, job.Status);
+        Assert.Equal(ModuleJobStatus.Failed, job.Status);
         Assert.Equal(ServerSideStep.Output, job.FailedOnServerSideStep);
         Assert.Equal("Server error during Output", job.ServerSideErrorHeader);
         Assert.Contains(UnavailableDbContext.Message, job.ServerSideError);

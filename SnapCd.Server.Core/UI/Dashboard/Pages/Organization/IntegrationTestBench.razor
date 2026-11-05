@@ -327,11 +327,11 @@ else
 
             var status = _selectedTrigger switch
             {
-                IntegrationTrigger.JobFailed => ExecutionStatus.Failed,
-                IntegrationTrigger.JobSucceeded => ExecutionStatus.Completed,
-                IntegrationTrigger.JobCancelled => ExecutionStatus.Cancelled,
-                IntegrationTrigger.JobAwaitingApproval => ExecutionStatus.Running,
-                _ => ExecutionStatus.Failed
+                IntegrationTrigger.JobFailed => ModuleJobStatus.Failed,
+                IntegrationTrigger.JobSucceeded => ModuleJobStatus.Completed,
+                IntegrationTrigger.JobCancelled => ModuleJobStatus.Cancelled,
+                IntegrationTrigger.JobAwaitingApproval => ModuleJobStatus.Running,
+                _ => ModuleJobStatus.Failed
             };
 
             db.ModuleJobs.Add(new ModuleJob
@@ -340,7 +340,7 @@ else
                 OrganizationId = orgId,
                 ModuleId = DebugModuleId,
                 TimestampStart = now,
-                TimestampEnd = status == ExecutionStatus.Running ? null : now,
+                TimestampEnd = status == ModuleJobStatus.Running ? null : now,
                 Status = status,
                 JobType = nameof(ApplyJobSaga),
                 WaitingForApproval = _selectedTrigger == IntegrationTrigger.JobAwaitingApproval
@@ -392,7 +392,7 @@ else
                 OrganizationId = orgId,
                 ModuleId = DebugModuleId,
                 TimestampStart = now,
-                Status = ExecutionStatus.Running,
+                Status = ModuleJobStatus.Running,
                 JobType = nameof(ApplyJobSaga),
             });
             await db.SaveChangesAsync();

@@ -23,6 +23,8 @@ SELECT DISTINCT
     COALESCE(DefinedState.IsRunning, CAST(0 AS BIT)) AS DefinedIsRunning,
     CAST(CASE WHEN DefinedState.QueuedDesiredStateHeadline IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS DefinedIsQueued,
     CASE WHEN DefinedState.IsRunning = 1 THEN DefinedState.DesiredStateHeadline ELSE NULL END AS DefinedRunningDesiredState,
+    DefinedState.CurrentModuleJobId AS DefinedCurrentModuleJobId,
+    CAST(CASE WHEN DefinedCurrentJob.WaitingForApproval = 1 THEN 1 ELSE 0 END AS BIT) AS DefinedWaitingForApproval,
 
     CAST(e.ReferencedModuleId AS UNIQUEIDENTIFIER) AS ReferencedModuleId,
     CAST(rm.OrganizationId AS UNIQUEIDENTIFIER) AS ReferencedOrganizationId,
@@ -37,7 +39,9 @@ SELECT DISTINCT
     ReferencedState.QueuedDesiredStateHeadline AS ReferencedQueuedDesiredState,
     ReferencedState.IsRunning AS ReferencedIsRunning,
     CAST(CASE WHEN ReferencedState.QueuedDesiredStateHeadline IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS ReferencedIsQueued,
-    CASE WHEN ReferencedState.IsRunning = 1 THEN ReferencedState.DesiredStateHeadline ELSE NULL END AS ReferencedRunningDesiredState
+    CASE WHEN ReferencedState.IsRunning = 1 THEN ReferencedState.DesiredStateHeadline ELSE NULL END AS ReferencedRunningDesiredState,
+    ReferencedState.CurrentModuleJobId AS ReferencedCurrentModuleJobId,
+    CAST(CASE WHEN ReferencedCurrentJob.WaitingForApproval = 1 THEN 1 ELSE 0 END AS BIT) AS ReferencedWaitingForApproval
 
 -- The trigger-maintained edge cache. The joins below name both ends of the edge.
 FROM DependencyEdges e
@@ -52,6 +56,8 @@ INNER JOIN Stacks rst ON rst.Id = rns.StackId
 
 LEFT JOIN ModuleState DefinedState ON DefinedState.ModuleId = e.DefinedModuleId
 LEFT JOIN ModuleState ReferencedState ON ReferencedState.ModuleId = e.ReferencedModuleId
+LEFT JOIN ModuleJobs DefinedCurrentJob ON DefinedCurrentJob.Id = DefinedState.CurrentModuleJobId
+LEFT JOIN ModuleJobs ReferencedCurrentJob ON ReferencedCurrentJob.Id = ReferencedState.CurrentModuleJobId
 
 UNION ALL
 
@@ -71,6 +77,8 @@ SELECT
     COALESCE(ms.IsRunning, CAST(0 AS BIT)) AS DefinedIsRunning,
     CAST(CASE WHEN ms.QueuedDesiredStateHeadline IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS DefinedIsQueued,
     CASE WHEN ms.IsRunning = 1 THEN ms.DesiredStateHeadline ELSE NULL END AS DefinedRunningDesiredState,
+    ms.CurrentModuleJobId AS DefinedCurrentModuleJobId,
+    CAST(CASE WHEN StandaloneCurrentJob.WaitingForApproval = 1 THEN 1 ELSE 0 END AS BIT) AS DefinedWaitingForApproval,
 
     CAST(NULL AS UNIQUEIDENTIFIER) AS ReferencedModuleId,
     CAST(NULL AS UNIQUEIDENTIFIER) AS ReferencedOrganizationId,
@@ -85,12 +93,15 @@ SELECT
     CAST(NULL AS NVARCHAR(MAX)) AS ReferencedQueuedDesiredState,
     CAST(NULL AS BIT) AS ReferencedIsRunning,
     CAST(NULL AS BIT) AS ReferencedIsQueued,
-    CAST(NULL AS NVARCHAR(MAX)) AS ReferencedRunningDesiredState
+    CAST(NULL AS NVARCHAR(MAX)) AS ReferencedRunningDesiredState,
+    CAST(NULL AS UNIQUEIDENTIFIER) AS ReferencedCurrentModuleJobId,
+    CAST(NULL AS BIT) AS ReferencedWaitingForApproval
 
 FROM Modules m
 INNER JOIN Namespaces ns ON ns.Id = m.NamespaceId
 INNER JOIN Stacks st ON st.Id = ns.StackId
 LEFT JOIN ModuleState ms ON ms.ModuleId = m.Id
+LEFT JOIN ModuleJobs StandaloneCurrentJob ON StandaloneCurrentJob.Id = ms.CurrentModuleJobId
 -- Two clauses rather than one with an OR: each side has its own index, and an OR across
 -- both defeats the seek, so the edge table gets rescanned once per Module.
 WHERE NOT EXISTS (SELECT 1 FROM DependencyEdges de WHERE de.DefinedModuleId = m.Id)

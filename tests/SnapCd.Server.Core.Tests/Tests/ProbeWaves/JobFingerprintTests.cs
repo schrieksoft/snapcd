@@ -23,7 +23,7 @@ public class JobFingerprintTests
         string? declaration = "d1",
         string? parameters = "p1",
         string? envVars = "e1") =>
-        new(ExecutionStatus.Completed, revision, declaration, parameters, envVars);
+        new(ModuleJobStatus.Completed, revision, declaration, parameters, envVars);
 
     [Fact]
     public void Nothing_Moved_Is_Not_Stale()

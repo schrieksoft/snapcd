@@ -198,7 +198,7 @@ public class TransportReconciliationTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             ModuleId = _module.Id,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ExecutionStatus.Running,
+            Status = ModuleJobStatus.Running,
             JobType = "Apply",
             IsCurrent = null
         });
@@ -553,7 +553,7 @@ public class TransportReconciliationTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             ModuleId = _module.Id,
             TimestampStart = DateTimeOffset.UtcNow,
-            Status = ExecutionStatus.Running,
+            Status = ModuleJobStatus.Running,
             JobType = "Apply",
             IsCurrent = null
         });

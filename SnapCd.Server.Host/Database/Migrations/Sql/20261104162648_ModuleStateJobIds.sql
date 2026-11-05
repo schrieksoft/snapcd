@@ -28,6 +28,35 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ModuleStat
 GO
 
 -- ============================================================================
+-- The headline a finished job reports when it recorded none of its own.
+--
+-- Mirrors CompleteModuleJobActivity: an Apply that completed is Applied, a Destroy is Destroyed,
+-- and the failure statuses already match the enum's names. Concatenating the type and status
+-- instead produced ApplyCompleted, which the ActualStateHeadline enum has no member for, and
+-- reading that through EF throws.
+--
+-- A status with no headline of its own returns NULL, which the column and every reader allow.
+-- ============================================================================
+
+CREATE OR ALTER FUNCTION dbo.fn_ActualStateHeadline(@JobType NVARCHAR(200), @Status NVARCHAR(50))
+RETURNS NVARCHAR(50)
+AS
+BEGIN
+    DECLARE @Kind NVARCHAR(50) = REPLACE(@JobType, 'JobSaga', '');
+
+    IF @Kind NOT IN ('Apply', 'Destroy') RETURN NULL;
+
+    RETURN CASE
+        WHEN @Status = 'Completed'
+            THEN CASE WHEN @Kind = 'Apply' THEN 'Applied' ELSE 'Destroyed' END
+        WHEN @Status IN ('Cancelled', 'NotApproved', 'Failed', 'Orphaned', 'Unknown', 'PolicyDenied')
+            THEN @Kind + @Status
+        ELSE NULL
+    END;
+END;
+GO
+
+-- ============================================================================
 -- sp_RecomputeModuleState and the three ModuleState triggers, redefined to carry the two ids.
 -- ============================================================================
 
@@ -45,7 +74,7 @@ BEGIN
     ),
     LatestModuleJobs AS (
         SELECT mj.ModuleId, mj.Id,
-            COALESCE(mj.ActualStateHeadline, REPLACE(mj.JobType, 'JobSaga', '') + mj.Status) AS ActualStateHeadline,
+            COALESCE(mj.ActualStateHeadline, dbo.fn_ActualStateHeadline(mj.JobType, mj.Status)) AS ActualStateHeadline,
             ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.JobNumber DESC) AS rn
         FROM ModuleJobs mj WHERE mj.TimestampEnd IS NOT NULL
     )
@@ -121,7 +150,7 @@ BEGIN
     INNER JOIN #AffectedModules am ON am.ModuleId = ms.ModuleId
     LEFT JOIN (
         SELECT mj.ModuleId, mj.Id,
-            COALESCE(mj.ActualStateHeadline, REPLACE(mj.JobType, 'JobSaga', '') + mj.Status) AS ActualStateHeadline,
+            COALESCE(mj.ActualStateHeadline, dbo.fn_ActualStateHeadline(mj.JobType, mj.Status)) AS ActualStateHeadline,
             ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.JobNumber DESC) AS rn
         FROM ModuleJobs mj
         WHERE mj.TimestampEnd IS NOT NULL

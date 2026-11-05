@@ -16,7 +16,7 @@ public class ModuleJobCreateDto
     public int JobNumber { get; set; }
     public DateTimeOffset TimestampStart { get; set; }
     public DateTimeOffset? TimestampEnd { get; set; }
-    public ExecutionStatus Status { get; set; }
+    public ModuleJobStatus Status { get; set; }
     public string JobType { get; set; } = null!;
     public bool? WaitingForApproval { get; set; }
     public bool? IsCurrent { get; set; }

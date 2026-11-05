@@ -110,7 +110,7 @@ public class CallerContextAndGateTests : IAsyncLifetime
                 OrganizationId = module.OrganizationId,
                 ModuleId = module.Id,
                 TimestampStart = DateTimeOffset.UtcNow,
-                Status = ExecutionStatus.Running,
+                Status = ModuleJobStatus.Running,
                 JobType = "Apply",
                 IsCurrent = null
             });

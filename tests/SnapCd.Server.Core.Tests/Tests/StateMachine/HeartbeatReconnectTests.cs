@@ -233,7 +233,7 @@ public class HeartbeatReconnectTests : IAsyncLifetime
                 OrganizationId = _module.OrganizationId,
                 ModuleId = _module.Id,
                 TimestampStart = DateTimeOffset.UtcNow,
-                Status = ExecutionStatus.Running,
+                Status = ModuleJobStatus.Running,
                 JobType = "Apply",
                 IsCurrent = null
             });
@@ -278,9 +278,9 @@ public class HeartbeatReconnectTests : IAsyncLifetime
             await Task.Delay(100);
             await using var db = _fixture.CreateDbContext();
             job = await db.ModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId && j.OrganizationId == _module.OrganizationId);
-        } while (job.Status != ExecutionStatus.Failed && DateTime.UtcNow < deadline);
+        } while (job.Status != ModuleJobStatus.Failed && DateTime.UtcNow < deadline);
 
-        Assert.Equal(ExecutionStatus.Failed, job.Status);
+        Assert.Equal(ModuleJobStatus.Failed, job.Status);
         Assert.Equal(ActualStateHeadline.ApplyTimeout, job.ActualStateHeadline);
         Assert.Equal(ServerSideStep.ApplyFromPlan, job.FailedOnServerSideStep);
         Assert.Equal("Runner stopped responding", job.ServerSideErrorHeader);

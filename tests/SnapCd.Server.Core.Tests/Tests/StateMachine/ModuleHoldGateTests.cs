@@ -207,7 +207,7 @@ public class ModuleHoldGateTests : IAsyncLifetime
             ModuleId = _moduleId,
             TimestampStart = DateTimeOffset.UtcNow,
             TimestampEnd = DateTimeOffset.UtcNow,
-            Status = ExecutionStatus.Completed,
+            Status = ModuleJobStatus.Completed,
             JobType = "Apply",
             IsCurrent = null
         });
