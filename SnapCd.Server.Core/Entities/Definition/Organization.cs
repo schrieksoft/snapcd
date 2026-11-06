@@ -19,6 +19,8 @@ using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
 using SnapCd.Server.Core.Entities.Definition.Secrets;
 using SnapCd.Server.Core.Entities.Interfaces;
 
+using SnapCd.Server.Core.Entities.Definition.OutputSupplies;
+
 namespace SnapCd.Server.Core.Entities.Definition;
 
 public class Organization : AuditBase, ISystemEntity, ICreationTrackable
@@ -77,6 +79,11 @@ public class Organization : AuditBase, ISystemEntity, ICreationTrackable
     public virtual ICollection<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; } = new List<ModuleJobMissionRun>();
     public virtual ICollection<ModuleExtraFile> ModuleExtraFiles { get; set; } = new List<ModuleExtraFile>();
     public virtual ICollection<ModuleAdditionalTriggerPath> ModuleAdditionalTriggerPaths { get; set; } = new List<ModuleAdditionalTriggerPath>();
+    public virtual ICollection<ModuleOutputDownstreamRestriction> ModuleOutputDownstreamRestrictions { get; set; } = new List<ModuleOutputDownstreamRestriction>();
+    public virtual ICollection<OutputSetModuleSupply> OutputSetModuleSupplies { get; set; } = new List<OutputSetModuleSupply>();
+    public virtual ICollection<OutputSetNamespaceSupply> OutputSetNamespaceSupplies { get; set; } = new List<OutputSetNamespaceSupply>();
+    public virtual ICollection<OutputModuleSupply> OutputModuleSupplies { get; set; } = new List<OutputModuleSupply>();
+    public virtual ICollection<OutputNamespaceSupply> OutputNamespaceSupplies { get; set; } = new List<OutputNamespaceSupply>();
     public virtual ICollection<NamespaceAdditionalTriggerPath> NamespaceAdditionalTriggerPaths { get; set; } = new List<NamespaceAdditionalTriggerPath>();
     public virtual ICollection<ModuleTerraformInlinePolicy> ModuleTerraformInlinePolicies { get; set; } = new List<ModuleTerraformInlinePolicy>();
     public virtual ICollection<ModuleTerraformRemotePolicy> ModuleTerraformRemotePolicies { get; set; } = new List<ModuleTerraformRemotePolicy>();

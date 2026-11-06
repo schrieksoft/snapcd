@@ -38,6 +38,11 @@ public class QuotaLimits
     public int? ModuleExtraFileQuota { get; set; }
     public int? NamespaceExtraFileQuota { get; set; }
     public int? ModuleAdditionalTriggerPathQuota { get; set; }
+    public int? ModuleOutputDownstreamRestrictionQuota { get; set; }
+    public int? OutputSetModuleSupplyQuota { get; set; }
+    public int? OutputSetNamespaceSupplyQuota { get; set; }
+    public int? OutputModuleSupplyQuota { get; set; }
+    public int? OutputNamespaceSupplyQuota { get; set; }
     public int? NamespaceAdditionalTriggerPathQuota { get; set; }
     public int? ModuleTerraformInlinePolicyQuota { get; set; }
     public int? ModuleTerraformRemotePolicyQuota { get; set; }

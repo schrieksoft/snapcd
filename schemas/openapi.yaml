@@ -12961,6 +12961,456 @@ paths:
         - Agent.Contributor
         - Agent.Owner
         - Agent.Reader
+  /api/{organizationId}/ModuleOutputDownstreamRestriction:
+    post:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: Create a new ModuleOutputDownstreamRestriction
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ModuleOutputDownstreamRestriction to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: List all ModuleOutputDownstreamRestrictions
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleOutputDownstreamRestriction/{id}:
+    get:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: Get a single ModuleOutputDownstreamRestriction
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleOutputDownstreamRestriction ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: Update an existing ModuleOutputDownstreamRestriction
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleOutputDownstreamRestriction ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ModuleOutputDownstreamRestriction values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: Delete a ModuleOutputDownstreamRestriction
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleOutputDownstreamRestriction ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/ModuleOutputDownstreamRestriction/Metadata:
+    get:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: List all ModuleOutputDownstreamRestrictions
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleOutputDownstreamRestriction/Metadata/{id}:
+    get:
+      tags:
+      - ModuleOutputDownstreamRestriction
+      summary: Get a single ModuleOutputDownstreamRestriction
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleOutputDownstreamRestriction ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleOutputDownstreamRestrictionMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
   /api/{organizationId}/ModulePulumiArrayFlag:
     post:
       tags:
@@ -29988,6 +30438,1806 @@ paths:
         - Organization.IdentityAccessManager
         - Organization.IdentityAccessMetadataReader
         - Organization.Owner
+  /api/{organizationId}/OutputModuleSupply:
+    post:
+      tags:
+      - OutputModuleSupply
+      summary: Create a new OutputModuleSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The OutputModuleSupply to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutputModuleSupplyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/OutputModuleSupplyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/OutputModuleSupplyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - OutputModuleSupply
+      summary: List all OutputModuleSupplies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputModuleSupply/{id}:
+    get:
+      tags:
+      - OutputModuleSupply
+      summary: Get a single OutputModuleSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputModuleSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - OutputModuleSupply
+      summary: Update an existing OutputModuleSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputModuleSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new OutputModuleSupply values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutputModuleSupplyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/OutputModuleSupplyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/OutputModuleSupplyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - OutputModuleSupply
+      summary: Delete an OutputModuleSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputModuleSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/OutputModuleSupply/Metadata:
+    get:
+      tags:
+      - OutputModuleSupply
+      summary: List all OutputModuleSupplies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputModuleSupplyMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputModuleSupplyMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputModuleSupplyMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputModuleSupply/Metadata/{id}:
+    get:
+      tags:
+      - OutputModuleSupply
+      summary: Get a single OutputModuleSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputModuleSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputModuleSupplyMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputNamespaceSupply:
+    post:
+      tags:
+      - OutputNamespaceSupply
+      summary: Create a new OutputNamespaceSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The OutputNamespaceSupply to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutputNamespaceSupplyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/OutputNamespaceSupplyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/OutputNamespaceSupplyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - OutputNamespaceSupply
+      summary: List all OutputNamespaceSupplies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputNamespaceSupply/{id}:
+    get:
+      tags:
+      - OutputNamespaceSupply
+      summary: Get a single OutputNamespaceSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputNamespaceSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - OutputNamespaceSupply
+      summary: Update an existing OutputNamespaceSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputNamespaceSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new OutputNamespaceSupply values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutputNamespaceSupplyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/OutputNamespaceSupplyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/OutputNamespaceSupplyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - OutputNamespaceSupply
+      summary: Delete an OutputNamespaceSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputNamespaceSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/OutputNamespaceSupply/Metadata:
+    get:
+      tags:
+      - OutputNamespaceSupply
+      summary: List all OutputNamespaceSupplies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputNamespaceSupplyMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputNamespaceSupplyMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputNamespaceSupplyMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputNamespaceSupply/Metadata/{id}:
+    get:
+      tags:
+      - OutputNamespaceSupply
+      summary: Get a single OutputNamespaceSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputNamespaceSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputNamespaceSupplyMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputSetModuleSupply:
+    post:
+      tags:
+      - OutputSetModuleSupply
+      summary: Create a new OutputSetModuleSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The OutputSetModuleSupply to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutputSetModuleSupplyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/OutputSetModuleSupplyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/OutputSetModuleSupplyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - OutputSetModuleSupply
+      summary: List all OutputSetModuleSupplies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputSetModuleSupply/{id}:
+    get:
+      tags:
+      - OutputSetModuleSupply
+      summary: Get a single OutputSetModuleSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputSetModuleSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - OutputSetModuleSupply
+      summary: Update an existing OutputSetModuleSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputSetModuleSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new OutputSetModuleSupply values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutputSetModuleSupplyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/OutputSetModuleSupplyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/OutputSetModuleSupplyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - OutputSetModuleSupply
+      summary: Delete an OutputSetModuleSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputSetModuleSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/OutputSetModuleSupply/Metadata:
+    get:
+      tags:
+      - OutputSetModuleSupply
+      summary: List all OutputSetModuleSupplies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetModuleSupplyMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetModuleSupplyMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetModuleSupplyMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputSetModuleSupply/Metadata/{id}:
+    get:
+      tags:
+      - OutputSetModuleSupply
+      summary: Get a single OutputSetModuleSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputSetModuleSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetModuleSupplyMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputSetNamespaceSupply:
+    post:
+      tags:
+      - OutputSetNamespaceSupply
+      summary: Create a new OutputSetNamespaceSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The OutputSetNamespaceSupply to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutputSetNamespaceSupplyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/OutputSetNamespaceSupplyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/OutputSetNamespaceSupplyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - OutputSetNamespaceSupply
+      summary: List all OutputSetNamespaceSupplies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputSetNamespaceSupply/{id}:
+    get:
+      tags:
+      - OutputSetNamespaceSupply
+      summary: Get a single OutputSetNamespaceSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputSetNamespaceSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - OutputSetNamespaceSupply
+      summary: Update an existing OutputSetNamespaceSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputSetNamespaceSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new OutputSetNamespaceSupply values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutputSetNamespaceSupplyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/OutputSetNamespaceSupplyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/OutputSetNamespaceSupplyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - OutputSetNamespaceSupply
+      summary: Delete an OutputSetNamespaceSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputSetNamespaceSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/OutputSetNamespaceSupply/Metadata:
+    get:
+      tags:
+      - OutputSetNamespaceSupply
+      summary: List all OutputSetNamespaceSupplies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetNamespaceSupplyMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetNamespaceSupplyMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputSetNamespaceSupplyMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/OutputSetNamespaceSupply/Metadata/{id}:
+    get:
+      tags:
+      - OutputSetNamespaceSupply
+      summary: Get a single OutputSetNamespaceSupply
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OutputSetNamespaceSupply ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OutputSetNamespaceSupplyMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
   /api/{organizationId}/Runner/ByName/{name}:
     get:
       tags:
@@ -38859,6 +41109,16 @@ components:
             tags containing a fully spelled-out `X.Y.Z` version are accepted. NOTE that ''SemanticVersionRange'' is currently
             only supported in combination with the ''Git'' `source_type`.'
           $ref: '#/components/schemas/SourceRevisionType'
+        outputSetDownstreamRestriction:
+          oneOf:
+          - type: 'null'
+          - description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+              unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only
+              the secret ones.
+            $ref: '#/components/schemas/OutputSetDownstreamRestriction'
+          description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+            unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only the
+            secret ones.
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
             Valid values are 'Always', 'Never', or 'OnFirstApply'. 'Always' means the Module will always wait for Modules
@@ -40073,6 +42333,63 @@ components:
           type: boolean
           description: Indicates whether or not the Mission is disabled.
       description: DTO for updating an existing ModuleMission (PUT operations).
+    ModuleOutputDownstreamRestrictionCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output being restricted.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output to withhold from downstream Modules unless it is explicitly supplied to them. Must
+            be unique in combination with `module_id`.
+      description: DTO for creating a new ModuleOutputDownstreamRestriction (POST operations).
+    ModuleOutputDownstreamRestrictionMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module Output Downstream Restriction.
+          format: uuid
+        moduleId:
+          type: string
+          description: Module Id of the Module Output Downstream Restriction.
+          format: uuid
+      description: Name and ID of a Module Output Downstream Restriction, for a principal who may identify it without reading
+        it.
+    ModuleOutputDownstreamRestrictionReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module Output Downstream Restriction.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output being restricted.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output to withhold from downstream Modules unless it is explicitly supplied to them. Must
+            be unique in combination with `module_id`.
+      description: DTO for ModuleOutputDownstreamRestriction responses (GET operations).
+    ModuleOutputDownstreamRestrictionUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module Output Downstream Restriction.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output being restricted.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output to withhold from downstream Modules unless it is explicitly supplied to them. Must
+            be unique in combination with `module_id`.
+      description: DTO for updating an existing ModuleOutputDownstreamRestriction (PUT operations).
     ModulePauseDto:
       type: object
       properties:
@@ -40648,6 +42965,16 @@ components:
             tags containing a fully spelled-out `X.Y.Z` version are accepted. NOTE that ''SemanticVersionRange'' is currently
             only supported in combination with the ''Git'' `source_type`.'
           $ref: '#/components/schemas/SourceRevisionType'
+        outputSetDownstreamRestriction:
+          oneOf:
+          - type: 'null'
+          - description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+              unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only
+              the secret ones.
+            $ref: '#/components/schemas/OutputSetDownstreamRestriction'
+          description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+            unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only the
+            secret ones.
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
             Valid values are 'Always', 'Never', or 'OnFirstApply'. 'Always' means the Module will always wait for Modules
@@ -41452,6 +43779,16 @@ components:
             tags containing a fully spelled-out `X.Y.Z` version are accepted. NOTE that ''SemanticVersionRange'' is currently
             only supported in combination with the ''Git'' `source_type`.'
           $ref: '#/components/schemas/SourceRevisionType'
+        outputSetDownstreamRestriction:
+          oneOf:
+          - type: 'null'
+          - description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+              unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only
+              the secret ones.
+            $ref: '#/components/schemas/OutputSetDownstreamRestriction'
+          description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
+            unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only the
+            secret ones.
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
             Valid values are 'Always', 'Never', or 'OnFirstApply'. 'Always' means the Module will always wait for Modules
@@ -43876,6 +46213,259 @@ components:
           description: Name of the Role that is assigned.
           $ref: '#/components/schemas/OrganizationRole'
       description: DTO for updating an existing OrganizationRoleAssignment (PUT operations).
+    OutputModuleSupplyCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output being supplied.
+        consumingModuleId:
+          type: string
+          description: ID of the Module the Output is supplied to. Must be unique in combination with `module_id` and `output_name`.
+          format: uuid
+      description: DTO for creating a new OutputModuleSupply (POST operations).
+    OutputModuleSupplyMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputModuleSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: Module Id of the OutputModuleSupply.
+          format: uuid
+      description: Name and ID of a OutputModuleSupply, for a principal who may identify it without reading it.
+    OutputModuleSupplyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputModuleSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output being supplied.
+        consumingModuleId:
+          type: string
+          description: ID of the Module the Output is supplied to. Must be unique in combination with `module_id` and `output_name`.
+          format: uuid
+      description: DTO for OutputModuleSupply responses (GET operations).
+    OutputModuleSupplyUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputModuleSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output being supplied.
+        consumingModuleId:
+          type: string
+          description: ID of the Module the Output is supplied to. Must be unique in combination with `module_id` and `output_name`.
+          format: uuid
+      description: DTO for updating an existing OutputModuleSupply (PUT operations).
+    OutputNamespaceSupplyCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output being supplied.
+        consumingNamespaceId:
+          type: string
+          description: ID of the Namespace the Output is supplied to, reaching every Module in it. Must be unique in combination
+            with `module_id` and `output_name`.
+          format: uuid
+      description: DTO for creating a new OutputNamespaceSupply (POST operations).
+    OutputNamespaceSupplyMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputNamespaceSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: Module Id of the OutputNamespaceSupply.
+          format: uuid
+      description: Name and ID of a OutputNamespaceSupply, for a principal who may identify it without reading it.
+    OutputNamespaceSupplyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputNamespaceSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output being supplied.
+        consumingNamespaceId:
+          type: string
+          description: ID of the Namespace the Output is supplied to, reaching every Module in it. Must be unique in combination
+            with `module_id` and `output_name`.
+          format: uuid
+      description: DTO for OutputNamespaceSupply responses (GET operations).
+    OutputNamespaceSupplyUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputNamespaceSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module that produces the Output.
+          format: uuid
+        outputName:
+          type: string
+          description: Name of the Output being supplied.
+        consumingNamespaceId:
+          type: string
+          description: ID of the Namespace the Output is supplied to, reaching every Module in it. Must be unique in combination
+            with `module_id` and `output_name`.
+          format: uuid
+      description: DTO for updating an existing OutputNamespaceSupply (PUT operations).
+    OutputSetDownstreamRestriction:
+      enum:
+      - All
+      - SensitiveOnly
+      - null
+    OutputSetModuleSupplyCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the Module whose Output Set is supplied.
+          format: uuid
+        consumingModuleId:
+          type: string
+          description: ID of the Module the Output Set is supplied to. Must be unique in combination with `module_id`.
+          format: uuid
+      description: DTO for creating a new OutputSetModuleSupply (POST operations).
+    OutputSetModuleSupplyMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputSetModuleSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: Module Id of the OutputSetModuleSupply.
+          format: uuid
+      description: Name and ID of a OutputSetModuleSupply, for a principal who may identify it without reading it.
+    OutputSetModuleSupplyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputSetModuleSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module whose Output Set is supplied.
+          format: uuid
+        consumingModuleId:
+          type: string
+          description: ID of the Module the Output Set is supplied to. Must be unique in combination with `module_id`.
+          format: uuid
+      description: DTO for OutputSetModuleSupply responses (GET operations).
+    OutputSetModuleSupplyUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputSetModuleSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module whose Output Set is supplied.
+          format: uuid
+        consumingModuleId:
+          type: string
+          description: ID of the Module the Output Set is supplied to. Must be unique in combination with `module_id`.
+          format: uuid
+      description: DTO for updating an existing OutputSetModuleSupply (PUT operations).
+    OutputSetNamespaceSupplyCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the Module whose Output Set is supplied.
+          format: uuid
+        consumingNamespaceId:
+          type: string
+          description: ID of the Namespace the Output Set is supplied to, reaching every Module in it. Must be unique in combination
+            with `module_id`.
+          format: uuid
+      description: DTO for creating a new OutputSetNamespaceSupply (POST operations).
+    OutputSetNamespaceSupplyMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputSetNamespaceSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: Module Id of the OutputSetNamespaceSupply.
+          format: uuid
+      description: Name and ID of a OutputSetNamespaceSupply, for a principal who may identify it without reading it.
+    OutputSetNamespaceSupplyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputSetNamespaceSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module whose Output Set is supplied.
+          format: uuid
+        consumingNamespaceId:
+          type: string
+          description: ID of the Namespace the Output Set is supplied to, reaching every Module in it. Must be unique in combination
+            with `module_id`.
+          format: uuid
+      description: DTO for OutputSetNamespaceSupply responses (GET operations).
+    OutputSetNamespaceSupplyUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the OutputSetNamespaceSupply.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module whose Output Set is supplied.
+          format: uuid
+        consumingNamespaceId:
+          type: string
+          description: ID of the Namespace the Output Set is supplied to, reaching every Module in it. Must be unique in combination
+            with `module_id`.
+          format: uuid
+      description: DTO for updating an existing OutputSetNamespaceSupply (PUT operations).
     PolicyEvaluateOn:
       enum:
       - ApplyAndDestroy
@@ -45222,6 +47812,7 @@ tags:
 - name: ModuleInputFromSecret
 - name: ModuleIntegrationEvent
 - name: ModuleMission
+- name: ModuleOutputDownstreamRestriction
 - name: ModulePulumiArrayFlag
 - name: ModulePulumiFlag
 - name: ModulePulumiInlinePolicy
@@ -45257,6 +47848,10 @@ tags:
 - name: OrganizationMission
 - name: OrganizationRoleAssignment
 - name: OrganizationUser
+- name: OutputModuleSupply
+- name: OutputNamespaceSupply
+- name: OutputSetModuleSupply
+- name: OutputSetNamespaceSupply
 - name: Runner
 - name: RunnerModuleSupply
 - name: RunnerNamespaceSupply
@@ -45277,8 +47872,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 607
+  documented: 642
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1431
+  documented: 1510
   missing: 0

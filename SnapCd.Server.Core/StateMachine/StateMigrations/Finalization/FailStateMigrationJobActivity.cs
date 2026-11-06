@@ -40,19 +40,19 @@ public class FailStateMigrationJobActivity<TSaga, TMessage> : IStateMachineActiv
     {
         if (context.Message is IStepFault { IsServerSideError: true } faulted)
         {
-            var fullMessage = !string.IsNullOrEmpty(faulted.StackTrace)
-                ? $"{faulted.ErrorMessage}\n\nStack Trace:\n{faulted.StackTrace}"
-                : faulted.ErrorMessage;
-
             var failedStep = faulted.Step;
 
+            // The header is what the page shows first, so it carries the message a reader can
+            // act on. The stack trace stays in the body, behind a disclosure.
             await _repository.ExecuteFinalizeWithServerError(
                 context.Saga.CorrelationId,
                 context.Saga.OrganizationId,
                 DateTimeOffset.UtcNow,
                 failedStep,
-                $"Server error during {failedStep}",
-                fullMessage);
+                string.IsNullOrWhiteSpace(faulted.ErrorMessage)
+                    ? $"Server error during {failedStep}"
+                    : faulted.ErrorMessage,
+                faulted.StackTrace);
         }
         else if (context.Message is Fault fault)
         {
@@ -61,8 +61,10 @@ public class FailStateMigrationJobActivity<TSaga, TMessage> : IStateMachineActiv
                 context.Saga.OrganizationId,
                 DateTimeOffset.UtcNow,
                 StepMapper.DetermineStepFromState(context.Saga.CurrentState),
-                $"Server error while handling {FaultText.MessageName(typeof(TMessage))}",
-                FaultText.Describe(fault.Exceptions));
+                FaultText.Describe(fault.Exceptions) is { Length: > 0 } described
+                    ? described
+                    : $"Server error while handling {FaultText.MessageName(typeof(TMessage))}",
+                null);
         }
         else if (context.Message is HeartbeatFailed lost)
         {

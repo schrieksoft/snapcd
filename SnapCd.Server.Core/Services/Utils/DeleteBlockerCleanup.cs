@@ -65,6 +65,16 @@ public static class DeleteBlockerCleanup
         await dbContext.NamespaceSecrets
             .Where(x => x.OrganizationId == organizationId && namespaceIds.Contains(x.NamespaceId))
             .ExecuteDeleteAsync();
+
+        // An Output Set supply restricts on the Namespace it supplies, so the producing Module
+        // keeps the single cascade path.
+        await dbContext.OutputSetNamespaceSupplies
+            .Where(x => x.OrganizationId == organizationId && namespaceIds.Contains(x.ConsumingNamespaceId))
+            .ExecuteDeleteAsync();
+
+        await dbContext.OutputNamespaceSupplies
+            .Where(x => x.OrganizationId == organizationId && namespaceIds.Contains(x.ConsumingNamespaceId))
+            .ExecuteDeleteAsync();
     }
 
     /// <summary>
@@ -201,6 +211,16 @@ public static class DeleteBlockerCleanup
 
         await dbContext.ResourceChangeSets
             .Where(x => x.OrganizationId == organizationId && moduleIds.Contains(x.ModuleId))
+            .ExecuteDeleteAsync();
+
+        // An Output Set supply names a producing Module and a consuming one, and restricts on the
+        // consumer so the producer keeps the single cascade path.
+        await dbContext.OutputSetModuleSupplies
+            .Where(x => x.OrganizationId == organizationId && moduleIds.Contains(x.ConsumingModuleId))
+            .ExecuteDeleteAsync();
+
+        await dbContext.OutputModuleSupplies
+            .Where(x => x.OrganizationId == organizationId && moduleIds.Contains(x.ConsumingModuleId))
             .ExecuteDeleteAsync();
     }
 }

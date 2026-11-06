@@ -276,12 +276,22 @@ else
                     </div>
                 </TitleContent>
                 <ChildContent>
-                    @if (!string.IsNullOrWhiteSpace(job.ServerSideError))
+                    @if (!string.IsNullOrWhiteSpace(job.ServerSideErrorHeader))
                     {
-                        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="ma-4 mb-0">
-                            <MudText Typo="Typo.h6" Class="mb-2">Server-Side Error</MudText>
-                            <MudText>@job.ServerSideErrorHeader</MudText>
-                            <MudText Typo="Typo.subtitle2" Class="mb-1">@job.ServerSideError</MudText>
+                        <MudAlert Severity="Severity.Warning" Class="ma-4 mb-0">
+                            <div class="snapcd-error-header" style="white-space: pre-line">@job.ServerSideErrorHeader</div>
+                            @if (!string.IsNullOrWhiteSpace(job.ServerSideError))
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                           Class="mt-2"
+                                           OnClick="@(() => ToggleStackTrace(job.Id))">
+                                    @(_expandedStackTraces.Contains(job.Id) ? "Hide details" : "Show details")
+                                </MudButton>
+                                @if (_expandedStackTraces.Contains(job.Id))
+                                {
+                                    <pre class="snapcd-stack-trace">@job.ServerSideError</pre>
+                                }
+                            }
                         </MudAlert>
                     }
 
@@ -357,6 +367,16 @@ else
 }
 
 @code {
+    private readonly HashSet<Guid> _expandedStackTraces = [];
+
+    private void ToggleStackTrace(Guid jobId)
+    {
+        if (!_expandedStackTraces.Add(jobId))
+        {
+            _expandedStackTraces.Remove(jobId);
+        }
+    }
+
     private string? PauseDisabledReason =>
         _busy ? "An operation is already in progress."
         : null;

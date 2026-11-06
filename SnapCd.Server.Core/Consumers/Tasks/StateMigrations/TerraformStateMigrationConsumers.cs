@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
@@ -65,7 +66,7 @@ public class MoveConsumer(
             {
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
-                ErrorMessage = ex.Message,
+                ErrorMessage = ErrorText.Of(ex),
                 StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
@@ -120,7 +121,7 @@ public class ImportConsumer(
             {
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
-                ErrorMessage = ex.Message,
+                ErrorMessage = ErrorText.Of(ex),
                 StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
@@ -175,7 +176,7 @@ public class RemoveConsumer(
             {
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
-                ErrorMessage = ex.Message,
+                ErrorMessage = ErrorText.Of(ex),
                 StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
@@ -230,7 +231,7 @@ public class MoveDryRunConsumer(
             {
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
-                ErrorMessage = ex.Message,
+                ErrorMessage = ErrorText.Of(ex),
                 StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
@@ -285,7 +286,7 @@ public class RemoveDryRunConsumer(
             {
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
-                ErrorMessage = ex.Message,
+                ErrorMessage = ErrorText.Of(ex),
                 StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
@@ -340,7 +341,7 @@ public class ImportPreCheckConsumer(
             {
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
-                ErrorMessage = ex.Message,
+                ErrorMessage = ErrorText.Of(ex),
                 StackTrace = ex.ToString(),
                 IsServerSideError = true
             });

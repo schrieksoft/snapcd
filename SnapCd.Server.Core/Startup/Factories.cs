@@ -200,6 +200,11 @@ public static class Factories
         services.AddScoped<ModuleExtraFileSecuredRepositoryFactory>();
         services.AddScoped<NamespaceExtraFileSecuredRepositoryFactory>();
         services.AddScoped<ModuleAdditionalTriggerPathSecuredRepositoryFactory>();
+        services.AddScoped<ModuleOutputDownstreamRestrictionSecuredRepositoryFactory>();
+        services.AddScoped<OutputSetModuleSupplySecuredRepositoryFactory>();
+        services.AddScoped<OutputSetNamespaceSupplySecuredRepositoryFactory>();
+        services.AddScoped<OutputModuleSupplySecuredRepositoryFactory>();
+        services.AddScoped<OutputNamespaceSupplySecuredRepositoryFactory>();
         services.AddScoped<NamespaceAdditionalTriggerPathSecuredRepositoryFactory>();
         services.AddScoped<ModuleTerraformInlinePolicySecuredRepositoryFactory>();
         services.AddScoped<ModuleTerraformRemotePolicySecuredRepositoryFactory>();

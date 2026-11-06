@@ -34,7 +34,7 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
 
     public ServerSideStep? FailedOnServerSideStep { get; set; }
 
-    [MaxLength(255)] public string? ServerSideErrorHeader { get; set; }
+    [MaxLength(1000)] public string? ServerSideErrorHeader { get; set; }
 
     [MaxLength(16000)] public string? ServerSideError { get; set; }
 

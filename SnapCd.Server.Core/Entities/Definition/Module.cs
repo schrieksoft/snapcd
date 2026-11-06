@@ -19,6 +19,8 @@ using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Entities.Sagas;
 
+using SnapCd.Server.Core.Entities.Definition.OutputSupplies;
+
 namespace SnapCd.Server.Core.Entities.Definition;
 
 public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
@@ -47,6 +49,14 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public int? ApprovalTimeoutMinutes { get; set; }
     public SourceType SourceType { get; set; } = SourceType.Git;
     public SourceRevisionType SourceRevisionType { get; set; } = SourceRevisionType.Default;
+    public OutputSetDownstreamRestriction? OutputSetDownstreamRestriction { get; set; }
+    public List<ModuleOutputDownstreamRestriction> ModuleOutputDownstreamRestrictions { get; set; } = new();
+    public List<OutputSetModuleSupply> SuppliedOutputSets { get; set; } = new();
+    public List<OutputSetModuleSupply> ReceivedOutputSetSupplies { get; set; } = new();
+    public List<OutputSetNamespaceSupply> SuppliedOutputSetsToNamespaces { get; set; } = new();
+    public List<OutputModuleSupply> SuppliedOutputs { get; set; } = new();
+    public List<OutputModuleSupply> ReceivedOutputSupplies { get; set; } = new();
+    public List<OutputNamespaceSupply> SuppliedOutputsToNamespaces { get; set; } = new();
     public List<ModuleParamFromDefinition> ModuleParamFromDefinitions { get; set; } = new();
     public List<ModuleParamFromNamespace> ModuleParamFromNamespaces { get; set; } = new();
     public List<ModuleParamFromLiteral> ModuleParamFromLiterals { get; set; } = new();

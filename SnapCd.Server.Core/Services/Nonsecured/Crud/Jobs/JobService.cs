@@ -407,8 +407,8 @@ public class JobService : IDisposable
                 OrganizationId = organizationId,
                 TimestampStart = timeStamp,
                 TimestampEnd = timeStamp,
-                ServerSideError = ErrorText.Body(errorMessage),
-                ServerSideErrorHeader = "This job failed due to a error occuring on the Server. The full error can be seen below.",
+                ServerSideError = null,
+                ServerSideErrorHeader = ErrorText.FitHeader(errorMessage),
                 FailedOnServerSideStep = ServerSideStep.Start,
                 JobType = jobType,
                 Status = ExecutionStatus.Failed,
@@ -428,8 +428,8 @@ public class JobService : IDisposable
         if (existingJob != null)
         {
             var timeStamp = DateTimeOffset.UtcNow;
-            existingJob.ServerSideError = ErrorText.Body(errorMessage);
-            existingJob.ServerSideErrorHeader = "This job failed due to a error occuring on the Server. The full error can be seen below.";
+            existingJob.ServerSideError = null;
+            existingJob.ServerSideErrorHeader = ErrorText.FitHeader(errorMessage);
             existingJob.FailedOnServerSideStep = failedOnServerSideStep;
             existingJob.IsCurrent = false;
             existingJob.Status = ExecutionStatus.Failed;

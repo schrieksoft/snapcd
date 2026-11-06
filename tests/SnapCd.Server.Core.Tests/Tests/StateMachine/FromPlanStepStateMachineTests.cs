@@ -299,7 +299,7 @@ public class FromPlanStepStateMachineTests : IAsyncLifetime
         var job = await WaitForEnd(jobId);
         Assert.Equal(ExecutionStatus.Failed, job.Status);
         Assert.Equal(expectedStep, job.FailedOnServerSideStep);
-        Assert.Contains("resource still in use", job.ServerSideError);
+        Assert.Contains("resource still in use", job.ServerSideErrorHeader);
     }
 
     [Theory]

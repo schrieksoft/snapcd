@@ -51,6 +51,11 @@ public static class ControllerEndpoints
     public const string AgentModuleSupply = "api/{organizationId:guid}/AgentModuleSupply";
     public const string ModuleExtraFile = "api/{organizationId:guid}/ModuleExtraFile";
     public const string ModuleAdditionalTriggerPath = "api/{organizationId:guid}/ModuleAdditionalTriggerPath";
+    public const string ModuleOutputDownstreamRestriction = "api/{organizationId:guid}/ModuleOutputDownstreamRestriction";
+    public const string OutputSetModuleSupply = "api/{organizationId:guid}/OutputSetModuleSupply";
+    public const string OutputSetNamespaceSupply = "api/{organizationId:guid}/OutputSetNamespaceSupply";
+    public const string OutputModuleSupply = "api/{organizationId:guid}/OutputModuleSupply";
+    public const string OutputNamespaceSupply = "api/{organizationId:guid}/OutputNamespaceSupply";
     public const string NamespaceAdditionalTriggerPath = "api/{organizationId:guid}/NamespaceAdditionalTriggerPath";
     public const string ModuleTerraformInlinePolicy = "api/{organizationId:guid}/ModuleTerraformInlinePolicy";
     public const string ModuleTerraformRemotePolicy = "api/{organizationId:guid}/ModuleTerraformRemotePolicy";

@@ -11,15 +11,30 @@ using SnapCd.Server.Core.Enums;
 namespace SnapCd.Server.Core.Misc.Helpers;
 
 /// <summary>
-/// Fitting an error to the column that holds it. A header is a fixed 255 and a body is 16000, and
+/// Fitting an error to the column that holds it. A header is a fixed 1000 and a body is 16000, and
 /// what arrives is a runner's exception message, which carries a path and the engine's own output
 /// and is bounded by nothing. Writing one over its column throws, and the throw lands in a saga
 /// consume that is recording a failure, so the job stops where it is rather than failing cleanly.
 /// </summary>
 public static class ErrorText
 {
-    public const int HeaderLength = 255;
+    public const int HeaderLength = 1000;
     public const int BodyLength = 16000;
+
+    /// <summary>
+    /// The message to show for a thrown exception. A wrapper such as DbUpdateException says only that
+    /// something failed while the inner exception names what, so the innermost message is the useful one.
+    /// </summary>
+    public static string Of(Exception exception)
+    {
+        var inner = exception;
+        while (inner.InnerException != null)
+            inner = inner.InnerException;
+
+        return inner.Message == exception.Message
+            ? exception.Message
+            : $"{exception.Message} {inner.Message}";
+    }
 
     /// <summary>A last guard at the write, for a header composed somewhere this does not see.</summary>
     public static string? FitHeader(string? value) => Fit(value, HeaderLength);

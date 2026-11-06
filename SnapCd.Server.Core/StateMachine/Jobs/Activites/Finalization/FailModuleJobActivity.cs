@@ -55,11 +55,12 @@ public class FailModuleJobActivity<TSaga, TFailedMessage> :
 
         if (isServerSideError)
         {
-            // Server-side error: save error details to the job
-            var errorHeader = $"Server error during {failedStep}";
-            var fullErrorMessage = !string.IsNullOrEmpty(stackTrace)
-                ? $"{errorMessage}\n\nStack Trace:\n{stackTrace}"
+            // The header is what the dashboard shows first, so it carries the message a reader
+            // can act on. The stack trace stays in the body, behind a disclosure.
+            var errorHeader = string.IsNullOrWhiteSpace(errorMessage)
+                ? $"Server error during {failedStep}"
                 : errorMessage;
+            var fullErrorMessage = stackTrace;
 
             await _repository.FinalizeWithServerError(
                 context.Saga.CorrelationId,

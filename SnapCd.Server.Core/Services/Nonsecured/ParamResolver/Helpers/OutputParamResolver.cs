@@ -31,15 +31,18 @@ public class OutputParamResolver<TModuleInputFromOutput>
     private readonly OutputRepository _repository;
     private readonly CustomOutputMapper _outputMapper;
     private readonly SnapCdDbContext _dbContext;
+    private readonly OutputRestrictionChecker _restrictionChecker;
 
     public OutputParamResolver(
         OutputRepository repository,
         CustomOutputMapper outputMapper,
-        SnapCdDbContext dbContext)
+        SnapCdDbContext dbContext,
+        OutputRestrictionChecker restrictionChecker)
     {
         _repository = repository;
         _outputMapper = outputMapper;
         _dbContext = dbContext;
+        _restrictionChecker = restrictionChecker;
     }
 
     public async Task<List<ModuleResolvedInput>> ListByModuleInputFromOutputs(Guid moduleId, Guid organizationId, bool formatStrings = true)
@@ -53,7 +56,13 @@ public class OutputParamResolver<TModuleInputFromOutput>
         // 3. Validate that all referenced output modules are in the same stack
         await ValidateOutputModuleStackScope(moduleInputFromOutputs, requestingStackId);
 
-        // 4. Get specific outputs based on output names and create resolved inputs
+        // 4. Refuse any Output its producer withholds. These inputs name the Output they want.
+        await _restrictionChecker.EnsureReadable(
+            moduleId,
+            moduleInputFromOutputs.Select(mi => (mi.OutputModuleId, mi.OutputName)).ToList(),
+            organizationId);
+
+        // 5. Get specific outputs based on output names and create resolved inputs
         return await GetSpecificOutputsResolved(moduleInputFromOutputs, organizationId, formatStrings);
     }
 

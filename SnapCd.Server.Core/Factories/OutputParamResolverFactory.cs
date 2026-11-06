@@ -33,17 +33,21 @@ public class OutputParamResolverFactory
 
     public virtual OutputParamResolver<ModuleParamFromOutput> CreateForParams()
     {
+        var dbContext = _dbContextFactory.CreateDbContext();
         return new OutputParamResolver<ModuleParamFromOutput>(
             _repositoryFactory.Create(),
             _outputMapper,
-            _dbContextFactory.CreateDbContext());
+            dbContext,
+            new OutputRestrictionChecker(dbContext));
     }
 
     public virtual OutputParamResolver<ModuleEnvVarFromOutput> CreateForEnvVars()
     {
+        var dbContext = _dbContextFactory.CreateDbContext();
         return new OutputParamResolver<ModuleEnvVarFromOutput>(
             _repositoryFactory.Create(),
             _outputMapper,
-            _dbContextFactory.CreateDbContext());
+            dbContext,
+            new OutputRestrictionChecker(dbContext));
     }
 }

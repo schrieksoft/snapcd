@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Misc.Helpers;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
@@ -80,7 +81,7 @@ public abstract class TransferStepConsumer<TRequest, TFaulted> : IConsumer<TRequ
                 CorrelationId = jobId,
                 OrganizationId = orgId,
                 ModuleId = msg.ModuleId,
-                ErrorMessage = ex.Message,
+                ErrorMessage = ErrorText.Of(ex),
                 StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
