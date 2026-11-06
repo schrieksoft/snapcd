@@ -21,6 +21,21 @@ public static class ErrorText
     public const int HeaderLength = 1000;
     public const int BodyLength = 16000;
 
+    /// <summary>
+    /// The message to show for a thrown exception. A wrapper such as DbUpdateException says only that
+    /// something failed while the inner exception names what, so the innermost message is the useful one.
+    /// </summary>
+    public static string Of(Exception exception)
+    {
+        var inner = exception;
+        while (inner.InnerException != null)
+            inner = inner.InnerException;
+
+        return inner.Message == exception.Message
+            ? exception.Message
+            : $"{exception.Message} {inner.Message}";
+    }
+
     /// <summary>A last guard at the write, for a header composed somewhere this does not see.</summary>
     public static string? FitHeader(string? value) => Fit(value, HeaderLength);
 

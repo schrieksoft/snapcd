@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
@@ -90,7 +91,7 @@ public class ApplyProbeConsumer : IConsumer<ApplyProbeRequested>
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,
-                ErrorMessage = ex.Message,
+                ErrorMessage = ErrorText.Of(ex),
                 StackTrace = ex.StackTrace,
                 IsServerSideError = true
             });

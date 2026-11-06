@@ -325,7 +325,7 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
 
         Assert.Equal(ExecutionStatus.Failed, job.Status);
         Assert.Equal(ServerSideStep.Variables, job.FailedOnServerSideStep);
-        Assert.Equal(ServerSideStep.Variables, job.FailedOnServerSideStep);
+        // The duplicate name comes from the inner exception, which the header carries.
         Assert.Contains("extra_tenant_id", job.ServerSideErrorHeader);
     }
 

@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Misc.Helpers;
 using MassTransit;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Services.Nonsecured;
@@ -68,7 +69,7 @@ public class TransferSelectRunnerInstanceConsumer : IConsumer<TransferSelectRunn
                 CorrelationId = jobId,
                 OrganizationId = orgId,
                 ModuleId = msg.ModuleId,
-                ErrorMessage = ex.Message,
+                ErrorMessage = ErrorText.Of(ex),
                 StackTrace = ex.ToString(),
                 IsServerSideError = true
             });

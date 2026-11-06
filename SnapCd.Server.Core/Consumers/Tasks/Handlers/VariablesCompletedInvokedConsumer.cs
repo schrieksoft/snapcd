@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Misc.Helpers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
@@ -86,7 +87,7 @@ public abstract class VariablesCompletedInvokedConsumer<TInvoked, TCompleted, TF
             {
                 CorrelationId = jobId,
                 OrganizationId = organizationId,
-                ErrorMessage = ex.Message,
+                ErrorMessage = ErrorText.Of(ex),
                 StackTrace = ex.ToString(),
                 IsServerSideError = true
             });
