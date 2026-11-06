@@ -1,0 +1,199 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Definition.OutputSupplies
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+@inherits ComponentBase
+
+<MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice/>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
+            <MudItem xs="12" Class="mb-4">
+                <MudTextField Disabled="@(!_canSave)" Label="Output Name"
+                              @bind-Value="Context.OutputName"
+                              Immediate="true"
+                              HelperText="The single Output to supply, by name"
+                              FullWidth="true"/>
+            </MudItem>
+
+            <MudItem xs="12" Class="mb-4">
+                <MudAutocomplete Disabled="@(!_canSave)" T="ModuleDisplay?"
+                                 @bind-Value="_selectedTarget"
+                                 Label="Supply To Module"
+                                 SearchFunc="@SearchTargets"
+                                 ToStringFunc="@(t => t?.DisplayName ?? string.Empty)"
+                                 ResetValueOnEmptyText="true"
+                                 Required="true"
+                                 DebounceInterval="300"
+                                 AdornmentIcon="@SnapCdIcons.Search"
+                                 Variant="Variant.Outlined">
+                    <ItemTemplate Context="option">
+                        <MudText>@option?.DisplayName</MudText>
+                    </ItemTemplate>
+                    <NoItemsTemplate>
+                        @if (_isSearching)
+                        {
+                            <div class="d-flex align-center gap-2">
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                                <MudText>Searching...</MudText>
+                            </div>
+                        }
+                        else
+                        {
+                            <MudText>Nothing found in this Stack.</MudText>
+                        }
+                    </NoItemsTemplate>
+                </MudAutocomplete>
+            </MudItem>
+
+            <MudStack Row="true" Spacing="4" Class="mt-4">
+                @if (IsCreateMode)
+                {
+                    <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                        <MudButton Color="Color.Secondary" Size="Size.Small" Variant="Variant.Filled"
+                                   Disabled="@(!_canSave)" OnClick="CreateItem">
+                            Create
+                        </MudButton>
+                    </MudTooltip>
+
+                    <MudButton Color="Color.Secondary" Size="Size.Small" Variant="Variant.Filled" OnClick="Cancel">
+                        Cancel
+                    </MudButton>
+                }
+                else
+                {
+                    <MudTooltip Text="@DeleteDisabledReason" Disabled="@(DeleteDisabledReason is null)">
+                        <MudButton Color="Color.Secondary" Size="Size.Small" Variant="Variant.Filled"
+                                   StartIcon="@SnapCdIcons.Delete"
+                                   Disabled="@(!_canDelete)" OnClick="DeleteItem">
+                            Delete
+                        </MudButton>
+                    </MudTooltip>
+                }
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+</MudForm>
+
+@code {
+    private string? DeleteDisabledReason => _canDelete ? null : "You do not have permission to delete this.";
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
+    [Parameter] public bool IsCreateMode { get; set; } = true;
+    [Parameter] public OutputModuleSupply Context { get; set; } = default!;
+    [Parameter] public Guid StackId { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback OnUpdate { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private OutputModuleSupplySecuredRepositoryFactory RepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory TargetRepositoryFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private ModuleDisplay? _selectedTarget;
+    private bool _isSearching;
+    private bool _canSave;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        ResolveCanSave();
+    }
+
+    private void ResolveCanSave()
+    {
+        using var repo = RepositoryFactory.Create(PrincipalProvider);
+
+        _canSave = IsCreateMode
+            ? repo.CanCreate(Context.ParentId(), OrganizationId)
+            : repo.CanUpdate(Context.Id, OrganizationId);
+        _canDelete = !IsCreateMode && repo.CanDelete(Context.Id, OrganizationId);
+    }
+
+    private async Task<IEnumerable<ModuleDisplay>> SearchTargets(string searchText, CancellationToken cancellationToken)
+    {
+        _isSearching = true;
+        StateHasChanged();
+
+        try
+        {
+            using var repo = TargetRepositoryFactory.Create(PrincipalProvider);
+            return await repo.List<ModuleDisplay>(OrganizationId,
+                q => q.Where(m => m.Namespace.StackId == StackId && m.Id != Context.ModuleId && (m.Name.Contains(searchText) || m.Namespace.Name.Contains(searchText)))
+                    .OrderBy(m => m.Namespace.Name)
+                    .Select(x => new ModuleDisplay
+                    {
+                        Id = x.Id,
+                        DisplayName = x.Namespace.Name + " / " + x.Name
+                    })
+            );
+        }
+        finally
+        {
+            _isSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteItem()
+    {
+        try
+        {
+            using var repo = RepositoryFactory.Create(PrincipalProvider);
+            await repo.Delete(Context.Id, OrganizationId);
+            await OnDelete.InvokeAsync();
+            Snackbar.Add("Output supply deleted successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting output supply");
+        }
+    }
+
+    private async Task CreateItem()
+    {
+        if (_selectedTarget == null)
+        {
+            Snackbar.Add("Choose a module to supply to", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            Context.ConsumingModuleId = _selectedTarget.Id;
+
+            using var repo = RepositoryFactory.Create(PrincipalProvider);
+            await repo.Create(Context);
+            await OnCreate.InvokeAsync();
+            Snackbar.Add("Output supply created successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "creating output supply");
+        }
+    }
+
+    private async Task Cancel() => await OnCancel.InvokeAsync();
+
+    private class ModuleDisplay
+    {
+        public Guid Id { get; set; }
+        public string DisplayName { get; set; } = null!;
+    }
+}

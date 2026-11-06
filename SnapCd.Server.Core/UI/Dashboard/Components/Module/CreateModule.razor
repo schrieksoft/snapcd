@@ -75,6 +75,16 @@
                 </MudSelect>
             </MudItem>
 
+            <MudItem md="12">
+                <MudSelect Disabled="@(!_canCreate)" T="OutputSetDownstreamRestriction?" Label="Withhold Outputs From Downstream"
+                           @bind-Value="NewModule.OutputSetDownstreamRestriction"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="OutputSetDownstreamRestriction?" Value="@((OutputSetDownstreamRestriction?)null)">Nothing withheld</MudSelectItem>
+                    <MudSelectItem T="OutputSetDownstreamRestriction?" Value="@((OutputSetDownstreamRestriction?)OutputSetDownstreamRestriction.SensitiveOnly)">Sensitive Outputs</MudSelectItem>
+                    <MudSelectItem T="OutputSetDownstreamRestriction?" Value="@((OutputSetDownstreamRestriction?)OutputSetDownstreamRestriction.All)">Every Output</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
             @* *@
             @* <MudItem md="12"> *@
             @*     <MudAutocomplete Disabled="@(!_canCreate)" T="SecretStoreDisplay?" *@
@@ -185,6 +195,12 @@
             <MudItem md="12">
                 <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.IgnoreNamespaceFlags"
                            Label="Ignore Namespace Flags"
+                           Color="Color.Secondary"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.IgnoreNamespaceHooks"
+                           Label="Ignore Namespace Hooks"
                            Color="Color.Secondary"/>
             </MudItem>
 

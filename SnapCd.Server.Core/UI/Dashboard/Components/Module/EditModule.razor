@@ -84,6 +84,16 @@
                 </MudSelect>
             </MudItem>
 
+            <MudItem md="12">
+                <MudSelect Disabled="@(!_canUpdate)" T="OutputSetDownstreamRestriction?" Label="Withhold Outputs From Downstream"
+                           @bind-Value="Module.OutputSetDownstreamRestriction"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="OutputSetDownstreamRestriction?" Value="@((OutputSetDownstreamRestriction?)null)">Nothing withheld</MudSelectItem>
+                    <MudSelectItem T="OutputSetDownstreamRestriction?" Value="@((OutputSetDownstreamRestriction?)OutputSetDownstreamRestriction.SensitiveOnly)">Sensitive Outputs</MudSelectItem>
+                    <MudSelectItem T="OutputSetDownstreamRestriction?" Value="@((OutputSetDownstreamRestriction?)OutputSetDownstreamRestriction.All)">Every Output</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
             @* *@
             @* <MudItem md="12"> *@
             @*     <MudAutocomplete Disabled="@(!_canUpdate)" T="SecretStoreDisplay?" *@
@@ -199,6 +209,11 @@
 
             <MudItem md="12">
                 <MudSwitch Disabled="@(!_canUpdate)" T="bool" @bind-Value="Module.IgnoreNamespaceFlags" Label="Ignore Namespace Flags"
+                           Color="Color.Secondary"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch Disabled="@(!_canUpdate)" T="bool" @bind-Value="Module.IgnoreNamespaceHooks" Label="Ignore Namespace Hooks"
                            Color="Color.Secondary"/>
             </MudItem>
 
@@ -428,6 +443,59 @@
 
             <MudItem md="12">
                 <MudExpansionPanels>
+                    <MudExpansionPanel Text="Outputs Withheld From Downstream"
+                                       ExpandedChanged="async (opened) => { if (opened) await _outputRestrictionsRef!.InitializeItems(); }">
+                        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                            <EditModuleOutputRestrictionsList ModuleId="Module.Id"
+                                                              Title="By Name"
+                                                              PrincipalProvider="@PrincipalProvider"
+                                                              @ref="_outputRestrictionsRef"
+                                                              OnTabClick="async () => await _outputRestrictionsRef!.InitializeItems()"/>
+                        </MudTabs>
+                    </MudExpansionPanel>
+
+                    <MudExpansionPanel Text="Output Set Supplied To"
+                                       ExpandedChanged="async (opened) => { if (opened) await _outputSetNsSupplyRef!.InitializeItems(); }">
+                        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                            <EditModuleOutputSetNamespaceSuppliesList ModuleId="Module.Id"
+                                                                      StackId="StackId"
+                                                                      Title="Namespaces"
+                                                                      PrincipalProvider="@PrincipalProvider"
+                                                                      @ref="_outputSetNsSupplyRef"
+                                                                      OnTabClick="async () => await _outputSetNsSupplyRef!.InitializeItems()"/>
+
+                            <EditModuleOutputSetModuleSuppliesList ModuleId="Module.Id"
+                                                                   StackId="StackId"
+                                                                   Title="Modules"
+                                                                   PrincipalProvider="@PrincipalProvider"
+                                                                   @ref="_outputSetModSupplyRef"
+                                                                   OnTabClick="async () => await _outputSetModSupplyRef!.InitializeItems()"/>
+                        </MudTabs>
+                    </MudExpansionPanel>
+
+                    <MudExpansionPanel Text="Single Outputs Supplied To"
+                                       ExpandedChanged="async (opened) => { if (opened) await _outputNsSupplyRef!.InitializeItems(); }">
+                        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                            <EditModuleOutputNamespaceSuppliesList ModuleId="Module.Id"
+                                                                   StackId="StackId"
+                                                                   Title="Namespaces"
+                                                                   PrincipalProvider="@PrincipalProvider"
+                                                                   @ref="_outputNsSupplyRef"
+                                                                   OnTabClick="async () => await _outputNsSupplyRef!.InitializeItems()"/>
+
+                            <EditModuleOutputModuleSuppliesList ModuleId="Module.Id"
+                                                                StackId="StackId"
+                                                                Title="Modules"
+                                                                PrincipalProvider="@PrincipalProvider"
+                                                                @ref="_outputModSupplyRef"
+                                                                OnTabClick="async () => await _outputModSupplyRef!.InitializeItems()"/>
+                        </MudTabs>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudExpansionPanels>
                     <MudExpansionPanel Text="Extra Files"
                                        ExpandedChanged="async (expanded) => { if (expanded) await _extraFilesRef.InitializeItems(); }">
                         <EditModuleExtraFilesList Title="Extra Files"
@@ -575,6 +643,12 @@
     private EditModuleInputTab<ModuleEnvVarFromNamespace, ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleEnvVarFromNamespace>>? _envVarsNamespaceRef;
 
     private EditModuleExtraFilesList _extraFilesRef = new();
+
+    private EditModuleOutputRestrictionsList? _outputRestrictionsRef;
+    private EditModuleOutputSetNamespaceSuppliesList? _outputSetNsSupplyRef;
+    private EditModuleOutputSetModuleSuppliesList? _outputSetModSupplyRef;
+    private EditModuleOutputNamespaceSuppliesList? _outputNsSupplyRef;
+    private EditModuleOutputModuleSuppliesList? _outputModSupplyRef;
     private EditModuleAdditionalTriggerPathsList _additionalTriggerPathsRef = new();
     private EditModuleTerraformInlinePoliciesList _terraformInlinePoliciesRef = new();
     private EditModuleTerraformRemotePoliciesList _terraformRemotePoliciesRef = new();
