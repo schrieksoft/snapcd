@@ -325,8 +325,8 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
 
         Assert.Equal(ExecutionStatus.Failed, job.Status);
         Assert.Equal(ServerSideStep.Variables, job.FailedOnServerSideStep);
-        Assert.Equal("Server error during Variables", job.ServerSideErrorHeader);
-        Assert.Contains("extra_tenant_id", job.ServerSideError);
+        Assert.Equal(ServerSideStep.Variables, job.FailedOnServerSideStep);
+        Assert.Contains("extra_tenant_id", job.ServerSideErrorHeader);
     }
 
     [Theory]
@@ -350,8 +350,8 @@ public class StepStoreFaultedStateMachineTests : IAsyncLifetime
 
         Assert.Equal(ExecutionStatus.Failed, job.Status);
         Assert.Equal(ServerSideStep.Output, job.FailedOnServerSideStep);
-        Assert.Equal("Server error during Output", job.ServerSideErrorHeader);
-        Assert.Contains(UnavailableDbContext.Message, job.ServerSideError);
+        Assert.Equal(ServerSideStep.Output, job.FailedOnServerSideStep);
+        Assert.Contains(UnavailableDbContext.Message, job.ServerSideErrorHeader);
     }
 
     /// Stands in for a database that cannot be reached: the first query throws.

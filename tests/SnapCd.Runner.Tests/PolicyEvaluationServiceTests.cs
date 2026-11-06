@@ -158,7 +158,7 @@ public class PolicyEvaluationServiceTests : IDisposable
         var outcome = await _service.EvaluateAsync([Inline(ViolationPolicy)], _planJsonPath, _scratchDir, logs.Add, CancellationToken.None);
 
         Assert.Equal(PolicyOutcome.HardDenied, outcome);
-        var line = Assert.Single(logs.Where(l => l.Contains("allows public ACLs")));
+        var line = Assert.Single(logs, l => l.Contains("allows public ACLs"));
         Assert.Contains("details:", line);
         Assert.Contains("severity", line);
         Assert.Contains("data.snapcd.violation", line);

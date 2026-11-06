@@ -163,7 +163,7 @@ public class JobCancelReliabilityTests : IAsyncLifetime
             using var db = _fixture.CreateDbContext();
             return db.ModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
         }), "the stuck job was not forced closed");
-        Assert.True(_harness.Published.Select<ApplyModuleCancelled>().Any(m => m.Context.Message.ModuleJobId == jobId));
+        Assert.Contains(_harness.Published.Select<ApplyModuleCancelled>(), m => m.Context.Message.ModuleJobId == jobId);
     }
 
     [Theory]
