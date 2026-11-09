@@ -85,6 +85,7 @@ public static class MiscService
         services.AddScoped<AccessTokenService>();
         services.AddScoped<EmailConfirmationService>();
         services.AddScoped<ThemeService>();
+        services.AddScoped<ErrorReportRelay>();
         services.AddScoped<OrganizationService>();
 
         // Notification Services (Singletons)
