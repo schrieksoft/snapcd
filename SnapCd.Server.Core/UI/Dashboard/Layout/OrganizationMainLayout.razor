@@ -30,11 +30,16 @@
 @inject OrganizationMembershipCacheService MembershipCache
 @inject HttpContextPrincipalProvider PrincipalProvider
 @inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<OrganizationMainLayout> Logger
 
 
 <MudThemeProvider Theme="_myCustomTheme" IsDarkMode="@_isDarkMode"/>
-<MudPopoverProvider/>
-<MudDialogProvider/>
+<ExpectedErrorBoundary Detached="true">
+    <MudPopoverProvider/>
+</ExpectedErrorBoundary>
+<ExpectedErrorBoundary Detached="true">
+    <MudDialogProvider/>
+</ExpectedErrorBoundary>
 <MudSnackbarProvider/>
 <MudLayout>
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Never" Elevation="2"
@@ -84,18 +89,18 @@
 
     <MudMainContent Class="pa-4">
         <div style="margin-left: 18px;">
-            <MaintenanceModeBanner/>
-            @if (IsAllowedToNavigate())
-            {
-                @* TODO: <UsageLimitExceededBanner/> — component not yet implemented *@
-                <ExpectedErrorBoundary>
+            <ExpectedErrorBoundary>
+                <MaintenanceModeBanner/>
+                @if (IsAllowedToNavigate())
+                {
+                    @* TODO: <UsageLimitExceededBanner/> — component not yet implemented *@
                     @Body
-                </ExpectedErrorBoundary>
-            }
-            else
-            {
-                <p>You are not authorized to view this page.</p>
-            }
+                }
+                else
+                {
+                    <p>You are not authorized to view this page.</p>
+                }
+            </ExpectedErrorBoundary>
         </div>
     </MudMainContent>
 </MudLayout>
@@ -186,11 +191,20 @@
         ThemeService.OnThemeChanged += ThemeChanged;
     }
 
+    // A layout is outside any ErrorBoundary it declares.
     protected override async Task OnParametersSetAsync()
     {
         PageType = (Body!.Target as RouteView)?.RouteData.PageType;
-        await EnforceOrganizationActivationGateAsync();
-        await EvaluatePageRoleGateAsync();
+        try
+        {
+            await EnforceOrganizationActivationGateAsync();
+            await EvaluatePageRoleGateAsync();
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Navigation gate could not be evaluated for {PageType}", PageType);
+            _pageRoleAllowed = false;
+        }
     }
 
     private async Task EnforceOrganizationActivationGateAsync()

@@ -8,6 +8,7 @@
 
 @using SnapCd.Contracts.Dto.ServicePrincipals
 @using SnapCd.Server.Core.Services.Secured.Crud
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
 <MudDialog>
     <TitleContent>
         <MudText>Delete Service Principal</MudText>
@@ -32,6 +33,7 @@
 @code {
 
     [Inject] private ServicePrincipalServiceFactory ServiceFactory { get; set; } = null!;
+    [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
 
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
@@ -40,12 +42,23 @@
 
     private string? _refusal;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         using var permissionRepo = ServiceFactory.Create();
-        _refusal = permissionRepo.CanDelete(ServicePrincipal.Id, OrganizationId)
-            ? null
-            : "You do not have permission to delete this service principal.";
+        if (!permissionRepo.CanDelete(ServicePrincipal.Id, OrganizationId))
+        {
+            _refusal = "You do not have permission to delete this service principal.";
+            return;
+        }
+
+        using var runnerRepo = RunnerRepoFactory.Create();
+        var runners = await runnerRepo.ListMetadata(OrganizationId,
+            q => q.Where(x => x.ServicePrincipalId == ServicePrincipal.Id),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 5);
+
+        if (runners.Count > 0)
+            _refusal = $"This service principal is used by the runner(s) {string.Join(", ", runners.Select(r => $"\"{r.Name}\""))}. Delete or reassign them first.";
     }
 
     private void Cancel()

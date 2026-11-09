@@ -7,14 +7,15 @@
    for terms covering either use. *@
 @using EntityFramework.Exceptions.Common
 @using SnapCd.Server.Core.Misc.Exceptions
+@using SnapCd.Server.Core.Services.Utils.Dashboard
 
 @inherits ErrorBoundaryBase
+@implements IDisposable
 @inject ISnackbar Snackbar
+@inject ErrorReportRelay Relay
 @inject ILogger<ExpectedErrorBoundary> Logger
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
-
-@ChildContent
 
 @if (_report != null)
 {
@@ -46,6 +47,8 @@
     </MudAlert>
 }
 
+@ChildContent
+
 <style>
     .error-report {
         margin-top: 0.5rem;
@@ -60,14 +63,35 @@
 </style>
 
 @code {
+    /// <summary>Hand the report to the body boundary. For a boundary outside the layout, which has nowhere to render an alert.</summary>
+    [Parameter] public bool Detached { get; set; }
+
     private string? _report;
     private bool _reportExpanded;
+
+    protected override void OnInitialized()
+    {
+        if (!Detached)
+            Relay.OnReport += ShowRelayedReport;
+    }
+
+    public void Dispose()
+    {
+        if (!Detached)
+            Relay.OnReport -= ShowRelayedReport;
+    }
+
+    private Task ShowRelayedReport(string report) => InvokeAsync(() =>
+    {
+        _report = report;
+        _reportExpanded = false;
+        StateHasChanged();
+    });
 
     protected override Task OnErrorAsync(Exception exception)
     {
         // These are the server answering, not failing: report them and keep the circuit. The
         // controllers treat the same set as expected outcomes with their own status codes.
-        // Anything else is rethrown so the default error UI still surfaces a genuine fault.
         var severity = exception switch
         {
             PrincipalNotAuthorizedException => Severity.Warning,
@@ -101,6 +125,15 @@
                 string.Empty,
                 exception.ToString());
             _reportExpanded = false;
+
+            if (Detached)
+            {
+                var report = _report;
+                _report = null;
+                Recover();
+                return Relay.Report(report);
+            }
+
             Recover();
 
             return Task.CompletedTask;

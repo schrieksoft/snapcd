@@ -27,8 +27,12 @@
 
 
 <MudThemeProvider Theme="_myCustomTheme" IsDarkMode="@_isDarkMode"/>
-<MudPopoverProvider/>
-<MudDialogProvider/>
+<ExpectedErrorBoundary Detached="true">
+    <MudPopoverProvider/>
+</ExpectedErrorBoundary>
+<ExpectedErrorBoundary Detached="true">
+    <MudDialogProvider/>
+</ExpectedErrorBoundary>
 <MudSnackbarProvider/>
 <MudLayout>
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Never" Elevation="2"

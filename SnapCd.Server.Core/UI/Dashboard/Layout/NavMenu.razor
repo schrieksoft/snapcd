@@ -42,6 +42,8 @@
 @inject NamespaceSecuredRepositoryFactory NamespaceRepoFactory
 @inject StackSecuredRepositoryFactory StackRepoFactory
 @inject FavoritesModifiedNotificationService FavoritesModifiedNotificationService
+@inject ILogger<NavMenu> Logger
+@inject ISnackbar Snackbar
 
 <MudNavMenu Style="background-color: var(--snap-bg-sidebar); color: var(--snap-text); padding-top: 16px; width: 100%; overflow-x: hidden;">
 
@@ -293,27 +295,35 @@
 
     protected override async Task OnInitializedAsync()
     {
-        using (var systemRoles = SystemRoleServiceFactory.Create())
-            _isSystemAdministrator = await systemRoles.CurrentUserIsSystemAdministratorAsync();
-        var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
-        _organizationActivated = await OrganizationActivation.IsActivatedAsync(orgId);
-
-        _generalIsAllowedToNavigateMap = await BuildAllowedMapAsync(_generalNavLinks, orgId);
-        _identityAccessIsAllowedToNavigateMap = await BuildAllowedMapAsync(_identityAccessNavLinks, orgId);
-        _systemIsAllowedToNavigateMap = await BuildAllowedMapAsync(_systemNavLinks, orgId);
-        if (HostEnvironment.IsDevelopment())
-            _testsIsAllowedToNavigateMap = await BuildAllowedMapAsync(_testsNavLinks, orgId);
-
-        if (orgId != Guid.Empty
-            && HttpContextPrincipalProvider.GetPrincipalDiscriminatorOrDefault() == PrincipalDiscriminator.User)
+        try
         {
-            _principalId = HttpContextPrincipalProvider.GetSubjectOrDefault(orgId);
-            if (_principalId != Guid.Empty)
+            using (var systemRoles = SystemRoleServiceFactory.Create())
+                _isSystemAdministrator = await systemRoles.CurrentUserIsSystemAdministratorAsync();
+            var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+            _organizationActivated = await OrganizationActivation.IsActivatedAsync(orgId);
+
+            _generalIsAllowedToNavigateMap = await BuildAllowedMapAsync(_generalNavLinks, orgId);
+            _identityAccessIsAllowedToNavigateMap = await BuildAllowedMapAsync(_identityAccessNavLinks, orgId);
+            _systemIsAllowedToNavigateMap = await BuildAllowedMapAsync(_systemNavLinks, orgId);
+            if (HostEnvironment.IsDevelopment())
+                _testsIsAllowedToNavigateMap = await BuildAllowedMapAsync(_testsNavLinks, orgId);
+
+            if (orgId != Guid.Empty
+                && HttpContextPrincipalProvider.GetPrincipalDiscriminatorOrDefault() == PrincipalDiscriminator.User)
             {
-                await LoadFavorites(orgId);
-                FavoritesModifiedNotificationService.Subscribe(_principalId, HandleFavoritesModified);
-                _subscribedToFavorites = true;
+                _principalId = HttpContextPrincipalProvider.GetSubjectOrDefault(orgId);
+                if (_principalId != Guid.Empty)
+                {
+                    await LoadFavorites(orgId);
+                    FavoritesModifiedNotificationService.Subscribe(_principalId, HandleFavoritesModified);
+                    _subscribedToFavorites = true;
+                }
             }
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Navigation menu could not be built");
+            Snackbar.Add("Some navigation entries could not be loaded.", Severity.Warning);
         }
     }
 

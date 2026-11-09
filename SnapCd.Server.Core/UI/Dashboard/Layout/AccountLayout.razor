@@ -13,8 +13,12 @@
 @inject NavigationManager NavigationManager
 
 <MudThemeProvider Theme="_myCustomTheme" IsDarkMode="@_isDarkMode"/>
-<MudPopoverProvider/>
-<MudDialogProvider/>
+<ExpectedErrorBoundary Detached="true">
+    <MudPopoverProvider/>
+</ExpectedErrorBoundary>
+<ExpectedErrorBoundary Detached="true">
+    <MudDialogProvider/>
+</ExpectedErrorBoundary>
 <MudSnackbarProvider/>
 
 @if (HttpContext is null)
