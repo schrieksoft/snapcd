@@ -18,6 +18,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Interfaces.Edition;
+using SnapCd.Server.Core.Services.Nonsecured.Federation;
 using SnapCd.Server.Core.Services.Secured.Crud;
 using SnapCd.Server.Core.Services.Utils.CallerContext;
 using SnapCd.Server.Core.Services.Utils.PrincipalProvider;
@@ -29,13 +30,14 @@ namespace SnapCd.Server.Core.Controllers;
 [ApiController]
 [AllowAnonymous]
 [PermissionSource(Skip = true,
-    Notes = "Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.")]
+    Notes = "Terraform state backend: authenticates with Basic auth (service principal client id, and its client secret or a token matching one of its federated credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.")]
 [CallerScope(CallerKind.Runner)]
 public class StateController : ControllerBase
 {
     private readonly SnapCdDbContext _dbContext;
     private readonly IOpenIddictApplicationManager _applicationManager;
     private readonly StateFileServiceFactory _serviceFactory;
+    private readonly FederatedCredentialAuthenticator _federatedAuthenticator;
     private readonly IOrganizationActivationService _organizationActivation;
     private readonly IOrganizationNotActivatedResultProvider _notActivatedResultProvider;
     private readonly ILogger<StateController> _logger;
@@ -44,6 +46,7 @@ public class StateController : ControllerBase
         SnapCdDbContext dbContext,
         IOpenIddictApplicationManager applicationManager,
         StateFileServiceFactory serviceFactory,
+        FederatedCredentialAuthenticator federatedAuthenticator,
         IOrganizationActivationService organizationActivation,
         IOrganizationNotActivatedResultProvider notActivatedResultProvider,
         ILogger<StateController> logger)
@@ -51,6 +54,7 @@ public class StateController : ControllerBase
         _dbContext = dbContext;
         _applicationManager = applicationManager;
         _serviceFactory = serviceFactory;
+        _federatedAuthenticator = federatedAuthenticator;
         _organizationActivation = organizationActivation;
         _notActivatedResultProvider = notActivatedResultProvider;
         _logger = logger;
@@ -321,14 +325,18 @@ public class StateController : ControllerBase
         if (application == null)
             return AuthResult.Fail(Unauthorized(new { error = "Invalid credentials." }));
 
-        var isValid = await _applicationManager.ValidateClientSecretAsync(application, password);
-        if (!isValid)
-            return AuthResult.Fail(Unauthorized(new { error = "Invalid credentials." }));
-
         var sp = await _dbContext.Set<ServicePrincipal>()
             .FirstOrDefaultAsync(s => s.ClientId == clientId && s.OrganizationId == organizationId);
 
         if (sp == null || sp.IsDisabled)
+            return AuthResult.Fail(Unauthorized(new { error = "Invalid credentials." }));
+
+        // A token never falls through to secret validation.
+        var isValid = _federatedAuthenticator.IsAssertion(password)
+            ? await _federatedAuthenticator.AuthenticateAsync(sp, password, HttpContext.RequestAborted)
+            : await _applicationManager.ValidateClientSecretAsync(application, password);
+
+        if (!isValid)
             return AuthResult.Fail(Unauthorized(new { error = "Invalid credentials." }));
 
         // The organization arrives inside the Basic auth username rather than as an action

@@ -132,8 +132,48 @@ public class RunnerPreseed
     /// <summary>
     /// Service Principal client secret. Defaults to "default" — replace before exposing the
     /// Server to traffic. Sensitive — source via the External Settings provider in production.
+    /// Empty or null seeds the Service Principal with no secret, which only authenticates through
+    /// a Federated Credential.
     /// </summary>
-    public string ServicePrincipalClientSecret { get; set; } = "default";
+    public string? ServicePrincipalClientSecret { get; set; } = "default";
+
+    /// <summary>
+    /// Federated Credentials seeded against the Runner's Service Principal. Each one lets a
+    /// workload presenting a matching token from that issuer authenticate as the Runner, with no
+    /// client secret.
+    /// </summary>
+    public List<FederatedCredentialPreseed> FederatedCredentials { get; set; } = new();
+}
+
+/// <summary>
+/// A trust relationship seeded against a Service Principal: the issuer, subject and audience a
+/// presented token must carry.
+/// </summary>
+public class FederatedCredentialPreseed
+{
+    /// <summary>Federated Credential ID. When null, a fresh GUID is generated.</summary>
+    public Guid? Id { get; set; }
+
+    /// <summary>Name of the Federated Credential. Unique within the Service Principal.</summary>
+    public string Name { get; set; } = "default";
+
+    /// <summary>
+    /// Issuer the presented token must come from, and where its signing keys are published. An
+    /// absolute https URL, for example a Kubernetes cluster's OIDC issuer.
+    /// </summary>
+    public string Issuer { get; set; } = null!;
+
+    /// <summary>
+    /// Subject the presented token must carry. For a Kubernetes ServiceAccount this is
+    /// `system:serviceaccount:{namespace}:{name}`.
+    /// </summary>
+    public string Subject { get; set; } = null!;
+
+    /// <summary>Audience the presented token must carry. Defaults to "snapcd".</summary>
+    public string Audience { get; set; } = "snapcd";
+
+    /// <summary>Seeds the Federated Credential disabled, so it is not accepted.</summary>
+    public bool IsDisabled { get; set; }
 }
 
 /// <summary>
@@ -156,9 +196,18 @@ public class AgentPreseed
 
     /// <summary>
     /// Service Principal client secret. Defaults to "defaultAgent" — replace before exposing.
-    /// Sensitive — source via the External Settings provider in production.
+    /// Sensitive — source via the External Settings provider in production. Empty or null seeds
+    /// the Service Principal with no secret, which only authenticates through a Federated
+    /// Credential.
     /// </summary>
-    public string ServicePrincipalClientSecret { get; set; } = "defaultAgent";
+    public string? ServicePrincipalClientSecret { get; set; } = "defaultAgent";
+
+    /// <summary>
+    /// Federated Credentials seeded against the Agent's Service Principal. Each one lets a
+    /// workload presenting a matching token from that issuer authenticate as the Agent, with no
+    /// client secret.
+    /// </summary>
+    public List<FederatedCredentialPreseed> FederatedCredentials { get; set; } = new();
 
     /// <summary>MissionType values seeded as organization-wide missions for the default Agent.</summary>
     public List<string> Missions { get; set; } = new() { "AutoDiagnose", "ApprovalRecommend", "SummarizeJob" };

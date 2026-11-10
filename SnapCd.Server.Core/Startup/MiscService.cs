@@ -195,6 +195,7 @@ public static class MiscService
         });
 
         services.AddScoped<FederatedAssertionValidator>();
+        services.AddScoped<FederatedCredentialAuthenticator>();
 
         // Identity Services
         services.AddScoped<IdentityUserAccessor>();

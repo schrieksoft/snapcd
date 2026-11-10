@@ -40,7 +40,7 @@ public class AuthorizationController : Controller
     private readonly UserManager<User> _userManager;
     private readonly SnapCdDbContext _dbContext;
     private readonly ILicenseInfoProvider _licenseInfoProvider;
-    private readonly FederatedAssertionValidator _assertionValidator;
+    private readonly FederatedCredentialAuthenticator _federatedAuthenticator;
 
     public AuthorizationController(
         IOpenIddictApplicationManager applicationManager,
@@ -50,7 +50,7 @@ public class AuthorizationController : Controller
         UserManager<User> userManager,
         SnapCdDbContext dbContext,
         ILicenseInfoProvider licenseInfoProvider,
-        FederatedAssertionValidator assertionValidator
+        FederatedCredentialAuthenticator federatedAuthenticator
     )
     {
         _applicationManager = applicationManager;
@@ -60,7 +60,7 @@ public class AuthorizationController : Controller
         _userManager = userManager;
         _dbContext = dbContext;
         _licenseInfoProvider = licenseInfoProvider;
-        _assertionValidator = assertionValidator;
+        _federatedAuthenticator = federatedAuthenticator;
     }
 
     [HttpGet("~/connect/authorize")]
@@ -505,36 +505,10 @@ public class AuthorizationController : Controller
 
         var clientId = await _applicationManager.GetClientIdAsync(application);
         var servicePrincipal = await _dbContext.ServicePrincipals.FirstOrDefaultAsync(sp => sp.ClientId == clientId);
-        if (servicePrincipal is null || servicePrincipal.IsDisabled)
+        if (servicePrincipal is null)
             return InvalidFederatedClient("The presented credential was not accepted.");
 
-        // Read before validating, to find which trust record this assertion claims. Nothing is
-        // granted until the signature has been checked against that record's issuer.
-        var (claimedIssuer, claimedSubject) = _assertionValidator.PeekIssuerAndSubject(assertion);
-        if (string.IsNullOrEmpty(claimedIssuer) || string.IsNullOrEmpty(claimedSubject))
-            return InvalidFederatedClient("The presented credential was not accepted.");
-
-        var credential = await _dbContext.ServicePrincipalFederatedCredentials
-            .FirstOrDefaultAsync(c =>
-                c.ServicePrincipalId == servicePrincipal.Id &&
-                c.OrganizationId == servicePrincipal.OrganizationId &&
-                c.Issuer == claimedIssuer &&
-                c.Subject == claimedSubject &&
-                !c.IsDisabled);
-
-        if (credential is null)
-            return InvalidFederatedClient("The presented credential was not accepted.");
-
-        var result = await _assertionValidator.ValidateAsync(
-            assertion, credential.Issuer, credential.Audience, HttpContext.RequestAborted);
-
-        if (!result.Succeeded)
-            return InvalidFederatedClient("The presented credential was not accepted.");
-
-        // The signature is checked against the issuer's keys and the issuer is pinned to the
-        // trust record, but the subject is compared again: the record was selected from
-        // unvalidated claims.
-        if (!string.Equals(result.Subject, credential.Subject, StringComparison.Ordinal))
+        if (!await _federatedAuthenticator.AuthenticateAsync(servicePrincipal, assertion, HttpContext.RequestAborted))
             return InvalidFederatedClient("The presented credential was not accepted.");
 
         // An Agent authenticates the same way and still needs its agent_id claim.

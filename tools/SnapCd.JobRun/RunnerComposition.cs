@@ -50,6 +50,7 @@ public static class RunnerComposition
         services.Configure<EngineSettings>(configuration.GetSection("Engine"));
         services.Configure<JobLogStreamSettings>(configuration.GetSection("JobLogStream"));
         services.Configure<RunnerEnvVarsSettings>(configuration.GetSection("RunnerEnvVars"));
+        services.Configure<RunnerFileEnvVarsSettings>(configuration.GetSection("RunnerFileEnvVars"));
         services.Configure<SourceCacheSettings>(configuration.GetSection("SourceCache"));
         services.Configure<PolicyEvaluationSettings>(configuration.GetSection("PolicyEvaluation"));
 

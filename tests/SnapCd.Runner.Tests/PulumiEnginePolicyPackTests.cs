@@ -47,6 +47,7 @@ public class PulumiEnginePolicyPackTests : IDisposable
             new ModuleDirectoryService(metadata, workingDirectorySettings),
             new List<string>(),
             new Dictionary<string, string>(),
+            new Dictionary<string, string>(),
             new List<EngineFlagEntry>(),
             new List<EngineArrayFlagEntry>()
         );

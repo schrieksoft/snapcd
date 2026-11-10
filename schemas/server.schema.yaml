@@ -232,10 +232,46 @@ properties:
                 description: Service Principal client ID the Runner authenticates with. Defaults to "default".
                 default: default
               ServicePrincipalClientSecret:
-                type: string
+                type:
+                - string
+                - 'null'
                 description: Service Principal client secret. Defaults to "default" — replace before exposing the Server to
-                  traffic. Sensitive — source via the External Settings provider in production.
+                  traffic. Sensitive — source via the External Settings provider in production. Empty or null seeds the Service
+                  Principal with no secret, which only authenticates through a Federated Credential.
                 default: default
+              FederatedCredentials:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    Id:
+                      type:
+                      - string
+                      - 'null'
+                      format: uuid
+                      description: Federated Credential ID. When null, a fresh GUID is generated.
+                    Name:
+                      type: string
+                      description: Name of the Federated Credential. Unique within the Service Principal.
+                      default: default
+                    Issuer:
+                      type: string
+                      description: Issuer the presented token must come from, and where its signing keys are published. An
+                        absolute https URL, for example a Kubernetes cluster's OIDC issuer.
+                    Subject:
+                      type: string
+                      description: Subject the presented token must carry. For a Kubernetes ServiceAccount this is `system:serviceaccount:{namespace}:{name}`.
+                    Audience:
+                      type: string
+                      description: Audience the presented token must carry. Defaults to "snapcd".
+                      default: snapcd
+                    IsDisabled:
+                      type: boolean
+                      description: Seeds the Federated Credential disabled, so it is not accepted.
+                  description: 'A trust relationship seeded against a Service Principal: the issuer, subject and audience
+                    a presented token must carry.'
+                description: Federated Credentials seeded against the Runner's Service Principal. Each one lets a workload
+                  presenting a matching token from that issuer authenticate as the Runner, with no client secret.
             description: Default Runner identity and bound Service Principal credentials.
           Stack:
             type: object
@@ -290,10 +326,21 @@ properties:
                 description: Service Principal client ID the Agent authenticates with. Defaults to "defaultAgent".
                 default: defaultAgent
               ServicePrincipalClientSecret:
-                type: string
+                type:
+                - string
+                - 'null'
                 description: Service Principal client secret. Defaults to "defaultAgent" — replace before exposing. Sensitive
-                  — source via the External Settings provider in production.
+                  — source via the External Settings provider in production. Empty or null seeds the Service Principal with
+                  no secret, which only authenticates through a Federated Credential.
                 default: defaultAgent
+              FederatedCredentials:
+                type: array
+                items:
+                  $ref: '#/properties/Preseeded/properties/Runner/properties/FederatedCredentials/items'
+                  description: 'A trust relationship seeded against a Service Principal: the issuer, subject and audience
+                    a presented token must carry.'
+                description: Federated Credentials seeded against the Agent's Service Principal. Each one lets a workload
+                  presenting a matching token from that issuer authenticate as the Agent, with no client secret.
               Missions:
                 type: array
                 items:

@@ -29,9 +29,10 @@ public class TerraformEngine : BaseEngine, IEngine
         string engine,
         List<string> additionalBinaryPaths,
         Dictionary<string, string> runnerEnvVars,
+        Dictionary<string, string> runnerFileEnvVars,
         List<EngineFlagEntry> engineFlags,
         List<EngineArrayFlagEntry> engineArrayFlags
-    ) : base(context, logger, moduleDirectoryService, additionalBinaryPaths, runnerEnvVars, engineFlags, engineArrayFlags)
+    ) : base(context, logger, moduleDirectoryService, additionalBinaryPaths, runnerEnvVars, runnerFileEnvVars, engineFlags, engineArrayFlags)
     {
         _engine = engine;
     }

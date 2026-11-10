@@ -207,8 +207,11 @@ public class ProductionDataSeeder : IDataSeeder
         var loginRedirects = spToSeed.LoginRedirectUri == null ? null : $"[\"{string.Join("\",\"", [spToSeed.LoginRedirectUri])}\"]";
         var logoutRedirects = spToSeed.LogoutRedirectUri == null ? null : $"[\"{string.Join("\",\"", [spToSeed.LogoutRedirectUri])}\"]";
 
-        if (!string.IsNullOrEmpty(spToSeed.ClientSecret) && spToSeed.ClientSecret != null)
-            spToSeed.ClientSecret = SecretHashingHelper.ObfuscateClientSecret(spToSeed.ClientSecret);
+        // No secret is stored as null, not as an empty string: such a Service Principal
+        // authenticates through a Federated Credential, and OpenIddict treats the two differently.
+        spToSeed.ClientSecret = string.IsNullOrEmpty(spToSeed.ClientSecret)
+            ? null
+            : SecretHashingHelper.ObfuscateClientSecret(spToSeed.ClientSecret);
 
         if (spToSeed.IsServicePrincipal)
         {
@@ -349,6 +352,7 @@ public class ProductionDataSeeder : IDataSeeder
             IsServicePrincipal = true
         });
         await SyncServicePrincipalOrganizationRoles(spId, organizationId, [OrganizationRole.Owner]);
+        await SyncFederatedCredentials(spId, organizationId, preseeded.Runner.FederatedCredentials);
 
         var runnerId = preseeded.Runner.Id ?? Guid.NewGuid();
         await CreatePreseededRunner(runnerId, preseeded.Runner.Name, organizationId, spId);
@@ -382,10 +386,54 @@ public class ProductionDataSeeder : IDataSeeder
             IsServicePrincipal = true
         });
         await SyncServicePrincipalOrganizationRoles(agentSpId, organizationId, [OrganizationRole.Owner]);
+        await SyncFederatedCredentials(agentSpId, organizationId, preseeded.Agent.FederatedCredentials);
 
         var agentId = preseeded.Agent.Id ?? Guid.NewGuid();
         await CreatePreseededAgent(agentId, preseeded.Agent.Name, organizationId, agentSpId);
         await CreatePreseededOrganizationMissions(agentId, organizationId, preseeded.Agent.Missions);
+    }
+
+    protected async Task SyncFederatedCredentials(
+        Guid servicePrincipalId, Guid organizationId, List<FederatedCredentialPreseed> credentials)
+    {
+        foreach (var toSeed in credentials)
+        {
+            if (string.IsNullOrWhiteSpace(toSeed.Issuer) || string.IsNullOrWhiteSpace(toSeed.Subject))
+                throw new Exception(
+                    $"Federated Credential '{toSeed.Name}' needs both an issuer and a subject.");
+
+            var existing = await _dbContext.ServicePrincipalFederatedCredentials
+                .FirstOrDefaultAsync(c =>
+                    c.OrganizationId == organizationId &&
+                    c.ServicePrincipalId == servicePrincipalId &&
+                    (c.Id == toSeed.Id || c.Name == toSeed.Name));
+
+            if (existing == null)
+            {
+                _dbContext.ServicePrincipalFederatedCredentials.Add(new ServicePrincipalFederatedCredential
+                {
+                    Id = toSeed.Id ?? Guid.NewGuid(),
+                    OrganizationId = organizationId,
+                    ServicePrincipalId = servicePrincipalId,
+                    Name = toSeed.Name,
+                    Issuer = toSeed.Issuer,
+                    Subject = toSeed.Subject,
+                    Audience = toSeed.Audience,
+                    IsDisabled = toSeed.IsDisabled,
+                    CreatedDateTime = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                existing.Name = toSeed.Name;
+                existing.Issuer = toSeed.Issuer;
+                existing.Subject = toSeed.Subject;
+                existing.Audience = toSeed.Audience;
+                existing.IsDisabled = toSeed.IsDisabled;
+            }
+        }
+
+        await _dbContext.SaveChangesAsync();
     }
 
     protected async Task CreatePreseededAgent(Guid agentId, string name, Guid organizationId, Guid servicePrincipalId)

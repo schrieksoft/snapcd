@@ -44,6 +44,7 @@ public abstract class BaseEngine
     protected Dictionary<string, string> EnvVars = new();
     private readonly List<string> _additionalBinaryPaths;
     protected readonly Dictionary<string, string> RunnerEnvVars;
+    private readonly Dictionary<string, string> _runnerFileEnvVars;
     protected readonly List<EngineFlagEntry> EngineFlags;
     protected readonly List<EngineArrayFlagEntry> EngineArrayFlags;
     protected virtual bool TreatStderrAsError => true;
@@ -54,6 +55,7 @@ public abstract class BaseEngine
         ModuleDirectoryService moduleDirectoryService,
         List<string> additionalBinaryPaths,
         Dictionary<string, string> runnerEnvVars,
+        Dictionary<string, string> runnerFileEnvVars,
         List<EngineFlagEntry> engineFlags,
         List<EngineArrayFlagEntry> engineArrayFlags)
     {
@@ -63,6 +65,7 @@ public abstract class BaseEngine
         InitDir = moduleDirectoryService.GetInitDir();
         _additionalBinaryPaths = additionalBinaryPaths;
         RunnerEnvVars = runnerEnvVars;
+        _runnerFileEnvVars = runnerFileEnvVars;
         EngineFlags = engineFlags;
         EngineArrayFlags = engineArrayFlags;
 
@@ -235,6 +238,10 @@ public abstract class BaseEngine
 
         foreach (var envVar in EnvVars)
             startInfo.EnvironmentVariables[envVar.Key] = envVar.Value;
+
+        // Read at every process start and never saved to snapcd.env, so each step sees the current file.
+        foreach (var fileEnvVar in _runnerFileEnvVars)
+            startInfo.EnvironmentVariables[fileEnvVar.Key] = ReadFileEnvVar(fileEnvVar.Key, fileEnvVar.Value);
 
         if (_additionalBinaryPaths.Count > 0)
         {
@@ -447,6 +454,14 @@ public abstract class BaseEngine
     /// the probe and the signals read run on this.
     /// </summary>
     public const string ProbeEngine = "snapcd-inspect";
+
+    private static string ReadFileEnvVar(string name, string path)
+    {
+        var expanded = PathUtils.ExpandTilde(path);
+        if (!File.Exists(expanded))
+            throw new FileNotFoundException($"File for environment variable {name} was not found.", expanded);
+        return File.ReadAllText(expanded).Trim();
+    }
 
     protected void SaveEnvVarsToFile()
     {

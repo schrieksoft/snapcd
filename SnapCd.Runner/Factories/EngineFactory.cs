@@ -18,18 +18,21 @@ public class EngineFactory
     private readonly IOptions<WorkingDirectorySettings> _workingDirectorySettings;
     private readonly IOptions<EngineSettings> _engineSettings;
     private readonly IOptions<RunnerEnvVarsSettings> _runnerEnvVarsSettings;
+    private readonly IOptions<RunnerFileEnvVarsSettings> _runnerFileEnvVarsSettings;
     private readonly ILoggerFactory _loggerFactory;
 
     public EngineFactory(
         IOptions<WorkingDirectorySettings> workingDirectorySettings,
         IOptions<EngineSettings> engineSettings,
         IOptions<RunnerEnvVarsSettings> runnerEnvVarsSettings,
+        IOptions<RunnerFileEnvVarsSettings> runnerFileEnvVarsSettings,
         ILoggerFactory loggerFactory
     )
     {
         _workingDirectorySettings = workingDirectorySettings;
         _engineSettings = engineSettings;
         _runnerEnvVarsSettings = runnerEnvVarsSettings;
+        _runnerFileEnvVarsSettings = runnerFileEnvVarsSettings;
         _loggerFactory = loggerFactory;
     }
 
@@ -55,6 +58,7 @@ public class EngineFactory
             .Append(Path.Combine(_workingDirectorySettings.Value.WorkingDirectory, "tools"))
             .ToList();
         var runnerEnvVars = _runnerEnvVarsSettings.Value;
+        var runnerFileEnvVars = _runnerFileEnvVarsSettings.Value;
 
         List<EngineFlagEntry> engineFlags;
         List<EngineArrayFlagEntry> engineArrayFlags;
@@ -84,6 +88,7 @@ public class EngineFactory
                 engine,
                 additionalBinaryPaths,
                 runnerEnvVars,
+                runnerFileEnvVars,
                 engineFlags,
                 engineArrayFlags),
             "pulumi" => new PulumiEngine(
@@ -92,6 +97,7 @@ public class EngineFactory
                 moduleDirectoryService,
                 additionalBinaryPaths,
                 runnerEnvVars,
+                runnerFileEnvVars,
                 engineFlags,
                 engineArrayFlags),
             _ => throw new NotSupportedException($"Engine '{engine}' is not supported")

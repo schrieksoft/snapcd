@@ -73,6 +73,7 @@ public class EngineTests : IDisposable
             TestEngine,
             new List<string>(),
             new Dictionary<string, string>(),
+            new Dictionary<string, string>(),
             new List<EngineFlagEntry>(),
             new List<EngineArrayFlagEntry>()
         );
@@ -100,6 +101,33 @@ public class EngineTests : IDisposable
         {
             // Best effort cleanup
         }
+    }
+
+    [Fact]
+    public async Task RunProcess_FileEnvVar_IsReadAtEachProcessStart()
+    {
+        var tokenPath = Path.Combine(_testWorkingDirectory, "token");
+        await File.WriteAllTextAsync(tokenPath, "first\n");
+
+        var engine = new TerraformEngine(
+            _taskContext,
+            _mockLogger.Object,
+            _moduleDirectoryService,
+            TestEngine,
+            new List<string>(),
+            new Dictionary<string, string>(),
+            new Dictionary<string, string> { ["SNAPCD_TEST_FILE_VAR"] = tokenPath },
+            new List<EngineFlagEntry>(),
+            new List<EngineArrayFlagEntry>());
+
+        var first = await engine.RunProcess("echo \"value=$SNAPCD_TEST_FILE_VAR\"", CancellationToken.None, logOutput: false);
+        await File.WriteAllTextAsync(tokenPath, "second");
+        var second = await engine.RunProcess("echo \"value=$SNAPCD_TEST_FILE_VAR\"", CancellationToken.None, logOutput: false);
+
+        Assert.Contains("value=first", first);
+        Assert.Contains("value=second", second);
+        Assert.DoesNotContain("SNAPCD_TEST_FILE_VAR",
+            await File.ReadAllTextAsync(Path.Combine(engine.GetSnapCdDir(), "snapcd.env")));
     }
 
     [Fact]
@@ -306,6 +334,7 @@ public class EngineTests : IDisposable
             _moduleDirectoryService,
             TestEngine,
             new List<string>(),
+            new Dictionary<string, string>(),
             new Dictionary<string, string>(),
             engineFlags ?? new List<EngineFlagEntry>(),
             engineArrayFlags ?? new List<EngineArrayFlagEntry>()
