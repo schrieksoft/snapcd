@@ -112,6 +112,12 @@
                                            OnClick="() => ManageRoles(servicePrincipal)"/>
                         </MudTooltip>
 
+                        <MudTooltip Text="Manage federated credentials">
+                            <MudIconButton Icon="@SnapCdIcons.Key"
+                                           Color="@GetColor(servicePrincipal.Id, ShowingType.FederatedCredentials)" Size="Size.Small"
+                                           OnClick="() => ManageFederatedCredentials(servicePrincipal)"/>
+                        </MudTooltip>
+
                         <MudTooltip Text="Delete service principal">
                             <MudIconButton Icon="@SnapCdIcons.Delete" Color=Color.Primary Size="Size.Small"
                                            OnClick="() => Delete(servicePrincipal)"/>
@@ -133,6 +139,15 @@
                                     ServicePrincipalId="servicePrincipal.Id"
                                     OnSaved="HandleRoleAssignmentsClosed"
                                     OnCancel="HandleRoleAssignmentsClosed"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(servicePrincipal.Id, ShowingType.FederatedCredentials))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageServicePrincipalFederatedCredentials
+                                    ServicePrincipalId="servicePrincipal.Id"
+                                    OnCancel="HandleFederatedCredentialsClosed"/>
                             </MudItem>
                         }
 
@@ -237,7 +252,8 @@
     {
         None,
         Edit,
-        Roles
+        Roles,
+        FederatedCredentials
     }
 
     private Color GetColor(Guid servicePrincipalId, ShowingType showTypeToMatch)
@@ -263,6 +279,8 @@
 
     private void HandleRoleAssignmentsClosed() => ClearSelection();
 
+    private void HandleFederatedCredentialsClosed() => ClearSelection();
+
     private void ShowCreate()
     {
         _showCreate = true;
@@ -275,6 +293,8 @@
 
 
     private void ManageRoles(ServicePrincipalReadDto sp) => Select(sp, ShowingType.Roles);
+
+    private void ManageFederatedCredentials(ServicePrincipalReadDto sp) => Select(sp, ShowingType.FederatedCredentials);
 
     private void Edit(ServicePrincipalReadDto sp) => Select(sp, ShowingType.Edit);
 

@@ -106,6 +106,8 @@ public class Organization : AuditBase, ISystemEntity, ICreationTrackable
     public virtual ICollection<GroupGroupMember> GroupGroupMembers { get; set; } = new List<GroupGroupMember>();
     public virtual ICollection<ServicePrincipal> ServicePrincipals { get; set; } = new List<ServicePrincipal>();
 
+    public virtual ICollection<ServicePrincipalFederatedCredential> ServicePrincipalFederatedCredentials { get; set; } = new List<ServicePrincipalFederatedCredential>();
+
     public virtual ICollection<OrganizationRoleAssignment> OrganizationRoleAssignments { get; set; } = new List<OrganizationRoleAssignment>();
     public virtual ICollection<StackRoleAssignment> StackRoleAssignments { get; set; } = new List<StackRoleAssignment>();
     public virtual ICollection<NamespaceRoleAssignment> NamespaceRoleAssignments { get; set; } = new List<NamespaceRoleAssignment>();

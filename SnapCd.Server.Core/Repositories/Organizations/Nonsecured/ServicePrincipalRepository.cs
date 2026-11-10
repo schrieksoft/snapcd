@@ -147,6 +147,18 @@ public class ServicePrincipalRepository : GenericOrganizationChildRepository<Ser
         return await CheckQuotaWithServiceAsync(entity.OrganizationId, nameof(Settings.QuotaLimits.ServicePrincipalQuota), currentCount);
     }
 
+    // The Organization already cascades into the federated credentials through this table, and
+    // SQL Server allows one cascade path into a table, so their foreign key is Restrict and the
+    // rows are cleared here.
+    public override async Task ExecuteDelete(Guid id, Guid organizationId)
+    {
+        await DbContext.ServicePrincipalFederatedCredentials
+            .Where(c => c.ServicePrincipalId == id && c.OrganizationId == organizationId)
+            .ExecuteDeleteAsync();
+
+        await base.ExecuteDelete(id, organizationId);
+    }
+
     public async Task<ServicePrincipal?> GetByClientId(string clientId, Guid organizationId)
     {
         var prefixedClientId = $"{organizationId}:{clientId}";

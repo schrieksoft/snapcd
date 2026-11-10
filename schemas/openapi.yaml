@@ -34630,6 +34630,336 @@ paths:
         anyOf:
         - Organization.IdentityAccessManager
         - Organization.Owner
+  /api/{organizationId}/ServicePrincipalFederatedCredential:
+    post:
+      tags:
+      - ServicePrincipalFederatedCredential
+      summary: Create a new ServicePrincipalFederatedCredential
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ServicePrincipalFederatedCredential to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicePrincipalFederatedCredentialCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ServicePrincipalFederatedCredentialCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ServicePrincipalFederatedCredentialCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.Owner
+    get:
+      tags:
+      - ServicePrincipalFederatedCredential
+      summary: List all ServicePrincipalFederatedCredentials
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.Owner
+  /api/{organizationId}/ServicePrincipalFederatedCredential/{id}:
+    get:
+      tags:
+      - ServicePrincipalFederatedCredential
+      summary: Get a single ServicePrincipalFederatedCredential
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ServicePrincipalFederatedCredential ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.Owner
+    put:
+      tags:
+      - ServicePrincipalFederatedCredential
+      summary: Update an existing ServicePrincipalFederatedCredential
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ServicePrincipalFederatedCredential ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ServicePrincipalFederatedCredential values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicePrincipalFederatedCredentialUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ServicePrincipalFederatedCredentialUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ServicePrincipalFederatedCredentialUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.Owner
+    delete:
+      tags:
+      - ServicePrincipalFederatedCredential
+      summary: Delete a ServicePrincipalFederatedCredential
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ServicePrincipalFederatedCredential ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.Owner
+  /api/{organizationId}/ServicePrincipalFederatedCredential/Metadata:
+    get:
+      tags:
+      - ServicePrincipalFederatedCredential
+      summary: List all ServicePrincipalFederatedCredentials
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.IdentityAccessMetadataReader`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePrincipalFederatedCredentialMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePrincipalFederatedCredentialMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePrincipalFederatedCredentialMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.IdentityAccessMetadataReader
+        - Organization.Owner
+  /api/{organizationId}/ServicePrincipalFederatedCredential/Metadata/{id}:
+    get:
+      tags:
+      - ServicePrincipalFederatedCredential
+      summary: Get a single ServicePrincipalFederatedCredential
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.IdentityAccessMetadataReader`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ServicePrincipalFederatedCredential ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalFederatedCredentialMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.IdentityAccessMetadataReader
+        - Organization.Owner
   /api/{organizationId}/SourceRefresherPreselection/BySourceUrl/{sourceUrl}:
     get:
       tags:
@@ -46891,6 +47221,101 @@ components:
             type: string
           description: OAuth scopes granted to tokens issued for this Service Principal. Defaults to `snapcd_scope`.
       description: DTO for creating a new ServicePrincipal (POST operations).
+    ServicePrincipalFederatedCredentialCreateDto:
+      type: object
+      properties:
+        servicePrincipalId:
+          type: string
+          description: ID of the Service Principal this credential authenticates as.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Federated Credential. Must be unique within the Service Principal.
+        issuer:
+          type: string
+          description: Issuer the presented token must come from, and where its signing keys are published. An absolute https
+            URL, for example a Kubernetes cluster's OIDC issuer.
+        subject:
+          type: string
+          description: Subject (`sub`) the presented token must carry. For a Kubernetes ServiceAccount this is `system:serviceaccount:{namespace}:{name}`.
+        audience:
+          type: string
+          description: Audience (`aud`) the presented token must carry. Normally `snapcd`.
+        isDisabled:
+          type: boolean
+          description: Indicates whether the Federated Credential is disabled. A disabled credential is not accepted.
+      description: DTO for creating a new Service Principal Federated Credential (POST operations).
+    ServicePrincipalFederatedCredentialMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Federated Credential.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Federated Credential.
+        servicePrincipalId:
+          type: string
+          description: ID of the Service Principal this credential authenticates as.
+          format: uuid
+      description: Id and name of a Federated Credential, for callers who may discover it without reading it.
+    ServicePrincipalFederatedCredentialReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Federated Credential.
+          format: uuid
+        servicePrincipalId:
+          type: string
+          description: ID of the Service Principal this credential authenticates as.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Federated Credential. Must be unique within the Service Principal.
+        issuer:
+          type: string
+          description: Issuer the presented token must come from, and where its signing keys are published. An absolute https
+            URL, for example a Kubernetes cluster's OIDC issuer.
+        subject:
+          type: string
+          description: Subject (`sub`) the presented token must carry. For a Kubernetes ServiceAccount this is `system:serviceaccount:{namespace}:{name}`.
+        audience:
+          type: string
+          description: Audience (`aud`) the presented token must carry. Normally `snapcd`.
+        isDisabled:
+          type: boolean
+          description: Indicates whether the Federated Credential is disabled. A disabled credential is not accepted.
+      description: DTO for Service Principal Federated Credential responses (GET operations).
+    ServicePrincipalFederatedCredentialUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Federated Credential.
+          format: uuid
+        servicePrincipalId:
+          type: string
+          description: ID of the Service Principal this credential authenticates as.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Federated Credential. Must be unique within the Service Principal.
+        issuer:
+          type: string
+          description: Issuer the presented token must come from, and where its signing keys are published. An absolute https
+            URL, for example a Kubernetes cluster's OIDC issuer.
+        subject:
+          type: string
+          description: Subject (`sub`) the presented token must carry. For a Kubernetes ServiceAccount this is `system:serviceaccount:{namespace}:{name}`.
+        audience:
+          type: string
+          description: Audience (`aud`) the presented token must carry. Normally `snapcd`.
+        isDisabled:
+          type: boolean
+          description: Indicates whether the Federated Credential is disabled. A disabled credential is not accepted.
+      description: DTO for updating an existing Service Principal Federated Credential (PUT operations).
     ServicePrincipalMetadataReadDto:
       type: object
       properties:
@@ -46940,6 +47365,11 @@ components:
           type: string
           description: Unique ID of the Service Principal.
           format: uuid
+        removeClientSecret:
+          type: boolean
+          description: When true, clears the stored Client Secret, leaving the Service Principal able to authenticate only
+            through a Federated Credential. An empty `client_secret` on its own leaves the stored secret in place, so removal
+            has to be asked for.
         clientId:
           type: string
           description: Client Id of the Service Principal. This value must be unique.
@@ -47858,6 +48288,7 @@ tags:
 - name: RunnerRoleAssignment
 - name: RunnerStackSupply
 - name: ServicePrincipal
+- name: ServicePrincipalFederatedCredential
 - name: SourceRefresherPreselection
 - name: Stack
 - name: StackIntegrationEvent
@@ -47872,8 +48303,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 642
+  documented: 649
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1510
+  documented: 1538
   missing: 0

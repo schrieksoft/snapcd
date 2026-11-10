@@ -13,11 +13,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
+using OpenIddict.Server;
+using static OpenIddict.Server.OpenIddictServerEvents;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Misc.Extensions;
 using SnapCd.Server.Core.Services.Utils;
+using SnapCd.Server.Core.Services.Nonsecured.Federation;
 using SnapCd.Server.Core.Services.Nonsecured.IdentityAccess;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.ExternalLoginProviderSettings;
@@ -307,6 +310,29 @@ public static class Auth
                 options.AllowAuthorizationCodeFlow()
                     .AllowRefreshTokenFlow()
                     .AllowClientCredentialsFlow();
+
+                // A federated assertion presents no client secret. These three handlers require
+                // one, and the token endpoint validates the assertion in their place.
+                options.RemoveEventHandler(OpenIddictServerHandlers.Exchange.ValidateClientCredentialsParameters.Descriptor);
+                options.AddEventHandler(
+                    OpenIddictServerHandlerDescriptor.CreateBuilder<ValidateTokenRequestContext>()
+                        .Import(OpenIddictServerHandlers.Exchange.ValidateClientCredentialsParameters.Descriptor)
+                        .AddFilter<RequireNoFederatedAssertionOnTokenRequest>()
+                        .Build());
+
+                options.RemoveEventHandler(OpenIddictServerHandlers.ValidateClientType.Descriptor);
+                options.AddEventHandler(
+                    OpenIddictServerHandlerDescriptor.CreateBuilder<ProcessAuthenticationContext>()
+                        .Import(OpenIddictServerHandlers.ValidateClientType.Descriptor)
+                        .AddFilter<RequireNoFederatedAssertion>()
+                        .Build());
+
+                options.RemoveEventHandler(OpenIddictServerHandlers.ValidateClientSecret.Descriptor);
+                options.AddEventHandler(
+                    OpenIddictServerHandlerDescriptor.CreateBuilder<ProcessAuthenticationContext>()
+                        .Import(OpenIddictServerHandlers.ValidateClientSecret.Descriptor)
+                        .AddFilter<RequireNoFederatedAssertion>()
+                        .Build());
 
                 var securityKeySettings = services.BuildServiceProvider()
                     .GetRequiredService<IOptions<SecurityKeySettings>>()

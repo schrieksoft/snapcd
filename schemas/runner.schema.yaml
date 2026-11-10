@@ -48,15 +48,26 @@ properties:
             type: string
             description: The Service Principal's client identifier, prefixed with the Organization ID at the token endpoint
               (the prefix is added automatically by the Runner; supply only the raw client ID here).
+          Mode:
+            enum:
+            - ClientSecret
+            - Federated
+            description: Whether the Runner authenticates with a client secret or with a token from its own platform.
+            default: ClientSecret
           ClientSecret:
             type: string
             description: The Service Principal's client secret. Sensitive — production deployments should source this via
-              the External Settings provider rather than committing it to appsettings.json.
+              the External Settings provider rather than committing it to appsettings.json. Required when Mode is ClientSecret.
+          AssertionTokenPath:
+            type: string
+            description: File the platform's token is read from, when Mode is Federated. On Kubernetes this is a projected
+              ServiceAccount token whose audience is the Server. The file is re-read on every token request, because the platform
+              rotates it.
+            default: /var/run/secrets/snapcd/token
         description: Service Principal credentials the Runner authenticates with. The Service Principal referenced here must
           be the one bound to the Runner record via service_principal_id.
         required:
         - ClientId
-        - ClientSecret
     description: Identity, organisation and credentials that bind this Runner process to a Runner record on the Server. All
       four fields are required for the Runner to authenticate and connect.
     required:

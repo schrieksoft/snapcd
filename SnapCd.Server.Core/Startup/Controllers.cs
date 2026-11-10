@@ -51,6 +51,7 @@ public static class Controllers
             typeof(RunnerController),
             typeof(AgentController),
             typeof(ServicePrincipalController),
+            typeof(ServicePrincipalFederatedCredentialController),
             typeof(GroupController),
             typeof(GroupMemberController),
             typeof(OrganizationUserController),

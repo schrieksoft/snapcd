@@ -108,6 +108,7 @@ public static class RepositorySettings
         services.Configure<ServicePrincipalNamespaceRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalNamespaceRoleAssignment"));
         services.Configure<ServicePrincipalOrganizationRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalOrganizationRoleAssignment"));
         services.Configure<ServicePrincipalRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipal"));
+        services.Configure<ServicePrincipalFederatedCredentialRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalFederatedCredential"));
         services.Configure<ServicePrincipalRunnerRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalRunnerRoleAssignment"));
         services.Configure<ServicePrincipalStackRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalStackRoleAssignment"));
         services.Configure<SourceRefresherPreselectionRepositorySettings>(configuration.GetSection("Repositories:SourceRefresherPreselection"));

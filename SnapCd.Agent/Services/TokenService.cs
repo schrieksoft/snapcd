@@ -78,9 +78,32 @@ public sealed class TokenService
             ["grant_type"] = "client_credentials",
             ["scope"] = "snapcd_scope",
             ["client_id"] = prefixedClientId,
-            ["client_secret"] = _options.ClientSecret,
             ["agent_id"] = _options.AgentId.ToString(),
         };
+
+        if (_options.CredentialMode == AgentCredentialMode.Federated)
+        {
+            // Read per request: the platform rotates the token.
+            if (!File.Exists(_options.AssertionTokenPath))
+                throw new FileNotFoundException(
+                    $"Federated credential token file not found at {_options.AssertionTokenPath}.",
+                    _options.AssertionTokenPath);
+
+            var assertion = (await File.ReadAllTextAsync(_options.AssertionTokenPath, cancellationToken)).Trim();
+
+            if (string.IsNullOrEmpty(assertion))
+                throw new InvalidOperationException(
+                    $"Federated credential token file {_options.AssertionTokenPath} is empty.");
+
+            // Not the standard client_assertion: that name is handled by OpenIddict's
+            // private_key_jwt support, which expects the client itself to have signed it.
+            form["snapcd_federated_assertion"] = assertion;
+            form["snapcd_federated_assertion_type"] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+        }
+        else
+        {
+            form["client_secret"] = _options.ClientSecret;
+        }
 
         using var content = new FormUrlEncodedContent(form);
         using var response = await client.PostAsync("/connect/token", content, cancellationToken);

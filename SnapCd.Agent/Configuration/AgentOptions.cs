@@ -48,12 +48,24 @@ public sealed class AgentOptions
     public string ClientId { get; set; } = null!;
 
     /// <summary>
+    /// Whether the Agent authenticates with a client secret or with a token from its own
+    /// platform.
+    /// </summary>
+    public AgentCredentialMode CredentialMode { get; set; } = AgentCredentialMode.ClientSecret;
+
+    /// <summary>
     /// The Agent's Service Principal client secret. Sensitive — production deployments should
     /// source this via the External Settings provider rather than committing it to
-    /// appsettings.json.
+    /// appsettings.json. Required when <see cref="CredentialMode"/> is ClientSecret.
     /// </summary>
-    [Required]
     public string ClientSecret { get; set; } = null!;
+
+    /// <summary>
+    /// File the platform's token is read from, when <see cref="CredentialMode"/> is Federated. On
+    /// Kubernetes this is a projected ServiceAccount token whose audience is the Server. The file
+    /// is re-read on every token request, because the platform rotates it.
+    /// </summary>
+    public string AssertionTokenPath { get; set; } = "/var/run/secrets/snapcd/token";
 
     /// <summary>
     /// Registered Sidecar processes the Agent supervises and dispatches Missions to. Each entry
@@ -62,6 +74,21 @@ public sealed class AgentOptions
     /// but receives no Mission dispatches.
     /// </summary>
     public List<SidecarOptions> Sidecars { get; set; } = new();
+}
+
+/// <summary>
+/// How the Agent proves its identity to the Server.
+/// </summary>
+public enum AgentCredentialMode
+{
+    /// <summary>A client secret the Agent holds.</summary>
+    ClientSecret,
+
+    /// <summary>
+    /// A token the Agent's own platform issues, read from a file. The Server verifies it against
+    /// the issuer's published keys, so no secret exists for this Agent.
+    /// </summary>
+    Federated
 }
 
 /// <summary>

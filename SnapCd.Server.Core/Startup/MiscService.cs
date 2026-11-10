@@ -45,6 +45,7 @@ using SnapCd.Server.Core.Services.Utils.Resilience;
 using SnapCd.Server.Core.Settings;
 using RunnerSelectionService = SnapCd.Server.Core.Services.Nonsecured.RunnerSelectionService;
 using SnapCd.Server.Core.Services.Nonsecured.Vaults;
+using SnapCd.Server.Core.Services.Nonsecured.Federation;
 
 namespace SnapCd.Server.Core.Startup;
 
@@ -186,6 +187,14 @@ public static class MiscService
 
         // Register HttpClient for license verification
         services.AddHttpClient();
+
+        // The key provider calls an issuer named in the database, so its client has a timeout.
+        services.AddHttpClient<FederationKeyProvider>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+
+        services.AddScoped<FederatedAssertionValidator>();
 
         // Identity Services
         services.AddScoped<IdentityUserAccessor>();

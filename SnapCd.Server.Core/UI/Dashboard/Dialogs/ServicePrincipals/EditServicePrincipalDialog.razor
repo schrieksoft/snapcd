@@ -94,11 +94,14 @@
         }
         else throw new Exception("Form is null");
 
+        // Every field on the DTO overwrites the stored value, so unchanged ones are resent.
         var servicePrincipalDto = new ServicePrincipalUpdateDto
         {
             Id = ServicePrincipal.Id,
             ClientId = ClientId,
-            ClientSecret = ClientSecret
+            ClientSecret = ClientSecret,
+            IsDisabled = ServicePrincipal.IsDisabled,
+            Scopes = ServicePrincipal.Scopes
         };
 
         await ServicePrincipalService.Update(servicePrincipalDto, ServicePrincipal.Id, OrganizationId);

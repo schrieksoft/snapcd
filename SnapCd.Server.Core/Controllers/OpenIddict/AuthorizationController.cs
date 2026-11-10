@@ -23,6 +23,7 @@ using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.ViewModels.Authorization;
+using SnapCd.Server.Core.Services.Nonsecured.Federation;
 using SnapCd.Server.Core.Services.Utils.Helpers;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using AsyncEnumerableExtensions = System.Linq.AsyncEnumerable;
@@ -39,6 +40,7 @@ public class AuthorizationController : Controller
     private readonly UserManager<User> _userManager;
     private readonly SnapCdDbContext _dbContext;
     private readonly ILicenseInfoProvider _licenseInfoProvider;
+    private readonly FederatedAssertionValidator _assertionValidator;
 
     public AuthorizationController(
         IOpenIddictApplicationManager applicationManager,
@@ -47,7 +49,8 @@ public class AuthorizationController : Controller
         SignInManager<User> signInManager,
         UserManager<User> userManager,
         SnapCdDbContext dbContext,
-        ILicenseInfoProvider licenseInfoProvider
+        ILicenseInfoProvider licenseInfoProvider,
+        FederatedAssertionValidator assertionValidator
     )
     {
         _applicationManager = applicationManager;
@@ -57,6 +60,7 @@ public class AuthorizationController : Controller
         _userManager = userManager;
         _dbContext = dbContext;
         _licenseInfoProvider = licenseInfoProvider;
+        _assertionValidator = assertionValidator;
     }
 
     [HttpGet("~/connect/authorize")]
@@ -414,6 +418,12 @@ public class AuthorizationController : Controller
 
         if (request.IsClientCredentialsGrantType())
         {
+            // A federated assertion proves identity against an external issuer's keys. The
+            // secret check is bypassed upstream for these requests.
+            var assertion = (string?)request.GetParameter(FederationParameters.ClientAssertion);
+            if (!string.IsNullOrEmpty(assertion))
+                return await ExchangeFederatedAssertion(request, assertion);
+
             // Note: the client credentials are automatically validated by OpenIddict:
             // if client_id or client_secret are invalid, this action won't be invoked.
 
@@ -478,6 +488,101 @@ public class AuthorizationController : Controller
         }
 
         throw new InvalidOperationException("The specified grant type is not supported.");
+    }
+
+    private async Task<IActionResult> ExchangeFederatedAssertion(OpenIddictRequest request, string assertion)
+    {
+        var assertionType = (string?)request.GetParameter(FederationParameters.ClientAssertionType);
+        if (assertionType != FederationParameters.JwtBearerClientAssertionType)
+            return InvalidFederatedClient($"client_assertion_type must be {FederationParameters.JwtBearerClientAssertionType}.");
+
+        if (string.IsNullOrEmpty(request.ClientId))
+            return InvalidFederatedClient("client_id is required.");
+
+        var application = await _applicationManager.FindByClientIdAsync(request.ClientId);
+        if (application is null)
+            return InvalidFederatedClient("The presented credential was not accepted.");
+
+        var clientId = await _applicationManager.GetClientIdAsync(application);
+        var servicePrincipal = await _dbContext.ServicePrincipals.FirstOrDefaultAsync(sp => sp.ClientId == clientId);
+        if (servicePrincipal is null || servicePrincipal.IsDisabled)
+            return InvalidFederatedClient("The presented credential was not accepted.");
+
+        // Read before validating, to find which trust record this assertion claims. Nothing is
+        // granted until the signature has been checked against that record's issuer.
+        var (claimedIssuer, claimedSubject) = _assertionValidator.PeekIssuerAndSubject(assertion);
+        if (string.IsNullOrEmpty(claimedIssuer) || string.IsNullOrEmpty(claimedSubject))
+            return InvalidFederatedClient("The presented credential was not accepted.");
+
+        var credential = await _dbContext.ServicePrincipalFederatedCredentials
+            .FirstOrDefaultAsync(c =>
+                c.ServicePrincipalId == servicePrincipal.Id &&
+                c.OrganizationId == servicePrincipal.OrganizationId &&
+                c.Issuer == claimedIssuer &&
+                c.Subject == claimedSubject &&
+                !c.IsDisabled);
+
+        if (credential is null)
+            return InvalidFederatedClient("The presented credential was not accepted.");
+
+        var result = await _assertionValidator.ValidateAsync(
+            assertion, credential.Issuer, credential.Audience, HttpContext.RequestAborted);
+
+        if (!result.Succeeded)
+            return InvalidFederatedClient("The presented credential was not accepted.");
+
+        // The signature is checked against the issuer's keys and the issuer is pinned to the
+        // trust record, but the subject is compared again: the record was selected from
+        // unvalidated claims.
+        if (!string.Equals(result.Subject, credential.Subject, StringComparison.Ordinal))
+            return InvalidFederatedClient("The presented credential was not accepted.");
+
+        // An Agent authenticates the same way and still needs its agent_id claim.
+        Guid? agentId = null;
+        var agentIdParam = (string?)request.GetParameter("agent_id");
+        if (!string.IsNullOrEmpty(agentIdParam))
+        {
+            if (!Guid.TryParse(agentIdParam, out var parsedAgentId))
+                return InvalidAgentIdRequest("agent_id must be a valid GUID.");
+            agentId = parsedAgentId;
+
+            var licenseInfo = await _licenseInfoProvider.GetLicenseInfoAsync(servicePrincipal.OrganizationId);
+            if (!licenseInfo.Includes(Feature.AiAgents))
+                return InvalidAgentIdRequest("AI Agents are not licensed for this organization. Upgrade to Enterprise to use this feature.");
+        }
+
+        var identity = new ClaimsIdentity(
+            TokenValidationParameters.DefaultAuthenticationType,
+            Claims.Name,
+            Claims.Role);
+
+        try
+        {
+            await identity.SetDefaultClientCredentialGrantClaims(_applicationManager, application, _dbContext, agentId);
+        }
+        catch (AgentIdValidationException ex)
+        {
+            return InvalidAgentIdRequest(ex.Message);
+        }
+
+        identity.SetScopes(request.GetScopes());
+        identity.SetResources(
+            await AsyncEnumerableExtensions.ToListAsync(_scopeManager.ListResourcesAsync(identity.GetScopes())));
+        identity.SetDestinations(GetDestinations);
+
+        return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    // The reply never says which check failed, nor whether the Service Principal exists.
+    private IActionResult InvalidFederatedClient(string description)
+    {
+        return Forbid(
+            authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+            properties: new AuthenticationProperties(new Dictionary<string, string?>
+            {
+                [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidClient,
+                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = description
+            }));
     }
 
     private IActionResult InvalidAgentIdRequest(string description)

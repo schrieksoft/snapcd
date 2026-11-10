@@ -76,7 +76,12 @@ public class ServicePrincipalService : GenericCrudService<
     public override async Task<ServicePrincipalReadDto> Create(ServicePrincipalCreateDto dto, Guid organizationId)
     {
         var secretNotHashed = dto.ClientSecret;
-        dto.ClientSecret = SecretHashingHelper.ObfuscateClientSecret(dto.ClientSecret ?? string.Empty);
+
+        // No secret is valid: such a Service Principal authenticates through a federated
+        // credential instead. The hashing helper rejects an empty string.
+        dto.ClientSecret = string.IsNullOrEmpty(secretNotHashed)
+            ? null
+            : SecretHashingHelper.ObfuscateClientSecret(secretNotHashed);
 
         var result = await base.Create(dto, organizationId);
 
@@ -89,7 +94,13 @@ public class ServicePrincipalService : GenericCrudService<
     {
         var secretNotHashed = dto.ClientSecret;
 
-        if (string.IsNullOrEmpty(secretNotHashed))
+        if (dto.RemoveClientSecret)
+        {
+            // Such a Service Principal authenticates through a federated credential instead.
+            dto.ClientSecret = null;
+            secretNotHashed = null;
+        }
+        else if (string.IsNullOrEmpty(secretNotHashed))
         {
             var sp = await SecuredRepository.GetByClientId(dto.ClientId, organizationId)
                 ?? throw new KeyNotFoundException($"Service principal with client ID '{dto.ClientId}' not found in organization {organizationId}.");
@@ -97,7 +108,7 @@ public class ServicePrincipalService : GenericCrudService<
         }
         else
         {
-            dto.ClientSecret = SecretHashingHelper.ObfuscateClientSecret(dto.ClientSecret ?? string.Empty);
+            dto.ClientSecret = SecretHashingHelper.ObfuscateClientSecret(secretNotHashed);
         }
 
         var entity = await SecuredRepository.Get(id, organizationId);

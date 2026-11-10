@@ -17,4 +17,7 @@ public class ServicePrincipalUpdateDto : ServicePrincipalCreateDto, IUpdateDto
 {
     /// <summary>Unique ID of the Service Principal.</summary>
     public Guid Id { get; set; }
+
+    /// <summary>When true, clears the stored Client Secret, leaving the Service Principal able to authenticate only through a Federated Credential. An empty `client_secret` on its own leaves the stored secret in place, so removal has to be asked for.</summary>
+    public bool RemoveClientSecret { get; set; }
 }

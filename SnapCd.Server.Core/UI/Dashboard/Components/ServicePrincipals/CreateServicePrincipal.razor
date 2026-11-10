@@ -19,10 +19,18 @@
                           HelperText="Set a unique Client Id for the Service Principal."/>
 
 
+            <MudSwitch T="bool" @bind-Value="NoClientSecret" Label="No Client Secret"
+                       Color="Color.Secondary"/>
+            <MudText Typo="Typo.caption">
+                The Service Principal authenticates through a Federated Credential instead. Add one
+                after creating it, or it will not be able to authenticate at all.
+            </MudText>
+
             <MudGrid>
                 <MudItem xs="9">
                     <MudTextField Label="Client Secret"
                                   @bind-Value="ClientSecret"
+                                  Disabled="@NoClientSecret"
                                   HelperText="Set a Client Secret for the Service Principal"
                                   InputType="InputType.Password"/>
                 </MudItem>
@@ -31,12 +39,14 @@
                         <MudIconButton Icon="@SnapCdIcons.Refresh"
                                        Color="Color.Secondary"
                                        Size="Size.Small"
+                                       Disabled="@NoClientSecret"
                                        OnClick="GenerateClientSecret"/>
                     </MudTooltip>
                     <MudTooltip Text="Copy the secret">
                         <MudIconButton Icon="@SnapCdIcons.ContentCopy"
                                        Color="Color.Secondary"
                                        Size="Size.Small"
+                                       Disabled="@NoClientSecret"
                                        OnClick="CopyClientSecret"/>
                     </MudTooltip>
                 </MudItem>
@@ -72,6 +82,7 @@
     private MudForm? _form;
     private string ClientId { get; set; } = string.Empty;
     private string ClientSecret { get; set; } = string.Empty;
+    private bool NoClientSecret { get; set; }
 
     private async Task CopyClientSecret()
     {
@@ -98,7 +109,7 @@
             var servicePrincipal = new ServicePrincipalCreateDto
             {
                 ClientId = ClientId,
-                ClientSecret = ClientSecret
+                ClientSecret = NoClientSecret ? null : ClientSecret
             };
 
             var result = await ServicePrincipalService.Create(servicePrincipal, OrganizationId);
@@ -121,6 +132,7 @@
     {
         ClientId = string.Empty;
         ClientSecret = string.Empty;
+        NoClientSecret = false;
         await OnCancel.InvokeAsync();
     }
 
