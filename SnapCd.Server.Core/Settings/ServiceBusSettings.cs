@@ -60,6 +60,35 @@ public class ServiceBusSettings
     /// documents the operator-relevant fields via hand-authored fragments.
     /// </summary>
     public TransportOptionsSettings TransportOptions { get; set; } = new();
+
+    /// <summary>
+    /// What the Server creates in the database at startup for the SQL Server transport. Read only
+    /// when <see cref="BusType"/> is SqlServer.
+    /// </summary>
+    public SqlServerMigrationSettings SqlServerMigration { get; set; } = new();
+}
+
+/// <summary>
+/// Startup steps of the SQL Server transport, passed to MassTransit's migration hosted service.
+/// </summary>
+public class SqlServerMigrationSettings
+{
+    /// <summary>
+    /// Create the database if it does not exist. Off by default: the Server's own migrations create
+    /// the database first, and the check connects to <c>master</c>, which a database-scoped login
+    /// such as an Azure SQL contained user cannot open.
+    /// </summary>
+    public bool CreateDatabase { get; set; } = false;
+
+    /// <summary>
+    /// Create the transport's schema (<c>TransportOptions.SqlServer.Schema</c>) if it does not exist.
+    /// </summary>
+    public bool CreateSchema { get; set; } = true;
+
+    /// <summary>
+    /// Create or update the transport's tables, functions and procedures in that schema.
+    /// </summary>
+    public bool CreateInfrastructure { get; set; } = true;
 }
 
 /// <summary>

@@ -76,7 +76,14 @@ public static class MassTransit
                 o.ConnectionString = sqlConnectionString;
                 o.Schema = sqlOptions.Schema;
             });
-            services.AddSqlServerMigrationHostedService(true, false);
+            var migration = serviceBusSettings.SqlServerMigration;
+            services.AddSqlServerMigrationHostedService(o =>
+            {
+                o.CreateDatabase = migration.CreateDatabase;
+                o.CreateSchema = migration.CreateSchema;
+                o.CreateInfrastructure = migration.CreateInfrastructure;
+                o.DeleteDatabase = false;
+            });
         }
 
         services.AddScoped<MissionDispatcher>();

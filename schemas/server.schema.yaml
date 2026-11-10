@@ -133,6 +133,24 @@ properties:
                   maintenance is performed out-of-band (e.g. by a dedicated ops process) and the Server should only consume
                   / produce.
                 default: false
+      SqlServerMigration:
+        type: object
+        properties:
+          CreateDatabase:
+            type: boolean
+            description: 'Create the database if it does not exist. Off by default: the Server''s own migrations create the
+              database first, and the check connects to master, which a database-scoped login such as an Azure SQL contained
+              user cannot open.'
+          CreateSchema:
+            type: boolean
+            description: Create the transport's schema ( TransportOptions.SqlServer.Schema ) if it does not exist.
+            default: true
+          CreateInfrastructure:
+            type: boolean
+            description: Create or update the transport's tables, functions and procedures in that schema.
+            default: true
+        description: What the Server creates in the database at startup for the SQL Server transport. Read only when BusType
+          is SqlServer.
     description: 'Configuration for the MassTransit service bus that carries internal events between Server components (saga
       endpoints, runner / agent dispatch, log fanout, etc.). Two transports are supported, selected by BusType: SqlServer
       — the default. Routes events through SQL Server tables sharing the application database. Suitable for single-region
