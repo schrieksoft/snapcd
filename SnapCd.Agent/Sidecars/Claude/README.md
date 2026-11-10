@@ -29,6 +29,7 @@ All via environment (see `.env.example`):
 | `SNAPCD_BASE_URL` | — | SnapCd server base; MCP is `{base}/mcp`. |
 | `CLAUDE_CODE_OAUTH_TOKEN` | — | Pro/Max subscription token (`claude setup-token`). |
 | `ANTHROPIC_API_KEY` | — | Console API key alternative (per-token billing). |
+| `CLAUDE_CODE_OAUTH_TOKEN_FILE`, `ANTHROPIC_API_KEY_FILE`, `GITHUB_TOKEN_FILE` | — | Path of a file holding that credential, read once at startup into the variable of the same name unless it is already set. For a mounted vault volume, such as a Secrets Store CSI mount. |
 | `EXTERNAL_MCP_CONFIG` | `{}` | JSON map `name -> McpServerConfig`, e.g. `{"slack":{"type":"http","url":"…","headers":{"Authorization":"Bearer …"}}}`. |
 
 Auth is handled by the bundled Claude Code CLI, not by the sidecar — it reads

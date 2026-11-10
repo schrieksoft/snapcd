@@ -26,6 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from config import get_settings
+from credentials import load_credential_files
 from mcp_clients import build_mcp_servers
 from reports import ReportCapture, build_reports_server
 from session_manager import SessionManager
@@ -57,6 +58,7 @@ def _strip_bearer(token: str) -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    load_credential_files()
     settings = get_settings()
     app.state.settings = settings
     app.state.resolver = McpSkillResolver(settings.snapcd_base_url)
