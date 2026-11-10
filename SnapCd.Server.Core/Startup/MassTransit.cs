@@ -74,7 +74,17 @@ public static class MassTransit
             services.AddOptions<SqlTransportOptions>().Configure(o =>
             {
                 o.ConnectionString = sqlConnectionString;
+                o.Host = sqlOptions.Host;
+                o.Port = sqlOptions.Port;
+                o.Database = sqlOptions.Database;
                 o.Schema = sqlOptions.Schema;
+                o.Role = sqlOptions.Role;
+                o.Username = sqlOptions.Username;
+                o.Password = sqlOptions.Password;
+                o.AdminUsername = sqlOptions.AdminUsername;
+                o.AdminPassword = sqlOptions.AdminPassword;
+                o.ConnectionLimit = sqlOptions.ConnectionLimit;
+                o.DisableMaintenance = sqlOptions.DisableMaintenance;
             });
             var migration = serviceBusSettings.SqlServerMigration;
             services.AddSqlServerMigrationHostedService(o =>
