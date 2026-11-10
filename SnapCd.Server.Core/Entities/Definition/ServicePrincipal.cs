@@ -38,6 +38,9 @@ public class ServicePrincipal : OpenIddictEntityFrameworkCoreApplication<Guid, A
     // Agents directly assigned to this ServicePrincipal
     public virtual ICollection<Agent> Agents { get; set; } = new List<Agent>();
 
+    // Trust relationships that let a workload authenticate as this ServicePrincipal without a secret
+    public virtual ICollection<ServicePrincipalFederatedCredential> ServicePrincipalFederatedCredentials { get; set; } = new List<ServicePrincipalFederatedCredential>();
+
     // Group organizationUser navigation property
     public virtual ICollection<ServicePrincipalGroupMember> ServicePrincipalGroupMembers { get; set; } = new List<ServicePrincipalGroupMember>();
 

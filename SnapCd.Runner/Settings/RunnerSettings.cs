@@ -46,6 +46,21 @@ public class RunnerSettings
 }
 
 /// <summary>
+/// How the Runner proves its identity to the Server.
+/// </summary>
+public enum CredentialMode
+{
+    /// <summary>A client secret the Runner holds.</summary>
+    ClientSecret,
+
+    /// <summary>
+    /// A token the Runner's own platform issues, read from a file. The Server verifies it against
+    /// the issuer's published keys, so no secret exists for this Runner.
+    /// </summary>
+    Federated
+}
+
+/// <summary>
 /// OAuth2 client_credentials grant credentials for a Service Principal.
 /// </summary>
 public class Credentials
@@ -59,9 +74,22 @@ public class Credentials
     public string ClientId { get; set; } = null!;
 
     /// <summary>
+    /// Whether the Runner authenticates with a client secret or with a token from its own
+    /// platform.
+    /// </summary>
+    public CredentialMode Mode { get; set; } = CredentialMode.ClientSecret;
+
+    /// <summary>
     /// The Service Principal's client secret. Sensitive — production deployments should source
     /// this via the External Settings provider rather than committing it to appsettings.json.
+    /// Required when <see cref="Mode"/> is ClientSecret.
     /// </summary>
-    [Required]
     public string ClientSecret { get; set; } = null!;
+
+    /// <summary>
+    /// File the platform's token is read from, when <see cref="Mode"/> is Federated. On
+    /// Kubernetes this is a projected ServiceAccount token whose audience is the Server. The file
+    /// is re-read on every token request, because the platform rotates it.
+    /// </summary>
+    public string AssertionTokenPath { get; set; } = "/var/run/secrets/snapcd/token";
 }

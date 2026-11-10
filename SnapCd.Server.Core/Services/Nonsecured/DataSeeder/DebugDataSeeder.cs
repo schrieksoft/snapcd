@@ -72,6 +72,9 @@ public class DebugDataSeeder : ProductionDataSeeder
     private static readonly Guid DebugSpId = new("99999999-9999-9999-9999-999999999991");
     private static readonly Guid DebugSpTerraformerId = new("99999999-9999-9999-9999-999999999992");
     private static readonly Guid DebugSpRunnerId = new("99999999-9999-9999-9999-999999999993");
+    private static readonly Guid DebugSpFederatedRunnerId = new("99999999-9999-9999-9999-999999999996");
+    private static readonly Guid DebugFederatedRunnerId = new("99999999-9999-9999-9999-999999999997");
+    private static readonly Guid DebugFederatedCredentialId = new("99999999-9999-9999-9999-999999999998");
     private static readonly Guid DebugSpTestTarget1Id = new("99999999-9999-9999-9999-999999999994");
     private static readonly Guid DebugSpTestTarget2Id = new("99999999-9999-9999-9999-999999999995");
 
@@ -102,12 +105,15 @@ public class DebugDataSeeder : ProductionDataSeeder
         : base(serviceProvider, dbContext, productionOptions, serverOptions)
     {
         _debugSettings = debugOptions.Value;
+        _debugServerSettings = serverOptions.Value;
         PreseededOrganizationId = productionOptions.Value.Preseeded.Organization.Id ?? PreseededSettings.DefaultId;
         _preseededAgentId = productionOptions.Value.Preseeded.Agent.Id ?? PreseededSettings.DefaultAgentId;
         _preseededStackId = productionOptions.Value.Preseeded.Stack.Id ?? PreseededSettings.DefaultId;
         _preseededRunnerId = productionOptions.Value.Preseeded.Runner.Id ?? PreseededSettings.DefaultId;
         _serviceProvider = serviceProvider;
     }
+
+    private readonly ServerSettings _debugServerSettings;
 
     public override async Task SeedAsync()
     {
@@ -118,6 +124,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         await SeedDebugUser(asyncServiceScope);
         await SeedDebugServicePrincipals();
         await SeedDebugStackNamespaceModuleRunner(asyncServiceScope);
+        await SeedDebugFederatedRunner(asyncServiceScope);
         await SeedDebugSecrets(asyncServiceScope);
         await SeedDebugIntegration(asyncServiceScope);
         await SeedConfiguredUsers(asyncServiceScope);
@@ -332,6 +339,83 @@ public class DebugDataSeeder : ProductionDataSeeder
             });
             await SyncServicePrincipalOrganizationRoles(id, PreseededOrganizationId, [OrganizationRole.Owner]);
         }
+    }
+
+    // A Service Principal with no client secret, authenticating only through a Federated
+    // Credential, and a Runner bound to it. The issuer is this Server: it publishes a discovery
+    // document and a JWKS, so an assertion it signed itself validates without any other process.
+    private async Task SeedDebugFederatedRunner(AsyncServiceScope asyncServiceScope)
+    {
+        var dbContext = asyncServiceScope.ServiceProvider.GetRequiredService<SnapCdDbContext>();
+
+        await CreateOrUpdateApplication(new ServicePrincipalToSeed
+        {
+            Id = DebugSpFederatedRunnerId,
+            ClientId = "debugFederatedRunner",
+            ClientSecret = null,
+            ClientType = "confidential",
+            DisplayName = "debugFederatedRunner",
+            Scopes = ["snapcd_scope"],
+            ConsentType = null,
+            LoginRedirectUri = null,
+            LogoutRedirectUri = null,
+            OrganizationId = PreseededOrganizationId,
+            IsServicePrincipal = true
+        });
+        await SyncServicePrincipalOrganizationRoles(DebugSpFederatedRunnerId, PreseededOrganizationId, [OrganizationRole.Owner]);
+
+        var issuer = $"{_debugServerSettings.Host.TrimEnd('/')}/";
+
+        var existingCredential = await dbContext.ServicePrincipalFederatedCredentials
+            .FirstOrDefaultAsync(c => c.Id == DebugFederatedCredentialId);
+
+        if (existingCredential == null)
+        {
+            dbContext.ServicePrincipalFederatedCredentials.Add(new ServicePrincipalFederatedCredential
+            {
+                Id = DebugFederatedCredentialId,
+                OrganizationId = PreseededOrganizationId,
+                ServicePrincipalId = DebugSpFederatedRunnerId,
+                Name = "debug-local",
+                Issuer = issuer,
+                Subject = "system:serviceaccount:snapcd:debug-runner",
+                Audience = "snapcd",
+                CreatedDateTime = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            existingCredential.ServicePrincipalId = DebugSpFederatedRunnerId;
+            existingCredential.Name = "debug-local";
+            existingCredential.Issuer = issuer;
+            existingCredential.Subject = "system:serviceaccount:snapcd:debug-runner";
+            existingCredential.Audience = "snapcd";
+            existingCredential.IsDisabled = false;
+        }
+
+        var existingRunner = await dbContext.Runners.FirstOrDefaultAsync(r => r.Id == DebugFederatedRunnerId);
+        if (existingRunner == null)
+        {
+            dbContext.Runners.Add(new Runner
+            {
+                Id = DebugFederatedRunnerId,
+                ServicePrincipalId = DebugSpFederatedRunnerId,
+                Name = "debugFederated",
+                AllowMultipleInstances = true,
+                IsSuppliedToAllModules = true,
+                OrganizationId = PreseededOrganizationId
+            });
+        }
+        else
+        {
+            existingRunner.Name = "debugFederated";
+            existingRunner.ServicePrincipalId = DebugSpFederatedRunnerId;
+            existingRunner.AllowMultipleInstances = true;
+            existingRunner.IsSuppliedToAllModules = true;
+            existingRunner.OrganizationId = PreseededOrganizationId;
+        }
+
+        await dbContext.SaveChangesAsync();
     }
 
     private async Task SeedDebugStackNamespaceModuleRunner(AsyncServiceScope asyncServiceScope)

@@ -9,6 +9,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using SnapCd.Runner.Utils;
+
 namespace SnapCd.Runner.Services;
 
 public class ServicePrincipalTokenService
@@ -20,18 +22,59 @@ public class ServicePrincipalTokenService
         _httpClient = httpClient;
     }
 
-    public async Task<TokenResponse> GetAccessTokenAsync(string authServerUrl, Guid organizationId, string clientId, string clientSecret, CancellationToken cancellationToken = default)
+    public Task<TokenResponse> GetAccessTokenAsync(string authServerUrl, Guid organizationId, string clientId, string clientSecret, CancellationToken cancellationToken = default)
+        => RequestTokenAsync(authServerUrl, organizationId, clientId,
+            new KeyValuePair<string, string>("client_secret", clientSecret), cancellationToken);
+
+    /// <summary>
+    /// Exchanges a token issued by the caller's own platform for a Snap CD access token. The
+    /// platform rotates the file, so it is read on every call.
+    /// </summary>
+    public async Task<TokenResponse> GetAccessTokenWithAssertionAsync(string authServerUrl, Guid organizationId, string clientId, string assertionTokenPath, CancellationToken cancellationToken = default)
+    {
+        var path = PathUtils.ExpandTilde(assertionTokenPath);
+
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"Federated credential token file not found at {path}.", path);
+
+        var assertion = (await File.ReadAllTextAsync(path, cancellationToken)).Trim();
+
+        if (string.IsNullOrEmpty(assertion))
+            throw new InvalidOperationException($"Federated credential token file {path} is empty.");
+
+        return await RequestTokenAsync(authServerUrl, organizationId, clientId,
+            new KeyValuePair<string, string>(SnapCdFederatedAssertionParameter, assertion),
+            cancellationToken,
+            new KeyValuePair<string, string>(SnapCdFederatedAssertionTypeParameter, JwtBearerClientAssertionType));
+    }
+
+    // Not the standard client_assertion: that name is handled by OpenIddict's private_key_jwt
+    // support on the Server, which expects the client itself to have signed the assertion.
+    private const string SnapCdFederatedAssertionParameter = "snapcd_federated_assertion";
+    private const string SnapCdFederatedAssertionTypeParameter = "snapcd_federated_assertion_type";
+    private const string JwtBearerClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+
+    private async Task<TokenResponse> RequestTokenAsync(
+        string authServerUrl,
+        Guid organizationId,
+        string clientId,
+        KeyValuePair<string, string> credential,
+        CancellationToken cancellationToken,
+        params KeyValuePair<string, string>[] extraParameters)
     {
         var tokenUrl = $"{authServerUrl}/connect/token";
         var prefixedClientId = $"{organizationId}:{clientId}";
 
-        var content = new FormUrlEncodedContent(new[]
+        var parameters = new List<KeyValuePair<string, string>>
         {
-            new KeyValuePair<string, string>("grant_type", "client_credentials"),
-            new KeyValuePair<string, string>("scope", "snapcd_scope"),
-            new KeyValuePair<string, string>("client_id", prefixedClientId),
-            new KeyValuePair<string, string>("client_secret", clientSecret)
-        });
+            new("grant_type", "client_credentials"),
+            new("scope", "snapcd_scope"),
+            new("client_id", prefixedClientId),
+            credential
+        };
+        parameters.AddRange(extraParameters);
+
+        var content = new FormUrlEncodedContent(parameters);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, tokenUrl);
         request.Content = content;

@@ -72,6 +72,7 @@ public static class Factories
         services.AddScoped<ModuleSagaRepositoryFactory>();
         services.AddScoped<ModuleSagaSecuredRepositoryFactory>();
         services.AddScoped<ServicePrincipalRepositoryFactory>();
+        services.AddScoped<ServicePrincipalFederatedCredentialRepositoryFactory>();
         services.AddScoped<StateMigrationJobSecuredRepositoryFactory>();
         services.AddScoped<OrganizationSecuredRepositoryFactory>();
         services.AddScoped<UserRepositoryFactory>();
@@ -83,6 +84,7 @@ public static class Factories
         services.AddScoped<OrganizationUserRepositoryFactory>();
         services.AddScoped<OrganizationUserSecuredRepositoryFactory>();
         services.AddScoped<ServicePrincipalSecuredRepositoryFactory>();
+        services.AddScoped<ServicePrincipalFederatedCredentialSecuredRepositoryFactory>();
         services.AddScoped<GroupSecuredRepositoryFactory>();
         services.AddScoped<GroupMemberSecuredRepositoryFactory>();
         services.AddScoped<ServicePrincipalGroupMemberSecuredRepositoryFactory>();

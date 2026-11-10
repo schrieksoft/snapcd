@@ -56,7 +56,9 @@ public static class CrudService
         services.AddScoped<NamespaceInputFromSecretService<NamespaceParamFromSecret>>();
         services.AddScoped<NamespaceInputFromSecretService<NamespaceEnvVarFromSecret>>();
         services.AddScoped<ServicePrincipalService>();
+        services.AddScoped<ServicePrincipalFederatedCredentialService>();
         services.AddScoped<ServicePrincipalServiceFactory>();
+        services.AddScoped<ServicePrincipalFederatedCredentialServiceFactory>();
         services.AddScoped<GroupService>();
         services.AddScoped<GroupMemberService>();
         services.AddScoped<GroupMemberServiceFactory>();

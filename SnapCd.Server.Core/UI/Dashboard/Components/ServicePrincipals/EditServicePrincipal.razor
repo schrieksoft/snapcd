@@ -30,8 +30,17 @@
                                   Disabled="true"/>
                 </MudItem>
 
+                <MudItem xs="12">
+                    <MudSwitch Disabled="@(!_canSave)" T="bool" @bind-Value="NoClientSecret"
+                               Label="No Client Secret" Color="Color.Secondary"/>
+                    <MudText Typo="Typo.caption">
+                        Clears the stored secret. The Service Principal then authenticates through a
+                        Federated Credential only.
+                    </MudText>
+                </MudItem>
+
                 <MudItem xs="9">
-                    <MudTextField Disabled="@(!_canSave)" Label="Client Secret"
+                    <MudTextField Disabled="@(!_canSave || NoClientSecret)" Label="Client Secret"
                                   @bind-Value="ClientSecret"
                                   HelperText="Set a new Client Secret (leave blank to keep existing)"
                                   InputType="InputType.Password"
@@ -42,12 +51,14 @@
                         <MudIconButton Icon="@SnapCdIcons.Refresh"
                                        Color="Color.Secondary"
                                        Size="Size.Small"
+                                       Disabled="@NoClientSecret"
                                        OnClick="GenerateClientSecret"/>
                     </MudTooltip>
                     <MudTooltip Text="Copy the secret">
                         <MudIconButton Icon="@SnapCdIcons.ContentCopy"
                                        Color="Color.Secondary"
                                        Size="Size.Small"
+                                       Disabled="@NoClientSecret"
                                        OnClick="CopyClientSecret"/>
                     </MudTooltip>
                 </MudItem>
@@ -91,12 +102,14 @@
     private bool _canSave;
     private string ClientId { get; set; } = string.Empty;
     private string ClientSecret { get; set; } = string.Empty;
+    private bool NoClientSecret { get; set; }
 
     protected override void OnParametersSet()
     {
         ResolveCanSave();
         ClientId = ServicePrincipal.ClientId ?? string.Empty;
         ClientSecret = string.Empty; // if blank then when calling ServicePrincipalService.Update, the current ClientSecret will remain in place.
+        NoClientSecret = ServicePrincipal.ClientSecret is null;
     }
 
     private void ResolveCanSave()
@@ -119,10 +132,15 @@
 
         try
         {
+            // Every field on the DTO overwrites the stored value, so unchanged ones are resent.
             var updateDto = new ServicePrincipalUpdateDto
             {
+                Id = ServicePrincipal.Id,
                 ClientId = ClientId,
-                ClientSecret = ClientSecret
+                ClientSecret = NoClientSecret ? null : ClientSecret,
+                RemoveClientSecret = NoClientSecret,
+                IsDisabled = ServicePrincipal.IsDisabled,
+                Scopes = ServicePrincipal.Scopes
             };
 
             await ServicePrincipalService.Update(updateDto, ServicePrincipal.Id, OrganizationId);
@@ -155,6 +173,7 @@
     private async Task Cancel()
     {
         ClientSecret = string.Empty;
+        NoClientSecret = ServicePrincipal.ClientSecret is null;
         await OnCancel.InvokeAsync();
     }
 

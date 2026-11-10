@@ -45,12 +45,19 @@ public class TokenInitializationService
         {
             try
             {
-                var result = await _tokenService.GetAccessTokenAsync(
-                    _serverSettings.Url,
-                    _runnerSettings.OrganizationId,
-                    _runnerSettings.Credentials.ClientId,
-                    _runnerSettings.Credentials.ClientSecret,
-                    cancellationToken);
+                var result = _runnerSettings.Credentials.Mode == CredentialMode.Federated
+                    ? await _tokenService.GetAccessTokenWithAssertionAsync(
+                        _serverSettings.Url,
+                        _runnerSettings.OrganizationId,
+                        _runnerSettings.Credentials.ClientId,
+                        _runnerSettings.Credentials.AssertionTokenPath,
+                        cancellationToken)
+                    : await _tokenService.GetAccessTokenAsync(
+                        _serverSettings.Url,
+                        _runnerSettings.OrganizationId,
+                        _runnerSettings.Credentials.ClientId,
+                        _runnerSettings.Credentials.ClientSecret,
+                        cancellationToken);
 
                 if (result.ExpiresIn > 0)
                 {

@@ -37,10 +37,22 @@ properties:
         type: string
         description: The Agent's Service Principal client identifier. The Agent prefixes this with the Organization ID when
           calling the token endpoint, so supply only the raw client ID here.
+      CredentialMode:
+        enum:
+        - ClientSecret
+        - Federated
+        description: Whether the Agent authenticates with a client secret or with a token from its own platform.
+        default: ClientSecret
       ClientSecret:
         type: string
         description: The Agent's Service Principal client secret. Sensitive — production deployments should source this via
-          the External Settings provider rather than committing it to appsettings.json.
+          the External Settings provider rather than committing it to appsettings.json. Required when CredentialMode is ClientSecret.
+      AssertionTokenPath:
+        type: string
+        description: File the platform's token is read from, when CredentialMode is Federated. On Kubernetes this is a projected
+          ServiceAccount token whose audience is the Server. The file is re-read on every token request, because the platform
+          rotates it.
+        default: /var/run/secrets/snapcd/token
       Sidecars:
         type: array
         items:
@@ -66,7 +78,6 @@ properties:
     - OrganizationId
     - AgentId
     - ClientId
-    - ClientSecret
   Logging:
     type: object
     description: Standard .NET Logging configuration. See https://learn.microsoft.com/dotnet/core/extensions/logging-configuration

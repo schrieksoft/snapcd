@@ -7,6 +7,22 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "SnapCd.Runner (federated)": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "applicationUrl": "https://localhost:20004",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Runner__Id": "99999999-9999-9999-9999-999999999997",
+        "Runner__Instance": "myfederatedrunner",
+        "Runner__OrganizationId": "10000000-0000-0000-0000-000000000000",
+        "Runner__Credentials__ClientId": "debugFederatedRunner",
+        "Runner__Credentials__Mode": "Federated",
+        "Runner__Credentials__AssertionTokenPath": "~/.snapcd/runner-federated-token",
+        "WorkingDirectory__WorkingDirectory": "~/.snapcd/runner-federated",
+        "WorkingDirectory__TempDirectory": "~/.snapcd/runner-federated/.temp"
+      }
     }
   }
 }

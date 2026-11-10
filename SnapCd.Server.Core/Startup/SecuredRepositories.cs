@@ -32,6 +32,7 @@ public static class SecuredRepositories
         services.AddScoped<NamespaceSecuredRepository>();
         services.AddScoped<RunnerSecuredRepository>();
         services.AddScoped<ServicePrincipalSecuredRepository>();
+        services.AddScoped<ServicePrincipalFederatedCredentialSecuredRepository>();
         services.AddScoped<UserSystemSecuredRepository>();
         services.AddScoped<OrganizationSystemSecuredRepository>();
         services.AddScoped<OrganizationUserSecuredRepository>();

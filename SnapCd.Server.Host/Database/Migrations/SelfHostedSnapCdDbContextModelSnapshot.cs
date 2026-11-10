@@ -7044,6 +7044,90 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.ToTable("ServicePrincipals", (string)null);
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ServicePrincipalFederatedCredential", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Audience")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDisabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Issuer")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("ServicePrincipalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ServicePrincipalId");
+
+                    b.HasIndex("Issuer", "Subject");
+
+                    b.HasIndex("ServicePrincipalId", "OrganizationId");
+
+                    b.HasIndex("Name", "ServicePrincipalId", "OrganizationId")
+                        .IsUnique();
+
+                    b.HasIndex("Issuer", "Subject", "ServicePrincipalId", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("ServicePrincipalFederatedCredentials");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Signals.ResourceChange", b =>
                 {
                     b.Property<Guid>("Id")
@@ -12939,6 +13023,26 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ServicePrincipalFederatedCredential", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("ServicePrincipalFederatedCredentials")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ServicePrincipal", "ServicePrincipal")
+                        .WithMany("ServicePrincipalFederatedCredentials")
+                        .HasForeignKey("ServicePrincipalId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("ServicePrincipal");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Signals.ResourceChange", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
@@ -14377,6 +14481,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("Secrets");
 
+                    b.Navigation("ServicePrincipalFederatedCredentials");
+
                     b.Navigation("ServicePrincipals");
 
                     b.Navigation("SignalEdges");
@@ -14465,6 +14571,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Runners");
 
                     b.Navigation("ServicePrincipalAgentRoleAssignments");
+
+                    b.Navigation("ServicePrincipalFederatedCredentials");
 
                     b.Navigation("ServicePrincipalGroupMembers");
 

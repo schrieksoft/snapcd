@@ -228,6 +228,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ServicePrincipalGroupMember> ServicePrincipalGroupMembers { get; set; }
     public DbSet<GroupGroupMember> GroupGroupMembers { get; set; }
     public DbSet<ServicePrincipal> ServicePrincipals { get; set; }
+    public DbSet<ServicePrincipalFederatedCredential> ServicePrincipalFederatedCredentials { get; set; }
     public DbSet<Authorization> Authorizations { get; set; }
     public DbSet<Scope> Scopes { get; set; }
     public DbSet<Token> Tokens { get; set; }
@@ -495,6 +496,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new RunnerNamespaceSupplyClassMap());
         modelBuilder.ApplyConfiguration(new RunnerModuleSupplyClassMap());
         modelBuilder.ApplyConfiguration(new AgentClassMap());
+        modelBuilder.ApplyConfiguration(new ServicePrincipalFederatedCredentialClassMap());
         modelBuilder.ApplyConfiguration(new AgentConnectionClassMap());
         modelBuilder.ApplyConfiguration(new AgentStackSupplyClassMap());
         modelBuilder.ApplyConfiguration(new AgentNamespaceSupplyClassMap());

@@ -32,6 +32,8 @@ public static class ControllerEndpoints
     public const string NamespaceIntegrationEvent = "api/{organizationId:guid}/NamespaceIntegrationEvent";
     public const string ModuleIntegrationEvent = "api/{organizationId:guid}/ModuleIntegrationEvent";
     public const string ServicePrincipal = "api/{organizationId:guid}/ServicePrincipal";
+
+    public const string ServicePrincipalFederatedCredential = "api/{organizationId:guid}/ServicePrincipalFederatedCredential";
     public const string User = "api/{organizationId:guid}/User";
     public const string Group = "api/{organizationId:guid}/Group";
     public const string GroupMember = "api/{organizationId:guid}/GroupMember";

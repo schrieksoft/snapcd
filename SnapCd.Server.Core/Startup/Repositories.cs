@@ -33,6 +33,7 @@ public static class Repositories
         services.AddScoped<NamespaceRepository>();
         services.AddScoped<RunnerRepository>();
         services.AddScoped<ServicePrincipalRepository>();
+        services.AddScoped<ServicePrincipalFederatedCredentialRepository>();
         services.AddScoped<UserSystemRepository>();
         services.AddScoped<OrganizationSystemRepository>();
         services.AddScoped<OrganizationUserRepository>();
