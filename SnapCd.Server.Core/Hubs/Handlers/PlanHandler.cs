@@ -59,7 +59,8 @@ public class PlanHandler
                 OutputsModifyList = data.OutputsModifyList != null ? string.Join(",", data.OutputsModifyList) : null,
                 OutputsDestroyList = data.OutputsDestroyList != null ? string.Join(",", data.OutputsDestroyList) : null,
                 OutputsRecreateList = data.OutputsRecreateList != null ? string.Join(",", data.OutputsRecreateList) : null,
-                OutputSignalsJson = data.OutputSignalsJson
+                OutputSignalsJson = data.OutputSignalsJson,
+                PlanPayload = data.PlanPayload
             });
 
             _logger.LogDebug("Sent Plan completion response for job {JobId} to saga", jobId);

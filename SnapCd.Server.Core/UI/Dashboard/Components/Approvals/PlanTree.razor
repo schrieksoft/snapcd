@@ -1,0 +1,275 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@* The plan as the engine recorded it, rather than as it printed it. The engine prints a changed
+   value whole wherever a collection holds it, so a small change inside a long value is unreadable.
+   This walks the plan's own machine-readable form, so a value reads the same however deeply it is
+   held. *@
+
+@using System.Text.Json
+@using SnapCd.Server.Core.Services.Nonsecured.Plans
+
+@if (Plan is null)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">No plan recorded for this job.</MudText>
+}
+else
+{
+    <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap">
+        <span style="@Muted">@Plan.Resources.Count resources</span>
+        @foreach (var (action, count) in Counts())
+        {
+            <span style="@($"color: {Colour(action)};")">@count @Word(action)</span>
+        }
+        <MudSwitch T="bool" @bind-Value="_showUnchanged" Color="MudBlazor.Color.Secondary" Size="Size.Small">Show unchanged</MudSwitch>
+        <MudSwitch T="bool" @bind-Value="_flat" Color="MudBlazor.Color.Secondary" Size="Size.Small">Flat</MudSwitch>
+    </MudStack>
+
+    <div style="background: #000000; padding: 1em; font-family: var(--snap-font-mono, monospace); font-size: 0.85em; line-height: 1.6; overflow-x: auto;">
+        @foreach (var r in Plan.Resources.Where(r => _showUnchanged || r.ChangedLeaves > 0))
+        {
+            var res = r;
+            <div style="@($"border-left: 3px solid {Colour(res.Action)}; padding-left: 0.75em; margin-bottom: 0.9em;")">
+                <div style="cursor: pointer;" @onclick="@(() => ToggleResource(res.Address))">
+                    <span style="@($"color: {Colour(res.Action)}; font-weight: 600;")">@Symbol(res.Action)</span>
+                    <span>&nbsp;</span>
+                    <span style="color: #FFFFFF;">@res.Address</span>
+                    <span>&nbsp;</span>
+                    <span style="@Muted">@Word(res.Action)</span>
+                    @if (res.ChangedLeaves > 0)
+                    {
+                        <span>&nbsp;</span>
+                        <span style="@($"color: {Colour(res.Action)};")">@res.ChangedLeaves changed</span>
+                    }
+                    @if (Reason(res) is { } reason)
+                    {
+                        <span>&nbsp;</span>
+                        <span style="@($"color: {Colour(res.Action)};")">@reason</span>
+                    }
+                    <span>&nbsp;</span>
+                    <span style="@Muted">@(_openResources.Contains(res.Address) ? "[-]" : "[+]")</span>
+                </div>
+
+                @if (_openResources.Contains(res.Address))
+                {
+                    @foreach (var row in Rows(res))
+                    {
+                        var vr = row;
+                        <div style="@($"padding-left: {0.6 + vr.Depth * 1.5}em;")">
+                            @if (vr.IsLeaf)
+                            {
+                                <span style="@($"color: {NodeColour(vr.Node.Action)};")">@Mark(vr.Node.Action)</span>
+                                <span>&nbsp;</span>
+                                <span style="color: #CFD6DE;">@vr.Label</span>
+                                @if (vr.Node.Embedded)
+                                {
+                                    <span>&nbsp;</span><span style="@Accent">@vr.Node.EmbeddedFormat</span>
+                                }
+                                <span style="@Muted">&nbsp;=&nbsp;</span>
+                                @Leaf(vr.Node)
+                            }
+                            else
+                            {
+                                <span style="cursor: pointer;" @onclick="@(() => ToggleNode(vr))">
+                                    <span style="@($"color: {NodeColour(vr.Node.Action)};")">@Mark(vr.Node.Action)</span>
+                                    <span>&nbsp;</span>
+                                    <span style="color: #CFD6DE;">@vr.Label</span>
+                                    @if (vr.Node.Embedded)
+                                    {
+                                        <span>&nbsp;</span><span style="@Accent">@vr.Node.EmbeddedFormat</span>
+                                    }
+                                    <span>&nbsp;</span>
+                                    <span style="@Muted">(@(vr.CollapsedSummary ?? TreeView.Summary(vr.Node)))</span>
+                                </span>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        }
+
+        @if (Plan.Resources.All(r => r.ChangedLeaves == 0) && !_showUnchanged)
+        {
+            <span style="@Muted">Nothing changes.</span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public ParsedPlan? Plan { get; set; }
+
+    private readonly HashSet<string> _openResources = [];
+    private readonly HashSet<string> _forcedOpen = [];
+    private readonly HashSet<string> _forcedClosed = [];
+    private bool _showUnchanged;
+    private bool _flat;
+
+    private const string Muted = "color: #9AA4AF;";
+    private const string Accent = "color: #E85D1A;";
+
+    private void ToggleResource(string address)
+    {
+        if (!_openResources.Remove(address)) _openResources.Add(address);
+    }
+
+    /// <summary>
+    /// A hand toggle outranks the automatic choice, so which set a path goes into depends on what
+    /// it is doing now rather than on what it was told last.
+    /// </summary>
+    private void ToggleNode(ViewRow row)
+    {
+        var key = row.Key;
+        var isOpen = row.CollapsedSummary is null;
+
+        _forcedOpen.Remove(key);
+        _forcedClosed.Remove(key);
+
+        if (isOpen) _forcedClosed.Add(key);
+        else _forcedOpen.Add(key);
+    }
+
+    private List<ViewRow> Rows(ResourceDiff res)
+    {
+        var rows = TreeView.Rows(res, new TreeViewOptions
+        {
+            ShowUnchanged = _showUnchanged,
+            ForcedOpen = _forcedOpen,
+            ForcedClosed = _forcedClosed
+        });
+
+        // Flat drops the containers and lists the changed values by their full path, for a reader
+        // who wants to scan rather than to see how the change is grouped.
+        if (!_flat) return rows;
+
+        return rows
+            .Where(r => r.IsLeaf)
+            .Select(r => new ViewRow { Label = r.Node.Path, Depth = 0, Node = r.Node })
+            .ToList();
+    }
+
+    private RenderFragment Leaf(DiffNode c) =>
+        @<text>
+            @if (c.Sensitive)
+            {
+                <span style="@Muted">(sensitive value, @(c.Action == NodeAction.Unchanged ? "unchanged" : "changed"))</span>
+            }
+            else if (c.UnknownAfterApply)
+            {
+                <span style="@Muted">(known after apply)</span>
+            }
+            else if (c.Action == NodeAction.Unchanged)
+            {
+                <span style="@Muted">@Show(c.After ?? c.Before)</span>
+            }
+            else if (c.Multiline)
+            {
+                <span style="@Accent">(text, @Lines(c.Before) lines to @Lines(c.After))</span>
+            }
+            else
+            {
+                @if (c.Before is not null)
+                {
+                    <span style="color: #DB4A3F;">@Show(c.Before)</span>
+                }
+                @if (c.Before is not null && c.After is not null)
+                {
+                    <span style="@Muted">&nbsp;&rarr;&nbsp;</span>
+                }
+                @if (c.After is not null)
+                {
+                    <span style="color: #00B368;">@Show(c.After)</span>
+                }
+            }
+        </text>;
+
+    private static int Lines(JsonElement? e) => (e?.GetString() ?? "").Split('\n').Length;
+
+    private List<(ResourceAction Action, int Count)> Counts() =>
+        Enum.GetValues<ResourceAction>()
+            .Select(a => (Action: a, Count: Plan!.Count(a)))
+            .Where(x => x.Count > 0 && x.Action != ResourceAction.NoOp)
+            .ToList();
+
+    private static string Show(JsonElement? e)
+    {
+        if (e is null) return "(none)";
+        var s = e.Value.ValueKind == JsonValueKind.String ? e.Value.GetString() ?? "" : e.Value.ToString();
+        s = s.Replace("\n", "\\n");
+        return s.Length > 100 ? s[..100] + "..." : s;
+    }
+
+    /// <summary>
+    /// Why the engine chose this action, where that says more than the action does. A replacement
+    /// is always reported as one, so the constant repeating it carries nothing.
+    /// </summary>
+    private static string? Reason(ResourceDiff res) => res.ActionReason switch
+    {
+        null or "" => null,
+        "replace_because_cannot_update" => "replaced",
+        "replace_because_tainted" => "replaced, tainted",
+        "replace_by_request" => "replaced on request",
+        "replace_by_triggers" => "replaced by triggers",
+        "delete_because_no_resource_config" => "no configuration",
+        "delete_because_count_index" => "count reduced",
+        "delete_because_each_key" => "key removed",
+        "delete_because_no_module" => "module removed",
+        "delete_because_wrong_repetition" => "repetition changed",
+        "delete_because_no_move_target" => "move target missing",
+        "read_because_config_unknown" => "configuration not yet known",
+        "read_because_dependency_pending" => "waiting on a dependency",
+        "read_because_check_nested" => "nested check",
+        var other => other.Replace('_', ' ')
+    };
+
+    private static string Mark(NodeAction action) => action switch
+    {
+        NodeAction.Added => "+",
+        NodeAction.Removed => "-",
+        NodeAction.Replaced => "!",
+        NodeAction.Changed => "~",
+        _ => " "
+    };
+
+    private static string NodeColour(NodeAction action) => action switch
+    {
+        NodeAction.Added => "#00B368",
+        NodeAction.Removed => "#DB4A3F",
+        NodeAction.Replaced => "#DB4A3F",
+        NodeAction.Changed => "#E85D1A",
+        _ => "#7D8896"
+    };
+
+    private static string Colour(ResourceAction action) => action switch
+    {
+        ResourceAction.Create => "#00B368",
+        ResourceAction.Delete => "#DB4A3F",
+        ResourceAction.Replace => "#DB4A3F",
+        ResourceAction.Update => "#E85D1A",
+        _ => "#9AA4AF"
+    };
+
+    private static string Symbol(ResourceAction action) => action switch
+    {
+        ResourceAction.Create => "+",
+        ResourceAction.Delete => "-",
+        ResourceAction.Replace => "-/+",
+        ResourceAction.Update => "~",
+        ResourceAction.Read => "<=",
+        _ => " "
+    };
+
+    private static string Word(ResourceAction action) => action switch
+    {
+        ResourceAction.Create => "to create",
+        ResourceAction.Delete => "to destroy",
+        ResourceAction.Replace => "to replace",
+        ResourceAction.Update => "to update",
+        ResourceAction.Read => "to read",
+        _ => "unchanged"
+    };
+}

@@ -42,7 +42,8 @@ public class UpdateOutputListsActivity<TSaga, TMessage> :
             context.Message.ModifyCount,
             context.Message.DestroyCount,
             context.Message.RecreateCount,
-            (context.Message as PlanCompletedBase)?.OutputSignalsJson);
+            (context.Message as PlanCompletedBase)?.OutputSignalsJson,
+            (context.Message as PlanCompletedBase)?.PlanPayload);
 
         await next.Execute(context).ConfigureAwait(false);
     }

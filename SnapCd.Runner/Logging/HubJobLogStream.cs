@@ -58,7 +58,8 @@ public sealed class HubJobLogStream<TLogEntry> : IJobLogStream, IAsyncDisposable
             Message = message,
             Source = LogSource.Runner,
             LogCorrelationId = envelope.LogCorrelationId,
-            LogCorrelationDiscriminator = envelope.LogCorrelationDiscriminator
+            LogCorrelationDiscriminator = envelope.LogCorrelationDiscriminator,
+            Tags = envelope.Tags is { Count: > 0 } ? envelope.Tags : null
         };
 
         lock (_gate)

@@ -60,6 +60,18 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
     {
     }
 
+    /// <summary>
+    /// A job's plan, in the engine's own machine-readable form. Read on its own rather than with
+    /// the job, because only a reader who opens the plan wants it.
+    /// </summary>
+    public async Task<byte[]?> ReadPlan(Guid id, Guid organizationId)
+    {
+        if (!CanRead(id, organizationId))
+            return null;
+
+        return await Repository.ReadPlan(id, organizationId);
+    }
+
     public async Task<string?> GetActualDefinitiveRevision(Guid moduleId, Guid organizationId)
     {
         if (!CanReadForModuleId(moduleId, organizationId))

@@ -96,6 +96,13 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
     /// </summary>
     [MaxLength(16000)] public string? OutputSignalsJson { get; set; }
 
+    /// <summary>
+    /// Gzipped JSON of the plan, as the engine's own show command produces it. The plan counts
+    /// above are a summary of this.
+    /// </summary>
+    public byte[]? PlanPayload { get; set; }
+
+
     public List<ModuleJobApproval> ModuleJobApprovals { get; set; } = null!;
     public List<ModuleJobMission> ModuleJobMissions { get; set; } = null!;
 
