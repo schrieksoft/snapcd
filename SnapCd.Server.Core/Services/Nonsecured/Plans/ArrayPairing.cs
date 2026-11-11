@@ -31,9 +31,9 @@ public static class ArrayPairing
         Positional
     }
 
-    public sealed record Match(JsonElement? Before, JsonElement? After, int Index, string Label);
+    public sealed record PairedElement(JsonElement? Before, JsonElement? After, int Index, string Label);
 
-    public static (Strategy Strategy, List<Match> Matches) Pair(
+    public static (Strategy Strategy, List<PairedElement> Matches) Pair(
         List<JsonElement> before, List<JsonElement> after, DiffOptions options)
     {
         var key = IdentityKey(before, after, options);
@@ -79,9 +79,9 @@ public static class ArrayPairing
         return current;
     }
 
-    private static List<Match> ByIdentity(List<JsonElement> before, List<JsonElement> after, string[] key)
+    private static List<PairedElement> ByIdentity(List<JsonElement> before, List<JsonElement> after, string[] key)
     {
-        var pairs = new List<Match>();
+        var pairs = new List<PairedElement>();
         var afterById = new Dictionary<string, JsonElement>();
 
         foreach (var item in after)
@@ -98,11 +98,11 @@ public static class ArrayPairing
             if (id is not null && afterById.TryGetValue(id, out var counterpart))
             {
                 matched.Add(id);
-                pairs.Add(new Match(item, counterpart, index++, id));
+                pairs.Add(new PairedElement(item, counterpart, index++, id));
             }
             else
             {
-                pairs.Add(new Match(item, null, index++, id ?? $"[{index}]"));
+                pairs.Add(new PairedElement(item, null, index++, id ?? $"[{index}]"));
             }
         }
 
@@ -110,7 +110,7 @@ public static class ArrayPairing
         {
             var id = Resolve(item, key)?.ToString();
             if (id is null || matched.Contains(id)) continue;
-            pairs.Add(new Match(null, item, index++, id));
+            pairs.Add(new PairedElement(null, item, index++, id));
         }
 
         return pairs;
@@ -122,7 +122,7 @@ public static class ArrayPairing
     /// shifted comparison. Elements that align between two anchors are still paired, so a changed
     /// element is descended into rather than reported as a removal and an addition.
     /// </summary>
-    private static List<Match> ByLcs(List<JsonElement> before, List<JsonElement> after)
+    private static List<PairedElement> ByLcs(List<JsonElement> before, List<JsonElement> after)
     {
         var b = before.Select(e => e.GetRawText()).ToList();
         var a = after.Select(e => e.GetRawText()).ToList();
@@ -133,7 +133,7 @@ public static class ArrayPairing
         for (var j = a.Count - 1; j >= 0; j--)
             lcs[i, j] = b[i] == a[j] ? lcs[i + 1, j + 1] + 1 : Math.Max(lcs[i + 1, j], lcs[i, j + 1]);
 
-        var pairs = new List<Match>();
+        var pairs = new List<PairedElement>();
         var removed = new List<JsonElement>();
         var added = new List<JsonElement>();
         int x = 0, y = 0, index = 0;
@@ -145,13 +145,13 @@ public static class ArrayPairing
             var shared = Math.Min(removed.Count, added.Count);
 
             for (var k = 0; k < shared; k++)
-                pairs.Add(new Match(removed[k], added[k], index, $"[{index++}]"));
+                pairs.Add(new PairedElement(removed[k], added[k], index, $"[{index++}]"));
 
             for (var k = shared; k < removed.Count; k++)
-                pairs.Add(new Match(removed[k], null, index, $"[{index++}]"));
+                pairs.Add(new PairedElement(removed[k], null, index, $"[{index++}]"));
 
             for (var k = shared; k < added.Count; k++)
-                pairs.Add(new Match(null, added[k], index, $"[{index++}]"));
+                pairs.Add(new PairedElement(null, added[k], index, $"[{index++}]"));
 
             removed.Clear();
             added.Clear();
@@ -162,7 +162,7 @@ public static class ArrayPairing
             if (b[x] == a[y])
             {
                 Flush();
-                pairs.Add(new Match(before[x], after[y], index, $"[{index++}]"));
+                pairs.Add(new PairedElement(before[x], after[y], index, $"[{index++}]"));
                 x++;
                 y++;
             }
