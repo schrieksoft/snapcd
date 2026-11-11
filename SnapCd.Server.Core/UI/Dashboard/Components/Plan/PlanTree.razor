@@ -202,10 +202,19 @@ else
             .Where(x => x.Count > 0 && x.Action != ResourceAction.NoOp)
             .ToList();
 
+    /// <summary>
+    /// A value as one line. A value that is absent, null or empty says so in words: a blank after
+    /// the equals sign reads as a rendering failure rather than as the value it is.
+    /// </summary>
     private static string Show(JsonElement? e)
     {
         if (e is null) return "(none)";
+        if (e.Value.ValueKind == JsonValueKind.Null) return "(null)";
+
         var s = e.Value.ValueKind == JsonValueKind.String ? e.Value.GetString() ?? "" : e.Value.ToString();
+
+        if (s.Length == 0) return "(empty)";
+
         s = s.Replace("\n", "\\n");
         return s.Length > 100 ? s[..100] + "..." : s;
     }
