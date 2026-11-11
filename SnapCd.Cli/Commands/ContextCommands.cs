@@ -18,6 +18,7 @@ public static class ContextCommands
         var command = new Command("context", "Manage the Servers and organizations the CLI works with.");
         command.Subcommands.Add(Add(services));
         command.Subcommands.Add(List(services));
+        command.Subcommands.Add(Set(services));
         command.Subcommands.Add(Use(services));
         command.Subcommands.Add(Remove(services));
         return command;
@@ -80,6 +81,51 @@ public static class ContextCommands
                 var user = context.UserEmail is null ? "" : $"  {context.UserEmail}";
                 services.Out.WriteLine($"{marker} {context.Name}  {context.Url}  {organization}{user}");
             }
+            return Task.CompletedTask;
+        }));
+        return command;
+    }
+
+    private static Command Set(CliServices services)
+    {
+        var name = new Argument<string>("name") { Description = "Name of the context." };
+        var url = new Option<string?>("--url") { Description = "New URL of the Snap CD Server. Forgets the session." };
+        var insecure = new Option<bool?>("--insecure-skip-verify")
+        {
+            Description = "true to stop verifying the Server's TLS certificate, false to verify it again.",
+            Arity = ArgumentArity.ExactlyOne
+        };
+
+        var command = new Command("set", "Change a context.") { name, url, insecure };
+        command.SetAction(services.Run((parseResult, _) =>
+        {
+            var config = services.Config.Load();
+            var context = config.Resolve(parseResult.GetValue(name));
+            var newUrl = parseResult.GetValue(url);
+            var newInsecure = parseResult.GetValue(insecure);
+            if (newUrl is null && newInsecure is null)
+                throw new CliException("Nothing to change. Give --url or --insecure-skip-verify.");
+
+            if (newUrl is not null)
+            {
+                newUrl = newUrl.TrimEnd('/');
+                if (!Uri.TryCreate(newUrl, UriKind.Absolute, out var uri) || (uri.Scheme != "https" && uri.Scheme != "http"))
+                    throw new CliException($"'{newUrl}' is not an http or https URL.");
+                if (newUrl != context.Url)
+                {
+                    context.Url = newUrl;
+                    context.OrganizationId = null;
+                    context.OrganizationName = null;
+                    context.UserEmail = null;
+                    services.Tokens.Remove(context.Name);
+                }
+            }
+
+            if (newInsecure is { } skip)
+                context.InsecureSkipVerify = skip;
+
+            services.Config.Save(config);
+            services.Out.WriteLine($"Updated context '{context.Name}': {context.Url}{(context.InsecureSkipVerify ? ", TLS certificate not verified" : "")}.");
             return Task.CompletedTask;
         }));
         return command;
