@@ -86,32 +86,9 @@
             }
         </MudStack>
 
-        @if (_moduleJob.PlanTotalChangedCount != null)
-        {
-            <MudPaper Elevation="0" Class="pa-4">
-                <MudExpansionPanels Elevation="0">
-                    <MudExpansionPanel Expanded="@_planExpanded" ExpandedChanged="OnPlanExpanded">
-                        <TitleContent>
-                            <MudText Typo="Typo.overline" Class="mud-text-secondary">Plan</MudText>
-                        </TitleContent>
-                        <ChildContent>
-                            @if (_planLoading)
-                            {
-                                <MudText Typo="Typo.body2" Class="mud-text-secondary">Reading the plan...</MudText>
-                            }
-                            else
-                            {
-                                <PlanTree Plan="@_plan"/>
-                            }
-                        </ChildContent>
-                    </MudExpansionPanel>
-                </MudExpansionPanels>
-            </MudPaper>
-        }
-
         <MudPaper Elevation="0" Class="pa-4">
             <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
-            <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
+            <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" ReadPlan="@ReadPlanPayload" @ref="_inlineLogsRef"/>
         </MudPaper>
 
         <ListProbes @ref="_probesRef" ModuleJobId="@ModuleJobId" ModuleId="@ModuleId"
@@ -257,35 +234,17 @@
         </MudStack>;
 
 
-    private ParsedPlan? _plan;
-    private bool _planExpanded;
-    private bool _planLoading;
-
     /// <summary>
-    /// The plan is read when a reader opens it, not with the job. It is the whole plan rather than
-    /// a summary of it, and most readers of a job never open it.
+    /// The job's saved plan, read when a reader opens the plan's changes rather than with the job.
     /// </summary>
-    private async Task OnPlanExpanded(bool expanded)
+    private async Task<byte[]?> ReadPlanPayload()
     {
-        _planExpanded = expanded;
+        var principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        var principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+        using var repo = ModuleJobRepoFactory.Create(
+            new LiteralPrincipalProvider(principalId, principalDiscriminator, [OrganizationId]));
 
-        if (!expanded || _plan is not null) return;
-
-        _planLoading = true;
-
-        try
-        {
-            var principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
-            var principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
-            using var repo = ModuleJobRepoFactory.Create(
-                new LiteralPrincipalProvider(principalId, principalDiscriminator, [OrganizationId]));
-
-            _plan = PlanReader.Read(await repo.ReadPlan(ModuleJobId, OrganizationId));
-        }
-        finally
-        {
-            _planLoading = false;
-        }
+        return await repo.ReadPlan(ModuleJobId, OrganizationId);
     }
 
     private async Task ReloadModuleJobStatus()

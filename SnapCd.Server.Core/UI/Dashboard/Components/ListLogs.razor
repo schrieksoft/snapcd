@@ -19,6 +19,7 @@
 @using Microsoft.Extensions.Options
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Services.Nonsecured.Logs
+@using SnapCd.Server.Core.Services.Nonsecured.Plans
 @using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
 @using SnapCd.Server.Core.Services.Secured.Logs
 @using SnapCd.Server.Core.Services.Utils.PrincipalProvider
@@ -122,8 +123,39 @@ else
                                    Size="Size.Small"
                                    OnClick="@(() => DownloadJson(task))"/>
                 </MudTooltip>
+
+                @* A plan task shows the same plan two ways. Raw is what the engine printed.
+                   Structured is the plan the engine saved, walked into a tree, which reads a
+                   changed value the same way wherever it sits. The engine prints a changed value
+                   whole wherever a collection holds it, so a small change in a long value is hard
+                   to find in the raw form. *@
+                @if (HasPlan(task))
+                {
+                    <MudButtonGroup Variant="Variant.Filled" Color="MudBlazor.Color.Secondary" Size="Size.Small" Class="ml-2">
+                        <MudButton OnClick="@(() => ShowStructured(task, false))"
+                                   Style="@(ShowingStructured(task) ? "opacity: 0.45; filter: grayscale(0.8);" : "")">
+                            Raw
+                        </MudButton>
+                        <MudButton OnClick="@(() => ShowStructured(task, true))"
+                                   Style="@(ShowingStructured(task) ? "" : "opacity: 0.45; filter: grayscale(0.8);")">
+                            Structured
+                        </MudButton>
+                    </MudButtonGroup>
+                }
             </MudStack>
-            @if (IsHiddenAsLarge(task))
+
+            @if (ShowingStructured(task))
+            {
+                @if (_plan is null)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Reading the plan...</MudText>
+                }
+                else
+                {
+                    <PlanTree Plan="@_plan"/>
+                }
+            }
+            else if (IsHiddenAsLarge(task))
             {
                 <MudText Typo="Typo.body2" Class="mb-2">
                     These logs are very large (@FormatSize(TaskBytes(task))). Consider downloading them instead of viewing them here.
@@ -158,6 +190,13 @@ else
 
 @code {
     [Parameter] public Guid JobId { get; set; }
+
+    /// <summary>
+    /// Reads the job's saved plan. A plan task then shows the same plan two ways: as the engine
+    /// printed it, and as a tree built from what the engine saved. Left unset, the task shows the
+    /// printed form only, which is what a job with no saved plan does.
+    /// </summary>
+    [Parameter] public Func<Task<byte[]?>>? ReadPlan { get; set; }
     [Parameter] public string? InitialTask { get; set; }
     [Parameter] public string[]? TaskFilter { get; set; }
 
@@ -235,6 +274,32 @@ else
             _expandedTask = null;
             await OnTaskChanged.InvokeAsync(null);
         }
+    }
+
+    private ParsedPlan? _plan;
+    private readonly HashSet<string> _structuredShown = [];
+
+    /// <summary>The tasks that save a plan. A transfer and a split plan under their own names.</summary>
+    private static bool IsPlanTask(string task)
+        => BareTask(task) is "Plan" or "PlanDestroy";
+
+    private bool HasPlan(string task) => ReadPlan is not null && IsPlanTask(task);
+
+    private bool ShowingStructured(string task) => _structuredShown.Contains(task);
+
+    /// <summary>
+    /// The plan is read when a reader asks for the structured view, not with the job. It is the
+    /// whole plan rather than a summary, and most readers of a job never open it.
+    /// </summary>
+    private async Task ShowStructured(string task, bool structured)
+    {
+        if (structured) _structuredShown.Add(task);
+        else _structuredShown.Remove(task);
+
+        if (!structured || _plan is not null || ReadPlan is null) return;
+
+        _plan = PlanReader.Read(await ReadPlan());
+        StateHasChanged();
     }
 
     private string ConvertToWrappedHtml(string ansiText)
