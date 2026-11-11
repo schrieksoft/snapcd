@@ -32,6 +32,15 @@ public class ServicePrincipalToSeed
     /// </summary>
     public required string ClientType { get; set; }
 
+    /// <summary>
+    /// OpenIddict application type. <c>native</c> lets a loopback redirect URI registered without a
+    /// port match a request on any port, which a command-line client listening on a free port needs.
+    /// </summary>
+    public string? ApplicationType { get; set; }
+
+    /// <summary>Lets a user client exchange refresh tokens, so a session outlives its access token.</summary>
+    public bool AllowRefreshToken { get; set; }
+
     /// <summary>OpenIddict consent type (e.g. <c>implicit</c>, <c>explicit</c>, <c>external</c>).</summary>
     public required string? ConsentType { get; set; }
 

@@ -10,8 +10,10 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
+using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -21,10 +23,12 @@ namespace SnapCd.Server.Core.Controllers.OpenIddict;
 public class UserInfoController : Controller
 {
     private readonly UserManager<User> _userManager;
+    private readonly SnapCdDbContext _dbContext;
 
-    public UserInfoController(UserManager<User> userManager)
+    public UserInfoController(UserManager<User> userManager, SnapCdDbContext dbContext)
     {
         _userManager = userManager;
+        _dbContext = dbContext;
     }
 
     //
@@ -65,6 +69,13 @@ public class UserInfoController : Controller
         }
 
         if (User.HasScope(Scopes.Roles)) claims[Claims.Role] = await _userManager.GetRolesAsync(user);
+
+        // Access tokens are encrypted, so a client reads the organizations it can work in from here.
+        claims["snapcd_organizations"] = await _dbContext.OrganizationUsers
+            .Where(ou => ou.UserId == user.Id && !ou.IsDeactivated && ou.Organization.DeletedDateTime == null)
+            .OrderBy(ou => ou.Organization.Name)
+            .Select(ou => new { id = ou.OrganizationId, name = ou.Organization.Name })
+            .ToListAsync(HttpContext.RequestAborted);
 
         // Note: the complete list of standard claims supported by the OpenID Connect specification
         // can be found here: http://openid.net/specs/openid-connect-core-1_0.html#StandardClaims

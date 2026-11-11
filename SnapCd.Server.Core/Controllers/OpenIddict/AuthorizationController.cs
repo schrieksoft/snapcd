@@ -63,6 +63,8 @@ public class AuthorizationController : Controller
         _federatedAuthenticator = federatedAuthenticator;
     }
 
+    private const string ReturnedFromLoginParameter = "snapcd_returned_from_login";
+
     [HttpGet("~/connect/authorize")]
     [HttpPost("~/connect/authorize")]
     [IgnoreAntiforgeryToken]
@@ -97,8 +99,9 @@ public class AuthorizationController : Controller
                         [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is not logged in."
                     }));
 
-            // Check if we've already redirected to login to prevent infinite loops
-            if (TempData.ContainsKey("login_loop_detected"))
+            // Only the redirect below carries this parameter, so a request with it has been to the
+            // login page and come back still unauthenticated.
+            if (request.GetParameter(ReturnedFromLoginParameter) is not null)
             {
                 return Forbid(
                     authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
@@ -109,8 +112,6 @@ public class AuthorizationController : Controller
                     }));
             }
 
-            TempData["login_loop_detected"] = true;
-
             // To avoid endless login -> authorization redirects, the prompt=login flag
             // is removed from the authorization request payload before redirecting the user.
             var prompt = string.Join(" ", request.GetPromptValues().Remove(PromptValues.Login));
@@ -120,6 +121,7 @@ public class AuthorizationController : Controller
                 : Request.Query.Where(parameter => parameter.Key != Parameters.Prompt).ToList();
 
             parameters.Add(KeyValuePair.Create(Parameters.Prompt, new StringValues(prompt)));
+            parameters.Add(KeyValuePair.Create(ReturnedFromLoginParameter, new StringValues("1")));
 
             // For scenarios where the default challenge handler configured in the ASP.NET Core
             // authentication options shouldn't be used, a specific scheme can be specified here.
@@ -128,9 +130,6 @@ public class AuthorizationController : Controller
                 RedirectUri = Request.PathBase + Request.Path + QueryString.Create(parameters)
             });
         }
-
-        // Clear login loop detection flag since authentication succeeded
-        TempData.Remove("login_loop_detected");
 
         // Retrieve the profile of the logged in user.
         var user = await _userManager.GetUserAsync(result.Principal) ??
