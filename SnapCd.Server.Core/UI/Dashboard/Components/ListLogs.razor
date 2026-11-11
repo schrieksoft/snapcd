@@ -123,7 +123,6 @@ else
                                    Size="Size.Small"
                                    OnClick="@(() => DownloadJson(task))"/>
                 </MudTooltip>
-
             </MudStack>
 
             @* A plan task shows the same plan two ways. Raw is what the engine printed. Structured
@@ -133,34 +132,50 @@ else
                form. *@
             @if (HasPlan(task))
             {
-                <MudTabs Elevation="0" Rounded="false" ApplyEffectsToContainer="true" PanelClass="pt-3"
+                <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-3"
+                         KeepPanelsAlive="true"
                          ActivePanelIndex="@(ShowingStructured(task) ? 1 : 0)"
                          ActivePanelIndexChanged="@(i => ShowStructured(task, i == 1))">
                     <MudTabPanel Text="Raw" Style="text-transform: none">
-                        @RawLog(task)
-                    </MudTabPanel>
-                    <MudTabPanel Text="Structured" Style="text-transform: none">
-                        @if (_plan is null)
+                        @if (IsHiddenAsLarge(task))
                         {
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary">Reading the plan...</MudText>
+                            <MudText Typo="Typo.body2" Class="mb-2">
+                                These logs are very large (@FormatSize(TaskBytes(task))). Consider downloading them instead of viewing them here.
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Secondary" Size="Size.Small"
+                                       OnClick="@(() => Reveal(task))" Class="mb-2">
+                                Show logs
+                            </MudButton>
                         }
                         else
                         {
+                            @if (HasOlderFor(task))
+                            {
+                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Secondary" Size="Size.Small"
+                                           OnClick="LoadMoreLogs" Class="mb-2">
+                                    Load more logs
+                                </MudButton>
+                            }
+                            <div style="padding: 1em; background: #000000; color: white; font-family: monospace; white-space: pre-wrap;">@((MarkupString)(_htmlLogs.GetValueOrDefault(task) ?? string.Empty))</div>
+                        }
+                    </MudTabPanel>
+                    <MudTabPanel Text="Structured" Style="text-transform: none">
+                        @if (_plan is not null)
+                        {
                             <PlanTree Plan="@_plan"/>
+                        }
+                        else if (_planRead)
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">This job saved no plan.</MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">Reading the plan...</MudText>
                         }
                     </MudTabPanel>
                 </MudTabs>
             }
-            else
-            {
-                @RawLog(task)
-            }
-        </text>;
-
-    @* A task's log as the engine printed it. *@
-    RenderFragment RawLog(string task) =>
-        @<text>
-            @if (IsHiddenAsLarge(task))
+            else if (IsHiddenAsLarge(task))
             {
                 <MudText Typo="Typo.body2" Class="mb-2">
                     These logs are very large (@FormatSize(TaskBytes(task))). Consider downloading them instead of viewing them here.
@@ -271,6 +286,7 @@ else
         {
             if (_expandedTask == taskKey) return;
             _expandedTask = taskKey;
+            await LoadPlan(taskKey);
             await OnTaskChanged.InvokeAsync(taskKey);
         }
         else
@@ -302,16 +318,19 @@ else
         if (structured) _structuredShown.Add(task);
         else _structuredShown.Remove(task);
 
-        if (!structured || _planRead || ReadPlan is null)
-        {
-            StateHasChanged();
-            return;
-        }
+        await LoadPlan(task);
+        StateHasChanged();
+    }
 
-        // Read once per component. A job has one plan, and both of its plan tasks describe it.
+    /// <summary>
+    /// Reads the job's plan once. A job has one plan, and both of its plan tasks describe it.
+    /// </summary>
+    private async Task LoadPlan(string task)
+    {
+        if (_planRead || ReadPlan is null || !IsPlanTask(task)) return;
+
         _planRead = true;
         _plan = PlanReader.Read(await ReadPlan());
-        StateHasChanged();
     }
 
     private string ConvertToWrappedHtml(string ansiText)
