@@ -84,7 +84,14 @@ else
                                         <span>&nbsp;</span><span style="@Accent">@vr.Node.EmbeddedFormat</span>
                                     }
                                     <span>&nbsp;</span>
-                                    <span style="@Muted">(@(vr.CollapsedSummary ?? TreeView.Summary(vr.Node)))</span>
+                                    <span style="@Muted">@TreeView.Shape(vr.Node)</span>
+                                    @if (vr.Node.ChangedLeaves > 0)
+                                    {
+                                        <span>&nbsp;</span>
+                                        <span style="@($"color: {NodeColour(vr.Node.Action)};")">@vr.Node.ChangedLeaves changed</span>
+                                    }
+                                    <span>&nbsp;</span>
+                                    <span style="@Muted">@(vr.IsOpen ? "[-]" : "[+]")</span>
                                 </span>
                             }
                         </div>
@@ -124,7 +131,7 @@ else
     private void ToggleNode(ViewRow row)
     {
         var key = row.Key;
-        var isOpen = row.CollapsedSummary is null;
+        var isOpen = row.IsOpen;
 
         _forcedOpen.Remove(key);
         _forcedClosed.Remove(key);

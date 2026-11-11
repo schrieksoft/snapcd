@@ -31,8 +31,8 @@ public sealed class ViewRow
 
     public bool IsLeaf => Node.Children.Count == 0;
 
-    /// <summary>Set where the row stands for a subtree that is present but not opened.</summary>
-    public string? CollapsedSummary { get; init; }
+    /// <summary>Whether this row's children are shown below it.</summary>
+    public bool IsOpen { get; init; }
 }
 
 public sealed class TreeViewOptions
@@ -85,14 +85,14 @@ public static class TreeView
             // joined into one row whose label is the whole path.
             var (deepest, label) = Join(child, options);
 
-            var open = IsOpen(deepest, options, wholesale);
+            var open = ShouldOpen(deepest, options, wholesale);
 
             rows.Add(new ViewRow
             {
                 Label = label,
                 Depth = depth,
                 Node = deepest,
-                CollapsedSummary = deepest.Children.Count > 0 && !open ? Summary(deepest) : null
+                IsOpen = open
             });
 
             if (open) Walk(deepest, depth + 1, rows, options, wholesale);
@@ -128,7 +128,7 @@ public static class TreeView
         }
     }
 
-    private static bool IsOpen(DiffNode node, TreeViewOptions options, bool wholesale)
+    private static bool ShouldOpen(DiffNode node, TreeViewOptions options, bool wholesale)
     {
         if (node.Children.Count == 0) return false;
         if (options.ForcedOpen.Contains(node.Path)) return true;
@@ -144,18 +144,13 @@ public static class TreeView
         return options.AutoExpandChanged && node.HasChange;
     }
 
-    public static string Summary(DiffNode node)
-    {
-        var shape = node.Kind == NodeKind.Array
+    /// <summary>
+    /// What a container row says about its own shape. The row's marker already says whether it is
+    /// added, removed or changed, so repeating that here made a scalar without a bracket look as
+    /// though it was not removed.
+    /// </summary>
+    public static string Shape(DiffNode node)
+        => node.Kind == NodeKind.Array
             ? $"{node.Children.Count} item{(node.Children.Count == 1 ? "" : "s")}"
             : $"{node.Children.Count} key{(node.Children.Count == 1 ? "" : "s")}";
-
-        return node.Action switch
-        {
-            NodeAction.Added => $"added, {shape}",
-            NodeAction.Removed => $"removed, {shape}",
-            NodeAction.Unchanged => $"{shape}, unchanged",
-            _ => $"{shape}, {node.ChangedLeaves} changed"
-        };
-    }
 }
