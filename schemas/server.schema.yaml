@@ -379,6 +379,15 @@ properties:
             ClientType:
               type: string
               description: OpenIddict client type — typically confidential for server-to-server SPs.
+            ApplicationType:
+              type:
+              - string
+              - 'null'
+              description: OpenIddict application type. native lets a loopback redirect URI registered without a port match
+                a request on any port, which a command-line client listening on a free port needs.
+            AllowRefreshToken:
+              type: boolean
+              description: Lets a user client exchange refresh tokens, so a session outlives its access token.
             ConsentType:
               type:
               - string

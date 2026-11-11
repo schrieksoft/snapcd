@@ -74,6 +74,24 @@ public class ProductionDataSeeder : IDataSeeder
             }
         );
 
+        // The snapcd CLI signs a user in through the browser and receives the code on a loopback port
+        // it picks at login time, so the redirect is registered without a port.
+        await CreateOrUpdateApplication(new ServicePrincipalToSeed
+            {
+                ClientId = "snapcd-cli",
+                ClientType = "public",
+                ApplicationType = OpenIddictConstants.ApplicationTypes.Native,
+                AllowRefreshToken = true,
+                DisplayName = "Snap CD CLI",
+                Scopes = ["snapcd_scope"],
+                ConsentType = "implicit",
+                LoginRedirectUri = "http://127.0.0.1/callback",
+                LogoutRedirectUri = null,
+                OrganizationId = platformOrganizationId,
+                IsServicePrincipal = false
+            }
+        );
+
         // Seed preseeded entities if enabled
         if (_settings.Preseeded.Enabled)
         {
@@ -237,6 +255,8 @@ public class ProductionDataSeeder : IDataSeeder
                 OpenIddictConstants.Permissions.Scopes.Profile,
                 OpenIddictConstants.Permissions.Scopes.Roles
             };
+            if (spToSeed.AllowRefreshToken)
+                permissionsList.Add(OpenIddictConstants.Permissions.GrantTypes.RefreshToken);
             foreach (var scope in spToSeed.Scopes)
                 permissionsList.Add(OpenIddictConstants.Permissions.Prefixes.Scope + scope);
             permissions = $"[\"{string.Join("\",\"", permissionsList)}\"]";
@@ -255,6 +275,7 @@ public class ProductionDataSeeder : IDataSeeder
                 ConsentType = spToSeed.ConsentType,
                 DisplayName = spToSeed.DisplayName,
                 ClientType = spToSeed.ClientType,
+                ApplicationType = spToSeed.ApplicationType,
                 OrganizationId = spToSeed.OrganizationId,
                 ConcurrencyToken = Guid.NewGuid().ToString(),
                 IsDisabled = false
@@ -285,6 +306,7 @@ public class ProductionDataSeeder : IDataSeeder
             existingServicePrincipal.ConsentType = spToSeed.ConsentType;
             existingServicePrincipal.DisplayName = spToSeed.DisplayName;
             existingServicePrincipal.ClientType = spToSeed.ClientType;
+            existingServicePrincipal.ApplicationType = spToSeed.ApplicationType;
 
             // Update OpenIddict-specific properties
             existingServicePrincipal.RedirectUris = $"[\"{spToSeed.LoginRedirectUri}\"]";
