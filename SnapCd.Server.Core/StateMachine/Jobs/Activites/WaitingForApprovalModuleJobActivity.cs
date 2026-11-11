@@ -9,7 +9,10 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Jobs.Module;
+using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.Approvals;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
 
@@ -19,10 +22,12 @@ public class WaitingForApprovalModuleJobActivity<TSaga, TMessage> :
     where TMessage : class
 {
     private readonly ModuleJobRepository _repository;
+    private readonly SnapCdDbContext _dbContext;
 
-    public WaitingForApprovalModuleJobActivity(ModuleJobRepository repository)
+    public WaitingForApprovalModuleJobActivity(ModuleJobRepository repository, SnapCdDbContext dbContext)
     {
         _repository = repository;
+        _dbContext = dbContext;
     }
 
     public async Task Execute(
@@ -33,6 +38,17 @@ public class WaitingForApprovalModuleJobActivity<TSaga, TMessage> :
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
             true);
+
+        // The threshold is captured here, where the job parks, because the Module's own value may
+        // change while it waits and afterwards.
+        var threshold = await DeploymentApprovalThreshold.Resolve(
+            context.Saga, context.Saga.ModuleId, context.Saga.OrganizationId, _dbContext);
+
+        await _repository.RecordApprovalDecision(
+            context.Saga.CorrelationId,
+            context.Saga.OrganizationId,
+            ApprovalDecision.None,
+            threshold);
 
         // Publish so the Layer-1 ApprovalRequestedCompetingConsumer can fire the ApprovalRecommend
         // mission. Carries the saga's CorrelationId (= ModuleJobId) and ModuleId so the consumer can

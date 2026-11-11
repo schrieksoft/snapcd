@@ -28,14 +28,14 @@
 
 
 
-@if (_source != null && !_isWaitingForApproval)
+@if (_source != null && _everWaitedForApproval == false)
 {
     <MudAlert Severity="Severity.Info">
-        This job is not waiting for approval.
+        This job did not require an approval.
     </MudAlert>
 }
 
-@if (_source != null && _isWaitingForApproval)
+@if (_source != null && _everWaitedForApproval != false)
 {
     <ApprovalPanel @ref="_panelRef"
                    Source="@_source"
@@ -43,7 +43,10 @@
                    ModuleId="@ModuleId"
                    ApproveCaveat="@ApproveCaveat()"
                    OnDecided="() => RefreshAll()"/>
+}
 
+@if (_source != null && _isWaitingForApproval)
+{
     @if (_moduleJob != null)
     {
         <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Stretch" Wrap="Wrap.Wrap" Class="mb-4">
@@ -116,6 +119,12 @@
     private ApprovalPanel? _panelRef;
     private IApprovalSource _source = null!;
     private bool _isWaitingForApproval;
+
+    /// <summary>
+    /// Whether the job ever waited for an approval. False hides the panel entirely; null means it
+    /// is not yet known, and the panel loads its own decisions.
+    /// </summary>
+    private bool? _everWaitedForApproval;
 
     protected override async Task OnInitializedAsync()
     {
@@ -255,6 +264,9 @@
 
         _moduleJob = await repo.Get(ModuleJobId, OrganizationId);
         _isWaitingForApproval = _moduleJob.WaitingForApproval.GetValueOrDefault();
+
+        _everWaitedForApproval = _isWaitingForApproval
+            || (await _source.ListApprovals(ModuleJobId, ModuleId, OrganizationId)).Count > 0;
     }
 
 

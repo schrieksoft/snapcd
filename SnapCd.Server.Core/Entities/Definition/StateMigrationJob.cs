@@ -50,6 +50,18 @@ public class StateMigrationJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
     public bool? WaitingForApproval { get; set; }
 
     /// <summary>
+    /// What became of this job's approval. Null means it never waited for one; the saga that held
+    /// the decision is deleted when the job finishes, so the row is the only place it survives.
+    /// </summary>
+    public ApprovalDecision? ApprovalDecision { get; set; }
+
+    /// <summary>
+    /// Approvals this job needed, as resolved when it parked. The Module's own threshold is live and
+    /// may differ from it.
+    /// </summary>
+    public int? ApprovalThreshold { get; set; }
+
+    /// <summary>
     /// Set while the job is parked because the runner it is pinned to is away. Without it the job
     /// reads as Running, which is indistinguishable from working.
     /// </summary>

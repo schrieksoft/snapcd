@@ -7,10 +7,9 @@
 // for terms covering either use.
 
 using MassTransit;
-using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Entities.Sagas.Base;
+using SnapCd.Server.Core.Services.Nonsecured.Approvals;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
 
@@ -30,40 +29,12 @@ public class NeedsApprovalJobActivity<TSaga, TMessage> :
         _logger = logger;
     }
 
-    private int GetThreshold(TSaga saga, Thresholds thresholds)
-    {
-        switch (saga)
-        {
-            case ApplyJobSaga:
-                return thresholds.ApplyApprovalThreshold;
-            case DestroyJobSaga:
-                return thresholds.DestroyApprovalThreshold;
-            default:
-                throw new NotImplementedException($"{nameof(NeedsApprovalJobActivity<TSaga, TMessage>)} not implemented for TSaga of type {saga.GetType().Name}");
-        }
-    }
-
-    private class Thresholds
-    {
-        public int ApplyApprovalThreshold { get; set; }
-        public int DestroyApprovalThreshold { get; set; }
-    }
-
     public async Task Execute(
         BehaviorContext<TSaga, TMessage> context,
         IBehavior<TSaga, TMessage> next)
     {
-        var thresholds = _dbContext.Modules
-            .Include(x => x.Namespace)
-            .Where(x => x.Id == context.Saga.ModuleId && x.OrganizationId == context.Saga.OrganizationId)
-            .Select(x => new Thresholds
-            {
-                ApplyApprovalThreshold = x.ApplyApprovalThreshold ?? x.Namespace.DefaultApplyApprovalThreshold ?? 0,
-                DestroyApprovalThreshold = x.DestroyApprovalThreshold ?? x.Namespace.DefaultDestroyApprovalThreshold ?? 0
-            })
-            .Single();
-
-        var threshold = GetThreshold(context.Saga, thresholds);
+        var threshold = await DeploymentApprovalThreshold.Resolve(
+            context.Saga, context.Saga.ModuleId, context.Saga.OrganizationId, _dbContext);
 
         var approvals = _dbContext.ModuleJobApprovals
             .Where(x => x.ModuleJobId == context.Saga.CorrelationId)

@@ -120,7 +120,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
                 .Then(context => _logger.LogInformation(
                     "{Verb} on Module {ModuleId} was not answered in time",
                     Verb, context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, ApprovalTimeoutReceived>>())
+                .Activity(x => x.OfType<ApprovalTimeoutStateMigrationJobActivity<TSaga, ApprovalTimeoutReceived>>())
                 .TransitionTo(Failed)
                 .Finalize(),
 
@@ -130,7 +130,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
                     "{Verb} on Module {ModuleId} was cancelled while awaiting approval",
                     Verb, context.Saga.ModuleId))
                 .Unschedule(ApprovalTimeoutScheduled)
-                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, CancelStateMigrationJobRequested>>())
+                .Activity(x => x.OfType<CancelWhileWaitingForApprovalStateMigrationJobActivity<TSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize(),
 
@@ -182,7 +182,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
                                 "{Verb} on Module {ModuleId} was declined; nothing was changed",
                                 Verb, context.Saga.ModuleId))
                             .Unschedule(ApprovalTimeoutScheduled)
-                            .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, TMessage>>())
+                            .Activity(x => x.OfType<ApprovalDeclinedStateMigrationJobActivity<TSaga, TMessage>>())
                             .TransitionTo(Failed)
                             .Finalize(),
                         stillWaiting => stillWaiting

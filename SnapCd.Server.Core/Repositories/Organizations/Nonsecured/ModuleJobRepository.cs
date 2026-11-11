@@ -138,6 +138,28 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
                 publishContext => { publishContext.TimeToLive = TimeSpan.FromSeconds(120); });
     }
 
+    /// <summary>
+    /// The outcome of this job's approval, and on entering the wait the threshold that applied.
+    /// Finalize clears WaitingForApproval on every job that ends, so the flag cannot carry this.
+    /// </summary>
+    public async Task RecordApprovalDecision(Guid id, Guid organizationId, ApprovalDecision decision, int? threshold = null, bool wrapInTransaction = false)
+    {
+        var job = await Get(id, organizationId);
+
+        // An approval is decided once, as the job itself ends once: a late timeout or cancel event
+        // must not rewrite the decision an approver made.
+        if (HasEnded(job) && job.ApprovalDecision is not (null or ApprovalDecision.None)) return;
+
+        job.ApprovalDecision = decision;
+
+        if (threshold != null) job.ApprovalThreshold = threshold;
+
+        if (wrapInTransaction)
+            await Update(job);
+        else
+            await ExecuteUpdate(job); //E.g. if calling from MassTransit state machine, a transaction is already running
+    }
+
     public async Task RecordSelectedRunner(Guid id, Guid organizationId, Guid selectedRunnerId, bool wrapInTransaction = false)
     {
         var job = await Get(id, organizationId);

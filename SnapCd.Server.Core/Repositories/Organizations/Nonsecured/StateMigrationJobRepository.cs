@@ -185,6 +185,25 @@ public class StateMigrationJobRepository : IDisposable
         await _dbContext.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// The outcome of this job's approval, and on entering the wait the threshold that applied.
+    /// Finalize clears WaitingForApproval on every job that ends, so the flag cannot carry this.
+    /// </summary>
+    public async Task ExecuteRecordApprovalDecision(Guid id, Guid organizationId, ApprovalDecision decision, int? threshold = null)
+    {
+        var job = await Get(id, organizationId);
+
+        // An approval is decided once: a late timeout or cancel event must not rewrite the decision
+        // an approver made.
+        if (job.TimestampEnd != null && job.ApprovalDecision is not (null or ApprovalDecision.None)) return;
+
+        job.ApprovalDecision = decision;
+
+        if (threshold != null) job.ApprovalThreshold = threshold;
+
+        await _dbContext.SaveChangesAsync();
+    }
+
     public Task WaitingForRunner(Guid id, Guid organizationId, bool waitingForRunner) =>
         InTransaction(() => ExecuteWaitingForRunner(id, organizationId, waitingForRunner));
 

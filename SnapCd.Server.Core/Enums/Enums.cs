@@ -137,6 +137,16 @@ public enum ExecutionStatus
     PartiallyCompleted
 }
 
+/// <summary>What became of a job's approval. None means it waited and no outcome was reached.</summary>
+public enum ApprovalDecision
+{
+    None,
+    Approved,
+    Declined,
+    TimedOut,
+    Cancelled
+}
+
 public enum ActualStateHeadline
 {
     Applied,

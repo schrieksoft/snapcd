@@ -8,6 +8,7 @@
 
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
@@ -32,6 +33,11 @@ public class NotWaitingForApprovalModuleJobActivity<TSaga, TMessage> :
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
             false);
+
+        await _repository.RecordApprovalDecision(
+            context.Saga.CorrelationId,
+            context.Saga.OrganizationId,
+            ApprovalDecision.Approved);
 
         // Proceed to the next activity
         await next.Execute(context).ConfigureAwait(false);
