@@ -132,6 +132,15 @@ public interface IEngine
     /// </summary>
     Task<string?> ReadDestroyPlanSignals(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The plan in full, as the engine's own show command produces it, gzipped. Null where the
+    /// engine cannot produce one. The counts a plan step reports are a summary of this.
+    /// </summary>
+    Task<byte[]?> ReadApplyPlanPayload(CancellationToken cancellationToken = default);
+
+    /// <summary>The same for a destroy plan.</summary>
+    Task<byte[]?> ReadDestroyPlanPayload(CancellationToken cancellationToken = default);
+
     Task<OutputSetCreateDto?> ParseJsonToModuleOutputSet(
         string json, Dictionary<string, bool>? outputSources = null);
 }

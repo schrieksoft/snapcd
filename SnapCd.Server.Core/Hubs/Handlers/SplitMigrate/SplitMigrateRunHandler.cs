@@ -64,7 +64,7 @@ public class SplitMigrateRunHandler
     {
         try
         {
-            _logger.LogError("Runner faulted SplitMigrateRun for job {JobId}: {ErrorMessage}", jobId, errorMessage);
+            _logger.LogDebug("Runner faulted SplitMigrateRun for job {JobId}: {ErrorMessage}", jobId, errorMessage);
 
             await _bus.Publish(new SplitMigrateRunFaulted
             {

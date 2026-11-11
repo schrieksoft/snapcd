@@ -42,7 +42,7 @@ public abstract class StateMigrationStepHandler<TCompleted, TCancelled, TFaulted
 
     public async Task Fault(Guid jobId, Guid organizationId, string? errorMessage, string? stackTrace)
     {
-        logger.LogError("Runner faulted {Step} for job {JobId}: {ErrorMessage}", Step, jobId, errorMessage);
+        logger.LogDebug("Runner faulted {Step} for job {JobId}: {ErrorMessage}", Step, jobId, errorMessage);
 
         await bus.Publish(new TFaulted
         {

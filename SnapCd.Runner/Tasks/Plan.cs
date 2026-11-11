@@ -118,6 +118,10 @@ public partial class Tasks
             taskContext.LogInformation(
                 $"Plan summary:\n- Unchanged Outputs: {unchangedOutputsCount}\n- Create Outputs:    {createOutputsCount}\n- Modify Outputs:    {modifyOutputsCount}\n- Destroyed Outputs: {destroyOutputsCount}\n- Recreate Outputs:  {recreateOutputsCount}");
 
+            // The plan file exists only once the plan has run. A reader wants it in full, and
+            // the counts above are a summary of it.
+            var planPayload = await engine.ReadApplyPlanPayload(killCts.Token);
+
             // Build response data
             var planData = new PlanCompletedData
             {
@@ -144,7 +148,8 @@ public partial class Tasks
                 OutputsRecreateList = plan.GetOutputChange(PlanAction.Replace).Select(o => o.Name).ToList(),
                 // Every output with its value, so a consumer can be planned against what this one
                 // will become rather than what it is now.
-                OutputSignalsJson = await engine.ReadApplyPlanSignals(killCts.Token)
+                OutputSignalsJson = await engine.ReadApplyPlanSignals(killCts.Token),
+                PlanPayload = planPayload
             };
 
             await InvokeWithRetryAsync(

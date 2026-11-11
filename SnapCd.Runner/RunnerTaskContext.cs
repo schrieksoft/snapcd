@@ -54,6 +54,13 @@ public class RunnerTaskContext
         => Emit(LogLevel.Information, message, subContext);
 
     /// <summary>
+    /// A line from something other than Snap CD, tagged with where it came from so a reader of
+    /// the log can tell one block from another without parsing the text.
+    /// </summary>
+    public void LogTagged(string message, Dictionary<string, string> tags, string subContext = "")
+        => Emit(LogLevel.Information, message, subContext, tags);
+
+    /// <summary>
     /// Snap CD's own narration around a task, dimmed so the tool's output is what stands out in
     /// the job log. The escape codes survive to the dashboard, which renders ANSI as HTML.
     /// </summary>
@@ -87,7 +94,7 @@ public class RunnerTaskContext
     public void LogError(string message, string subContext = "")
         => Emit(LogLevel.Error, message, subContext);
 
-    private void Emit(LogLevel level, string message, string subContext)
+    private void Emit(LogLevel level, string message, string subContext, Dictionary<string, string>? tags = null)
     {
         var taskName = string.Join(".", _taskName, subContext).Trim('.');
 
@@ -107,7 +114,8 @@ public class RunnerTaskContext
             ModuleName: _metadata.ModuleName,
             Level: level,
             LogCorrelationId: _logCorrelationId,
-            LogCorrelationDiscriminator: _logCorrelationDiscriminator);
+            LogCorrelationDiscriminator: _logCorrelationDiscriminator,
+            Tags: tags);
         _ = _shipper.EmitAsync(envelope, message);
     }
 }

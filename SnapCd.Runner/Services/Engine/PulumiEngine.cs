@@ -78,6 +78,20 @@ public class PulumiEngine : BaseEngine, IEngine
         return Task.FromResult<string?>(null);
     }
 
+    /// <summary>
+    /// Nothing yet. Pulumi's preview has a machine-readable form of its own, with a different
+    /// shape from the one the structural view reads, so it needs its own translation.
+    /// </summary>
+    public Task<byte[]?> ReadApplyPlanPayload(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<byte[]?>(null);
+    }
+
+    public Task<byte[]?> ReadDestroyPlanPayload(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<byte[]?>(null);
+    }
+
     public IParsedPlan ParseDestroyPlan()
     {
         return ParsePlanFile(GetDestroyPreviewPath());

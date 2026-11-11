@@ -94,7 +94,7 @@ public class SourceRefreshHandler
     {
         try
         {
-            _logger.LogError("Runner faulted source refresh for {SourceUrl} @ {SourceRevision}: {ErrorMessage}",
+            _logger.LogDebug("Runner faulted source refresh for {SourceUrl} @ {SourceRevision}: {ErrorMessage}",
                 sourceUrl, sourceRevision, errorMessage);
 
             // Publish fault event directly - no tracking needed

@@ -81,7 +81,7 @@ public abstract class VariableHandler<TInvoked, TCompleted, TCancelled, TFaulted
     {
         try
         {
-            _logger.LogError("Runner faulted Variables for job {JobId}: {ErrorMessage}",
+            _logger.LogDebug("Runner faulted Variables for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
             await _bus.Publish(new TFaulted

@@ -19,6 +19,8 @@
 @using Microsoft.Extensions.Options
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Services.Nonsecured.Logs
+@using SnapCd.Server.Core.Services.Nonsecured.Plans
+@using SnapCd.Server.Core.UI.Dashboard.Components.Plan
 @using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
 @using SnapCd.Server.Core.Services.Secured.Logs
 @using SnapCd.Server.Core.Services.Utils.PrincipalProvider
@@ -123,7 +125,58 @@ else
                                    OnClick="@(() => DownloadJson(task))"/>
                 </MudTooltip>
             </MudStack>
-            @if (IsHiddenAsLarge(task))
+
+            @* A plan task shows the same plan two ways. Raw is what the engine printed. Structured
+               is the plan the engine saved, walked into a tree, which reads a changed value the
+               same way wherever it sits. The engine prints a changed value whole wherever a
+               collection holds it, so a small change in a long value is hard to find in the raw
+               form. *@
+            @if (HasPlan(task))
+            {
+                <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-3"
+                         KeepPanelsAlive="true"
+                         ActivePanelIndex="@(ShowingStructured(task) ? 1 : 0)"
+                         ActivePanelIndexChanged="@(i => ShowStructured(task, i == 1))">
+                    <MudTabPanel Text="Raw" Style="text-transform: none">
+                        @if (IsHiddenAsLarge(task))
+                        {
+                            <MudText Typo="Typo.body2" Class="mb-2">
+                                These logs are very large (@FormatSize(TaskBytes(task))). Consider downloading them instead of viewing them here.
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Secondary" Size="Size.Small"
+                                       OnClick="@(() => Reveal(task))" Class="mb-2">
+                                Show logs
+                            </MudButton>
+                        }
+                        else
+                        {
+                            @if (HasOlderFor(task))
+                            {
+                                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Secondary" Size="Size.Small"
+                                           OnClick="LoadMoreLogs" Class="mb-2">
+                                    Load more logs
+                                </MudButton>
+                            }
+                            <div style="padding: 1em; background: #000000; color: white; font-family: monospace; white-space: pre-wrap;">@((MarkupString)(_htmlLogs.GetValueOrDefault(task) ?? string.Empty))</div>
+                        }
+                    </MudTabPanel>
+                    <MudTabPanel Text="Structured" Style="text-transform: none">
+                        @if (_plan is not null)
+                        {
+                            <PlanTree Plan="@_plan"/>
+                        }
+                        else if (_planRead)
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">This job saved no plan.</MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">Reading the plan...</MudText>
+                        }
+                    </MudTabPanel>
+                </MudTabs>
+            }
+            else if (IsHiddenAsLarge(task))
             {
                 <MudText Typo="Typo.body2" Class="mb-2">
                     These logs are very large (@FormatSize(TaskBytes(task))). Consider downloading them instead of viewing them here.
@@ -158,6 +211,13 @@ else
 
 @code {
     [Parameter] public Guid JobId { get; set; }
+
+    /// <summary>
+    /// Reads the job's saved plan. A plan task then shows the same plan two ways: as the engine
+    /// printed it, and as a tree built from what the engine saved. Left unset, the task shows the
+    /// printed form only, which is what a job with no saved plan does.
+    /// </summary>
+    [Parameter] public Func<Task<byte[]?>>? ReadPlan { get; set; }
     [Parameter] public string? InitialTask { get; set; }
     [Parameter] public string[]? TaskFilter { get; set; }
 
@@ -227,6 +287,7 @@ else
         {
             if (_expandedTask == taskKey) return;
             _expandedTask = taskKey;
+            await LoadPlan(taskKey);
             await OnTaskChanged.InvokeAsync(taskKey);
         }
         else
@@ -235,6 +296,42 @@ else
             _expandedTask = null;
             await OnTaskChanged.InvokeAsync(null);
         }
+    }
+
+    private ParsedPlan? _plan;
+    private bool _planRead;
+    private readonly HashSet<string> _structuredShown = [];
+
+    /// <summary>The tasks that save a plan. A transfer and a split plan under their own names.</summary>
+    private static bool IsPlanTask(string task)
+        => BareTask(task) is "Plan" or "PlanDestroy";
+
+    private bool HasPlan(string task) => ReadPlan is not null && IsPlanTask(task);
+
+    private bool ShowingStructured(string task) => _structuredShown.Contains(task);
+
+    /// <summary>
+    /// The plan is read when a reader asks for the structured view, not with the job. It is the
+    /// whole plan rather than a summary, and most readers of a job never open it.
+    /// </summary>
+    private async Task ShowStructured(string task, bool structured)
+    {
+        if (structured) _structuredShown.Add(task);
+        else _structuredShown.Remove(task);
+
+        await LoadPlan(task);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Reads the job's plan once. A job has one plan, and both of its plan tasks describe it.
+    /// </summary>
+    private async Task LoadPlan(string task)
+    {
+        if (_planRead || ReadPlan is null || !IsPlanTask(task)) return;
+
+        _planRead = true;
+        _plan = PlanReader.Read(await ReadPlan());
     }
 
     private string ConvertToWrappedHtml(string ansiText)

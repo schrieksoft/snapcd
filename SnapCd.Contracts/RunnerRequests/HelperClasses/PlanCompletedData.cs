@@ -48,4 +48,7 @@ public class PlanCompletedData
     /// Absent for an engine whose plan carries no encoded outputs.
     /// </summary>
     public string? OutputSignalsJson { get; set; }
+
+    /// <summary>Gzipped JSON of the plan, as the engine's own show command produces it.</summary>
+    public byte[]? PlanPayload { get; set; }
 }

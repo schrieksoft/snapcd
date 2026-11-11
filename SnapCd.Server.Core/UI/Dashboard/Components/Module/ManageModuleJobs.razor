@@ -188,6 +188,7 @@ else
                             <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto" JobId="@job.Id"
                                       InitialTask="@(job.Id == _expandedJobId ? _activeTask : null)"
                                       OnTaskChanged="@(t => OnLogTaskChanged(job.Id, t))"
+                                      ReadPlan="@(() => ReadPlan(job.Id))"
                                       @ref="_listLogsRefs[job.Id]"/>
                             @if (job.WaitingForApproval == true)
                             {
@@ -236,6 +237,17 @@ else
     [Inject] ModuleJobRepositoryFactory JobRepoFactory { get; set; } = null!;
     [Inject] ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] ModuleJobSecuredRepositoryFactory JobSecuredRepoFactory { get; set; } = null!;
+
+    /// <summary>
+    /// The job's saved plan, read when a reader opens the plan's changes rather than with the job.
+    /// </summary>
+    private async Task<byte[]?> ReadPlan(Guid jobId)
+    {
+        using var repo = JobSecuredRepoFactory.Create(
+            new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+
+        return await repo.ReadPlan(jobId, OrganizationId);
+    }
 
     private string? RunJobDisabledReason =>
         IsPaused ? "Jobs are paused for this module." : null;

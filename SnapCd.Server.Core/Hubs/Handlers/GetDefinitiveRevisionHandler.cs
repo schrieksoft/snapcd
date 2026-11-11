@@ -77,7 +77,7 @@ public abstract class GetDefinitiveRevisionHandler<TCompleted, TCancelled, TFaul
     {
         try
         {
-            _logger.LogError("Runner faulted GetDefinitiveRevision for job {JobId}: {ErrorMessage}",
+            _logger.LogDebug("Runner faulted GetDefinitiveRevision for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
             await _bus.Publish(new TFaulted

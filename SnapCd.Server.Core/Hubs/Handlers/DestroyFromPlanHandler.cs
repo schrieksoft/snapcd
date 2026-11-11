@@ -72,7 +72,7 @@ public class DestroyFromPlanHandler
     {
         try
         {
-            _logger.LogError("Runner faulted DestroyFromPlan for job {JobId}: {ErrorMessage}",
+            _logger.LogDebug("Runner faulted DestroyFromPlan for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
             await _bus.Publish(new DestroyFromPlanFaulted

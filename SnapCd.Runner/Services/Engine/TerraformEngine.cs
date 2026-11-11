@@ -62,6 +62,45 @@ public class TerraformEngine : BaseEngine, IEngine
     public Task<string?> ReadDestroyPlanSignals(CancellationToken cancellationToken = default) =>
         ReadPlanSignals(GetPlanDestroyPath(), "destroy-plan-signals.json", cancellationToken);
 
+    public Task<byte[]?> ReadApplyPlanPayload(CancellationToken cancellationToken = default)
+        => ReadPlanPayload(GetPlanApplyPath(), "plan.json", cancellationToken);
+
+    public Task<byte[]?> ReadDestroyPlanPayload(CancellationToken cancellationToken = default)
+        => ReadPlanPayload(GetPlanDestroyPath(), "destroy-plan.json", cancellationToken);
+
+    /// <summary>
+    /// The engine's own machine-readable form of the saved plan. Its show command writes to
+    /// standard output and has no output flag, so the script redirects it to a file: a plan can
+    /// be several megabytes and there is no reason for it to pass through a string.
+    /// </summary>
+    private async Task<byte[]?> ReadPlanPayload(
+        string planPath,
+        string jsonFileName,
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(planPath)) return null;
+
+        var jsonPath = $"{SnapCdDir}/{jsonFileName}";
+
+        // Not logged: the plan's own output has already been shown, and this would repeat it in a
+        // form nobody reads.
+        await RunProcess(
+            $"{_engine} show -json \"{planPath}\" > \"{jsonPath}\"",
+            cancellationToken,
+            logOutput: false);
+
+        if (!File.Exists(jsonPath)) return null;
+
+        var bytes = await File.ReadAllBytesAsync(jsonPath, cancellationToken);
+        if (bytes.Length == 0) return null;
+
+        using var buffer = new MemoryStream();
+        using (var gzip = new GZipStream(buffer, CompressionLevel.Optimal, leaveOpen: true))
+            await gzip.WriteAsync(bytes, cancellationToken);
+
+        return buffer.ToArray();
+    }
+
     private async Task<string?> ReadPlanSignals(
         string planPath,
         string signalsFileName,

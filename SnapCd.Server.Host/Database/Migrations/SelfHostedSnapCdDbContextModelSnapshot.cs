@@ -2411,6 +2411,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<int?>("PlanModifyCount")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("PlanPayload")
+                        .HasColumnType("varbinary(max)");
+
                     b.Property<int?>("PlanRecreateCount")
                         .HasColumnType("int");
 

@@ -76,7 +76,7 @@ public abstract class GetModuleHandler<TCompleted, TCancelled, TFaulted>
     {
         try
         {
-            _logger.LogError("Runner faulted GetModule for job {JobId}: {ErrorMessage}",
+            _logger.LogDebug("Runner faulted GetModule for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
             await _bus.Publish(new TFaulted

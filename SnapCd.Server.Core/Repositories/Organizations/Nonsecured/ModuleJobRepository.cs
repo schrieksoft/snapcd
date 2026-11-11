@@ -287,6 +287,17 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         return value.Length <= maxLength ? value : value[..maxLength];
     }
 
+    /// <summary>
+    /// A job's plan, in the engine's own machine-readable form, gzipped. Null where the job never
+    /// planned, or planned before plans were kept. Projected on its own so that reading a plan is
+    /// a deliberate act rather than a cost on every read of a job.
+    /// </summary>
+    public async Task<byte[]?> ReadPlan(Guid id, Guid organizationId)
+        => await DbContext.ModuleJobs
+            .Where(j => j.Id == id && j.OrganizationId == organizationId)
+            .Select(j => j.PlanPayload)
+            .FirstOrDefaultAsync();
+
     public async Task UpdateOutputLists(
         Guid id,
         Guid organizationId,
@@ -300,7 +311,8 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         int? planModifyCount = null,
         int? planDestroyCount = null,
         int? planRecreateCount = null,
-        string? outputSignalsJson = null)
+        string? outputSignalsJson = null,
+        byte[]? planPayload = null)
     {
         var job = await Get(id, organizationId);
         job.OutputsUnchangedList = Truncate(unchangedList, 4000);
@@ -314,6 +326,10 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         job.PlanDestroyCount = planDestroyCount;
         job.PlanRecreateCount = planRecreateCount;
         job.OutputSignalsJson = Truncate(outputSignalsJson, 16000);
+
+        // A replan overwrites the previous plan; a step that carries none leaves it alone.
+        if (planPayload is not null) job.PlanPayload = planPayload;
+
         await ExecuteUpdate(job);
     }
 }

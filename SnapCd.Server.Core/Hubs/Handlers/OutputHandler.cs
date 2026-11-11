@@ -81,7 +81,7 @@ public abstract class OutputHandler<TInvoked, TCancelled, TFaulted>
     {
         try
         {
-            _logger.LogError("Runner faulted Output for job {JobId}: {ErrorMessage}",
+            _logger.LogDebug("Runner faulted Output for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
             await _bus.Publish(new TFaulted

@@ -36,7 +36,7 @@ public class SplitValidateHandler
 
     public async Task Fault(Guid jobId, Guid organizationId, string? errorMessage, string? stackTrace)
     {
-        _logger.LogWarning("Runner faulted Validate for split job {JobId}: {Error}", jobId, errorMessage);
+        _logger.LogDebug("Runner faulted Validate for split job {JobId}: {Error}", jobId, errorMessage);
         await _bus.Publish(new SplitValidateFaulted
         {
             CorrelationId = jobId,

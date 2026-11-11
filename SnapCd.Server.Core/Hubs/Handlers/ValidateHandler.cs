@@ -76,7 +76,7 @@ public abstract class ValidateHandler<TCompleted, TCancelled, TFaulted>
     {
         try
         {
-            _logger.LogError("Runner faulted Validate for job {JobId}: {ErrorMessage}",
+            _logger.LogDebug("Runner faulted Validate for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
             await _bus.Publish(new TFaulted

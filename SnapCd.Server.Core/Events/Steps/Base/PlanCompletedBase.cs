@@ -42,6 +42,9 @@ public class PlanCompletedBase : StepResponseBase
     /// </summary>
     public string? OutputSignalsJson { get; set; }
 
+    /// <summary>Gzipped JSON of the plan, as the engine's own show command produces it.</summary>
+    public byte[]? PlanPayload { get; set; }
+
     /// <summary>
     /// Outcome of policies evaluated inside the plan step itself (Pulumi/CrossGuard advisory
     /// results ride the completed plan). Null when no policies were in scope.

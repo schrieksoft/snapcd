@@ -216,8 +216,7 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TMetadata, TReposi
     public virtual async Task<TMetadata> GetMetadata(Guid id, Guid organizationId)
     {
         if (!CanReadMetadata(id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{typeof(TEntity).Name} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+            throw NotReadable(id, organizationId);
 
         return await Repository.GetMetadata(id, organizationId);
     }

@@ -67,7 +67,7 @@ public class SplitPlanEmptyVerifyHandler
     {
         try
         {
-            _logger.LogError("Runner faulted SplitPlanEmptyVerify for job {JobId}: {ErrorMessage}", jobId, errorMessage);
+            _logger.LogDebug("Runner faulted SplitPlanEmptyVerify for job {JobId}: {ErrorMessage}", jobId, errorMessage);
 
             await _bus.Publish(new SplitPlanEmptyVerifyFaulted
             {

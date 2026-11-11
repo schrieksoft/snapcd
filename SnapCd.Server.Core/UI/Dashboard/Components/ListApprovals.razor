@@ -12,6 +12,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Entities.Sagas
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Nonsecured.Plans
 @using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
 @using SnapCd.Server.Core.Services.Utils.Notification
 @using SnapCd.Server.Core.Services.Utils.PrincipalProvider
@@ -87,7 +88,7 @@
 
         <MudPaper Elevation="0" Class="pa-4">
             <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
-            <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
+            <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" ReadPlan="@ReadPlanPayload" @ref="_inlineLogsRef"/>
         </MudPaper>
 
         <ListProbes @ref="_probesRef" ModuleJobId="@ModuleJobId" ModuleId="@ModuleId"
@@ -232,6 +233,19 @@
             <MudText Typo="Typo.caption" Class="mud-text-secondary">@label</MudText>
         </MudStack>;
 
+
+    /// <summary>
+    /// The job's saved plan, read when a reader opens the plan's changes rather than with the job.
+    /// </summary>
+    private async Task<byte[]?> ReadPlanPayload()
+    {
+        var principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        var principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+        using var repo = ModuleJobRepoFactory.Create(
+            new LiteralPrincipalProvider(principalId, principalDiscriminator, [OrganizationId]));
+
+        return await repo.ReadPlan(ModuleJobId, OrganizationId);
+    }
 
     private async Task ReloadModuleJobStatus()
     {

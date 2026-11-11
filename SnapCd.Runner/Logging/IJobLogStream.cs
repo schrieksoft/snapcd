@@ -38,4 +38,5 @@ public sealed record JobLogEnvelope(
     string ModuleName,
     LogLevel Level,
     Guid? LogCorrelationId = null,
-    LogCorrelationDiscriminator? LogCorrelationDiscriminator = null);
+    LogCorrelationDiscriminator? LogCorrelationDiscriminator = null,
+    Dictionary<string, string>? Tags = null);
