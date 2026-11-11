@@ -83,8 +83,6 @@ else
                                     {
                                         <span>&nbsp;</span><span style="@Accent">@vr.Node.EmbeddedFormat</span>
                                     }
-                                    <span>&nbsp;</span>
-                                    <span style="@Muted">@TreeView.Shape(vr.Node)</span>
                                     @if (vr.Node.ChangedLeaves > 0)
                                     {
                                         <span>&nbsp;</span>
@@ -118,6 +116,13 @@ else
 
     private const string Muted = "color: #9AA4AF;";
     private const string Accent = "color: #E85D1A;";
+
+    /// <summary>
+    /// A darker red than the palette's error, used only in this view. The palette binds Warning to
+    /// the accent, so a destroy and an update sit at a contrast ratio of 1.19 against each other
+    /// and read as one colour in a dense tree. This separates them while staying legible on black.
+    /// </summary>
+    private const string Destructive = "#C4342B";
 
     private void ToggleResource(string address)
     {
@@ -181,7 +186,7 @@ else
             {
                 @if (c.Before is not null)
                 {
-                    <span style="color: #DB4A3F;">@Show(c.Before)</span>
+                    <span style="@($"color: {Destructive};")">@Show(c.Before)</span>
                 }
                 @if (c.Before is not null && c.After is not null)
                 {
@@ -254,8 +259,8 @@ else
     private static string NodeColour(NodeAction action) => action switch
     {
         NodeAction.Added => "#00B368",
-        NodeAction.Removed => "#DB4A3F",
-        NodeAction.Replaced => "#DB4A3F",
+        NodeAction.Removed => Destructive,
+        NodeAction.Replaced => Destructive,
         NodeAction.Changed => "#E85D1A",
         _ => "#7D8896"
     };
@@ -263,8 +268,8 @@ else
     private static string Colour(ResourceAction action) => action switch
     {
         ResourceAction.Create => "#00B368",
-        ResourceAction.Delete => "#DB4A3F",
-        ResourceAction.Replace => "#DB4A3F",
+        ResourceAction.Delete => Destructive,
+        ResourceAction.Replace => Destructive,
         ResourceAction.Update => "#E85D1A",
         _ => "#9AA4AF"
     };

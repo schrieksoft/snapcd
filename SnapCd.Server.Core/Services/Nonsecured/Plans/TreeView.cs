@@ -144,13 +144,4 @@ public static class TreeView
         return options.AutoExpandChanged && node.HasChange;
     }
 
-    /// <summary>
-    /// What a container row says about its own shape. The row's marker already says whether it is
-    /// added, removed or changed, so repeating that here made a scalar without a bracket look as
-    /// though it was not removed.
-    /// </summary>
-    public static string Shape(DiffNode node)
-        => node.Kind == NodeKind.Array
-            ? $"{node.Children.Count} item{(node.Children.Count == 1 ? "" : "s")}"
-            : $"{node.Children.Count} key{(node.Children.Count == 1 ? "" : "s")}";
 }
