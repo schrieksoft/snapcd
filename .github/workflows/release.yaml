@@ -136,6 +136,19 @@ jobs:
               /p:InformationalVersion=$SEMVER+$SHORT_SHA
           done
 
+          # The CLI runs on people's machines, so it ships for every platform as one
+          # self-contained file that needs no .NET runtime.
+          for rid in linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64 win-arm64; do
+            dotnet publish SnapCd.Cli/SnapCd.Cli.csproj \
+              -c Release -o "out-cli/snapcd-cli-$rid" \
+              -r $rid --self-contained \
+              /p:PublishSingleFile=true \
+              /p:EnableCompressionInSingleFile=true \
+              /p:DebugType=none \
+              /p:Version=$SEMVER \
+              /p:InformationalVersion=$SEMVER+$SHORT_SHA
+          done
+
       - name: Zip binaries
         if: steps.norelease.outputs.skip != 'true'
         env:
@@ -147,6 +160,12 @@ jobs:
             name="$(basename "$d")"
             cp LICENSE.md "$d"
             (cd "$src" && zip -r "../release-assets/${name}-${SEMVER}.zip" "$name")
+          done
+          # One zip per platform, holding the snapcd binary at its root.
+          for d in out-cli/*/; do
+            rid="$(basename "$d" | sed 's/^snapcd-cli-//')"
+            cp LICENSE.md "$d"
+            (cd "$d" && zip -r "$GITHUB_WORKSPACE/release-assets/snapcd-cli-${SEMVER}-${rid}.zip" .)
           done
           ls -la release-assets
 
