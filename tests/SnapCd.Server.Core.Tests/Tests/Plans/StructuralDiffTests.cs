@@ -199,6 +199,58 @@ public class StructuralDiffTests
         Assert.False(diff.Root.HasChange);
     }
 
+    /// <summary>
+    /// A created resource has no before, and a destroyed one has no after. The walk still descends
+    /// the side that exists, so a reader can open the resource and see what it holds. Without this
+    /// a whole resource is one leaf and its tree is empty.
+    /// </summary>
+    [Fact]
+    public void A_created_resource_has_a_tree()
+    {
+        var json =
+            "{\"format_version\": \"1.2\", \"terraform_version\": \"test\", " +
+            "\"resource_changes\": [{\"address\": \"test.one\", \"type\": \"test\", " +
+            "\"provider_name\": \"test\", \"change\": {\"actions\": [\"create\"], " +
+            "\"before\": null, \"after\": {\"input\": {\"a\": 1, \"b\": 2}}}}]}";
+
+        var resource = PlanReader.Parse(json).Resources.Single();
+
+        Assert.NotEmpty(resource.Root.Children);
+        Assert.Equal(2, resource.ChangedLeaves);
+        Assert.All(Leaves(resource), l => Assert.Equal(NodeAction.Added, l.Action));
+    }
+
+    [Fact]
+    public void A_destroyed_resource_has_a_tree()
+    {
+        var json =
+            "{\"format_version\": \"1.2\", \"terraform_version\": \"test\", " +
+            "\"resource_changes\": [{\"address\": \"test.one\", \"type\": \"test\", " +
+            "\"provider_name\": \"test\", \"change\": {\"actions\": [\"delete\"], " +
+            "\"before\": {\"input\": {\"a\": 1, \"b\": 2}}, \"after\": null}}]}";
+
+        var resource = PlanReader.Parse(json).Resources.Single();
+
+        Assert.NotEmpty(resource.Root.Children);
+        Assert.Equal(2, resource.ChangedLeaves);
+        Assert.All(Leaves(resource), l => Assert.Equal(NodeAction.Removed, l.Action));
+    }
+
+    /// <summary>A created resource's tree reaches inside a document it holds as a string.</summary>
+    [Fact]
+    public void A_created_resource_descends_into_an_embedded_document()
+    {
+        var json =
+            "{\"format_version\": \"1.2\", \"terraform_version\": \"test\", " +
+            "\"resource_changes\": [{\"address\": \"test.one\", \"type\": \"test\", " +
+            "\"provider_name\": \"test\", \"change\": {\"actions\": [\"create\"], " +
+            "\"before\": null, \"after\": {\"spec\": " + Json("replicas: 2\nimage: app\n") + "}}}]}";
+
+        var resource = PlanReader.Parse(json).Resources.Single();
+
+        Assert.Contains(Leaves(resource), l => l.Path == "spec.replicas");
+    }
+
     private static ResourceDiff Resource(string change)
     {
         var json =

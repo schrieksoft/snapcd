@@ -86,12 +86,12 @@ public static class StructuralDiff
         if (before is null)
             return isSensitive
                 ? new DiffNode { Name = name, Path = path, Kind = KindOf(after), Action = NodeAction.Added, Sensitive = true }
-                : Leaf(name, path, null, after, NodeAction.Added, false);
+                : OneSided(name, path, after!.Value, NodeAction.Added, options);
 
         if (after is null)
             return isSensitive
                 ? new DiffNode { Name = name, Path = path, Kind = KindOf(before), Action = NodeAction.Removed, Sensitive = true }
-                : Leaf(name, path, before, null, NodeAction.Removed, false);
+                : OneSided(name, path, before!.Value, NodeAction.Removed, options);
 
         var b = before.Value;
         var a = after.Value;
@@ -232,6 +232,70 @@ public static class StructuralDiff
             Action = NodeAction.Changed, Before = b, After = a,
             Multiline = multiline, Sensitive = isSensitive
         };
+    }
+
+    /// <summary>
+    /// A value that only one side has, which is every value of a resource being created or
+    /// destroyed. The walk still descends it, so a reader can open a new resource and see what it
+    /// holds. Without this a whole resource is one leaf, and a created resource has no tree.
+    /// </summary>
+    private static DiffNode OneSided(
+        string name, string path, JsonElement value, NodeAction action, DiffOptions options)
+    {
+        var node = new DiffNode
+        {
+            Name = name,
+            Path = path,
+            Kind = KindOf(value),
+            Action = action,
+            Before = action == NodeAction.Removed ? value : null,
+            After = action == NodeAction.Added ? value : null
+        };
+
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.Object:
+                var properties = value.EnumerateObject().AsEnumerable();
+                if (options.NormaliseKeyOrder)
+                    properties = properties.OrderBy(p => p.Name, StringComparer.Ordinal);
+
+                foreach (var property in properties)
+                    node.Children.Add(OneSided(
+                        property.Name,
+                        path.Length == 0 ? property.Name : $"{path}.{property.Name}",
+                        property.Value, action, options));
+                break;
+
+            case JsonValueKind.Array:
+                var index = 0;
+                foreach (var element in value.EnumerateArray())
+                {
+                    node.Children.Add(OneSided($"[{index}]", $"{path}[{index}]", element, action, options));
+                    index++;
+                }
+
+                break;
+
+            case JsonValueKind.String when options.DescendIntoEmbedded
+                                           && EmbeddedDocument.TryParse(value.GetString() ?? "", out var doc, out var format):
+                var inner = OneSided(name, path, doc!.Value, action, options);
+                node.Children.AddRange(inner.Children);
+                return new DiffNode
+                {
+                    Name = name, Path = path, Kind = inner.Kind, Action = action,
+                    Before = node.Before, After = node.After,
+                    Embedded = true, EmbeddedFormat = format
+                }.With(node.Children);
+        }
+
+        return node;
+    }
+
+    /// <summary>Copies children onto a node, so an embedded document keeps what was walked.</summary>
+    private static DiffNode With(this DiffNode node, List<DiffNode> children)
+    {
+        node.Children.AddRange(children);
+        return node;
     }
 
     private static DiffNode Leaf(
