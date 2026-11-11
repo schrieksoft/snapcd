@@ -124,38 +124,43 @@ else
                                    OnClick="@(() => DownloadJson(task))"/>
                 </MudTooltip>
 
-                @* A plan task shows the same plan two ways. Raw is what the engine printed.
-                   Structured is the plan the engine saved, walked into a tree, which reads a
-                   changed value the same way wherever it sits. The engine prints a changed value
-                   whole wherever a collection holds it, so a small change in a long value is hard
-                   to find in the raw form. *@
-                @if (HasPlan(task))
-                {
-                    <MudButtonGroup Variant="Variant.Filled" Color="MudBlazor.Color.Secondary" Size="Size.Small" Class="ml-2">
-                        <MudButton OnClick="@(() => ShowStructured(task, false))"
-                                   Style="@(ShowingStructured(task) ? "opacity: 0.45; filter: grayscale(0.8);" : "")">
-                            Raw
-                        </MudButton>
-                        <MudButton OnClick="@(() => ShowStructured(task, true))"
-                                   Style="@(ShowingStructured(task) ? "" : "opacity: 0.45; filter: grayscale(0.8);")">
-                            Structured
-                        </MudButton>
-                    </MudButtonGroup>
-                }
             </MudStack>
 
-            @if (ShowingStructured(task))
+            @* A plan task shows the same plan two ways. Raw is what the engine printed. Structured
+               is the plan the engine saved, walked into a tree, which reads a changed value the
+               same way wherever it sits. The engine prints a changed value whole wherever a
+               collection holds it, so a small change in a long value is hard to find in the raw
+               form. *@
+            @if (HasPlan(task))
             {
-                @if (_plan is null)
-                {
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Reading the plan...</MudText>
-                }
-                else
-                {
-                    <PlanTree Plan="@_plan"/>
-                }
+                <MudTabs Elevation="0" Rounded="false" ApplyEffectsToContainer="true" PanelClass="pt-3"
+                         ActivePanelIndex="@(ShowingStructured(task) ? 1 : 0)"
+                         ActivePanelIndexChanged="@(i => ShowStructured(task, i == 1))">
+                    <MudTabPanel Text="Raw" Style="text-transform: none">
+                        @RawLog(task)
+                    </MudTabPanel>
+                    <MudTabPanel Text="Structured" Style="text-transform: none">
+                        @if (_plan is null)
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">Reading the plan...</MudText>
+                        }
+                        else
+                        {
+                            <PlanTree Plan="@_plan"/>
+                        }
+                    </MudTabPanel>
+                </MudTabs>
             }
-            else if (IsHiddenAsLarge(task))
+            else
+            {
+                @RawLog(task)
+            }
+        </text>;
+
+    @* A task's log as the engine printed it. *@
+    RenderFragment RawLog(string task) =>
+        @<text>
+            @if (IsHiddenAsLarge(task))
             {
                 <MudText Typo="Typo.body2" Class="mb-2">
                     These logs are very large (@FormatSize(TaskBytes(task))). Consider downloading them instead of viewing them here.
@@ -277,6 +282,7 @@ else
     }
 
     private ParsedPlan? _plan;
+    private bool _planRead;
     private readonly HashSet<string> _structuredShown = [];
 
     /// <summary>The tasks that save a plan. A transfer and a split plan under their own names.</summary>
@@ -296,8 +302,14 @@ else
         if (structured) _structuredShown.Add(task);
         else _structuredShown.Remove(task);
 
-        if (!structured || _plan is not null || ReadPlan is null) return;
+        if (!structured || _planRead || ReadPlan is null)
+        {
+            StateHasChanged();
+            return;
+        }
 
+        // Read once per component. A job has one plan, and both of its plan tasks describe it.
+        _planRead = true;
         _plan = PlanReader.Read(await ReadPlan());
         StateHasChanged();
     }
