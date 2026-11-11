@@ -64,7 +64,7 @@ public class SplitRefactorDiffHandler
     {
         try
         {
-            _logger.LogError("Runner faulted SplitRefactorDiff for job {JobId}: {ErrorMessage}", jobId, errorMessage);
+            _logger.LogDebug("Runner faulted SplitRefactorDiff for job {JobId}: {ErrorMessage}", jobId, errorMessage);
 
             await _bus.Publish(new SplitRefactorDiffFaulted
             {

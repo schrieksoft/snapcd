@@ -64,7 +64,7 @@ public class SplitRefactorValidateHandler
     {
         try
         {
-            _logger.LogError("Runner faulted SplitRefactorValidate for job {JobId}: {ErrorMessage}", jobId, errorMessage);
+            _logger.LogDebug("Runner faulted SplitRefactorValidate for job {JobId}: {ErrorMessage}", jobId, errorMessage);
 
             await _bus.Publish(new SplitRefactorValidateFaulted
             {

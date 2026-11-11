@@ -73,7 +73,7 @@ public class ApplyFromPlanHandler
     {
         try
         {
-            _logger.LogError("Runner faulted ApplyFromPlan for job {JobId}: {ErrorMessage}, ResourceCount: {ResourceCount}",
+            _logger.LogDebug("Runner faulted ApplyFromPlan for job {JobId}: {ErrorMessage}, ResourceCount: {ResourceCount}",
                 jobId, errorMessage, actualResourceCount);
 
             await _bus.Publish(new ApplyFromPlanFaulted

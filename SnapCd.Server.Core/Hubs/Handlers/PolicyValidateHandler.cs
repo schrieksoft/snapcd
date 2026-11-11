@@ -76,7 +76,7 @@ public abstract class PolicyValidateHandler<TCompleted, TCancelled, TFaulted>
     {
         try
         {
-            _logger.LogWarning("Runner faulted PolicyValidate for job {JobId}: {Error}", jobId, errorMessage);
+            _logger.LogDebug("Runner faulted PolicyValidate for job {JobId}: {Error}", jobId, errorMessage);
 
             await _bus.Publish(new TFaulted
             {

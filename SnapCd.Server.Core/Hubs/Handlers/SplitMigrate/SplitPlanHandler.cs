@@ -44,7 +44,7 @@ public class SplitPlanHandler
 
     public async Task Fault(Guid jobId, Guid organizationId, string? errorMessage, string? stackTrace)
     {
-        _logger.LogWarning("Runner faulted Plan for split job {JobId}: {Error}", jobId, errorMessage);
+        _logger.LogDebug("Runner faulted Plan for split job {JobId}: {Error}", jobId, errorMessage);
         await _bus.Publish(new SplitPlanFaulted
         {
             CorrelationId = jobId,

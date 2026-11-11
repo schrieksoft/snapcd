@@ -76,7 +76,7 @@ public abstract class InitHandler<TCompleted, TCancelled, TFaulted>
     {
         try
         {
-            _logger.LogError("Runner faulted Init for job {JobId}: {ErrorMessage}",
+            _logger.LogDebug("Runner faulted Init for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
             await _bus.Publish(new TFaulted

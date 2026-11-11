@@ -96,7 +96,7 @@ public class PlanHandler
     {
         try
         {
-            _logger.LogError("Runner faulted Plan for job {JobId}: {ErrorMessage}",
+            _logger.LogDebug("Runner faulted Plan for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
             await _bus.Publish(new ApplyPlanFaulted

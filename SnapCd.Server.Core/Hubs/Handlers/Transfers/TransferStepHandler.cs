@@ -78,7 +78,7 @@ public class TransferStepHandler
         Guid jobId, Guid moduleId, Guid organizationId, string? errorMessage, string? stackTrace)
         where TFaulted : StateMigrationStepFaultedBase, new()
     {
-        _logger.LogError("Runner faulted {Step} for Module {ModuleId} of job {JobId}: {ErrorMessage}",
+        _logger.LogDebug("Runner faulted {Step} for Module {ModuleId} of job {JobId}: {ErrorMessage}",
             typeof(TFaulted).Name, moduleId, jobId, errorMessage);
 
         await _bus.Publish(new TFaulted

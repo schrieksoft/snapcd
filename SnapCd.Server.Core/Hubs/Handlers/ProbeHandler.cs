@@ -71,7 +71,7 @@ public abstract class ProbeHandler<TInvoked, TCancelled, TFaulted>
     {
         try
         {
-            _logger.LogError("Runner faulted Probe for job {JobId}: {ErrorMessage}", jobId, errorMessage);
+            _logger.LogDebug("Runner faulted Probe for job {JobId}: {ErrorMessage}", jobId, errorMessage);
 
             await _bus.Publish(new TFaulted
             {
