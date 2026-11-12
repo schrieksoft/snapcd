@@ -18,6 +18,9 @@ public abstract class HeartbeatRequestedBase : StepResponseBase
 {
     public string? RunnerInstanceName { get; set; }
     public Guid RunnerId { get; set; }
+
+    /// <summary>Whether an earlier heartbeat already found no runner working on this job.</summary>
+    public bool MissedHeartbeat { get; set; }
 }
 
 /// <summary>CorrelationId is a ModuleJob: liveness lives in RunnerConnectionJobs.</summary>

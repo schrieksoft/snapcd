@@ -162,7 +162,11 @@ public class HeartbeatReconnectTests : IAsyncLifetime
         return instanceName;
     }
 
-    private async Task<object> CheckHeartbeat(string instanceName)
+    /// <summary>
+    /// The saga carries the flag and sends it with each request, so a test states what an earlier
+    /// heartbeat found.
+    /// </summary>
+    private async Task<object> CheckHeartbeat(string instanceName, bool missedHeartbeat = false)
     {
         object? response = null;
 
@@ -172,7 +176,8 @@ public class HeartbeatReconnectTests : IAsyncLifetime
             CorrelationId = Guid.NewGuid(),
             OrganizationId = _module.OrganizationId,
             RunnerId = _runner.Id,
-            RunnerInstanceName = instanceName
+            RunnerInstanceName = instanceName,
+            MissedHeartbeat = missedHeartbeat
         });
         contextMock.Setup(c => c.RespondAsync(It.IsAny<HeartbeatCompleted>()))
             .Callback<HeartbeatCompleted>(m => response = m)
@@ -200,14 +205,29 @@ public class HeartbeatReconnectTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Missing_Job_Record_Long_After_A_Reconnect_Fails_With_Reason()
+    public async Task Missing_Job_Record_Survives_One_Heartbeat_However_Old_The_Reconnect_Is()
     {
+        // The age of the connection does not decide this: the grace is one heartbeat, so that it
+        // cannot be spent while no heartbeat is looking.
         var instanceName = await SeedConnection(TimeSpan.FromMinutes(5));
 
         var response = await CheckHeartbeat(instanceName);
 
-        var failed = Assert.IsType<HeartbeatFailed>(response);
-        Assert.Contains("has not reported on this job", failed.Reason);
+        Assert.IsType<HeartbeatCompleted>(response);
+    }
+
+    [Fact]
+    public async Task Missing_Job_Record_Fails_On_The_Second_Heartbeat_With_Reason()
+    {
+        var instanceName = await SeedConnection(TimeSpan.FromSeconds(5));
+
+        // The first heartbeat allows it and tells the saga to remember that it found nothing.
+        var first = Assert.IsType<HeartbeatCompleted>(await CheckHeartbeat(instanceName));
+        Assert.True(first.MissedHeartbeat);
+
+        var failed = Assert.IsType<HeartbeatFailed>(
+            await CheckHeartbeat(instanceName, missedHeartbeat: true));
+        Assert.Contains("has not reported on this job for two heartbeats", failed.Reason);
     }
 
     [Fact]

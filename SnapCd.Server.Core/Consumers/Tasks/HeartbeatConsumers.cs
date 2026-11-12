@@ -15,8 +15,12 @@ namespace SnapCd.Server.Core.Consumers.Tasks;
 
 /// <summary>
 /// Answers one job family's heartbeat by reading when the runner last reported a running task
-/// for the job. The 90 second threshold is the same for every family; which table holds the row
-/// is not, so each family closes this over its own request type and its own query.
+/// for the job. Which table holds that row differs per family, so each family closes this over
+/// its own request type and its own query.
+///
+/// A stale row is judged on age. A missing row is judged on two heartbeats instead, because a
+/// window measured in seconds can expire while no heartbeat is looking, leaving a job that was
+/// read as healthy once and never reassessed.
 /// </summary>
 public abstract class HeartbeatConsumerBase<TRequest> : IConsumer<TRequest>
     where TRequest : HeartbeatRequestedBase
@@ -30,9 +34,10 @@ public abstract class HeartbeatConsumerBase<TRequest> : IConsumer<TRequest>
         _dbContext = dbContext;
     }
 
-    /// <summary>When the runner last reported on this job, or null if it never has.</summary>
+    /// <summary>How stale a report may be before the job is given up on.</summary>
     private const int ThresholdSeconds = 90;
 
+    /// <summary>When the runner last reported on this job, or null if it never has.</summary>
     protected abstract Task<DateTime?> LastReportedAt(SnapCdDbContext _dbContext, Guid organizationId, Guid jobId);
 
     public async Task Consume(ConsumeContext<TRequest> context)
@@ -57,19 +62,21 @@ public abstract class HeartbeatConsumerBase<TRequest> : IConsumer<TRequest>
                     .Select(rc => (DateTime?)rc.CreatedDateTime)
                     .FirstOrDefaultAsync();
 
-                if (reconnectedAt != null && (DateTime.UtcNow - reconnectedAt.Value).TotalSeconds <= ThresholdSeconds)
+                // A connected runner gets one heartbeat to produce a report. The grace is counted
+                // in heartbeats, so it is only ever spent by a heartbeat that observes it.
+                if (reconnectedAt != null && !context.Message.MissedHeartbeat)
                 {
                     _logger.LogDebug(
-                        "Job {CorrelationId} has no runner connection record, but runner instance {Instance} reconnected {Age:F1} seconds ago",
-                        correlationId, context.Message.RunnerInstanceName,
-                        (DateTime.UtcNow - reconnectedAt.Value).TotalSeconds);
-                    await context.RespondAsync(new HeartbeatCompleted());
+                        "Job {CorrelationId} has no runner connection record; runner instance {Instance} is connected, so one heartbeat is allowed for it to report",
+                        correlationId, context.Message.RunnerInstanceName);
+
+                    await context.RespondAsync(new HeartbeatCompleted { MissedHeartbeat = true });
                     return;
                 }
 
                 var reason = reconnectedAt == null
                     ? $"Runner instance '{context.Message.RunnerInstanceName}' is not connected."
-                    : $"Runner instance '{context.Message.RunnerInstanceName}' reconnected at {reconnectedAt.Value:u} but has not reported on this job since.";
+                    : $"Runner instance '{context.Message.RunnerInstanceName}' is connected but has not reported on this job for two heartbeats.";
 
                 _logger.LogWarning("Job {CorrelationId} heartbeat failed: {Reason}", correlationId, reason);
                 await context.RespondAsync(new HeartbeatFailed { CorrelationId = correlationId, Reason = reason });
@@ -88,6 +95,7 @@ public abstract class HeartbeatConsumerBase<TRequest> : IConsumer<TRequest>
             {
                 _logger.LogDebug("Job {CorrelationId} heartbeat successful - last update was {Age:F1} seconds ago",
                     correlationId, age.TotalSeconds);
+
                 await context.RespondAsync(new HeartbeatCompleted());
             }
         }

@@ -8968,6 +8968,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -9073,6 +9076,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
@@ -9183,6 +9189,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
@@ -9297,6 +9306,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
@@ -9478,6 +9490,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -9594,6 +9609,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -9709,6 +9727,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
@@ -9837,6 +9858,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
