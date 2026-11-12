@@ -65,19 +65,10 @@ public class AccessTokenCacheQuartzJob : IJob
                     // reaches the server on a new connection.
                     await ReconnectHub(cancellationToken);
 
-                    // Schedule the next execution 5 minutes before the expiration
-                    var triggerTime = expirationTime.AddMinutes(-5);
+                    var triggerTime = expirationTime - RefreshLeadTime(timeUntilExpiration);
 
-                    if (triggerTime > DateTime.UtcNow)
-                    {
-                        _logger.LogDebug("Next token refresh scheduled for {TriggerTime}", triggerTime);
-                        await ScheduleNextExecution(context, triggerTime, cancellationToken);
-                    }
-                    else
-                    {
-                        _logger.LogDebug("Trigger time is in the past. Immediate re-run scheduled.");
-                        await context.Scheduler.TriggerJob(context.JobDetail.Key, cancellationToken);
-                    }
+                    _logger.LogDebug("Next token refresh scheduled for {TriggerTime}", triggerTime);
+                    await ScheduleNextExecution(context, triggerTime, cancellationToken);
                 }
                 else
                 {
@@ -96,6 +87,21 @@ public class AccessTokenCacheQuartzJob : IJob
             await ScheduleNextExecution(context, DateTimeOffset.UtcNow.AddSeconds(30), cancellationToken);
         }
     }
+
+    /// <summary>
+    /// How far ahead of expiry to fetch the next token. The server decides the lifetime and reports
+    /// it as expires_in, so the lead scales with it: a fixed lead longer than the lifetime itself
+    /// would schedule every refresh in the past and spin.
+    /// </summary>
+    public static TimeSpan RefreshLeadTime(TimeSpan lifetime)
+    {
+        var lead = lifetime * 0.2;
+
+        return lead > MaxRefreshLead ? MaxRefreshLead : lead;
+    }
+
+    /// <summary>Caps the lead so a long-lived token is not fetched needlessly early.</summary>
+    private static readonly TimeSpan MaxRefreshLead = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Opens a connection carrying the refreshed token. A failure here is not fatal: the old
