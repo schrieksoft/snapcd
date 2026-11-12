@@ -10,6 +10,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Quartz;
 using SnapCd.Runner.Constants;
+using SnapCd.Runner.Hub;
 using SnapCd.Runner.Settings;
 
 namespace SnapCd.Runner.Services;
@@ -20,6 +21,7 @@ public class AccessTokenCacheQuartzJob : IJob
     private readonly RunnerSettings _runnerSettings;
     private readonly ServerSettings _serverSettings;
     private readonly ServicePrincipalTokenService _tokenService;
+    private readonly RunnerHubConnection _hubConnection;
     private readonly ILogger<AccessTokenCacheQuartzJob> _logger;
 
     public AccessTokenCacheQuartzJob(
@@ -27,12 +29,14 @@ public class AccessTokenCacheQuartzJob : IJob
         IOptions<RunnerSettings> runnerSettings,
         IOptions<ServerSettings> serverSettings,
         ServicePrincipalTokenService tokenService,
+        RunnerHubConnection hubConnection,
         ILogger<AccessTokenCacheQuartzJob> logger)
     {
         _cache = cache;
         _runnerSettings = runnerSettings.Value;
         _serverSettings = serverSettings.Value;
         _tokenService = tokenService;
+        _hubConnection = hubConnection;
         _logger = logger;
     }
 
@@ -55,6 +59,11 @@ public class AccessTokenCacheQuartzJob : IJob
                     _cache.Set(MemoryCacheConstants.AccessTokenExpiryCacheKey, expirationTime);
 
                     _logger.LogInformation("Token refreshed. Expires at {ExpirationTime}", expirationTime);
+
+                    // The server authenticates a hub connection once, against the token it was
+                    // opened with, and closes it when that token expires. A cached token only
+                    // reaches the server on a new connection.
+                    await ReconnectHub(cancellationToken);
 
                     // Schedule the next execution 5 minutes before the expiration
                     var triggerTime = expirationTime.AddMinutes(-5);
@@ -85,6 +94,22 @@ public class AccessTokenCacheQuartzJob : IJob
         {
             _logger.LogError(ex, "Token refresh failed. Scheduling retry in 30 seconds");
             await ScheduleNextExecution(context, DateTimeOffset.UtcNow.AddSeconds(30), cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Opens a connection carrying the refreshed token. A failure here is not fatal: the old
+    /// connection stays up until its token expires, and the close handler reconnects after it.
+    /// </summary>
+    private async Task ReconnectHub(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _hubConnection.DisconnectAndReconnectAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not reconnect the hub with the refreshed token");
         }
     }
 
