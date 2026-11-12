@@ -153,6 +153,9 @@
     /// <summary>Given alongside stack, selects that Namespace within it.</summary>
     [SupplyParameterFromQuery(Name = "namespace")] public string? SelectedNamespace { get; set; }
 
+    /// <summary>Given alongside stack and namespace, selects that Module within them.</summary>
+    [SupplyParameterFromQuery(Name = "module")] public string? SelectedModule { get; set; }
+
     private ListStacks? _listStacksComponent;
 
     /// <summary>What the tree has selected, which the panels beside it follow.</summary>
@@ -185,7 +188,9 @@
         {
             _selection = string.IsNullOrEmpty(SelectedNamespace)
                 ? HierarchySelection.OfStack(SelectedStack)
-                : HierarchySelection.OfNamespace(SelectedStack, SelectedNamespace);
+                : string.IsNullOrEmpty(SelectedModule)
+                    ? HierarchySelection.OfNamespace(SelectedStack, SelectedNamespace)
+                    : HierarchySelection.OfModule(SelectedStack, SelectedNamespace, SelectedModule);
         }
     }
 

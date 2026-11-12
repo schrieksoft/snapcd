@@ -6,11 +6,8 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Module/{stackName}/{namespaceName}/{moduleName}"
-@layout OrganizationMainLayout
 
 @using Microsoft.AspNetCore.Authorization
-@using SnapCd.Server.Core.UI.Dashboard.Components.Module
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Queue
 @using System.Threading
 @using SnapCd.Contracts
@@ -55,13 +52,8 @@
 
 
 
-@attribute [Authorize]
-@attribute [AuthorizeOnNavigationPermission]
-@attribute [OrganizationScopedFeature]
 
-<PageTitle>Module: @ModuleName</PageTitle>
 
-<CascadingValue Value="OrganizationId">
     @if (_meta != null)
     {
         <div class="module-page-header">
@@ -232,7 +224,6 @@
             </div>
         }
     }
-</CascadingValue>
 
 <style>
     .module-page-header {
@@ -1372,7 +1363,7 @@
         if (!string.IsNullOrEmpty(Search))
             queryParams.Add($"search={Uri.EscapeDataString(Search)}");
 
-        var newUrl = $"/Module/{StackName}/{NamespaceName}/{ModuleName}?" + string.Join("&", queryParams);
+        var newUrl = $"/Stacks?stack={StackName}&namespace={NamespaceName}&module={ModuleName}&" + string.Join("&", queryParams);
         NavigationManager.NavigateTo(newUrl, false, true);
     }
 
@@ -1399,7 +1390,7 @@
         var current = await moduleRepo.GetMetadata(_module.Id, OrganizationId);
         if (!string.Equals(current.Name, ModuleName, StringComparison.Ordinal))
         {
-            NavigationManager.NavigateTo($"/Module/{StackName}/{NamespaceName}/{current.Name}", false);
+            NavigationManager.NavigateTo($"/Stacks?stack={StackName}&namespace={NamespaceName}&module={current.Name}", false);
             return;
         }
 
@@ -1423,7 +1414,7 @@
             queryParams.Add($"search={Uri.EscapeDataString(Search)}");
 
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        var newUrl = $"/Module/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
+        var newUrl = $"/Stacks?stack={StackName}&namespace={NamespaceName}&module={ModuleName}{queryString.Replace("?", "&")}";
         NavigationManager.NavigateTo(newUrl, false);
     }
 

@@ -367,7 +367,7 @@
                     m => new FavoriteLink(
                         FavoriteTargetType.Module,
                         m.Name,
-                        $"/Module/{m.StackName}/{m.NamespaceName}/{m.Name}",
+                        $"/Stacks?stack={m.StackName}&namespace={m.NamespaceName}&module={m.Name}",
                         $"{m.StackName}/{m.NamespaceName}/{m.Name}"));
             }
 

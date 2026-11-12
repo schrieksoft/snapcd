@@ -12,8 +12,7 @@ using SnapCd.Server.Core.Misc.Exceptions;
 namespace SnapCd.Server.Core.Services.Utils;
 
 /// <summary>
-/// Validates entity names that end up in a URL, as a path segment for a Module
-/// (/Module/{stack}/{ns}/{name}) or as a query value for a Stack or Namespace, and in Terraform state paths
+/// Validates entity names that end up in a URL as query values, and in Terraform state paths
 /// (/api/state/{store}/{moduleName}). Characters like '/', '?', '#' or '%' would break
 /// routing and links, so names are restricted to letters, digits, dots, hyphens and
 /// underscores, starting and ending with a letter or digit.

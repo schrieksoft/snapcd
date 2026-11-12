@@ -33,7 +33,7 @@
 <div class="module-list">
     @foreach (var module in _paginatedModules)
     {
-        <MudExpansionPanel @key="module.Id" Disabled="true" HideIcon="true" Class="mb-1">
+        <MudExpansionPanel @key="module.Id" Disabled="true" HideIcon="true" Class="@(IsSelected(module.Name) ? "mb-1 tree-node-selected" : "mb-1")">
             <TitleContent>
                 @if (ShowCheckboxes)
                 {
@@ -43,14 +43,12 @@
                                      ValueChanged="@(value => OnModuleSelectionChanged(module.Id, value))"
                                      Dense="true"
                                      Style="margin: 0; padding: 0;"/>
-                        <MudLink
-                            Href="@($"/Module/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
+                        @ModuleTitle(module)
                     </div>
                 }
                 else
                 {
-                    <MudLink
-                        Href="@($"/Module/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
+                    @ModuleTitle(module)
                 }
             </TitleContent>
             <ChildContent>
@@ -90,6 +88,28 @@
     /// heading carries no button.
     /// </summary>
     [Parameter] public EventCallback<HierarchyCreation> OnCreateRequested { get; set; }
+
+    /// <summary>
+    /// Set where the tree sits beside panels that show what is selected. Unset, a name is a link
+    /// to that Module's own page.
+    /// </summary>
+    [Parameter] public EventCallback<HierarchySelection> OnSelected { get; set; }
+
+    /// <summary>What the tree has selected, so this level can mark its own node.</summary>
+    [Parameter] public HierarchySelection? Selected { get; set; }
+
+    /// <summary>A name either selects within the page or navigates to one, never both.</summary>
+    private RenderFragment ModuleTitle(ModuleMetadata module) => !OnSelected.HasDelegate
+        ? @<MudLink Href="@($"/Stacks?stack={StackName}&namespace={NamespaceName}&module={module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
+        : @<MudLink Underline="Underline.None" @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfModule(StackName, NamespaceName, module.Name)))">
+               @GetHighlightedModuleName(module.Name)
+           </MudLink>;
+
+    private bool IsSelected(string moduleName) =>
+        Selected is { Scope: SearchScope.Module } sel
+        && sel.StackName == StackName
+        && sel.NamespaceName == NamespaceName
+        && sel.ModuleName == moduleName;
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private ModuleSecuredRepositoryFactory RepoFactory { get; set; } = null!;

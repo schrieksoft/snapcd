@@ -14,12 +14,20 @@ namespace SnapCd.Server.Core.UI.Dashboard.Components;
 /// </summary>
 /// <param name="Scope">Which level the selection is at.</param>
 /// <param name="StackName">The selected Stack, or the Stack a selected Namespace belongs to.</param>
-/// <param name="NamespaceName">The selected Namespace, where one is selected.</param>
-public record HierarchySelection(SearchScope Scope, string StackName, string? NamespaceName = null)
+/// <param name="NamespaceName">The selected Namespace, or the one a selected Module belongs to.</param>
+/// <param name="ModuleName">The selected Module, where one is selected.</param>
+public record HierarchySelection(
+    SearchScope Scope,
+    string StackName,
+    string? NamespaceName = null,
+    string? ModuleName = null)
 {
     public static HierarchySelection OfStack(string stackName) =>
         new(SearchScope.Stack, stackName);
 
     public static HierarchySelection OfNamespace(string stackName, string namespaceName) =>
         new(SearchScope.Namespace, stackName, namespaceName);
+
+    public static HierarchySelection OfModule(string stackName, string namespaceName, string moduleName) =>
+        new(SearchScope.Module, stackName, namespaceName, moduleName);
 }

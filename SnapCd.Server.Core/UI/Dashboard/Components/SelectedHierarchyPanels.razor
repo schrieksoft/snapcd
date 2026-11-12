@@ -11,6 +11,7 @@
 @using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider
 @using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
 @using SnapCd.Server.Core.Services.Utils.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.Module
 @using SnapCd.Server.Core.Views.Metadata
 
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
@@ -57,6 +58,12 @@ else if (_notFound)
 else if (_loading)
 {
     <MudProgressCircular Indeterminate="true"/>
+}
+else if (Selection.Scope == SearchScope.Module)
+{
+    <ModulePanel StackName="@Selection.StackName"
+                 NamespaceName="@(Selection.NamespaceName!)"
+                 ModuleName="@(Selection.ModuleName!)"/>
 }
 else
 {
@@ -165,6 +172,12 @@ else
         }
 
         _loading = true;
+
+        if (Selection.Scope == SearchScope.Module)
+        {
+            _loading = false;
+            return;
+        }
 
         try
         {

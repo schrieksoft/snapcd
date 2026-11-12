@@ -646,7 +646,7 @@ else
         _otherModuleName = other is null ? null : $"{other.Namespace}/{other.Name}";
         _otherModuleHref = other is null
             ? null
-            : $"/Module/{other.Stack}/{other.Namespace}/{other.Name}?action=StateMigrations";
+            : $"/Stacks?stack={other.Stack}&namespace={other.Namespace}&module={other.Name}&action=StateMigrations";
     }
 
     /// <summary>Answers a transfer this Module has been asked to agree to.</summary>

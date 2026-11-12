@@ -825,7 +825,7 @@ else
     }
 
     private RenderFragment PathLinks(string stack, string ns, string module) =>
-        @<span class="dash-path"><a href="@($"/Stacks?stack={stack}")">@stack</a><span class="dash-path-sep">/</span><a href="@($"/Stacks?stack={stack}&namespace={ns}")">@ns</a><span class="dash-path-sep">/</span><a href="@($"/Module/{stack}/{ns}/{module}")">@module</a></span>;
+        @<span class="dash-path"><a href="@($"/Stacks?stack={stack}")">@stack</a><span class="dash-path-sep">/</span><a href="@($"/Stacks?stack={stack}&namespace={ns}")">@ns</a><span class="dash-path-sep">/</span><a href="@($"/Stacks?stack={stack}&namespace={ns}&module={module}")">@module</a></span>;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1357,7 +1357,7 @@ else
         }
     }
 
-    private static string ModuleUrl(string stack, string ns, string module) => $"/Module/{stack}/{ns}/{module}";
+    private static string ModuleUrl(string stack, string ns, string module) => $"/Stacks?stack={stack}&namespace={ns}&module={module}";
 
     private static string GetFavoriteGroupLabel(FavoriteTargetType targetType) => targetType switch
     {
