@@ -45,4 +45,20 @@ public class ProcessRegistry
     {
         return _runningProcesses.TryGetValue(FormatKey(requestId, cancellationType), out _);
     }
+
+    /// <summary>
+    /// Ids of the jobs this runner is working on. Every task registers under ImmediateKill for the
+    /// whole of its step and removes itself in a finally, so a key present means work in flight.
+    /// </summary>
+    public IReadOnlyCollection<Guid> ActiveRequestIds(CancellationType cancellationType)
+    {
+        var prefix = $"{cancellationType.ToString()}-";
+
+        return _runningProcesses.Keys
+            .Where(k => k.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(k => Guid.TryParse(k[prefix.Length..], out var id) ? id : Guid.Empty)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+    }
 }

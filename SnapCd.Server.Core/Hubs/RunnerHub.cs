@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
+using SnapCd.Contracts.Endpoints;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Contracts.RunnerRequests.StateMigrations;
@@ -396,6 +397,22 @@ public class RunnerHub : Hub
                 runnerId, runnerInstanceParam, organizationId);
 
             await base.OnConnectedAsync();
+
+            // A disconnect takes this instance's job rows with its connection. What the server
+            // dispatched is not what is still running, and a restarted runner is indistinguishable
+            // from a reconnected one here, so the runner is asked rather than assumed about.
+            //
+            // A failure to ask is not a reason to refuse the connection: the runner's own periodic
+            // reports rebuild the rows, more slowly.
+            try
+            {
+                await Clients.Caller.SendAsync(nameof(IRunnerLifecycleEndpoints.ReportRunningJobs));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Could not ask runner instance {InstanceName} what it is running", runnerInstanceParam);
+            }
         }
         catch (Exception ex)
         {

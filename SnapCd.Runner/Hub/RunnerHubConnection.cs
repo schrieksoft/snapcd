@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.SplitMigrate;
+using SnapCd.Contracts;
 using SnapCd.Contracts.Endpoints;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Runner.Constants;
@@ -571,6 +572,14 @@ public class RunnerHubConnection :
             pingId =>
             {
                 Task.Run(() => Ping(pingId));
+                return Task.CompletedTask;
+            });
+
+        // The server asks on reconnect, because what it dispatched is not what is still running.
+        _connection.On(nameof(IRunnerLifecycleEndpoints.ReportRunningJobs),
+            () =>
+            {
+                Task.Run(ReportRunningJobs);
                 return Task.CompletedTask;
             });
 
@@ -1192,6 +1201,37 @@ public class RunnerHubConnection :
             Client.InvokeRemoveInitFaulted);
 
     // RunnerLifecycle
+
+    /// <summary>
+    /// Reports each job this runner is still working on, so the server can tell a reconnected
+    /// runner from a replaced one. A runner that was restarted reports nothing, which is correct:
+    /// its work did not survive.
+    /// </summary>
+    public async Task ReportRunningJobs()
+    {
+        var jobIds = _processRegistry.ActiveRequestIds(CancellationType.ImmediateKill);
+
+        _logger.LogInformation("Reporting {Count} running job(s) after reconnecting", jobIds.Count);
+
+        foreach (var jobId in jobIds)
+        {
+            try
+            {
+                await Client.InvokeReportRunningTask(
+                    jobId, ReconnectedTaskName, _runnerSettings.Id, _runnerSettings.Instance);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not report running job {JobId} after reconnecting", jobId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stands in for the step name on a report the runner was asked for rather than one it sent on
+    /// its own schedule. The next scheduled report carries the real step.
+    /// </summary>
+    private const string ReconnectedTaskName = "(reconnected)";
 
     public async Task Ping(Guid pingId)
     {
