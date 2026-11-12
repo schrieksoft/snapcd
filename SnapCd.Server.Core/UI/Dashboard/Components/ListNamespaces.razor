@@ -286,6 +286,21 @@ else
             );
             _namespaces = namespaces.OrderBy(ns => ns.Name).ToList();
         }
+
+        ExpandToSelection();
+    }
+
+    /// <summary>
+    /// Opens the Namespace holding a selected Module, so arriving on a link to one reveals it.
+    /// </summary>
+    private void ExpandToSelection()
+    {
+        if (Selected is not { Scope: SearchScope.Module } sel) return;
+        if (sel.StackName != StackName || _namespaces is null) return;
+
+        var ns = _namespaces.FirstOrDefault(x => x.Name == sel.NamespaceName);
+
+        if (ns != null) _expandedNamespaces.Add(ns.Id);
     }
 
 

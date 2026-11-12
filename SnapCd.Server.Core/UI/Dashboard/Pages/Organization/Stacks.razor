@@ -35,10 +35,6 @@
 <PageTitle>Stacks</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    <div class="page-header">
-        <MudText Typo="Typo.h4" Class="page-header-title">Stacks</MudText>
-    </div>
-
     @* The stacks are a quarter of the width, and what is selected in them fills the rest. *@
     <MudGrid Spacing="3">
         <MudItem xs="12" md="3">
@@ -132,7 +128,7 @@
                         Selected="@_selection"/>
         </MudItem>
         <MudItem xs="12" md="9">
-            <SelectedHierarchyPanels @key="_selection"
+            <SelectedHierarchyPanels @key="(_creation, _selection)"
                                      Selection="_selection"
                                      Creation="_creation"
                                      OnChanged="HandleSelectionChanged"
@@ -184,20 +180,31 @@
             _searchTerms = Search.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
         }
 
-        if (!string.IsNullOrEmpty(SelectedStack))
-        {
-            _selection = string.IsNullOrEmpty(SelectedNamespace)
+    }
+
+    /// <summary>
+    /// The query values arrive with the parameters, not before them, so the selection is read here.
+    /// A click sets both the selection and the address bar, so the two agree and this is a no-op
+    /// until the address bar names something else.
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        var fromUrl = string.IsNullOrEmpty(SelectedStack)
+            ? null
+            : string.IsNullOrEmpty(SelectedNamespace)
                 ? HierarchySelection.OfStack(SelectedStack)
                 : string.IsNullOrEmpty(SelectedModule)
                     ? HierarchySelection.OfNamespace(SelectedStack, SelectedNamespace)
                     : HierarchySelection.OfModule(SelectedStack, SelectedNamespace, SelectedModule);
-        }
+
+        if (fromUrl != null && fromUrl != _selection) _selection = fromUrl;
     }
 
     private void HandleSelected(HierarchySelection selection)
     {
         _creation = null;
         _selection = selection;
+        UpdateUrl();
     }
 
     /// <summary>A create form replaces whatever the column was showing until it closes.</summary>
@@ -252,20 +259,37 @@
         await ReloadStacks();
     }
 
-    private void UpdateUrlWithSearchTerms()
+    private void UpdateUrlWithSearchTerms() => UpdateUrl();
+
+    /// <summary>
+    /// Writes the search and the selection into the address bar together, so a link copied from it
+    /// opens the same node. It replaces the history entry, because selecting in a tree is not a
+    /// navigation the back button should step through.
+    /// </summary>
+    private void UpdateUrl()
     {
         var uri = NavigationManager.Uri;
-        var baseUrl = uri.Contains('?') ? uri.Substring(0, uri.IndexOf('?')) : uri;
+        var baseUrl = uri.Contains('?') ? uri[..uri.IndexOf('?')] : uri;
+
+        var query = new List<string>();
 
         if (_searchTerms.Any())
+            query.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
+
+        if (_selection != null)
         {
-            var searchTermsParam = string.Join(",", _searchTerms);
-            NavigationManager.NavigateTo($"{baseUrl}?search={Uri.EscapeDataString(searchTermsParam)}", false);
+            query.Add($"stack={Uri.EscapeDataString(_selection.StackName)}");
+
+            if (_selection.NamespaceName != null)
+                query.Add($"namespace={Uri.EscapeDataString(_selection.NamespaceName)}");
+
+            if (_selection.ModuleName != null)
+                query.Add($"module={Uri.EscapeDataString(_selection.ModuleName)}");
         }
-        else
-        {
-            NavigationManager.NavigateTo(baseUrl, false);
-        }
+
+        var target = query.Any() ? $"{baseUrl}?{string.Join("&", query)}" : baseUrl;
+
+        NavigationManager.NavigateTo(target, forceLoad: false, replace: true);
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)

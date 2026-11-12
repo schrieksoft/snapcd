@@ -273,6 +273,21 @@ else
             );
             _stacks = stacks.OrderBy(s => s.Name).ToList();
         }
+
+        ExpandToSelection();
+    }
+
+    /// <summary>
+    /// Opens the Stack holding the selected node, so a link to a Namespace or a Module arrives
+    /// with that node on screen.
+    /// </summary>
+    private void ExpandToSelection()
+    {
+        if (Selected is null || _stacks is null) return;
+
+        var stack = _stacks.FirstOrDefault(x => x.Name == Selected.StackName);
+
+        if (stack != null) _expandedStacks.Add(stack.Id);
     }
 
     private async Task HandlePageChanged(int newPage)

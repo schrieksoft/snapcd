@@ -67,6 +67,13 @@ else if (Selection.Scope == SearchScope.Module)
 }
 else
 {
+    <div class="page-header">
+        <MudText Typo="Typo.h4" Class="page-header-title">
+            @(Selection.Scope == SearchScope.Namespace ? "Namespace" : "Stack"):
+            @(Selection.NamespaceName ?? Selection.StackName)
+        </MudText>
+    </div>
+
     <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
 
     @if (_showing == PanelType.Dependencies)
@@ -155,6 +162,13 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
+        // A creation takes the column without needing the selected node loaded.
+        if (Creation != null)
+        {
+            _loading = false;
+            return;
+        }
+
         // Blazor calls this after every event the panels raise, a tab click included. Reloading
         // then would refetch on each click and reset the permission the tab list is built from.
         if (Selection == _loadedFor) return;
