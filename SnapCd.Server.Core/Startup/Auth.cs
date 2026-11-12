@@ -36,6 +36,7 @@ public static class Auth
         var openIdConnectSettings = configuration.GetSection("OpenIdConnect").Get<OpenIdConnectSettings>() ?? new OpenIdConnectSettings();
         var externalLoginProviderSettings = openIdConnectSettings.ExternalLoginProviders;
 
+
         var anyProviderConfigured = externalLoginProviderSettings.Microsoft.Enabled ||
                                     externalLoginProviderSettings.Okta.Enabled ||
                                     externalLoginProviderSettings.Auth0.Enabled ||
@@ -310,6 +311,12 @@ public static class Auth
                 options.AllowAuthorizationCodeFlow()
                     .AllowRefreshTokenFlow()
                     .AllowClientCredentialsFlow();
+
+                // Also how often a Runner's hub connection is replaced: the server closes a
+                // connection when the token it was opened with expires.
+                if (openIdConnectSettings.AccessTokenLifetimeMinutes is > 0)
+                    options.SetAccessTokenLifetime(
+                        TimeSpan.FromMinutes(openIdConnectSettings.AccessTokenLifetimeMinutes.Value));
 
                 // A federated assertion presents no client secret. These three handlers require
                 // one, and the token endpoint validates the assertion in their place.

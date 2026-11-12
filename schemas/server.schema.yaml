@@ -875,6 +875,13 @@ properties:
         required:
         - RsaPrivateKey
         - RsaPublicKey
+      AccessTokenLifetimeMinutes:
+        type:
+        - integer
+        - 'null'
+        description: How long an issued access token is valid, in minutes. Unset leaves the default of one hour. A Runner's
+          and an Agent's hub connection is authenticated once, against the token it was opened with, and the Server closes
+          it when that token expires. So this also sets how often every connected Runner and Agent reconnects.
       ExternalLoginProviders:
         type: object
         properties:
