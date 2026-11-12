@@ -106,8 +106,15 @@ else
             : []
     ];
 
+    private HierarchySelection? _loadedFor;
+
     protected override async Task OnParametersSetAsync()
     {
+        // Blazor calls this after every event the panels raise, a tab click included. Reloading
+        // then would refetch on each click and reset the permission the tab list is built from.
+        if (Selection == _loadedFor) return;
+
+        _loadedFor = Selection;
         _stack = null;
         _namespace = null;
         _notFound = false;
