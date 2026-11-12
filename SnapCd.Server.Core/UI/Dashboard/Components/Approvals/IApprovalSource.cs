@@ -7,8 +7,18 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Entities.Interfaces;
+using SnapCd.Server.Core.Enums;
 
 namespace SnapCd.Server.Core.UI.Dashboard.Components.Approvals;
+
+/// <summary>
+/// Where a job stands on its approval. The decision and the threshold come from the job row, so a
+/// finished job reports what applied to it when it was decided.
+/// </summary>
+/// <param name="Decision">Null where the job never waited for an approval.</param>
+/// <param name="Threshold">The count the job was held to, or null where none was recorded.</param>
+/// <param name="IsWaiting">Whether a decision is being waited on now.</param>
+public record ApprovalState(ApprovalDecision? Decision, int? Threshold, bool IsWaiting);
 
 /// <summary>
 /// Everything an approvals view needs that differs between the job families: which table the
@@ -19,10 +29,11 @@ public interface IApprovalSource
 {
     Task<IReadOnlyList<IJobApproval>> ListApprovals(Guid jobId, Guid moduleId, Guid organizationId);
 
-    Task<bool> IsWaitingForApproval(Guid jobId, Guid moduleId, Guid organizationId);
-
-    /// <summary>How many approvals the job needs, or null when the family has no threshold.</summary>
-    Task<int?> ResolveThreshold(Guid jobId, Guid moduleId, Guid organizationId);
+    /// <summary>
+    /// The job's approval outcome, the threshold it was held to, and whether it is waiting now, in
+    /// one read. The live threshold is the fallback for a job with none recorded.
+    /// </summary>
+    Task<ApprovalState> GetApprovalState(Guid jobId, Guid moduleId, Guid organizationId);
 
     Task Approve(Guid jobId, Guid moduleId, Guid organizationId);
 
