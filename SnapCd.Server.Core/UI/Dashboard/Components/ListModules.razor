@@ -33,7 +33,7 @@
 <div class="module-list">
     @foreach (var module in _paginatedModules)
     {
-        <MudExpansionPanel @key="module.Id" Disabled="true" HideIcon="true" Class="@(IsSelected(module.Name) ? "mb-1 tree-node-selected" : "mb-1")">
+        <MudExpansionPanel @key="module.Id" Disabled="true" HideIcon="true" Class="@(IsSelected(module.Name) ? "mb-1 tree-leaf tree-node-selected" : "mb-1 tree-leaf")">
             <TitleContent>
                 @if (ShowCheckboxes)
                 {
@@ -100,10 +100,12 @@
 
     /// <summary>A name either selects within the page or navigates to one, never both.</summary>
     private RenderFragment ModuleTitle(ModuleMetadata module) => !OnSelected.HasDelegate
-        ? @<MudLink Href="@($"/Stacks?stack={StackName}&namespace={NamespaceName}&module={module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
-        : @<MudLink Underline="Underline.None" @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfModule(StackName, NamespaceName, module.Name)))">
+        ? @<MudLink Href="@($"/Tree?stack={StackName}&namespace={NamespaceName}&module={module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
+        : @<span class="tree-node-name"
+                @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfModule(StackName, NamespaceName, module.Name)))"
+                @onclick:stopPropagation="true">
                @GetHighlightedModuleName(module.Name)
-           </MudLink>;
+           </span>;
 
     private bool IsSelected(string moduleName) =>
         Selected is { Scope: SearchScope.Module } sel

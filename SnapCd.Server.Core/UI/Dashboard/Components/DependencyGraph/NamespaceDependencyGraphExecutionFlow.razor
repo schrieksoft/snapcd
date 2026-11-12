@@ -54,7 +54,7 @@
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     @* Colour comes from the card's class: an external namespace
                                        inverts against the surface, so the text must follow it. *@
-                                    <MudLink Href="@($"/Stacks?stack={namespaceGroup.First().StackName}&namespace={namespaceGroup.First().NamespaceName}")"
+                                    <MudLink Href="@($"/Tree?stack={namespaceGroup.First().StackName}&namespace={namespaceGroup.First().NamespaceName}")"
                                              Typo="Typo.body2" Class="font-weight-bold">
                                         @namespaceGroup.First().NamespaceName
                                     </MudLink>

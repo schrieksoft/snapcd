@@ -81,8 +81,8 @@
                                     Icon="@link.Icon">@link.Text</MudNavLink>
                     }
 
-                    @* Starred items sit below Stacks *@
-                    @if (link.Href == "Stacks" && _favoriteLinks.Any())
+                    @* Starred items sit below the tree *@
+                    @if (link.Href == "Tree" && _favoriteLinks.Any())
                     {
                         <MudNavGroup Title="Starred" Icon="@SnapCdIcons.Star" Expanded="false" Class="starred-nav-group">
                             @foreach (var group in _favoriteLinks.GroupBy(f => f.TargetType).OrderBy(g => g.Key))
@@ -367,7 +367,7 @@
                     m => new FavoriteLink(
                         FavoriteTargetType.Module,
                         m.Name,
-                        $"/Stacks?stack={m.StackName}&namespace={m.NamespaceName}&module={m.Name}",
+                        $"/Tree?stack={m.StackName}&namespace={m.NamespaceName}&module={m.Name}",
                         $"{m.StackName}/{m.NamespaceName}/{m.Name}"));
             }
 
@@ -383,7 +383,7 @@
                     n => new FavoriteLink(
                         FavoriteTargetType.Namespace,
                         n.Name,
-                        $"/Stacks?stack={n.StackName}&namespace={n.Name}",
+                        $"/Tree?stack={n.StackName}&namespace={n.Name}",
                         $"{n.StackName}/{n.Name}"));
             }
 
@@ -398,7 +398,7 @@
                     s => new FavoriteLink(
                         FavoriteTargetType.Stack,
                         s.Name,
-                        $"/Stacks?stack={s.Name}",
+                        $"/Tree?stack={s.Name}",
                         s.Name));
             }
 
@@ -466,7 +466,7 @@
     private List<NavLinkItem> _generalNavLinks = new()
     {
         new NavLinkItem("Dashboard", NavLinkMatch.All, SnapCdIcons.SpaceDashboard, "Dashboard", typeof(OrganizationHome)),
-        new NavLinkItem("Stacks", NavLinkMatch.Prefix, SnapCdIcons.Layers, "Stacks", typeof(Stacks))
+        new NavLinkItem("Tree", NavLinkMatch.Prefix, SnapCdIcons.Layers, "Tree", typeof(Stacks))
     };
 
     // System Section - collapsible group

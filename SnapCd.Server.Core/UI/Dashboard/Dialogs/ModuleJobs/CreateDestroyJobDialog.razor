@@ -196,7 +196,7 @@
 </MudDialog>
 
 @code {
-    // The module route is /Stacks?stack={stack}&namespace={namespace}&module={module}, so a shorter name has nowhere to link.
+    // The module route is /Tree?stack={stack}&namespace={namespace}&module={module}, so a shorter name has nowhere to link.
     private static bool IsModulePath(string? displayName) =>
         !string.IsNullOrWhiteSpace(displayName) && displayName.Split('/').Length == 3;
 

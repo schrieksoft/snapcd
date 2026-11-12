@@ -6,7 +6,7 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Stacks"
+@page "/Tree"
 @layout OrganizationMainLayout
 
 @inject ISnackbar Snackbar
@@ -17,6 +17,8 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 @inject IOrganizationContext OrganizationContext
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 @inject SnapCd.Server.Core.Repositories.Organizations.Secured.StackSecuredRepositoryFactory CreatePermissionRepoFactory
 
 @using Microsoft.AspNetCore.Authorization
@@ -32,77 +34,61 @@
 @attribute [OrganizationScopedFeature]
 @attribute [AuthorizeOnNavigationPermission]
 
-<PageTitle>Stacks</PageTitle>
+<PageTitle>Tree</PageTitle>
 
 <CascadingValue Value="OrganizationId">
     @* The stacks are a quarter of the width, and what is selected in them fills the rest. *@
-    <MudGrid Spacing="3">
-        <MudItem xs="12" md="3">
-            <MudPaper Elevation="1" Class="pa-4 mb-4">
-                <div class="stack-header">
-                    <MudTooltip Text="Select multiple">
-                        <MudIconButton Icon="@SnapCdIcons.Checklist"
-                                       Color="@(_showSelectionMode ? Color.Secondary : Color.Primary)"
-                                       Size="Size.Small"
-                                       OnClick="() => ToggleSelectionMode()"/>
-                    </MudTooltip>
-    
-                    <MudTooltip Text="Search stacks">
-                        <MudIconButton Icon="@SnapCdIcons.Search"
-                                       Color="@(_showStackSearch ? Color.Secondary : Color.Primary)"
-                                       Size="Size.Small"
-                                       OnClick="@(() => _showStackSearch = !_showStackSearch)"/>
-                    </MudTooltip>
-    
-                    @if (_searchTerms.Any())
-                    {
-                        <div class="search-chips-header">
-                            @foreach (var term in _searchTerms)
-                            {
-                                <MudChip T="string"
-                                         Text="@term"
-                                         Size="Size.Small"
-                                         Color="Color.Secondary"
-                                         OnClose="@(() => RemoveSearchTerm(term))"/>
-                            }
-                        </div>
-                    }
-    
-                    @if (_showStackSearch)
-                    {
-                        <div class="search-input-container">
-                            <MudSelect @bind-Value="_searchScope"
-                                       Label="Search in"
-                                       Variant="Variant.Outlined"
-                                       Dense="true"
-                                       Class="search-scope-select">
-                                          <MudSelectItem Value="@SearchScope.Stack">Stacks</MudSelectItem>
-                                          <MudSelectItem Value="@SearchScope.Namespace">Namespaces</MudSelectItem>
-                                          <MudSelectItem Value="@SearchScope.Module">Modules</MudSelectItem>
-                            </MudSelect>
-                            <MudTextField @bind-Value="_searchInput"
-                                          Label="Search across stacks, namespaces, and modules"
-                                          HelperText="Press Enter to search (minimum 2 characters)"
-                                          Variant="Variant.Outlined"
-                                          Adornment="Adornment.End"
-                                          AdornmentIcon="@SnapCdIcons.Search"
-                                          OnKeyDown="@HandleKeyDown"
-                                          Immediate="true"
-                                          Class="search-field-inline"/>
-                        </div>
-                    }
-                </div>
-    
+    <div class="split-layout" @ref="_splitLayout">
+        <div class="split-pane split-pane-tree">
+            <div class="tree-column">
+                @if (_searchTerms.Any())
+                {
+                    <div class="search-chips-header mb-2">
+                        @foreach (var term in _searchTerms)
+                        {
+                            <MudChip T="string"
+                                     Text="@term"
+                                     Size="Size.Small"
+                                     Color="Color.Secondary"
+                                     OnClose="@(() => RemoveSearchTerm(term))"/>
+                        }
+                    </div>
+                }
+
+                @if (_showStackSearch)
+                {
+                    <div class="search-input-container mb-2">
+                        <MudSelect @bind-Value="_searchScope"
+                                   Label="Search in"
+                                   Variant="Variant.Outlined"
+                                   Dense="true"
+                                   Class="search-scope-select">
+                            <MudSelectItem Value="@SearchScope.Stack">Stacks</MudSelectItem>
+                            <MudSelectItem Value="@SearchScope.Namespace">Namespaces</MudSelectItem>
+                            <MudSelectItem Value="@SearchScope.Module">Modules</MudSelectItem>
+                        </MudSelect>
+                        <MudTextField @bind-Value="_searchInput"
+                                      Label="Search across stacks, namespaces, and modules"
+                                      HelperText="Press Enter to search (minimum 2 characters)"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@SnapCdIcons.Search"
+                                      OnKeyDown="@HandleKeyDown"
+                                      Immediate="true"
+                                      Class="search-field-inline"/>
+                    </div>
+                }
+
                 @if (_showSelectionMode)
                 {
-                    <div class="selection-controls">
+                    <div class="selection-controls mb-2">
                         <MudCheckBox T="bool"
                                      Value="_selectAllStacks"
                                      ValueChanged="OnSelectAllChanged"
                                      Label="Select all Stacks"
                                      Color="Color.Secondary"
                                      Dense="true"/>
-    
+
                         @if (_selectedStacks.Any())
                         {
                             <MudButton Variant="Variant.Filled"
@@ -115,27 +101,45 @@
                         }
                     </div>
                 }
-            </MudPaper>
-    
-            <ListStacks @ref="_listStacksComponent"
-                        SearchTerms="@_searchTerms"
-                                     SearchScope="@_searchScope"
-                        ShowCheckboxes="@_showSelectionMode"
-                        SelectAll="@_selectAllStacks"
-                        OnSelectionChanged="@HandleStackSelectionChanged"
-                        OnSelected="@HandleSelected"
-                        OnCreateRequested="@HandleCreateRequested"
-                        Selected="@_selection"/>
-        </MudItem>
-        <MudItem xs="12" md="9">
+
+                <ListStacks @ref="_listStacksComponent"
+                            SearchTerms="@_searchTerms"
+                            SearchScope="@_searchScope"
+                            ShowCheckboxes="@_showSelectionMode"
+                            SelectAll="@_selectAllStacks"
+                            PageSize="@_stackPageSize"
+                            OnSelectionChanged="@HandleStackSelectionChanged"
+                            OnSelected="@HandleSelected"
+                            OnCreateRequested="@HandleCreateRequested"
+                            Selected="@_selection">
+                    <HeadingActions>
+                        <MudTooltip Text="Select multiple">
+                            <MudIconButton Icon="@SnapCdIcons.Checklist"
+                                           Color="@(_showSelectionMode ? Color.Secondary : Color.Primary)"
+                                           Size="Size.Small"
+                                           OnClick="() => ToggleSelectionMode()"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Search stacks">
+                            <MudIconButton Icon="@SnapCdIcons.Search"
+                                           Color="@(_showStackSearch ? Color.Secondary : Color.Primary)"
+                                           Size="Size.Small"
+                                           OnClick="@(() => _showStackSearch = !_showStackSearch)"/>
+                        </MudTooltip>
+                    </HeadingActions>
+                </ListStacks>
+            </div>
+        </div>
+        <div class="split-handle" data-splitter-handle title="Drag to resize. Double-click to reset."></div>
+        <div class="split-pane split-pane-content">
             <SelectedHierarchyPanels @key="(_creation, _selection)"
                                      Selection="_selection"
                                      Creation="_creation"
                                      OnChanged="HandleSelectionChanged"
                                      OnCreated="HandleCreated"
                                      OnCreateCancelled="HandleCreateCanceled"/>
-        </MudItem>
-    </MudGrid>
+        </div>
+    </div>
 </CascadingValue>
 
 @code {
@@ -200,11 +204,103 @@
         if (fromUrl != null && fromUrl != _selection) _selection = fromUrl;
     }
 
+    // The selection keys the panels, so this event also disposes one keyed component and builds
+    // another. Navigating in the same call stack mutates the query-parameter provider's subscriber
+    // set while it is enumerating, so the URL is written after the render that changes it.
     private void HandleSelected(HierarchySelection selection)
     {
         _creation = null;
         _selection = selection;
-        UpdateUrl();
+        _urlPending = true;
+    }
+
+    // The selection keys the panels, so changing it disposes one keyed component and builds
+    // another. Navigating in the same call stack mutates the query-parameter provider's
+    // subscriber set while it is enumerating them, so the URL is written after the render.
+    private bool _urlPending;
+
+    private int _stackPageSize = 10;
+
+    private ElementReference _splitLayout;
+    private IJSObjectReference? _splitterModule;
+
+    // A stack row is 30px and the heading above the list takes its own space, so how many rows
+    // fit is a property of the column's height rather than a number worth fixing in advance.
+    private const int StackRowHeight = 30;
+    private const int TreeHeadingHeight = 44;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_urlPending)
+        {
+            _urlPending = false;
+            UpdateUrl();
+        }
+
+        if (!firstRender) return;
+
+        await MeasureStackPageSize();
+        await AttachSplitter();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_splitterModule == null) return;
+
+        try
+        {
+            await _splitterModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is already gone, so the module went with it.
+        }
+    }
+
+    private async Task AttachSplitter()
+    {
+        try
+        {
+            _splitterModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/SnapCd.Server.Core/snapcd-splitter.js");
+            await _splitterModule.InvokeVoidAsync("attach", _splitLayout);
+        }
+        catch (JSException)
+        {
+            // Without the handle the columns keep the width the stylesheet gives them.
+        }
+    }
+
+    /// <summary>
+    /// How many stack rows the column has room for. Measured once: a resize changes the answer,
+    /// but the scroll area absorbs that without a reload.
+    /// </summary>
+    private async Task MeasureStackPageSize()
+    {
+        double available;
+
+        try
+        {
+            available = await JS.InvokeAsync<double>(
+                "eval",
+                "(function(){var e=document.querySelector('.tree-column');" +
+                "if(!e)return 0;var t=e.getBoundingClientRect().top;" +
+                "return window.innerHeight - t - 24;})()");
+        }
+        catch (JSException)
+        {
+            return;
+        }
+
+        if (available <= 0) return;
+
+        var fits = (int)((available - TreeHeadingHeight) / StackRowHeight);
+        var wanted = Math.Clamp(fits, 5, 100);
+
+        if (wanted == _stackPageSize) return;
+
+        _stackPageSize = wanted;
+        StateHasChanged();
     }
 
     /// <summary>A create form replaces whatever the column was showing until it closes.</summary>
@@ -372,6 +468,79 @@
         padding: 1rem;
         border-radius: 4px;
     }
+
+    /* The split is a CSS variable so the drag can move it without a re-render. */
+    .split-layout {
+        --tree-width: 25%;
+        display: flex;
+        align-items: flex-start;
+        gap: 0;
+    }
+
+    .split-pane-tree {
+        width: var(--tree-width);
+        flex: 0 0 var(--tree-width);
+        min-width: 0;
+    }
+
+    .split-pane-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding-left: 12px;
+    }
+
+    .split-handle {
+        flex: 0 0 9px;
+        align-self: stretch;
+        min-height: 200px;
+        cursor: col-resize;
+        position: relative;
+        touch-action: none;
+    }
+
+    .split-handle::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 4px;
+        width: 1px;
+        background: var(--snap-border);
+    }
+
+    .split-handle:hover::before,
+    .is-splitting .split-handle::before {
+        background: var(--snap-accent);
+        width: 2px;
+    }
+
+    @@media (max-width: 960px) {
+        .split-layout {
+            flex-direction: column;
+        }
+
+        .split-pane-tree,
+        .split-pane-content {
+            width: 100%;
+            flex: 1 1 auto;
+            padding-left: 0;
+        }
+
+        .split-handle {
+            display: none;
+        }
+    }
+
+    /* The tree scrolls within the viewport so the page itself does not grow with the hierarchy. */
+    .tree-column {
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 136px);
+        overflow-y: auto;
+        overflow-x: auto;
+        padding-right: 4px;
+    }
+
 
     .stack-header {
         display: flex;

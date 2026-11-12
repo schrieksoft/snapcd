@@ -12,6 +12,8 @@
 @using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
 @using SnapCd.Server.Core.Services.Utils.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Module
+@using SnapCd.Server.Core.UI.Dashboard.Components.Namespace
+@using SnapCd.Server.Core.UI.Dashboard.Components.Stack
 @using SnapCd.Server.Core.Views.Metadata
 
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
@@ -22,26 +24,24 @@
    caller, so changing selection rebuilds this rather than reusing a panel holding the last one. *@
 @if (Creation != null)
 {
-    <MudPaper Elevation="1" Class="pa-4">
-        @if (Creation.Scope == SearchScope.Stack)
-        {
-            <CreateStack OnCreated="OnCreated" OnCancel="OnCreateCancelled"/>
-        }
-        else if (Creation.Scope == SearchScope.Namespace)
-        {
-            <CreateNamespace StackId="Creation.ParentId"
-                             PrincipalProvider="_principalProvider"
-                             OnCreated="OnCreated"
-                             OnCancel="OnCreateCancelled"/>
-        }
-        else
-        {
-            <CreateModule NamespaceId="Creation.ParentId"
-                          PrincipalProvider="_principalProvider"
-                          OnCreated="OnCreated"
-                          OnCancel="OnCreateCancelled"/>
-        }
-    </MudPaper>
+    @if (Creation.Scope == SearchScope.Stack)
+    {
+        <CreateStack OnCreated="OnCreated" OnCancel="OnCreateCancelled"/>
+    }
+    else if (Creation.Scope == SearchScope.Namespace)
+    {
+        <CreateNamespace StackId="Creation.ParentId"
+                         PrincipalProvider="_principalProvider"
+                         OnCreated="OnCreated"
+                         OnCancel="OnCreateCancelled"/>
+    }
+    else
+    {
+        <CreateModule NamespaceId="Creation.ParentId"
+                      PrincipalProvider="_principalProvider"
+                      OnCreated="OnCreated"
+                      OnCancel="OnCreateCancelled"/>
+    }
 }
 else if (Selection == null)
 {
@@ -141,6 +141,7 @@ else
     private bool _notFound;
 
     private string Noun => Selection?.Scope == SearchScope.Namespace ? "namespace" : "stack";
+
 
     // Configuration asks for read on the thing itself, which is more than reaching this page needs.
     private List<TabBar.TabBarItem> _tabs =>

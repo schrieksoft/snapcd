@@ -38,8 +38,8 @@ public class SuppliedScopeRow
 
     /// <summary>Where the scope's own page lives.</summary>
     public string Href => ModuleName is not null
-        ? $"/Stacks?stack={StackName}&namespace={NamespaceName}&module={ModuleName}"
+        ? $"/Tree?stack={StackName}&namespace={NamespaceName}&module={ModuleName}"
         : NamespaceName is not null
-            ? $"/Stacks?stack={StackName}&namespace={NamespaceName}"
-            : $"/Stacks?stack={StackName}";
+            ? $"/Tree?stack={StackName}&namespace={NamespaceName}"
+            : $"/Tree?stack={StackName}";
 }

@@ -17,6 +17,9 @@
 @implements IDisposable
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
+    <div class="page-header">
+        <MudText Typo="Typo.h4" Class="page-header-title">Create Namespace</MudText>
+    </div>
     @if (!_canCreate)
 {
     <ReadOnlyNotice Message="You do not have permission to create a Namespace."/>

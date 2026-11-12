@@ -31,6 +31,7 @@ else
                                OnClick="@(() => OnCreateRequested.InvokeAsync(HierarchyCreation.OfStack()))"/>
             </MudTooltip>
         }
+        @HeadingActions
     </div>
 
     <div class="stack-list">
@@ -102,6 +103,9 @@ else
     /// heading carries no button.
     /// </summary>
     [Parameter] public EventCallback<HierarchyCreation> OnCreateRequested { get; set; }
+
+    /// <summary>Controls the caller puts beside the create button, such as search and selection.</summary>
+    [Parameter] public RenderFragment? HeadingActions { get; set; }
     /// <summary>What the tree has selected, so this level can mark its own node.</summary>
     [Parameter] public HierarchySelection? Selected { get; set; }
 
@@ -117,10 +121,12 @@ else
 
     /// <summary>A name either selects within the page or navigates to one, never both.</summary>
     private RenderFragment StackTitle(StackMetadata stack) => !OnSelected.HasDelegate
-        ? @<MudLink Href="@($"/Stacks?stack={stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
-        : @<MudLink Underline="Underline.None" @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfStack(stack.Name)))">
+        ? @<MudLink Href="@($"/Tree?stack={stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+        : @<span class="tree-node-name"
+                @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfStack(stack.Name)))"
+                @onclick:stopPropagation="true">
                @GetHighlightedStackName(stack.Name)
-           </MudLink>;
+           </span>;
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
@@ -131,7 +137,10 @@ else
     private int _matchCount;
     private int _currentPage = 1;
     private int _totalPages = 1;
-    private const int PageSize = 10;
+    /// <summary>How many rows the caller's column has space for, so the list fills it.</summary>
+    [Parameter] public int PageSize { get; set; } = 10;
+
+    private int _loadedPageSize;
     private List<string> _previousSearchTerms = new();
     private HashSet<Guid> _expandedStacks = new();
     private HashSet<Guid> _selectedStacks = new();
@@ -140,6 +149,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _previousSearchTerms = new List<string>(SearchTerms);
+        _loadedPageSize = PageSize;
         await LoadStacks();
     }
 
@@ -148,7 +158,13 @@ else
         if (!SearchTerms.SequenceEqual(_previousSearchTerms))
         {
             _previousSearchTerms = new List<string>(SearchTerms);
+            _loadedPageSize = PageSize;
             await LoadStacks();
+        }
+        else if (PageSize != _loadedPageSize)
+        {
+            _loadedPageSize = PageSize;
+            await LoadStacks(resetPage: false);
         }
 
         if (SelectAll != _previousSelectAll)

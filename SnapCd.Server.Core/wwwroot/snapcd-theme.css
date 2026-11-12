@@ -72,6 +72,7 @@
   --snap-code-bg: #000000;
   --snap-code-text: #E8ECEF;
 
+  --snap-accent-tint: #3A1C09;
   --snap-success-tint: #0a2618;
   --snap-error-tint: #2a0a0a;
 
@@ -344,8 +345,42 @@ body.dark-mode .scalar-card {
 }
 
 /* The node whose panels fill the column beside the tree. */
-.tree-node-selected {
-  box-shadow: inset 3px 0 0 0 var(--snap-accent);
+/* Marks the node, so it sits on the header row rather than the panel's whole height. */
+.tree-node-selected > .mud-expand-panel-header {
+  background-color: var(--snap-accent-tint);
+  border-left: 3px solid var(--snap-accent);
+}
+
+.tree-node-selected > .mud-expand-panel-header,
+.tree-node-selected > .mud-expand-panel-header .tree-node-name {
+  color: var(--snap-text);
+  font-weight: 600;
+}
+
+/* The chevron is 24px against the name's 14px, so it alone decides a tree row's height. */
+.stack-list .mud-expand-panel-icon,
+.namespace-list .mud-expand-panel-icon {
+  height: 14px;
+  width: 14px;
+  font-size: 14px;
+}
+
+/* A module cannot expand, so its panel is disabled; its name is still a name, not disabled text. */
+.tree-leaf > .mud-expand-panel-header {
+  cursor: default;
+}
+
+.tree-leaf > .mud-expand-panel-header .tree-node-name {
+  color: var(--snap-text);
+}
+
+/* Selecting a node is a click on the name, so it carries the affordance a link would. */
+.tree-node-name {
+  cursor: pointer;
+}
+
+.tree-node-name:hover {
+  text-decoration: underline;
 }
 
 /* Carries the heading and the button that creates at that level. */

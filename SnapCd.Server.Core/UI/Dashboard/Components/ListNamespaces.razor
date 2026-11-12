@@ -118,10 +118,12 @@ else
 
     /// <summary>A name either selects within the page or navigates to one, never both.</summary>
     private RenderFragment NamespaceTitle(NamespaceMetadata ns) => !OnSelected.HasDelegate
-        ? @<MudLink Href="@($"/Stacks?stack={StackName}&namespace={ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
-        : @<MudLink Underline="Underline.None" @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfNamespace(StackName, ns.Name)))">
+        ? @<MudLink Href="@($"/Tree?stack={StackName}&namespace={ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
+        : @<span class="tree-node-name"
+                @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfNamespace(StackName, ns.Name)))"
+                @onclick:stopPropagation="true">
                @GetHighlightedNamespaceName(ns.Name)
-           </MudLink>;
+           </span>;
     [CascadingParameter] public Guid OrganizationId { get; set; }
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
