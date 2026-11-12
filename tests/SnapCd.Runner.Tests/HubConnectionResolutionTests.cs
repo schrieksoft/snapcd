@@ -64,6 +64,26 @@ public class HubConnectionResolutionTests
         Assert.Equal([first, second], reporter.Connections);
     }
 
+    [Fact]
+    public async Task A_method_group_off_a_resolver_backed_client_resolves_at_invoke_time()
+    {
+        var disposed = Build("http://localhost:1/first");
+        HubConnection? current = disposed;
+
+        var client = new RunnerHubClient(() => current!);
+
+        // Taking the method group binds the client once, which is what a dispatch site does.
+        Func<Guid, Task> completed = client.InvokeApplyGetModuleCompleted;
+
+        // Reconnecting disposes the old connection and puts a new one in its place.
+        await disposed.DisposeAsync();
+        current = Build("http://localhost:1/second");
+
+        // A client bound to the disposed instance would throw ObjectDisposedException here. This
+        // one reaches the replacement, which refuses the call for not being started instead.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => completed(Guid.NewGuid()));
+    }
+
     private sealed class RecordingTaskReporter : IRunningTaskReporter
     {
         public List<HubConnection> Connections { get; } = [];

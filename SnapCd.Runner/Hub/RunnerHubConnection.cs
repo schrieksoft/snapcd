@@ -51,7 +51,11 @@ public class RunnerHubConnection :
     private readonly Lazy<Tasks.Tasks> _tasks;
 
     /// <summary>Replies go back over the connection the request arrived on.</summary>
-    private RunnerHubClient Client => new(_connection!);
+    /// <summary>
+    /// Bound to the field rather than to a connection, because a method group taken off this
+    /// property captures the client once and the step that holds it outlives the reconnect.
+    /// </summary>
+    private RunnerHubClient Client => new(() => _connection!);
 
     private HubConnection? _connection;
     private bool _isDisposing;
@@ -190,9 +194,6 @@ public class RunnerHubConnection :
             if (Interlocked.CompareExchange(ref _restarting, 1, 0) == 0)
                 _ = RestartAfterCloseAsync();
         };
-
-        // Register handler for GetDefinitiveRevision
-        var client = new RunnerHubClient(_connection!);
 
         _connection.On<GetDefinitiveRevisionRequest>(nameof(IApplyEndpoints.ApplyGetDefinitiveRevision),
             request =>
