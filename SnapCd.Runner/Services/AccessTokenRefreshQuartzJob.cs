@@ -101,7 +101,7 @@ public class AccessTokenCacheQuartzJob : IJob
     {
         var cache = services.GetRequiredService<IMemoryCache>();
         var logger = services.GetRequiredService<ILogger<AccessTokenCacheQuartzJob>>();
-        unner var scheduler = await services.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        var scheduler = await services.GetRequiredService<ISchedulerFactory>().GetScheduler();
 
         var expiry = cache.Get<DateTime?>(MemoryCacheConstants.AccessTokenExpiryCacheKey);
 
