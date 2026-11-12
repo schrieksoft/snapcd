@@ -44,8 +44,6 @@ public partial class Tasks
             request.Metadata
         );
 
-        RunnerHubClient runnerHubClient() => new(connection()!);
-
         try
         {
             taskContext.LogNarration("Now applying from plan");

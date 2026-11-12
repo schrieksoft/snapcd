@@ -53,8 +53,6 @@ public partial class Tasks
             request.Metadata
         );
 
-        RunnerHubClient runnerHubClient() => new(connection()!);
-
         var planOutput = string.Empty;
 
         try

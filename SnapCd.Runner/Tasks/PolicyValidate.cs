@@ -48,8 +48,6 @@ public partial class Tasks
             request.Metadata
         );
 
-        RunnerHubClient runnerHubClient() => new(connection()!);
-
         try
         {
             taskContext.LogNarration($"Now validating policies ({request.Policies.Count} in scope)");

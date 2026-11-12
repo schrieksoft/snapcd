@@ -180,6 +180,97 @@ public class ProcessRegistryTests
     }
 
     [Fact]
+    public void ActiveRequestIds_ShouldBeEmpty_WhenNothingIsRegistered()
+    {
+        var registry = new ProcessRegistry();
+
+        Assert.Empty(registry.ActiveRequestIds(CancellationType.ImmediateKill));
+    }
+
+    [Fact]
+    public void ActiveRequestIds_ShouldReturnEveryRegisteredRequest()
+    {
+        // Arrange
+        var registry = new ProcessRegistry();
+        var request1 = Guid.NewGuid();
+        var request2 = Guid.NewGuid();
+
+        registry.Register(request1, new CancellationTokenSource(), CancellationType.ImmediateKill);
+        registry.Register(request2, new CancellationTokenSource(), CancellationType.ImmediateKill);
+
+        // Act
+        var active = registry.ActiveRequestIds(CancellationType.ImmediateKill);
+
+        // Assert
+        Assert.Equal(2, active.Count);
+        Assert.Contains(request1, active);
+        Assert.Contains(request2, active);
+    }
+
+    [Fact]
+    public void ActiveRequestIds_ShouldOmitARemovedRequest()
+    {
+        // Arrange
+        var registry = new ProcessRegistry();
+        var kept = Guid.NewGuid();
+        var finished = Guid.NewGuid();
+
+        registry.Register(kept, new CancellationTokenSource(), CancellationType.ImmediateKill);
+        registry.Register(finished, new CancellationTokenSource(), CancellationType.ImmediateKill);
+
+        // Act - a step removes itself in a finally when it ends
+        registry.Remove(finished, CancellationType.ImmediateKill);
+
+        // Assert
+        Assert.Equal([kept], registry.ActiveRequestIds(CancellationType.ImmediateKill));
+    }
+
+    [Fact]
+    public void ActiveRequestIds_ShouldOmitACancelledRequest()
+    {
+        // Arrange
+        var registry = new ProcessRegistry();
+        var requestId = Guid.NewGuid();
+        registry.Register(requestId, new CancellationTokenSource(), CancellationType.ImmediateKill);
+
+        // Act
+        registry.TryCancel(requestId, CancellationType.ImmediateKill);
+
+        // Assert
+        Assert.Empty(registry.ActiveRequestIds(CancellationType.ImmediateKill));
+    }
+
+    [Fact]
+    public void ActiveRequestIds_ShouldNotMixCancellationTypes()
+    {
+        // Arrange
+        var registry = new ProcessRegistry();
+        var immediate = Guid.NewGuid();
+        var afterCurrent = Guid.NewGuid();
+
+        registry.Register(immediate, new CancellationTokenSource(), CancellationType.ImmediateKill);
+        registry.Register(afterCurrent, new CancellationTokenSource(), CancellationType.AfterCurrent);
+
+        // Assert
+        Assert.Equal([immediate], registry.ActiveRequestIds(CancellationType.ImmediateKill));
+        Assert.Equal([afterCurrent], registry.ActiveRequestIds(CancellationType.AfterCurrent));
+    }
+
+    [Fact]
+    public void ActiveRequestIds_ShouldReportOneIdPerRequest_WhenBothTypesAreRegistered()
+    {
+        // Arrange - the same job registered under both types must not be reported twice
+        var registry = new ProcessRegistry();
+        var requestId = Guid.NewGuid();
+
+        registry.Register(requestId, new CancellationTokenSource(), CancellationType.ImmediateKill);
+        registry.Register(requestId, new CancellationTokenSource(), CancellationType.AfterCurrent);
+
+        // Assert
+        Assert.Equal([requestId], registry.ActiveRequestIds(CancellationType.ImmediateKill));
+    }
+
+    [Fact]
     public async Task Registry_ShouldBeThreadSafe()
     {
         // Arrange
