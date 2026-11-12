@@ -50,4 +50,23 @@ public class AccessTokenRefreshLeadTests
     {
         Assert.Equal(TimeSpan.FromSeconds(24), AccessTokenCacheQuartzJob.RefreshLeadTime(TimeSpan.FromMinutes(2)));
     }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(5)]
+    [InlineData(10)]
+    [InlineData(60)]
+    public void The_first_refresh_lands_before_the_initial_token_expires(int lifetimeMinutes)
+    {
+        // The server closes a hub connection when the token it was opened with expires, so a first
+        // refresh placed after that point leaves the connection to be dropped instead of replaced.
+        var lifetime = TimeSpan.FromMinutes(lifetimeMinutes);
+        var expiry = DateTime.UtcNow + lifetime;
+
+        var triggerTime = expiry - AccessTokenCacheQuartzJob.RefreshLeadTime(lifetime);
+
+        Assert.True(triggerTime < expiry, "the refresh has to precede expiry");
+        Assert.True(triggerTime > DateTime.UtcNow, "a trigger in the past fires immediately and spins");
+    }
 }

@@ -93,6 +93,34 @@ public class AccessTokenCacheQuartzJob : IJob
     /// it as expires_in, so the lead scales with it: a fixed lead longer than the lifetime itself
     /// would schedule every refresh in the past and spin.
     /// </summary>
+    /// <summary>
+    /// Places the first refresh against the token obtained at startup. Quartz is configured before
+    /// that token exists, so the trigger cannot be registered with the job.
+    /// </summary>
+    public static async Task ScheduleFirstRefresh(IServiceProvider services)
+    {
+        var cache = services.GetRequiredService<IMemoryCache>();
+        var logger = services.GetRequiredService<ILogger<AccessTokenCacheQuartzJob>>();
+        unner var scheduler = await services.GetRequiredService<ISchedulerFactory>().GetScheduler();
+
+        var expiry = cache.Get<DateTime?>(MemoryCacheConstants.AccessTokenExpiryCacheKey);
+
+        var triggerTime = expiry is { } e
+            ? e - RefreshLeadTime(e - DateTime.UtcNow)
+            : DateTime.UtcNow;
+
+        if (triggerTime <= DateTime.UtcNow) triggerTime = DateTime.UtcNow.AddSeconds(1);
+
+        logger.LogInformation("First token refresh scheduled for {TriggerTime}", triggerTime);
+
+        await scheduler.ScheduleJob(
+            TriggerBuilder.Create()
+                .ForJob(nameof(AccessTokenCacheQuartzJob))
+                .WithIdentity($"{nameof(AccessTokenCacheQuartzJob)}First")
+                .StartAt(triggerTime)
+                .Build());
+    }
+
     public static TimeSpan RefreshLeadTime(TimeSpan lifetime)
     {
         var lead = lifetime * 0.2;

@@ -95,12 +95,11 @@ builder.Services.AddQuartz(q =>
     q.UseSimpleTypeLoader();
     q.UseInMemoryStore();
 
-    q.AddJob<AccessTokenCacheQuartzJob>(opts => opts.WithIdentity(nameof(AccessTokenCacheQuartzJob)));
-    q.AddTrigger(opts => opts
-        .ForJob(nameof(AccessTokenCacheQuartzJob))
-        .WithIdentity($"{nameof(AccessTokenCacheQuartzJob)}Immediate")
-        .WithSimpleSchedule(x => x.WithRepeatCount(0))
-        .StartAt(DateTimeOffset.UtcNow.AddMinutes(5)));
+    // Durable and triggerless: the first trigger is placed below, once the initial token's expiry
+    // is known. Quartz refuses a non-durable job that has no trigger.
+    q.AddJob<AccessTokenCacheQuartzJob>(opts => opts
+        .WithIdentity(nameof(AccessTokenCacheQuartzJob))
+        .StoreDurably());
 });
 
 # region Logging
@@ -125,6 +124,11 @@ WorkingDirectoryCheck.Verify(app.Services.GetRequiredService<IOptions<WorkingDir
 using var scope = app.Services.CreateScope();
 var tokenInitializer = scope.ServiceProvider.GetRequiredService<TokenInitializationService>();
 await tokenInitializer.InitializeAsync();
+
+// The server decides the token lifetime, so the first refresh is placed against the token it just
+// issued. Scheduling it a fixed distance out would fall after expiry on a short lifetime, and the
+// connection would be closed before the runner ever replaced its token.
+await AccessTokenCacheQuartzJob.ScheduleFirstRefresh(app.Services);
 
 
 var versionService = app.Services.GetRequiredService<IVersionService>();
