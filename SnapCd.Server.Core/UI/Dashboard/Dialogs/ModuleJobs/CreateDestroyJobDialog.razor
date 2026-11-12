@@ -58,7 +58,7 @@
             <div class="mb-3">
                 @if (IsModulePath(_currentModuleDisplayName))
                 {
-                    <MudLink Href="@($"/Module/{_currentModuleDisplayName}")" Typo="Typo.body1">@_currentModuleDisplayName</MudLink>
+                    <MudLink Href="@(HierarchyRoute.ForDisplayName(_currentModuleDisplayName))" Typo="Typo.body1">@_currentModuleDisplayName</MudLink>
                 }
                 else
                 {
@@ -78,7 +78,7 @@
                     {
                         @if (IsModulePath(dep))
                         {
-                            <MudLink Href="@($"/Module/{dep}")" Typo="Typo.body2">@dep</MudLink>
+                            <MudLink Href="@(HierarchyRoute.ForDisplayName(dep))" Typo="Typo.body2">@dep</MudLink>
                         }
                         else
                         {

@@ -21,8 +21,7 @@ using Stack = SnapCd.Server.Core.Entities.Definition.Stack;
 namespace SnapCd.Server.Core.Tests.Tests.Misc;
 
 /// <summary>
-/// Names end up in URL path segments (/Stack/{name}, /Namespace/{stack}/{name},
-/// /Module/{stack}/{ns}/{name}) and Terraform state paths, so the repositories must reject
+/// Names end up in URLs and in Terraform state paths, so the repositories must reject
 /// anything outside [a-zA-Z0-9._-]. These tests prove invalid names never reach the database.
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]

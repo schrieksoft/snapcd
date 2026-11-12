@@ -76,7 +76,7 @@
                                             <MudExpansionPanel Class="pa-0" Style="@moduleStyle">
                                                 <TitleContent>
                                                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
-                                                        <MudLink Href="@($"/Module/{nodeState.DisplayName}")"
+                                                        <MudLink Href="@(HierarchyRoute.ForDisplayName(nodeState.DisplayName))"
                                                                  Typo="Typo.caption" Class="font-weight-medium"
                                                                  Style="font-size: 0.8rem;"
                                                                  @onclick:stopPropagation="true">
@@ -112,7 +112,7 @@
                                                                     @foreach (var dep in nodeState.IncomingEdges)
                                                                     {
                                                                         <MudLink Typo="Typo.caption"
-                                                                                 Href="@($"/Module/{dep.DisplayName}")"
+                                                                                 Href="@(HierarchyRoute.ForDisplayName(dep.DisplayName))"
                                                                                  Style="font-size: 0.8rem;">
                                                                             @dep.ShortDisplayName
                                                                         </MudLink>
@@ -136,7 +136,7 @@
                                                                     @foreach (var trigger in nodeState.OutgoingEdges)
                                                                     {
                                                                         <MudLink Typo="Typo.caption"
-                                                                                 Href="@($"/Module/{trigger.DisplayName}")"
+                                                                                 Href="@(HierarchyRoute.ForDisplayName(trigger.DisplayName))"
                                                                                  Style="font-size: 0.8rem;">
                                                                             @trigger.ShortDisplayName
                                                                         </MudLink>
@@ -153,7 +153,7 @@
                                     {
                                         <div class="dag-module-nodeps" style="@moduleStyle">
                                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
-                                                <MudLink Href="@($"/Module/{nodeState.DisplayName}")"
+                                                <MudLink Href="@(HierarchyRoute.ForDisplayName(nodeState.DisplayName))"
                                                          Typo="Typo.caption" Class="font-weight-medium"
                                                          Style="font-size: 0.8rem;">
                                                     @nodeState.ModuleName

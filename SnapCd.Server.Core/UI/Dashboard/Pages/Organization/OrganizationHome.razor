@@ -283,7 +283,7 @@ else
                                     </span>
                                     <span class="attn-sub">
                                         waiting @FormatWaitTime(item.Approval.TimestampStart) ·
-                                        <a class="attn-action" href="@($"{ModuleUrl(item.Approval.StackName, item.Approval.NamespaceName, item.Approval.ModuleName)}?Job={item.Approval.JobId}&Tab=approvals")">review Job #@item.Approval.JobNumber →</a>
+                                        <a class="attn-action" href="@($"{ModuleUrl(item.Approval.StackName, item.Approval.NamespaceName, item.Approval.ModuleName)}&Job={item.Approval.JobId}&Tab=approvals")">review Job #@item.Approval.JobNumber →</a>
                                     </span>
                                 </div>
                                 break;
@@ -348,7 +348,7 @@ else
                                     </span>
                                 </td>
                                 <td class="dash-mono">
-                                    <a href="@($"{ModuleUrl(job.StackName, job.NamespaceName, job.ModuleName)}?Job={job.JobId}")">#@job.JobNumber</a>
+                                    <a href="@($"{ModuleUrl(job.StackName, job.NamespaceName, job.ModuleName)}&Job={job.JobId}")">#@job.JobNumber</a>
                                 </td>
                                 <td>@PathLinks(job.StackName, job.NamespaceName, job.ModuleName)</td>
                                 <td>@FormatJobType(job.JobType)</td>
