@@ -12,7 +12,18 @@
 
 @inject PersistentComponentState ApplicationState
 
-<div class="list-heading">Modules</div>
+<div class="list-heading-row">
+        <div class="list-heading">Modules</div>
+        @if (OnCreateRequested.HasDelegate)
+        {
+            <MudTooltip Text="Create a module">
+                <MudIconButton Icon="@SnapCdIcons.Add"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="@(() => OnCreateRequested.InvokeAsync(HierarchyCreation.OfModule(NamespaceId)))"/>
+            </MudTooltip>
+        }
+    </div>
 
 @if (_paginatedModules.Count == 0)
 {
@@ -74,6 +85,11 @@
     [Parameter] public EventCallback<HashSet<Guid>> OnSelectionChanged { get; set; }
     [Parameter] public bool SelectAll { get; set; }
     [Parameter] public bool ShowCheckboxes { get; set; }
+    /// <summary>
+    /// Set where the tree sits beside a column that can show a create form. Unset, the level's
+    /// heading carries no button.
+    /// </summary>
+    [Parameter] public EventCallback<HierarchyCreation> OnCreateRequested { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private ModuleSecuredRepositoryFactory RepoFactory { get; set; } = null!;

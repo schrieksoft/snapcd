@@ -42,25 +42,6 @@
     @* The stacks are a quarter of the width, and what is selected in them fills the rest. *@
     <MudGrid Spacing="3">
         <MudItem xs="12" md="3">
-        @if (_showCreate)
-        {
-            <MudPaper Elevation="1" Class="pa-4 mb-4">
-                <CreateStack OnCreated="HandleCreated"
-                             OnCancel="HandleCreateCanceled"/>
-            </MudPaper>
-        }
-        else
-        {
-            <MudPaper Elevation="1" Class="pa-4 mb-4">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           OnClick="ShowCreate">
-                    Create
-                </MudButton>
-            </MudPaper>
-        }
-    
             <MudPaper Elevation="1" Class="pa-4 mb-4">
                 <div class="stack-header">
                     <MudTooltip Text="Select multiple">
@@ -146,12 +127,17 @@
                         ShowCheckboxes="@_showSelectionMode"
                         SelectAll="@_selectAllStacks"
                         OnSelectionChanged="@HandleStackSelectionChanged"
-                        OnSelected="@HandleSelected"/>
+                        OnSelected="@HandleSelected"
+                        OnCreateRequested="@HandleCreateRequested"
+                        Selected="@_selection"/>
         </MudItem>
         <MudItem xs="12" md="9">
             <SelectedHierarchyPanels @key="_selection"
                                      Selection="_selection"
-                                     OnChanged="HandleSelectionChanged"/>
+                                     Creation="_creation"
+                                     OnChanged="HandleSelectionChanged"
+                                     OnCreated="HandleCreated"
+                                     OnCreateCancelled="HandleCreateCanceled"/>
         </MudItem>
     </MudGrid>
 </CascadingValue>
@@ -172,7 +158,9 @@
     /// <summary>What the tree has selected, which the panels beside it follow.</summary>
     private HierarchySelection? _selection;
 
-    private bool _showCreate;
+    /// <summary>A level the tree asked to create at, which takes the column until it is done.</summary>
+    private HierarchyCreation? _creation;
+
     private bool _showStackSearch;
     private string _searchInput = string.Empty;
     private List<string> _searchTerms = new();
@@ -201,7 +189,14 @@
         }
     }
 
-    private void HandleSelected(HierarchySelection selection) => _selection = selection;
+    private void HandleSelected(HierarchySelection selection)
+    {
+        _creation = null;
+        _selection = selection;
+    }
+
+    /// <summary>A create form replaces whatever the column was showing until it closes.</summary>
+    private void HandleCreateRequested(HierarchyCreation creation) => _creation = creation;
 
     /// <summary>A panel renamed or deleted what it was showing, so the tree and the panels reload.</summary>
     private async Task HandleSelectionChanged()
@@ -211,21 +206,13 @@
         if (_listStacksComponent != null) await _listStacksComponent.LoadStacks();
     }
 
-    private void ShowCreate()
-    {
-        _showCreate = true;
-    }
-
     private async Task HandleCreated()
     {
-        _showCreate = false;
+        _creation = null;
         await ReloadStacks();
     }
 
-    private void HandleCreateCanceled()
-    {
-        _showCreate = false;
-    }
+    private void HandleCreateCanceled() => _creation = null;
 
     private async Task ReloadStacks()
     {

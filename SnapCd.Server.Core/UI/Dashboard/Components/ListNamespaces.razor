@@ -21,12 +21,23 @@ else if (_namespaces.Count == 0)
 }
 else
 {
-    <div class="list-heading">Namespaces</div>
+    <div class="list-heading-row">
+        <div class="list-heading">Namespaces</div>
+        @if (OnCreateRequested.HasDelegate)
+        {
+            <MudTooltip Text="Create a namespace">
+                <MudIconButton Icon="@SnapCdIcons.Add"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="@(() => OnCreateRequested.InvokeAsync(HierarchyCreation.OfNamespace(StackId)))"/>
+            </MudTooltip>
+        }
+    </div>
 
     <div class="namespace-list">
         @foreach (var ns in _namespaces)
         {
-            <MudExpansionPanel @key="ns.Id" Expanded="_expandedNamespaces.Contains(ns.Id)" Class="mb-1">
+            <MudExpansionPanel @key="ns.Id" Expanded="_expandedNamespaces.Contains(ns.Id)" Class="@(IsSelected(ns.Name) ? "mb-1 tree-node-selected" : "mb-1")">
                 <TitleContent>
                     @if (ShowCheckboxes)
                     {
@@ -50,7 +61,8 @@ else
                             NamespaceId="@ns.Id"
                             NamespaceName="@ns.Name"
                             StackName="@StackName"
-                            SearchTerms="@SearchTerms" SearchScope="@SearchScope"/>
+                            SearchTerms="@SearchTerms" SearchScope="@SearchScope"
+                            OnCreateRequested="OnCreateRequested"/>
                     </div>
                 </ChildContent>
             </MudExpansionPanel>
@@ -83,6 +95,18 @@ else
     [Parameter] public EventCallback<HashSet<Guid>> OnSelectionChanged { get; set; }
     [Parameter] public bool SelectAll { get; set; }
     [Parameter] public bool ShowCheckboxes { get; set; }
+    /// <summary>
+    /// Set where the tree sits beside a column that can show a create form. Unset, the level's
+    /// heading carries no button.
+    /// </summary>
+    [Parameter] public EventCallback<HierarchyCreation> OnCreateRequested { get; set; }
+    /// <summary>What the tree has selected, so this level can mark its own node.</summary>
+    [Parameter] public HierarchySelection? Selected { get; set; }
+
+    private bool IsSelected(string namespaceName) =>
+        Selected is { Scope: SearchScope.Namespace } sel
+        && sel.StackName == StackName
+        && sel.NamespaceName == namespaceName;
 
     /// <summary>
     /// Set where the tree sits beside panels that show what is selected. Unset, a name is a link

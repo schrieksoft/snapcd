@@ -19,7 +19,30 @@
 
 @* What the tree has selected, as its dependencies or its settings. Keyed on the selection by the
    caller, so changing selection rebuilds this rather than reusing a panel holding the last one. *@
-@if (Selection == null)
+@if (Creation != null)
+{
+    <MudPaper Elevation="1" Class="pa-4">
+        @if (Creation.Scope == SearchScope.Stack)
+        {
+            <CreateStack OnCreated="OnCreated" OnCancel="OnCreateCancelled"/>
+        }
+        else if (Creation.Scope == SearchScope.Namespace)
+        {
+            <CreateNamespace StackId="Creation.ParentId"
+                             PrincipalProvider="_principalProvider"
+                             OnCreated="OnCreated"
+                             OnCancel="OnCreateCancelled"/>
+        }
+        else
+        {
+            <CreateModule NamespaceId="Creation.ParentId"
+                          PrincipalProvider="_principalProvider"
+                          OnCreated="OnCreated"
+                          OnCancel="OnCreateCancelled"/>
+        }
+    </MudPaper>
+}
+else if (Selection == null)
 {
     <MudPaper Elevation="1" Class="pa-4">
         <MudText Typo="Typo.body2" Class="mud-text-secondary">
@@ -79,6 +102,14 @@ else
     /// <summary>Raised when the panel changes the selected thing, so the tree can reload.</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
 
+    /// <summary>A level the tree asked to create at, which takes the column while it is set.</summary>
+    [Parameter] public HierarchyCreation? Creation { get; set; }
+
+    /// <summary>Raised once something is created, so the tree reloads and the form closes.</summary>
+    [Parameter] public EventCallback OnCreated { get; set; }
+
+    [Parameter] public EventCallback OnCreateCancelled { get; set; }
+
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     private enum PanelType
@@ -108,6 +139,13 @@ else
 
     private HierarchySelection? _loadedFor;
 
+    protected override void OnInitialized()
+    {
+        var principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        var discriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+        _principalProvider = new LiteralPrincipalProvider(principalId, discriminator, [OrganizationId]);
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         // Blazor calls this after every event the panels raise, a tab click included. Reloading
@@ -127,10 +165,6 @@ else
         }
 
         _loading = true;
-
-        var principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
-        var discriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
-        _principalProvider = new LiteralPrincipalProvider(principalId, discriminator, [OrganizationId]);
 
         try
         {

@@ -343,6 +343,23 @@ body.dark-mode .scalar-card {
   margin-bottom: 8px;
 }
 
+/* The node whose panels fill the column beside the tree. */
+.tree-node-selected {
+  box-shadow: inset 3px 0 0 0 var(--snap-accent);
+}
+
+/* Carries the heading and the button that creates at that level. */
+.list-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.list-heading-row .list-heading {
+  margin-bottom: 0;
+}
+
 /* Blazor injects these itself, so the ids and classes below are the framework's, not the app's. */
 
 #components-reconnect-modal {
