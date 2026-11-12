@@ -57,6 +57,12 @@ public class RunnerHubConnection :
     private bool _isDisposing;
     private int _restarting;
 
+    /// <summary>
+    /// Set while this class is replacing the connection itself. The Closed handler cannot otherwise
+    /// tell a stop it asked for from one the transport imposed, and would restart a second time.
+    /// </summary>
+    private int _replacingConnection;
+
     private readonly LogBuffer _logBuffer;
 
     private readonly ProcessRegistry _processRegistry;
@@ -168,6 +174,13 @@ public class RunnerHubConnection :
             }
 
             var logger = _loggerFactory.CreateLogger<RunnerHubConnection>();
+
+            if (Volatile.Read(ref _replacingConnection) == 1)
+            {
+                logger.LogDebug("SignalR connection closed to be replaced");
+                return;
+            }
+
             logger.LogError(error, "SignalR connection closed unexpectedly; restarting the connection");
 
             // WithAutomaticReconnect covers transient drops only: once the connection reaches the
@@ -669,6 +682,7 @@ public class RunnerHubConnection :
         // Temporarily disable disposing flag to allow reconnection
         var wasDisposing = _isDisposing;
         _isDisposing = false;
+        Volatile.Write(ref _replacingConnection, 1);
 
         try
         {
@@ -686,10 +700,15 @@ public class RunnerHubConnection :
             // Reconnect - will use fresh token from cache via AccessTokenProvider
             await StartAsync(cancellationToken);
 
+            // Cleared before the new connection has a chance to close, so a real drop on it is
+            // still treated as one.
+            Volatile.Write(ref _replacingConnection, 0);
+
             _logger.LogInformation("Successfully reconnected with refreshed token");
         }
         finally
         {
+            Volatile.Write(ref _replacingConnection, 0);
             _isDisposing = wasDisposing;
         }
     }
