@@ -55,7 +55,6 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
                 await _runnerConnectionStateMigrationService.CreateOrUpdate(
                     message.OrganizationId,
                     message.JobId,
-                    message.TaskName,
                     message.RunnerId,
                     message.RunnerInstanceName);
             }
@@ -65,7 +64,6 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
                 await repository.CreateOrUpdate(
                     message.OrganizationId,
                     message.JobId,
-                    message.TaskName,
                     message.RunnerId,
                     message.RunnerInstanceName);
             }

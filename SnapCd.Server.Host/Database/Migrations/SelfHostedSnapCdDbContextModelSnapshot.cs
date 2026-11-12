@@ -6420,11 +6420,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("RunnerConnectionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("TaskName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
                     b.HasKey("Id", "OrganizationId");
 
                     b.HasIndex("Id")
@@ -6483,11 +6478,6 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid>("StateMigrationJobId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("TaskName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
 
                     b.HasKey("Id", "OrganizationId");
 

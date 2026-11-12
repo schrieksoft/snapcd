@@ -74,7 +74,7 @@ public class RunnerConnectionJobRepository : GenericOrganizationChildRepository<
         return await CheckQuotaWithServiceAsync(entity.OrganizationId, nameof(Settings.QuotaLimits.RunnerConnectionJobQuota), currentCount);
     }
 
-    public async Task CreateOrUpdate(Guid organizationId, Guid moduleJobId, string taskName, Guid runnerId, string? runnerInstanceName)
+    public async Task CreateOrUpdate(Guid organizationId, Guid moduleJobId, Guid runnerId, string? runnerInstanceName)
     {
         // Get the active runner connection
         var runnerConnection =  await DbContext.RunnerConnections
@@ -101,7 +101,6 @@ public class RunnerConnectionJobRepository : GenericOrganizationChildRepository<
         {
             // Update existing record
             existingRunnerConnectionJob.RunnerConnectionId = runnerConnection.Id;
-            existingRunnerConnectionJob.TaskName = taskName;
 
             await Update(existingRunnerConnectionJob);
         }
@@ -113,8 +112,7 @@ public class RunnerConnectionJobRepository : GenericOrganizationChildRepository<
                 Id = Guid.NewGuid(),
                 OrganizationId = organizationId,
                 RunnerConnectionId = runnerConnection.Id,
-                ModuleJobId = moduleJobId,
-                TaskName = taskName
+                ModuleJobId = moduleJobId
             };
 
             try
@@ -138,7 +136,6 @@ public class RunnerConnectionJobRepository : GenericOrganizationChildRepository<
                 if (winner is null) throw;
 
                 winner.RunnerConnectionId = runnerConnection.Id;
-                winner.TaskName = taskName;
 
                 await Update(winner);
             }

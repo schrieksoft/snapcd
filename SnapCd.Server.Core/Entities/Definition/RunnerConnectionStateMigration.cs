@@ -27,7 +27,6 @@ public class RunnerConnectionStateMigration : AuditBase, IEntity, IOrganizationC
 
     public Guid StateMigrationJobId { get; set; }
 
-    [MaxLength(255)] public string TaskName { get; set; } = null!;
 
     public virtual Organization Organization { get; set; } = null!;
 

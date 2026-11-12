@@ -111,7 +111,7 @@ public class HeartbeatConsumerTests : IAsyncLifetime
 
         await new RunnerConnectionStateMigrationService(
             _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext())
-            .CreateOrUpdate(_module.OrganizationId, jobId, "Plan", _module.RunnerId, Instance);
+            .CreateOrUpdate(_module.OrganizationId, jobId, _module.RunnerId, Instance);
 
         Assert.True(await HeartbeatSucceeds<StateMigrationHeartbeatRequested>(jobId));
     }
@@ -177,7 +177,6 @@ public class HeartbeatConsumerTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             RunnerConnectionId = _runnerConnectionId,
             ModuleJobId = jobId,
-            TaskName = "Plan",
             ModifiedDateTime = DateTime.UtcNow.AddSeconds(-ageSeconds)
         });
         await db.SaveChangesAsync();
@@ -205,7 +204,6 @@ public class HeartbeatConsumerTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             RunnerConnectionId = _runnerConnectionId,
             StateMigrationJobId = jobId,
-            TaskName = "Plan",
             ModifiedDateTime = DateTime.UtcNow.AddSeconds(-ageSeconds)
         });
         await db.SaveChangesAsync();

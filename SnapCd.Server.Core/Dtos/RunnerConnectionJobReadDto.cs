@@ -20,7 +20,6 @@ public class RunnerConnectionJobReadDto : IDto
     public Guid OrganizationId { get; set; }
     public Guid RunnerConnectionId { get; set; }
     public Guid ModuleJobId { get; set; }
-    public string TaskName { get; set; } = null!;
     public DateTime CreatedDateTime { get; set; }
     public DateTime ModifiedDateTime { get; set; }
 }
