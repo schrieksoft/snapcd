@@ -23,7 +23,7 @@ public partial class Tasks
     /// map step fails without the source's fragment, so the role is read before that step rather
     /// than discovered by attempting it.
     /// </summary>
-    public async Task AnalyseTransferRefactorMap(AnalyseTransferRefactorMapRequestBase request, HubConnection connection)
+    public async Task AnalyseTransferRefactorMap(AnalyseTransferRefactorMapRequestBase request, Func<HubConnection?> connection)
     {
         var logger = _loggerFactory.CreateLogger<Tasks>();
         var taskContext = new RunnerTaskContext(
@@ -33,7 +33,7 @@ public partial class Tasks
             _jobLogStreams.StateMigrations,
             request.Metadata);
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
@@ -52,9 +52,9 @@ public partial class Tasks
                 taskContext.LogError($"The transfer map could not be read: {role.Problem}");
 
                 await InvokeWithRetryAsync(
-                    () => runnerHubClient.InvokeAnalyseTransferRefactorMapFaulted(
+                    () => runnerHubClient().InvokeAnalyseTransferRefactorMapFaulted(
                         request.JobId, request.ModuleId, role.Problem, null),
-                    nameof(runnerHubClient.InvokeAnalyseTransferRefactorMapFaulted),
+                    nameof(RunnerHubClient.InvokeAnalyseTransferRefactorMapFaulted),
                     request.JobId,
                     connection);
                 return;
@@ -65,10 +65,10 @@ public partial class Tasks
                 : "This module takes the resources in");
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeAnalyseTransferRefactorMapCompleted(
+                () => runnerHubClient().InvokeAnalyseTransferRefactorMapCompleted(
                     request.JobId, request.ModuleId, role.Kind,
                     TransferMap.NeedsOutputs(root), null),
-                nameof(runnerHubClient.InvokeAnalyseTransferRefactorMapCompleted),
+                nameof(RunnerHubClient.InvokeAnalyseTransferRefactorMapCompleted),
                 request.JobId,
                 connection);
 
@@ -78,16 +78,16 @@ public partial class Tasks
         {
             logger.LogError(ex, "Error handling AnalyseTransferRefactorMap for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeAnalyseTransferRefactorMapFaulted(
+                () => runnerHubClient().InvokeAnalyseTransferRefactorMapFaulted(
                     request.JobId, request.ModuleId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeAnalyseTransferRefactorMapFaulted),
+                nameof(RunnerHubClient.InvokeAnalyseTransferRefactorMapFaulted),
                 request.JobId,
                 connection);
         }
     }
 
     /// <summary>Pulls and pins this Module's state. The source also writes the fragment the receiver needs.</summary>
-    public async Task TransferMigrateMap(TransferMigrateMapRequestBase request, HubConnection connection)
+    public async Task TransferMigrateMap(TransferMigrateMapRequestBase request, Func<HubConnection?> connection)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -110,7 +110,7 @@ public partial class Tasks
             request.Metadata
         );
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
@@ -137,9 +137,9 @@ public partial class Tasks
             var (producedFragment, producedMeta) = await TransferFiles.ReadFragment(root);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeTransferMigrateMapCompleted(
+                () => runnerHubClient().InvokeTransferMigrateMapCompleted(
                     request.JobId, request.ModuleId, producedFragment, producedMeta),
-                nameof(runnerHubClient.InvokeTransferMigrateMapCompleted),
+                nameof(RunnerHubClient.InvokeTransferMigrateMapCompleted),
                 request.JobId,
                 connection);
 
@@ -149,8 +149,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("TransferMigrateMap was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeTransferMigrateMapCancelled(request.JobId, request.ModuleId),
-                nameof(runnerHubClient.InvokeTransferMigrateMapCancelled),
+                () => runnerHubClient().InvokeTransferMigrateMapCancelled(request.JobId, request.ModuleId),
+                nameof(RunnerHubClient.InvokeTransferMigrateMapCancelled),
                 request.JobId,
                 connection);
         }
@@ -159,8 +159,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling TransferMigrateMap for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeTransferMigrateMapFaulted(request.JobId, request.ModuleId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeTransferMigrateMapFaulted),
+                () => runnerHubClient().InvokeTransferMigrateMapFaulted(request.JobId, request.ModuleId, ex.Message, ex.StackTrace),
+                nameof(RunnerHubClient.InvokeTransferMigrateMapFaulted),
                 request.JobId,
                 connection);
         }
@@ -175,7 +175,7 @@ public partial class Tasks
     }
 
     /// <summary>Asks whether this Module's root plans to zero changes with the moved resources in place.</summary>
-    public async Task TransferMigrateProve(TransferMigrateProveRequestBase request, HubConnection connection)
+    public async Task TransferMigrateProve(TransferMigrateProveRequestBase request, Func<HubConnection?> connection)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -198,7 +198,7 @@ public partial class Tasks
             request.Metadata
         );
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
@@ -225,9 +225,9 @@ public partial class Tasks
             var outputs = await TransferFiles.ReadOutputs(root);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeTransferMigrateProveCompleted(
+                () => runnerHubClient().InvokeTransferMigrateProveCompleted(
                     request.JobId, request.ModuleId, 0, outputs, null),
-                nameof(runnerHubClient.InvokeTransferMigrateProveCompleted),
+                nameof(RunnerHubClient.InvokeTransferMigrateProveCompleted),
                 request.JobId,
                 connection);
 
@@ -237,8 +237,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("TransferMigrateProve was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeTransferMigrateProveCancelled(request.JobId, request.ModuleId),
-                nameof(runnerHubClient.InvokeTransferMigrateProveCancelled),
+                () => runnerHubClient().InvokeTransferMigrateProveCancelled(request.JobId, request.ModuleId),
+                nameof(RunnerHubClient.InvokeTransferMigrateProveCancelled),
                 request.JobId,
                 connection);
         }
@@ -247,8 +247,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling TransferMigrateProve for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeTransferMigrateProveFaulted(request.JobId, request.ModuleId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeTransferMigrateProveFaulted),
+                () => runnerHubClient().InvokeTransferMigrateProveFaulted(request.JobId, request.ModuleId, ex.Message, ex.StackTrace),
+                nameof(RunnerHubClient.InvokeTransferMigrateProveFaulted),
                 request.JobId,
                 connection);
         }

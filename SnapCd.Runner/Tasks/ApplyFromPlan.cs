@@ -17,7 +17,7 @@ public partial class Tasks
 {
     public async Task ApplyFromPlan(
         ApplyFromPlanRequestBase request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         Func<Guid, int, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, int?, Task> faulted)
@@ -44,7 +44,7 @@ public partial class Tasks
             request.Metadata
         );
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
@@ -74,7 +74,7 @@ public partial class Tasks
 
             await InvokeWithRetryAsync(
                 () => completed(request.JobId, actualResourceCount),
-                nameof(runnerHubClient.InvokeApplyFromPlanCompleted),
+                nameof(RunnerHubClient.InvokeApplyFromPlanCompleted),
                 request.JobId,
                 connection);
         }
@@ -83,7 +83,7 @@ public partial class Tasks
             taskContext.LogWarning("Apply process was cancelled.");
             await InvokeWithRetryAsync(
                 () => cancelled(request.JobId),
-                nameof(runnerHubClient.InvokeApplyFromPlanCancelled),
+                nameof(RunnerHubClient.InvokeApplyFromPlanCancelled),
                 request.JobId,
                 connection);
         }
@@ -109,7 +109,7 @@ public partial class Tasks
 
             await InvokeWithRetryAsync(
                 () => faulted(request.JobId, ex.Message, ex.StackTrace, actualResourceCount),
-                nameof(runnerHubClient.InvokeApplyFromPlanFaulted),
+                nameof(RunnerHubClient.InvokeApplyFromPlanFaulted),
                 request.JobId,
                 connection);
         }

@@ -98,11 +98,11 @@ public partial class Tasks
     /// Waits for the socket to come back, so a reply is not thrown away in the second it takes to
     /// reconnect. Returns either way; the caller's own attempt limit decides when to stop.
     /// </summary>
-    private static async Task WaitForConnection(HubConnection connection, TimeSpan timeout)
+    private static async Task WaitForConnection(Func<HubConnection?> connection, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;
 
-        while (connection.State != HubConnectionState.Connected && DateTime.UtcNow < deadline)
+        while (connection()?.State != HubConnectionState.Connected && DateTime.UtcNow < deadline)
             await Task.Delay(TimeSpan.FromMilliseconds(250));
     }
 
@@ -114,7 +114,7 @@ public partial class Tasks
         Func<Task> invocation,
         string operationName,
         Guid jobId,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         int maxRetries = HubInvocationRetry.DefaultMaxRetries,
         TimeSpan? initialDelay = null)
     {
@@ -135,7 +135,7 @@ public partial class Tasks
         Func<Task> invocation,
         string operationName,
         Guid jobId,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         int maxRetries = HubInvocationRetry.DefaultMaxRetries,
         TimeSpan? initialDelay = null)
     {
@@ -162,11 +162,11 @@ public partial class Tasks
                         return TimeSpan.FromSeconds(2);
                     }
 
-                    if (connection.State != HubConnectionState.Connected)
+                    if (connection()?.State != HubConnectionState.Connected)
                     {
                         logger.LogWarning(
                             "{Operation} for {Target} found the connection {State}; waiting for it",
-                            operationName, target, connection.State);
+                            operationName, target, connection()?.State);
 
                         await WaitForConnection(connection, ReconnectWait);
                         return TimeSpan.Zero;
@@ -184,10 +184,10 @@ public partial class Tasks
                     operationName, target, attempt),
                 // A call made while the socket was down cannot have reached the server, whatever
                 // the client threw, so the reply is worth repeating rather than discarding.
-                isTransportDown: () => connection.State != HubConnectionState.Connected);
+                isTransportDown: () => connection()?.State != HubConnectionState.Connected);
         }
         catch (Exception ex) when (HubInvocationRetry.IsRetryable(ex)
-                                   || connection.State != HubConnectionState.Connected)
+                                   || connection()?.State != HubConnectionState.Connected)
         {
             logger.LogError(
                 ex,
@@ -209,10 +209,27 @@ public partial class Tasks
     /// Starts a background task that periodically reports task progress to the server.
     /// Sends an immediate first report, then continues reporting at the specified interval.
     /// </summary>
+    /// <summary>
+    /// Reports once on the connection that is open now. A reconnect replaces the hub connection, so
+    /// the live one is resolved per report.
+    /// </summary>
+    private async Task ReportOnce(Guid jobId, string taskName, Func<HubConnection?> connection)
+    {
+        if (connection() is null) await WaitForConnection(connection, ReconnectWait);
+
+        await InvokeWithRetryAsync(
+            () => connection() is { } live
+                ? _runningTaskReporter.Report(jobId, taskName, live)
+                : throw new InvalidOperationException("The runner has no hub connection to report on."),
+            nameof(IRunningTaskReporter.Report),
+            jobId,
+            connection);
+    }
+
     private Task StartPeriodicTaskReporting(
         Guid jobId,
         string taskName,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         TimeSpan interval,
         CancellationToken cancellationToken)
     {
@@ -227,11 +244,7 @@ public partial class Tasks
                     "Sending initial task report for job {JobId}, task {TaskName}",
                     jobId, taskName);
 
-                await InvokeWithRetryAsync(
-                    () => _runningTaskReporter.Report(jobId, taskName, connection),
-                    nameof(IRunningTaskReporter.Report),
-                    jobId,
-                    connection);
+                await ReportOnce(jobId, taskName, connection);
 
                 // Start periodic reporting
                 using var timer = new PeriodicTimer(interval);
@@ -244,11 +257,7 @@ public partial class Tasks
                             "Sending periodic task report for job {JobId}, task {TaskName}",
                             jobId, taskName);
 
-                        await InvokeWithRetryAsync(
-                            () => _runningTaskReporter.Report(jobId, taskName, connection),
-                            nameof(IRunningTaskReporter.Report),
-                            jobId,
-                            connection);
+                        await ReportOnce(jobId, taskName, connection);
                     }
                     catch (Exception ex)
                     {

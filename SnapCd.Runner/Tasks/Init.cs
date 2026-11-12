@@ -22,7 +22,7 @@ public partial class Tasks
     /// </summary>
     public async Task Init(
         InitRequestBase request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         IJobLogStream logStream,
         Func<Guid, Task> completed,
         Func<Guid, Task> cancelled,
@@ -50,7 +50,7 @@ public partial class Tasks
             request.Metadata
         );
         
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {

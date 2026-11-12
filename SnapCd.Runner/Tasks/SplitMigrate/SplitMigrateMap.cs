@@ -17,7 +17,7 @@ namespace SnapCd.Runner.Tasks;
 public partial class Tasks
 {
     /// <summary>Pulls the monolith's state read-only and splits local copies, writing a plan receipt on the runner.</summary>
-    public async Task SplitMigrateMap(SplitMigrateMapRequestBase request, HubConnection connection)
+    public async Task SplitMigrateMap(SplitMigrateMapRequestBase request, Func<HubConnection?> connection)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -40,7 +40,7 @@ public partial class Tasks
             request.Metadata
         );
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
@@ -66,8 +66,8 @@ public partial class Tasks
 
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitMigrateMapCompleted(request.JobId, refactorMapHash, carvedModuleNames, resourcesMoved),
-                nameof(runnerHubClient.InvokeSplitMigrateMapCompleted),
+                () => runnerHubClient().InvokeSplitMigrateMapCompleted(request.JobId, refactorMapHash, carvedModuleNames, resourcesMoved),
+                nameof(RunnerHubClient.InvokeSplitMigrateMapCompleted),
                 request.JobId,
                 connection);
 
@@ -77,8 +77,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("SplitMigrateMap was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitMigrateMapCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeSplitMigrateMapCancelled),
+                () => runnerHubClient().InvokeSplitMigrateMapCancelled(request.JobId),
+                nameof(RunnerHubClient.InvokeSplitMigrateMapCancelled),
                 request.JobId,
                 connection);
         }
@@ -87,8 +87,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling SplitMigrateMap for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitMigrateMapFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeSplitMigrateMapFaulted),
+                () => runnerHubClient().InvokeSplitMigrateMapFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(RunnerHubClient.InvokeSplitMigrateMapFaulted),
                 request.JobId,
                 connection);
         }

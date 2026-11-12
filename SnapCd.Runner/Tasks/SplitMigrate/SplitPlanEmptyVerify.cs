@@ -20,7 +20,7 @@ public partial class Tasks
     /// changes cannot be split: the carve would be proved against a baseline that was never real.
     /// The plan file is already on disk, so nothing is executed here — it is only read.
     /// </summary>
-    public async Task SplitPlanEmptyVerify(SplitPlanEmptyVerifyRequestBase request, HubConnection connection)
+    public async Task SplitPlanEmptyVerify(SplitPlanEmptyVerifyRequestBase request, Func<HubConnection?> connection)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -43,7 +43,7 @@ public partial class Tasks
             request.Metadata
         );
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
@@ -77,8 +77,8 @@ public partial class Tasks
                 taskContext.LogError(summary);
 
                 await InvokeWithRetryAsync(
-                    () => runnerHubClient.InvokeSplitPlanEmptyVerifyFaulted(request.JobId, summary, null),
-                    nameof(runnerHubClient.InvokeSplitPlanEmptyVerifyFaulted),
+                    () => runnerHubClient().InvokeSplitPlanEmptyVerifyFaulted(request.JobId, summary, null),
+                    nameof(RunnerHubClient.InvokeSplitPlanEmptyVerifyFaulted),
                     request.JobId,
                     connection);
 
@@ -88,8 +88,8 @@ public partial class Tasks
             taskContext.LogInformation("Plan is empty");
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitPlanEmptyVerifyCompleted(request.JobId),
-                nameof(runnerHubClient.InvokeSplitPlanEmptyVerifyCompleted),
+                () => runnerHubClient().InvokeSplitPlanEmptyVerifyCompleted(request.JobId),
+                nameof(RunnerHubClient.InvokeSplitPlanEmptyVerifyCompleted),
                 request.JobId,
                 connection);
 
@@ -99,8 +99,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("SplitPlanEmptyVerify was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitPlanEmptyVerifyCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeSplitPlanEmptyVerifyCancelled),
+                () => runnerHubClient().InvokeSplitPlanEmptyVerifyCancelled(request.JobId),
+                nameof(RunnerHubClient.InvokeSplitPlanEmptyVerifyCancelled),
                 request.JobId,
                 connection);
         }
@@ -109,8 +109,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling SplitPlanEmptyVerify for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitPlanEmptyVerifyFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeSplitPlanEmptyVerifyFaulted),
+                () => runnerHubClient().InvokeSplitPlanEmptyVerifyFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(RunnerHubClient.InvokeSplitPlanEmptyVerifyFaulted),
                 request.JobId,
                 connection);
         }

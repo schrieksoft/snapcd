@@ -25,7 +25,7 @@ public partial class Tasks
     /// </summary>
     public async Task Probe(
         ProbeRequestBase request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         Func<Guid, string?, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)

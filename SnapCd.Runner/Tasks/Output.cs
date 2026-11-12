@@ -22,7 +22,7 @@ public partial class Tasks
     /// </summary>
     public async Task Output(
         OutputRequestBase request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         Func<Guid, OutputSetCreateDto?, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)
@@ -49,7 +49,7 @@ public partial class Tasks
             request.Metadata
         );
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {

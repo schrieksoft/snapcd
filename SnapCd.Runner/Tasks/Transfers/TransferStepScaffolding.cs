@@ -26,7 +26,7 @@ public partial class Tasks
         string task,
         JobMetadata metadata,
         int reportFrequencySeconds,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         Func<RunnerTaskContext, RunnerHubClient, CancellationToken, Task> run,
         Func<RunnerHubClient, string?, string?, Task> fault,
         Func<RunnerHubClient, Task> cancel)
@@ -41,18 +41,18 @@ public partial class Tasks
 
         var logger = _loggerFactory.CreateLogger<Tasks>();
         var taskContext = new RunnerTaskContext(jobId, task, logger, _jobLogStreams.StateMigrations, metadata);
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
-            await run(taskContext, runnerHubClient, killCts.Token);
+            await run(taskContext, runnerHubClient(), killCts.Token);
             taskContext.LogSection($"Completed {task}");
         }
         catch (OperationCanceledException)
         {
             taskContext.LogWarning($"{task} was cancelled.");
             await InvokeWithRetryAsync(
-                () => cancel(runnerHubClient), $"{task}Cancelled", jobId, connection);
+                () => cancel(runnerHubClient()), $"{task}Cancelled", jobId, connection);
         }
         catch (Exception ex)
         {
@@ -60,7 +60,7 @@ public partial class Tasks
             logger.LogError(ex, "Error handling {Task} for Module {ModuleId} of job {JobId}", task, moduleId, jobId);
 
             await InvokeWithRetryAsync(
-                () => fault(runnerHubClient, ex.Message, ex.StackTrace), $"{task}Faulted", jobId, connection);
+                () => fault(runnerHubClient(), ex.Message, ex.StackTrace), $"{task}Faulted", jobId, connection);
         }
         finally
         {

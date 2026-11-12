@@ -15,27 +15,27 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public Task ApplyCancelKill(CancelKillRequest request, HubConnection connection) =>
+    public Task ApplyCancelKill(CancelKillRequest request, Func<HubConnection?> connection) =>
         CancelKill(request, connection,
             c => c.InvokeApplyCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeApplyCancelKillCompleted));
 
-    public Task DestroyCancelKill(CancelKillRequest request, HubConnection connection) =>
+    public Task DestroyCancelKill(CancelKillRequest request, Func<HubConnection?> connection) =>
         CancelKill(request, connection,
             c => c.InvokeDestroyCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeDestroyCancelKillCompleted));
 
-    public Task SplitCancelKill(CancelKillRequest request, HubConnection connection) =>
+    public Task SplitCancelKill(CancelKillRequest request, Func<HubConnection?> connection) =>
         CancelKill(request, connection,
             c => c.InvokeSplitCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeSplitCancelKillCompleted));
 
-    public Task MoveCancelKill(CancelKillRequest request, HubConnection connection) =>
+    public Task MoveCancelKill(CancelKillRequest request, Func<HubConnection?> connection) =>
         CancelKill(request, connection,
             c => c.InvokeMoveCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeMoveCancelKillCompleted));
 
-    public Task ImportCancelKill(CancelKillRequest request, HubConnection connection) =>
+    public Task ImportCancelKill(CancelKillRequest request, Func<HubConnection?> connection) =>
         CancelKill(request, connection,
             c => c.InvokeImportCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeImportCancelKillCompleted));
 
-    public Task RemoveCancelKill(CancelKillRequest request, HubConnection connection) =>
+    public Task RemoveCancelKill(CancelKillRequest request, Func<HubConnection?> connection) =>
         CancelKill(request, connection,
             c => c.InvokeRemoveCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeRemoveCancelKillCompleted));
 
@@ -45,7 +45,7 @@ public partial class Tasks
     /// </summary>
     private async Task CancelKill(
         CancelKillRequest request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         Func<RunnerHubClient, Task> reportCompleted,
         string reportName)
     {
@@ -60,9 +60,9 @@ public partial class Tasks
         else
             logger.LogWarning("No running process found for kill cancellation of job {JobId}", request.JobId);
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
         await InvokeWithRetryAsync(
-            () => reportCompleted(runnerHubClient),
+            () => reportCompleted(runnerHubClient()),
             reportName,
             request.JobId,
             connection);

@@ -17,7 +17,7 @@ namespace SnapCd.Runner.Tasks;
 public partial class Tasks
 {
     /// <summary>Plans every carved module against its local state copy and asserts zero changes.</summary>
-    public async Task SplitMigrateProve(SplitMigrateProveRequestBase request, HubConnection connection)
+    public async Task SplitMigrateProve(SplitMigrateProveRequestBase request, Func<HubConnection?> connection)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -40,7 +40,7 @@ public partial class Tasks
             request.Metadata
         );
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
@@ -72,8 +72,8 @@ public partial class Tasks
 
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitMigrateProveCompleted(request.JobId, modulesProven, modulesPlanningClean),
-                nameof(runnerHubClient.InvokeSplitMigrateProveCompleted),
+                () => runnerHubClient().InvokeSplitMigrateProveCompleted(request.JobId, modulesProven, modulesPlanningClean),
+                nameof(RunnerHubClient.InvokeSplitMigrateProveCompleted),
                 request.JobId,
                 connection);
 
@@ -83,8 +83,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("SplitMigrateProve was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitMigrateProveCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeSplitMigrateProveCancelled),
+                () => runnerHubClient().InvokeSplitMigrateProveCancelled(request.JobId),
+                nameof(RunnerHubClient.InvokeSplitMigrateProveCancelled),
                 request.JobId,
                 connection);
         }
@@ -93,8 +93,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling SplitMigrateProve for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitMigrateProveFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeSplitMigrateProveFaulted),
+                () => runnerHubClient().InvokeSplitMigrateProveFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(RunnerHubClient.InvokeSplitMigrateProveFaulted),
                 request.JobId,
                 connection);
         }
