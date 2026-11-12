@@ -2307,6 +2307,13 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("ActualStateHeadline")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ApprovalDecision")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("ApprovalThreshold")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -7675,6 +7682,13 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ApprovalDecision")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("ApprovalThreshold")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");

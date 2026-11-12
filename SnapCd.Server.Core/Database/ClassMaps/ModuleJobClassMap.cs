@@ -92,5 +92,10 @@ public class ModuleJobClassMap : IEntityTypeConfiguration<ModuleJob>
         entity
             .Property(d => d.PolicyOutcome)
             .HasConversion<string>();
+
+        entity
+            .Property(d => d.ApprovalDecision)
+            .HasConversion<string>()
+            .HasMaxLength(50);
     }
 }

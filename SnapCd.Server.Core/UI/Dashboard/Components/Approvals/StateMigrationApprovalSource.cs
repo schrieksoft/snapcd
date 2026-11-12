@@ -55,14 +55,19 @@ public class StateMigrationApprovalSource : IApprovalSource
         return approvals.Cast<IJobApproval>().ToList();
     }
 
-    public async Task<bool> IsWaitingForApproval(Guid jobId, Guid moduleId, Guid organizationId)
+    public async Task<ApprovalState> GetApprovalState(Guid jobId, Guid moduleId, Guid organizationId)
     {
         using var repo = _jobRepoFactory.Create(_principalProvider);
         var job = await repo.Get(jobId, moduleId, organizationId);
-        return job.WaitingForApproval == true;
+
+        return new ApprovalState(
+            job.ApprovalDecision,
+            job.ApprovalThreshold ?? await ResolveThreshold(moduleId, organizationId),
+            job.WaitingForApproval == true);
     }
 
-    public async Task<int?> ResolveThreshold(Guid jobId, Guid moduleId, Guid organizationId)
+    /// <summary>The threshold as it stands now, for a job that has none of its own recorded.</summary>
+    private async Task<int?> ResolveThreshold(Guid moduleId, Guid organizationId)
     {
         using var repo = _moduleRepoFactory.Create(_principalProvider);
 

@@ -177,7 +177,7 @@ public partial class JobStateMachine<
                     ModuleJobId = context.Saga.CorrelationId,
                     CancellationReason = CancellationReason.UserRequested
                 })
-                .Activity(x => x.OfType<CancelModuleJobActivity<TSaga, CancelModuleRequested>>())
+                .Activity(x => x.OfType<CancelWhileWaitingForApprovalModuleJobActivity<TSaga, CancelModuleRequested>>())
                 .TransitionTo(Cancelled)
                 .Finalize(),
             Ignore(RunnerReconnectedEvent)

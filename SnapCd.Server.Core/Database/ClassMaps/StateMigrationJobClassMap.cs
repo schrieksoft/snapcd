@@ -72,5 +72,10 @@ public class StateMigrationJobClassMap : IEntityTypeConfiguration<StateMigration
             .Property(d => d.FailedOnServerSideStep)
             .HasConversion<string>()
             .HasMaxLength(50);
+
+        entity
+            .Property(d => d.ApprovalDecision)
+            .HasConversion<string>()
+            .HasMaxLength(50);
     }
 }

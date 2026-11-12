@@ -71,7 +71,7 @@ public partial class TransferMigrateStateMachine
                 .Then(context => _logger.LogInformation(
                     "Transfer: approval timed out for Module {ModuleId}",
                     context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, ApprovalTimeoutReceived>>())
+                .Activity(x => x.OfType<ApprovalTimeoutStateMigrationJobActivity<TransferMigrateSaga, ApprovalTimeoutReceived>>())
                 .TransitionTo(Failed)
                 .Finalize(),
 
@@ -81,7 +81,7 @@ public partial class TransferMigrateStateMachine
                     "Transfer: cancelled while awaiting approval for Module {ModuleId}",
                     context.Saga.ModuleId))
                 .Unschedule(ApprovalTimeoutScheduled)
-                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, CancelStateMigrationJobRequested>>())
+                .Activity(x => x.OfType<CancelWhileWaitingForApprovalStateMigrationJobActivity<TransferMigrateSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize(),
 
@@ -158,7 +158,7 @@ public partial class TransferMigrateStateMachine
                                 "Transfer: declined for Module {ModuleId}; nothing written",
                                 context.Saga.ModuleId))
                             .Unschedule(ApprovalTimeoutScheduled)
-                            .Activity(z => z.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, TMessage>>())
+                            .Activity(z => z.OfType<ApprovalDeclinedStateMigrationJobActivity<TransferMigrateSaga, TMessage>>())
                             .TransitionTo(Failed)
                             .Finalize(),
                         stillWaiting => stillWaiting

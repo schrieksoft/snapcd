@@ -12,6 +12,8 @@ using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 using System.Reflection;
 using MassTransit;
@@ -464,6 +466,12 @@ public static class MassTransit
         services.AddScoped(typeof(WaitingForRunnerActivity<,>));
         services.AddScoped(typeof(WaitingForConsentActivity<,>));
         services.AddScoped(typeof(NotWaitingForConsentActivity<,>));
+
+        // The approval outcome written on a job as it leaves the waiting state.
+        services.AddScoped(typeof(CancelWhileWaitingForApprovalModuleJobActivity<,>));
+        services.AddScoped(typeof(ApprovalDeclinedStateMigrationJobActivity<,>));
+        services.AddScoped(typeof(ApprovalTimeoutStateMigrationJobActivity<,>));
+        services.AddScoped(typeof(CancelWhileWaitingForApprovalStateMigrationJobActivity<,>));
 
         // The manual families send their steps to the instance owning the runner's connection,
         // as an ordinary job does, rather than publishing them.

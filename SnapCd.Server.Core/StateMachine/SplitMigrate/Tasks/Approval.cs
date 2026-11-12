@@ -65,7 +65,7 @@ public partial class SplitMigrateStateMachine
                     ModuleJobId = context.Saga.CorrelationId,
                     CancellationReason = CancellationReason.ApprovalTimeout
                 })
-                .Activity(x => x.OfType<CancelStateMigrationJobActivity<SplitMigrateSaga, ApprovalTimeoutReceived>>())
+                .Activity(x => x.OfType<ApprovalTimeoutStateMigrationJobActivity<SplitMigrateSaga, ApprovalTimeoutReceived>>())
                 .TransitionTo(Cancelled)
                 .Finalize(),
             // Nothing is running on a runner here, so there is no step to kill or wait out: every
@@ -83,7 +83,7 @@ public partial class SplitMigrateStateMachine
                     ModuleJobId = context.Saga.CorrelationId,
                     CancellationReason = CancellationReason.UserRequested
                 })
-                .Activity(x => x.OfType<CancelStateMigrationJobActivity<SplitMigrateSaga, CancelStateMigrationJobRequested>>())
+                .Activity(x => x.OfType<CancelWhileWaitingForApprovalStateMigrationJobActivity<SplitMigrateSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Cancelled)
                 .Finalize(),
             Ignore(RunnerReconnectedEvent),
@@ -139,7 +139,7 @@ public partial class SplitMigrateStateMachine
                                 ModuleJobId = context.Saga.CorrelationId,
                                 CancellationReason = CancellationReason.ApprovalDeclined
                             })
-                            .Activity(z => z.OfType<CancelStateMigrationJobActivity<SplitMigrateSaga, TMessage>>())
+                            .Activity(z => z.OfType<ApprovalDeclinedStateMigrationJobActivity<SplitMigrateSaga, TMessage>>())
                             .TransitionTo(Declined)
                             .Finalize(),
                         stillWaiting => stillWaiting

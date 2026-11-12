@@ -9,6 +9,7 @@
 @using Microsoft.EntityFrameworkCore
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Interfaces
+@using SnapCd.Server.Core.Enums
 @using SnapCd.Server.Core.Misc.Exceptions
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
@@ -30,10 +31,19 @@ else
 {
     <MudPaper Elevation="0" Class="pa-4 mb-4">
         <MudText Typo="Typo.overline" Class="mud-text-secondary">Approval</MudText>
-        <MudText Typo="Typo.subtitle1">@GetApprovalCountText()</MudText>
+        @if (_isWaitingForApproval)
+        {
+            <MudText Typo="Typo.subtitle1">@GetApprovalCountText()</MudText>
+        }
+        else
+        {
+            <MudAlert Severity="@OutcomeSeverity" Class="mt-2" Dense="true">@OutcomeText</MudAlert>
+        }
         @if (_approvals.Count == 0)
         {
-            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">No decisions yet.</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                @(_isWaitingForApproval ? "No decisions yet." : "Nobody approved or declined this.")
+            </MudText>
         }
         else
         {
@@ -153,6 +163,7 @@ else
     private List<Approval>? _approvals;
     private int _approvalCount;
     private int? _approvalThreshold;
+    private ApprovalDecision? _decision;
     private bool _isWaitingForApproval;
     private bool _canDecide;
     private bool _busy;
@@ -180,17 +191,48 @@ else
 
     private async Task Reload()
     {
-        _approvalThreshold = await Source.ResolveThreshold(JobId, ModuleId, OrganizationId);
-        _isWaitingForApproval = await Source.IsWaitingForApproval(JobId, ModuleId, OrganizationId);
+        var state = await Source.GetApprovalState(JobId, ModuleId, OrganizationId);
+        _decision = state.Decision;
+        _approvalThreshold = state.Threshold;
+        _isWaitingForApproval = state.IsWaiting;
         _canDecide = await Source.CanDecide(JobId, ModuleId, OrganizationId);
         await ReloadApprovals();
     }
 
+    private Severity OutcomeSeverity => _decision switch
+    {
+        ApprovalDecision.Approved => Severity.Success,
+        ApprovalDecision.Declined => Severity.Error,
+        _ => Severity.Info
+    };
+
+    private string OutcomeText
+    {
+        get
+        {
+            var noun = Source.DecisionNoun.ToLowerInvariant();
+
+            return _decision switch
+            {
+                ApprovalDecision.Approved => _approvalThreshold is { } t
+                    ? $"This {noun} was fully approved, meeting the {t} {Approvals(t)} it required."
+                    : $"This {noun} was fully approved.",
+                ApprovalDecision.Declined => $"This {noun} was declined.",
+                ApprovalDecision.TimedOut => $"This {noun} was not decided in time.",
+                ApprovalDecision.Cancelled => $"This {noun} was cancelled before it was decided.",
+                ApprovalDecision.None => $"This {noun} ended with no decision recorded.",
+                _ => $"This {noun} is not waiting for approval."
+            };
+        }
+    }
+
+    private static string Approvals(int count) => count == 1 ? "approval" : "approvals";
+
     private string GetApprovalCountText()
     {
         return _approvalThreshold is { } t
-            ? $"{_approvalCount} of {t} approvals"
-            : $"{_approvalCount} approvals (threshold unknown)";
+            ? $"{_approvalCount} of {t} {Approvals(t)}"
+            : $"{_approvalCount} {Approvals(_approvalCount)} (threshold unknown)";
     }
 
     private Task Approve() => Decide(declined: false);

@@ -28,14 +28,7 @@
 
 
 
-@if (_source != null && !_isWaitingForApproval)
-{
-    <MudAlert Severity="Severity.Info">
-        This job is not waiting for approval.
-    </MudAlert>
-}
-
-@if (_source != null && _isWaitingForApproval)
+@if (_source != null)
 {
     <ApprovalPanel @ref="_panelRef"
                    Source="@_source"
@@ -43,57 +36,57 @@
                    ModuleId="@ModuleId"
                    ApproveCaveat="@ApproveCaveat()"
                    OnDecided="() => RefreshAll()"/>
+}
 
-    @if (_moduleJob != null)
-    {
-        <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Stretch" Wrap="Wrap.Wrap" Class="mb-4">
-            <MudPaper Elevation="0" Class="pa-4">
-                <MudText Typo="Typo.overline" Class="mud-text-secondary">Plan</MudText>
-                @if (_moduleJob.PlanTotalChangedCount != null)
-                {
-                    <MudStack Row="true" Spacing="8" Class="mt-2">
-                        @PlanStat("create", _moduleJob.PlanCreateCount ?? 0, Color.Success)
-                        @PlanStat("modify", _moduleJob.PlanModifyCount ?? 0, Color.Warning)
-                        @PlanStat("destroy", _moduleJob.PlanDestroyCount ?? 0, Color.Error)
-                        @PlanStat("recreate", _moduleJob.PlanRecreateCount ?? 0, Color.Error)
-                    </MudStack>
-                }
-                else
-                {
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">No plan summary recorded.</MudText>
-                }
-            </MudPaper>
-            @if (_moduleJob.PolicyOutcome != null)
-            {
-                var (policyIcon, policyColor, policyText) = _moduleJob.PolicyOutcome switch
-                {
-                    PolicyOutcome.SoftWarned => (SnapCdIcons.Warning, Color.Warning, "Warnings"),
-                    PolicyOutcome.HardDenied => (SnapCdIcons.Error, Color.Error, "Denied"),
-                    _ => (SnapCdIcons.CheckCircle, Color.Success, "Passed")
-                };
-
-                <MudPaper Elevation="0" Class="pa-4">
-                    <MudText Typo="Typo.overline" Class="mud-text-secondary">Policy</MudText>
-                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-2">
-                        <MudIcon Icon="@policyIcon" Color="@policyColor"/>
-                        <MudText Typo="Typo.h6" Color="@policyColor">@policyText</MudText>
-                        @if (_moduleJob.PolicyOutcome != PolicyOutcome.Passed)
-                        {
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary">(see detail below)</MudText>
-                        }
-                    </MudStack>
-                </MudPaper>
-            }
-        </MudStack>
-
+@if (_moduleJob != null)
+{
+    <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Stretch" Wrap="Wrap.Wrap" Class="mb-4">
         <MudPaper Elevation="0" Class="pa-4">
-            <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
-            <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" ReadPlan="@ReadPlanPayload" @ref="_inlineLogsRef"/>
+            <MudText Typo="Typo.overline" Class="mud-text-secondary">Plan</MudText>
+            @if (_moduleJob.PlanTotalChangedCount != null)
+            {
+                <MudStack Row="true" Spacing="8" Class="mt-2">
+                    @PlanStat("create", _moduleJob.PlanCreateCount ?? 0, Color.Success)
+                    @PlanStat("modify", _moduleJob.PlanModifyCount ?? 0, Color.Warning)
+                    @PlanStat("destroy", _moduleJob.PlanDestroyCount ?? 0, Color.Error)
+                    @PlanStat("recreate", _moduleJob.PlanRecreateCount ?? 0, Color.Error)
+                </MudStack>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">No plan summary recorded.</MudText>
+            }
         </MudPaper>
+        @if (_moduleJob.PolicyOutcome != null)
+        {
+            var (policyIcon, policyColor, policyText) = _moduleJob.PolicyOutcome switch
+            {
+                PolicyOutcome.SoftWarned => (SnapCdIcons.Warning, Color.Warning, "Warnings"),
+                PolicyOutcome.HardDenied => (SnapCdIcons.Error, Color.Error, "Denied"),
+                _ => (SnapCdIcons.CheckCircle, Color.Success, "Passed")
+            };
 
-        <ListProbes @ref="_probesRef" ModuleJobId="@ModuleJobId" ModuleId="@ModuleId"
-                    OnImpactChanged="HandleImpactChanged"/>
-    }
+            <MudPaper Elevation="0" Class="pa-4">
+                <MudText Typo="Typo.overline" Class="mud-text-secondary">Policy</MudText>
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-2">
+                    <MudIcon Icon="@policyIcon" Color="@policyColor"/>
+                    <MudText Typo="Typo.h6" Color="@policyColor">@policyText</MudText>
+                    @if (_moduleJob.PolicyOutcome != PolicyOutcome.Passed)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">(see detail below)</MudText>
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+    </MudStack>
+
+    <MudPaper Elevation="0" Class="pa-4">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
+        <ListLogs TJob="ModuleJob" TChunk="ModuleJobLogChunk" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" ReadPlan="@ReadPlanPayload" @ref="_inlineLogsRef"/>
+    </MudPaper>
+
+    <ListProbes @ref="_probesRef" ModuleJobId="@ModuleJobId" ModuleId="@ModuleId"
+                OnImpactChanged="HandleImpactChanged"/>
 }
 
 
@@ -115,7 +108,6 @@
     private DownstreamImpact? _impact;
     private ApprovalPanel? _panelRef;
     private IApprovalSource _source = null!;
-    private bool _isWaitingForApproval;
 
     protected override async Task OnInitializedAsync()
     {
@@ -254,7 +246,6 @@
         using var repo = ModuleJobRepoFactory.Create(new LiteralPrincipalProvider(principalId, principalDiscriminator, [OrganizationId]));
 
         _moduleJob = await repo.Get(ModuleJobId, OrganizationId);
-        _isWaitingForApproval = _moduleJob.WaitingForApproval.GetValueOrDefault();
     }
 
 

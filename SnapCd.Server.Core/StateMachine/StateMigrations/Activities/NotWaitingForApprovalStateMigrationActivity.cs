@@ -8,6 +8,7 @@
 
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
@@ -32,6 +33,11 @@ public class NotWaitingForApprovalStateMigrationActivity<TSaga, TMessage> : ISta
         IBehavior<TSaga, TMessage> next)
     {
         await _repository.ExecuteWaitingForApproval(context.Saga.CorrelationId, context.Saga.OrganizationId, false);
+
+        await _repository.ExecuteRecordApprovalDecision(
+            context.Saga.CorrelationId,
+            context.Saga.OrganizationId,
+            ApprovalDecision.Approved);
 
         await next.Execute(context).ConfigureAwait(false);
     }

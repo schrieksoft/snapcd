@@ -41,6 +41,19 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
     public string? Logs { get; set; }
 
     public bool? WaitingForApproval { get; set; }
+
+    /// <summary>
+    /// What became of this job's approval. Null means it never waited for one; the saga that held
+    /// the decision is deleted when the job finishes, so the row is the only place it survives.
+    /// </summary>
+    public ApprovalDecision? ApprovalDecision { get; set; }
+
+    /// <summary>
+    /// Approvals this job needed, as resolved when it parked. The Module's own threshold is live and
+    /// may differ from it.
+    /// </summary>
+    public int? ApprovalThreshold { get; set; }
+
     /// <summary>
     /// The runner this job was dispatched to. Recorded on the job rather than only on the saga,
     /// which is deleted when the job finishes, and carried without a foreign key so it survives

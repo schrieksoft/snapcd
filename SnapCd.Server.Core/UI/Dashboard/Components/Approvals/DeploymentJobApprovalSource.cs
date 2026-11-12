@@ -67,14 +67,19 @@ public class DeploymentJobApprovalSource : IApprovalSource
         return approvals.Cast<IJobApproval>().ToList();
     }
 
-    public async Task<bool> IsWaitingForApproval(Guid jobId, Guid moduleId, Guid organizationId)
+    public async Task<ApprovalState> GetApprovalState(Guid jobId, Guid moduleId, Guid organizationId)
     {
         using var repo = _jobRepoFactory.Create(_principalProvider);
         var job = await repo.Get(jobId, organizationId);
-        return job.WaitingForApproval.GetValueOrDefault();
+
+        return new ApprovalState(
+            job.ApprovalDecision,
+            job.ApprovalThreshold ?? await ResolveThreshold(jobId, moduleId, organizationId),
+            job.WaitingForApproval.GetValueOrDefault());
     }
 
-    public async Task<int?> ResolveThreshold(Guid jobId, Guid moduleId, Guid organizationId)
+    /// <summary>The threshold as it stands now, for a job that has none of its own recorded.</summary>
+    private async Task<int?> ResolveThreshold(Guid jobId, Guid moduleId, Guid organizationId)
     {
         if (_jobSagaType != nameof(ApplyJobSaga) && _jobSagaType != nameof(DestroyJobSaga))
             return null;

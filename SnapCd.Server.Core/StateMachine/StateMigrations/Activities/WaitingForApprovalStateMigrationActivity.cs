@@ -8,7 +8,10 @@
 
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
+using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services.Nonsecured.Approvals;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
@@ -21,10 +24,12 @@ public class WaitingForApprovalStateMigrationActivity<TSaga, TMessage> : IStateM
     where TMessage : class
 {
     private readonly StateMigrationJobRepository _repository;
+    private readonly SnapCdDbContext _dbContext;
 
-    public WaitingForApprovalStateMigrationActivity(StateMigrationJobRepository repository)
+    public WaitingForApprovalStateMigrationActivity(StateMigrationJobRepository repository, SnapCdDbContext dbContext)
     {
         _repository = repository;
+        _dbContext = dbContext;
     }
 
     public async Task Execute(
@@ -32,6 +37,17 @@ public class WaitingForApprovalStateMigrationActivity<TSaga, TMessage> : IStateM
         IBehavior<TSaga, TMessage> next)
     {
         await _repository.ExecuteWaitingForApproval(context.Saga.CorrelationId, context.Saga.OrganizationId, true);
+
+        // The threshold is captured here, where the job parks, because the Module's own value may
+        // change while it waits and afterwards.
+        var threshold = await StateMigrationApprovalThreshold.Resolve(
+            context.Saga.ModuleId, context.Saga.OrganizationId, _dbContext);
+
+        await _repository.ExecuteRecordApprovalDecision(
+            context.Saga.CorrelationId,
+            context.Saga.OrganizationId,
+            ApprovalDecision.None,
+            threshold);
 
         await next.Execute(context).ConfigureAwait(false);
     }

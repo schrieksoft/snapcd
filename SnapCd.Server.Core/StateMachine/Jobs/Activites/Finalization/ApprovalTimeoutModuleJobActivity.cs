@@ -40,6 +40,11 @@ public class ApprovalTimeoutModuleJobActivity<TSaga, TMessage> :
             _ => (ActualStateHeadline?)null
         };
         
+        await _repository.RecordApprovalDecision(
+            context.Saga.CorrelationId,
+            context.Saga.OrganizationId,
+            ApprovalDecision.TimedOut);
+
         await _repository.Finalize(
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
