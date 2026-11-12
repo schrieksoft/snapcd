@@ -40,6 +40,6 @@ public class SuppliedScopeRow
     public string Href => ModuleName is not null
         ? $"/Module/{StackName}/{NamespaceName}/{ModuleName}"
         : NamespaceName is not null
-            ? $"/Namespace/{StackName}/{NamespaceName}"
-            : $"/Stack/{StackName}";
+            ? $"/Stacks?stack={StackName}&namespace={NamespaceName}"
+            : $"/Stacks?stack={StackName}";
 }

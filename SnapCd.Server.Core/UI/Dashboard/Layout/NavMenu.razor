@@ -383,7 +383,7 @@
                     n => new FavoriteLink(
                         FavoriteTargetType.Namespace,
                         n.Name,
-                        $"/Namespace/{n.StackName}/{n.Name}",
+                        $"/Stacks?stack={n.StackName}&namespace={n.Name}",
                         $"{n.StackName}/{n.Name}"));
             }
 
@@ -398,7 +398,7 @@
                     s => new FavoriteLink(
                         FavoriteTargetType.Stack,
                         s.Name,
-                        $"/Stack/{s.Name}",
+                        $"/Stacks?stack={s.Name}",
                         s.Name));
             }
 

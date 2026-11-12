@@ -223,10 +223,10 @@ else
                                         @PathLinks(favorite.StackName, favorite.NamespaceName!, favorite.ModuleName!)
                                         break;
                                     case FavoriteTargetType.Namespace:
-                                        <span class="dash-path"><a href="@($"/Stack/{favorite.StackName}")">@favorite.StackName</a><span class="dash-path-sep">/</span><a href="@($"/Namespace/{favorite.StackName}/{favorite.NamespaceName}")">@favorite.NamespaceName</a></span>
+                                        <span class="dash-path"><a href="@($"/Stacks?stack={favorite.StackName}")">@favorite.StackName</a><span class="dash-path-sep">/</span><a href="@($"/Stacks?stack={favorite.StackName}&namespace={favorite.NamespaceName}")">@favorite.NamespaceName</a></span>
                                         break;
                                     default:
-                                        <span class="dash-path"><a href="@($"/Stack/{favorite.StackName}")">@favorite.StackName</a></span>
+                                        <span class="dash-path"><a href="@($"/Stacks?stack={favorite.StackName}")">@favorite.StackName</a></span>
                                         break;
                                 }
                             </span>
@@ -825,7 +825,7 @@ else
     }
 
     private RenderFragment PathLinks(string stack, string ns, string module) =>
-        @<span class="dash-path"><a href="@($"/Stack/{stack}")">@stack</a><span class="dash-path-sep">/</span><a href="@($"/Namespace/{stack}/{ns}")">@ns</a><span class="dash-path-sep">/</span><a href="@($"/Module/{stack}/{ns}/{module}")">@module</a></span>;
+        @<span class="dash-path"><a href="@($"/Stacks?stack={stack}")">@stack</a><span class="dash-path-sep">/</span><a href="@($"/Stacks?stack={stack}&namespace={ns}")">@ns</a><span class="dash-path-sep">/</span><a href="@($"/Module/{stack}/{ns}/{module}")">@module</a></span>;
 
     protected override async Task OnInitializedAsync()
     {

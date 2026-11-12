@@ -35,17 +35,17 @@ else
                                          ValueChanged="@(value => OnStackSelectionChanged(stack.Id, value))"
                                          Dense="true"
                                          Style="margin: 0; padding: 0;"/>
-                            <MudLink Href="@($"/Stack/{stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+                            @StackTitle(stack)
                         </div>
                     }
                     else
                     {
-                        <MudLink Href="@($"/Stack/{stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+                        @StackTitle(stack)
                     }
                 </TitleContent>
                 <ChildContent>
                     <div class="mt-2">
-                        <ListNamespaces StackName="@stack.Name" StackId="@stack.Id" SearchTerms="@SearchTerms" SearchScope="@SearchScope"/>
+                        <ListNamespaces StackName="@stack.Name" StackId="@stack.Id" SearchTerms="@SearchTerms" SearchScope="@SearchScope" OnSelected="OnSelected"/>
                     </div>
                 </ChildContent>
             </MudExpansionPanel>
@@ -86,6 +86,19 @@ else
     [Parameter] public EventCallback<HashSet<Guid>> OnSelectionChanged { get; set; }
     [Parameter] public bool SelectAll { get; set; }
     [Parameter] public bool ShowCheckboxes { get; set; }
+
+    /// <summary>
+    /// Set where the tree sits beside panels that show what is selected. Unset, a name is a link
+    /// to that Stack's own page.
+    /// </summary>
+    [Parameter] public EventCallback<HierarchySelection> OnSelected { get; set; }
+
+    /// <summary>A name either selects within the page or navigates to one, never both.</summary>
+    private RenderFragment StackTitle(StackMetadata stack) => !OnSelected.HasDelegate
+        ? @<MudLink Href="@($"/Stacks?stack={stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+        : @<MudLink Underline="Underline.None" @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfStack(stack.Name)))">
+               @GetHighlightedStackName(stack.Name)
+           </MudLink>;
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;

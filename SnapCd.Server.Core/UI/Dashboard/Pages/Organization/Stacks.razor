@@ -39,110 +39,121 @@
         <MudText Typo="Typo.h4" Class="page-header-title">Stacks</MudText>
     </div>
 
-    @if (_showCreate)
-    {
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <CreateStack OnCreated="HandleCreated"
-                         OnCancel="HandleCreateCanceled"/>
-        </MudPaper>
-    }
-    else
-    {
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
-                       Size="Size.Small"
-                       OnClick="ShowCreate">
-                Create
-            </MudButton>
-        </MudPaper>
-    }
-
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <div class="stack-header">
-                <MudTooltip Text="Select multiple">
-                    <MudIconButton Icon="@SnapCdIcons.Checklist"
-                                   Color="@(_showSelectionMode ? Color.Secondary : Color.Primary)"
-                                   Size="Size.Small"
-                                   OnClick="() => ToggleSelectionMode()"/>
-                </MudTooltip>
-
-                <MudTooltip Text="Search stacks">
-                    <MudIconButton Icon="@SnapCdIcons.Search"
-                                   Color="@(_showStackSearch ? Color.Secondary : Color.Primary)"
-                                   Size="Size.Small"
-                                   OnClick="@(() => _showStackSearch = !_showStackSearch)"/>
-                </MudTooltip>
-
-                @if (_searchTerms.Any())
+    @* The stacks are a quarter of the width, and what is selected in them fills the rest. *@
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="3">
+        @if (_showCreate)
+        {
+            <MudPaper Elevation="1" Class="pa-4 mb-4">
+                <CreateStack OnCreated="HandleCreated"
+                             OnCancel="HandleCreateCanceled"/>
+            </MudPaper>
+        }
+        else
+        {
+            <MudPaper Elevation="1" Class="pa-4 mb-4">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
+                           OnClick="ShowCreate">
+                    Create
+                </MudButton>
+            </MudPaper>
+        }
+    
+            <MudPaper Elevation="1" Class="pa-4 mb-4">
+                <div class="stack-header">
+                    <MudTooltip Text="Select multiple">
+                        <MudIconButton Icon="@SnapCdIcons.Checklist"
+                                       Color="@(_showSelectionMode ? Color.Secondary : Color.Primary)"
+                                       Size="Size.Small"
+                                       OnClick="() => ToggleSelectionMode()"/>
+                    </MudTooltip>
+    
+                    <MudTooltip Text="Search stacks">
+                        <MudIconButton Icon="@SnapCdIcons.Search"
+                                       Color="@(_showStackSearch ? Color.Secondary : Color.Primary)"
+                                       Size="Size.Small"
+                                       OnClick="@(() => _showStackSearch = !_showStackSearch)"/>
+                    </MudTooltip>
+    
+                    @if (_searchTerms.Any())
+                    {
+                        <div class="search-chips-header">
+                            @foreach (var term in _searchTerms)
+                            {
+                                <MudChip T="string"
+                                         Text="@term"
+                                         Size="Size.Small"
+                                         Color="Color.Secondary"
+                                         OnClose="@(() => RemoveSearchTerm(term))"/>
+                            }
+                        </div>
+                    }
+    
+                    @if (_showStackSearch)
+                    {
+                        <div class="search-input-container">
+                            <MudSelect @bind-Value="_searchScope"
+                                       Label="Search in"
+                                       Variant="Variant.Outlined"
+                                       Dense="true"
+                                       Class="search-scope-select">
+                                          <MudSelectItem Value="@SearchScope.Stack">Stacks</MudSelectItem>
+                                          <MudSelectItem Value="@SearchScope.Namespace">Namespaces</MudSelectItem>
+                                          <MudSelectItem Value="@SearchScope.Module">Modules</MudSelectItem>
+                            </MudSelect>
+                            <MudTextField @bind-Value="_searchInput"
+                                          Label="Search across stacks, namespaces, and modules"
+                                          HelperText="Press Enter to search (minimum 2 characters)"
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@SnapCdIcons.Search"
+                                          OnKeyDown="@HandleKeyDown"
+                                          Immediate="true"
+                                          Class="search-field-inline"/>
+                        </div>
+                    }
+                </div>
+    
+                @if (_showSelectionMode)
                 {
-                    <div class="search-chips-header">
-                        @foreach (var term in _searchTerms)
-                        {
-                            <MudChip T="string"
-                                     Text="@term"
-                                     Size="Size.Small"
+                    <div class="selection-controls">
+                        <MudCheckBox T="bool"
+                                     Value="_selectAllStacks"
+                                     ValueChanged="OnSelectAllChanged"
+                                     Label="Select all Stacks"
                                      Color="Color.Secondary"
-                                     OnClose="@(() => RemoveSearchTerm(term))"/>
+                                     Dense="true"/>
+    
+                        @if (_selectedStacks.Any())
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       StartIcon="@SnapCdIcons.Delete"
+                                       OnClick="DeleteSelectedStacks"
+                                       Size="Size.Small">
+                                Delete Selected (@_selectedStacks.Count)
+                            </MudButton>
                         }
                     </div>
                 }
-
-                @if (_showStackSearch)
-                {
-                    <div class="search-input-container">
-                        <MudSelect @bind-Value="_searchScope"
-                                   Label="Search in"
-                                   Variant="Variant.Outlined"
-                                   Dense="true"
-                                   Class="search-scope-select">
-                                      <MudSelectItem Value="@SearchScope.Stack">Stacks</MudSelectItem>
-                                      <MudSelectItem Value="@SearchScope.Namespace">Namespaces</MudSelectItem>
-                                      <MudSelectItem Value="@SearchScope.Module">Modules</MudSelectItem>
-                        </MudSelect>
-                        <MudTextField @bind-Value="_searchInput"
-                                      Label="Search across stacks, namespaces, and modules"
-                                      HelperText="Press Enter to search (minimum 2 characters)"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.End"
-                                      AdornmentIcon="@SnapCdIcons.Search"
-                                      OnKeyDown="@HandleKeyDown"
-                                      Immediate="true"
-                                      Class="search-field-inline"/>
-                    </div>
-                }
-            </div>
-
-            @if (_showSelectionMode)
-            {
-                <div class="selection-controls">
-                    <MudCheckBox T="bool"
-                                 Value="_selectAllStacks"
-                                 ValueChanged="OnSelectAllChanged"
-                                 Label="Select all Stacks"
-                                 Color="Color.Secondary"
-                                 Dense="true"/>
-
-                    @if (_selectedStacks.Any())
-                    {
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   StartIcon="@SnapCdIcons.Delete"
-                                   OnClick="DeleteSelectedStacks"
-                                   Size="Size.Small">
-                            Delete Selected (@_selectedStacks.Count)
-                        </MudButton>
-                    }
-                </div>
-            }
-        </MudPaper>
-
-        <ListStacks @ref="_listStacksComponent"
-                    SearchTerms="@_searchTerms"
-                                 SearchScope="@_searchScope"
-                    ShowCheckboxes="@_showSelectionMode"
-                    SelectAll="@_selectAllStacks"
-                    OnSelectionChanged="@HandleStackSelectionChanged"/>
+            </MudPaper>
+    
+            <ListStacks @ref="_listStacksComponent"
+                        SearchTerms="@_searchTerms"
+                                     SearchScope="@_searchScope"
+                        ShowCheckboxes="@_showSelectionMode"
+                        SelectAll="@_selectAllStacks"
+                        OnSelectionChanged="@HandleStackSelectionChanged"
+                        OnSelected="@HandleSelected"/>
+        </MudItem>
+        <MudItem xs="12" md="9">
+            <SelectedHierarchyPanels @key="_selection"
+                                     Selection="_selection"
+                                     OnChanged="HandleSelectionChanged"/>
+        </MudItem>
+    </MudGrid>
 </CascadingValue>
 
 @code {
@@ -150,7 +161,16 @@
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
     [SupplyParameterFromQuery] public string? Search { get; set; }
 
+    /// <summary>Selects a Stack on arrival, so a link elsewhere can point at one.</summary>
+    [SupplyParameterFromQuery(Name = "stack")] public string? SelectedStack { get; set; }
+
+    /// <summary>Given alongside stack, selects that Namespace within it.</summary>
+    [SupplyParameterFromQuery(Name = "namespace")] public string? SelectedNamespace { get; set; }
+
     private ListStacks? _listStacksComponent;
+
+    /// <summary>What the tree has selected, which the panels beside it follow.</summary>
+    private HierarchySelection? _selection;
 
     private bool _showCreate;
     private bool _showStackSearch;
@@ -172,6 +192,23 @@
         {
             _searchTerms = Search.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
         }
+
+        if (!string.IsNullOrEmpty(SelectedStack))
+        {
+            _selection = string.IsNullOrEmpty(SelectedNamespace)
+                ? HierarchySelection.OfStack(SelectedStack)
+                : HierarchySelection.OfNamespace(SelectedStack, SelectedNamespace);
+        }
+    }
+
+    private void HandleSelected(HierarchySelection selection) => _selection = selection;
+
+    /// <summary>A panel renamed or deleted what it was showing, so the tree and the panels reload.</summary>
+    private async Task HandleSelectionChanged()
+    {
+        _selection = null;
+
+        if (_listStacksComponent != null) await _listStacksComponent.LoadStacks();
     }
 
     private void ShowCreate()

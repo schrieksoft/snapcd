@@ -1,0 +1,161 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+@using SnapCd.Server.Core.Entities.Interfaces
+@using SnapCd.Server.Core.Misc.Exceptions
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider
+@using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
+@using SnapCd.Server.Core.Services.Utils.PrincipalProvider
+@using SnapCd.Server.Core.Views.Metadata
+
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject StackSecuredRepositoryFactory StackRepoFactory
+@inject NamespaceSecuredRepositoryFactory NamespaceRepoFactory
+
+@* What the tree has selected, as its dependencies or its settings. Keyed on the selection by the
+   caller, so changing selection rebuilds this rather than reusing a panel holding the last one. *@
+@if (Selection == null)
+{
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Select a stack or a namespace to see its dependencies.
+        </MudText>
+    </MudPaper>
+}
+else if (_notFound)
+{
+    <MudAlert Severity="Severity.Warning">That @Noun no longer exists.</MudAlert>
+}
+else if (_loading)
+{
+    <MudProgressCircular Indeterminate="true"/>
+}
+else
+{
+    <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
+
+    @if (_showing == PanelType.Dependencies)
+    {
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            @if (_stack != null)
+            {
+                <StackDependencyGraph StackId="_stack.Id" StackName="@_stack.Name"/>
+            }
+            else if (_namespace != null)
+            {
+                <NamespaceDependencyGraph NamespaceId="_namespace.Id" NamespaceName="@_namespace.Name"/>
+            }
+        </MudPaper>
+    }
+    else if (_showing == PanelType.Configure)
+    {
+        @if (_stack != null)
+        {
+            <ConfigureStack Stack="_stack"
+                            PrincipalProvider="_principalProvider"
+                            OnStackDeleted="OnChanged"
+                            OnStackSaved="OnChanged"/>
+        }
+        else if (_namespace != null)
+        {
+            <ConfigureNamespace Namespace="_namespace"
+                                StackName="@Selection.StackName"
+                                PrincipalProvider="_principalProvider"
+                                OnNamespaceDeleted="OnChanged"
+                                OnNamespaceSaved="OnChanged"/>
+        }
+    }
+}
+
+@code {
+    /// <summary>What the tree has selected, or null while nothing is.</summary>
+    [Parameter] public HierarchySelection? Selection { get; set; }
+
+    /// <summary>Raised when the panel changes the selected thing, so the tree can reload.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private enum PanelType
+    {
+        Dependencies,
+        Configure
+    }
+
+    private PanelType _showing = PanelType.Dependencies;
+    private StackMetadata? _stack;
+    private NamespaceMetadata? _namespace;
+    private IPrincipalProvider _principalProvider = null!;
+    private bool _canReadForConfiguration;
+    private bool _loading = true;
+    private bool _notFound;
+
+    private string Noun => Selection?.Scope == SearchScope.Namespace ? "namespace" : "stack";
+
+    // Configuration asks for read on the thing itself, which is more than reaching this page needs.
+    private List<TabBar.TabBarItem> _tabs =>
+    [
+        new() { Key = nameof(PanelType.Dependencies), Label = "Dependencies" },
+        .. _canReadForConfiguration
+            ? new[] { new TabBar.TabBarItem { Key = nameof(PanelType.Configure), Label = "Configuration" } }
+            : []
+    ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _stack = null;
+        _namespace = null;
+        _notFound = false;
+        _canReadForConfiguration = false;
+
+        if (Selection == null)
+        {
+            _loading = false;
+            return;
+        }
+
+        _loading = true;
+
+        var principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        var discriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+        _principalProvider = new LiteralPrincipalProvider(principalId, discriminator, [OrganizationId]);
+
+        try
+        {
+            if (Selection.Scope == SearchScope.Namespace)
+            {
+                using var repo = NamespaceRepoFactory.Create();
+                _namespace = await repo.GetMetadata(Selection.StackName, Selection.NamespaceName!, OrganizationId);
+                _canReadForConfiguration = repo.CanRead(_namespace.Id, OrganizationId);
+            }
+            else
+            {
+                using var repo = StackRepoFactory.Create();
+                _stack = await repo.GetMetadataByName(Selection.StackName, OrganizationId);
+                _canReadForConfiguration = repo.CanRead(_stack.Id, OrganizationId);
+            }
+        }
+        catch (EntityNotFoundException)
+        {
+            _notFound = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        // A tab the principal cannot see must not stay open across a change of selection.
+        if (_showing == PanelType.Configure && !_canReadForConfiguration)
+            _showing = PanelType.Dependencies;
+    }
+
+    private void HandleTabChanged(string key)
+    {
+        if (Enum.TryParse<PanelType>(key, out var parsed)) _showing = parsed;
+    }
+}

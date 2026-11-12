@@ -86,10 +86,10 @@
             </div>
             <MudText Typo="Typo.body2" Class="module-page-subtitle">
                 <span class="module-page-parents">
-                    Stack: <MudLink Href="@($"/Stack/{StackName}{_parentQuery}")">@StackName</MudLink>
+                    Stack: <MudLink Href="@($"/Stacks?stack={StackName}{_parentQuery}")">@StackName</MudLink>
                     ·
                     Namespace: <MudLink
-                        Href="@($"/Namespace/{StackName}/{NamespaceName}{_parentQuery}")">@NamespaceName</MudLink>
+                        Href="@($"/Stacks?stack={StackName}&namespace={NamespaceName}{_parentQuery}")">@NamespaceName</MudLink>
                 </span>
                 @if (_moduleSaga?.ActualResourceCount.HasValue == true
                      || _revisionSummary != null
@@ -1384,7 +1384,7 @@
 
     private void HandleModuleDeleted()
     {
-        NavigationManager.NavigateTo($"/Namespace/{StackName}/{NamespaceName}");
+        NavigationManager.NavigateTo($"/Stacks?stack={StackName}&namespace={NamespaceName}");
     }
 
     private async Task HandleModuleSaved()

@@ -36,14 +36,12 @@ else
                                          ValueChanged="@(value => OnNamespaceSelectionChanged(ns.Id, value))"
                                          Dense="true"
                                          Style="margin: 0; padding: 0;"/>
-                            <MudLink
-                                Href="@($"/Namespace/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
+                            @NamespaceTitle(ns)
                         </div>
                     }
                     else
                     {
-                        <MudLink
-                            Href="@($"/Namespace/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
+                        @NamespaceTitle(ns)
                     }
                 </TitleContent>
                 <ChildContent>
@@ -85,6 +83,19 @@ else
     [Parameter] public EventCallback<HashSet<Guid>> OnSelectionChanged { get; set; }
     [Parameter] public bool SelectAll { get; set; }
     [Parameter] public bool ShowCheckboxes { get; set; }
+
+    /// <summary>
+    /// Set where the tree sits beside panels that show what is selected. Unset, a name is a link
+    /// to that Namespace's own page.
+    /// </summary>
+    [Parameter] public EventCallback<HierarchySelection> OnSelected { get; set; }
+
+    /// <summary>A name either selects within the page or navigates to one, never both.</summary>
+    private RenderFragment NamespaceTitle(NamespaceMetadata ns) => !OnSelected.HasDelegate
+        ? @<MudLink Href="@($"/Stacks?stack={StackName}&namespace={ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
+        : @<MudLink Underline="Underline.None" @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfNamespace(StackName, ns.Name)))">
+               @GetHighlightedNamespaceName(ns.Name)
+           </MudLink>;
     [CascadingParameter] public Guid OrganizationId { get; set; }
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
