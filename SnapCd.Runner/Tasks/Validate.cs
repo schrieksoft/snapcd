@@ -22,7 +22,7 @@ public partial class Tasks
     /// </summary>
     public async Task Validate(
         ValidateRequestBase request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         IJobLogStream logStream,
         Func<Guid, Task> completed,
         Func<Guid, Task> cancelled,
@@ -49,8 +49,6 @@ public partial class Tasks
             logStream,
             request.Metadata
         );
-
-        var runnerHubClient = new RunnerHubClient(connection);
 
         try
         {

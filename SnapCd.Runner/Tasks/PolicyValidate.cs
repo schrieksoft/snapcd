@@ -21,7 +21,7 @@ public partial class Tasks
     /// </summary>
     public async Task PolicyValidate(
         PolicyValidateRequestBase request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         Func<Guid, PolicyOutcome, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)
@@ -47,8 +47,6 @@ public partial class Tasks
             _jobLogStreams.ModuleJobs,
             request.Metadata
         );
-
-        var runnerHubClient = new RunnerHubClient(connection);
 
         try
         {

@@ -21,7 +21,7 @@ public partial class Tasks
     /// with the backend disabled and the directory's remembered backend forgotten, so it reaches
     /// no state store.
     /// </summary>
-    public async Task SplitRefactorValidate(SplitRefactorValidateRequestBase request, HubConnection connection)
+    public async Task SplitRefactorValidate(SplitRefactorValidateRequestBase request, Func<HubConnection?> connection)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -44,7 +44,7 @@ public partial class Tasks
             request.Metadata
         );
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
@@ -66,8 +66,8 @@ public partial class Tasks
             await engine.RunProcess(command, killCts.Token);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitRefactorValidateCompleted(request.JobId),
-                nameof(runnerHubClient.InvokeSplitRefactorValidateCompleted),
+                () => runnerHubClient().InvokeSplitRefactorValidateCompleted(request.JobId),
+                nameof(RunnerHubClient.InvokeSplitRefactorValidateCompleted),
                 request.JobId,
                 connection);
 
@@ -77,8 +77,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("SplitRefactorValidate was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitRefactorValidateCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeSplitRefactorValidateCancelled),
+                () => runnerHubClient().InvokeSplitRefactorValidateCancelled(request.JobId),
+                nameof(RunnerHubClient.InvokeSplitRefactorValidateCancelled),
                 request.JobId,
                 connection);
         }
@@ -87,8 +87,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling SplitRefactorValidate for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitRefactorValidateFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeSplitRefactorValidateFaulted),
+                () => runnerHubClient().InvokeSplitRefactorValidateFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(RunnerHubClient.InvokeSplitRefactorValidateFaulted),
                 request.JobId,
                 connection);
         }

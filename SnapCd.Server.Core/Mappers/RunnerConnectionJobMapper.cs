@@ -24,7 +24,6 @@ public static class RunnerConnectionJobMapper
             OrganizationId = entity.OrganizationId,
             RunnerConnectionId = entity.RunnerConnectionId,
             ModuleJobId = entity.ModuleJobId,
-            TaskName = entity.TaskName,
             CreatedDateTime = entity.CreatedDateTime,
             ModifiedDateTime = entity.ModifiedDateTime
         };

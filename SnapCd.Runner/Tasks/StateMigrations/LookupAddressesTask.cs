@@ -19,7 +19,7 @@ public partial class Tasks
     /// Reports which of the addresses asked about are in this Module's state. The state itself is
     /// never logged or returned: only the verdict on the addresses in the filter.
     /// </summary>
-    public Task LookupAddresses(LookupAddressesRequestBase request, HubConnection connection) =>
+    public Task LookupAddresses(LookupAddressesRequestBase request, Func<HubConnection?> connection) =>
         RunTransferStep(request.JobId, Guid.Empty, nameof(LookupAddresses), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>

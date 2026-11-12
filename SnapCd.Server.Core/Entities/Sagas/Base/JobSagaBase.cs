@@ -27,6 +27,13 @@ public class JobSagaBase : SagaStateMachineInstance
 
     public Guid? HeartbeatScheduleTokenId { get; set; }
 
+    /// <summary>
+    /// Set by a heartbeat that found no runner working on this job, and cleared by the next one
+    /// that does. Two in a row end the job, so the grace a reconnect gets is one heartbeat and is
+    /// spent only by a heartbeat that observes it.
+    /// </summary>
+    public bool MissedHeartbeat { get; set; }
+
     public Guid? ApprovalTimeoutScheduleTokenId { get; set; }
 
     public Guid? ProbeSignalWaitScheduleTokenId { get; set; }

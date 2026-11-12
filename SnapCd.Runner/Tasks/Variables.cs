@@ -22,7 +22,7 @@ public partial class Tasks
     /// </summary>
     public async Task Variables(
         VariablesRequestBase request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         Func<Guid, VariableSetCreateDto?, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)
@@ -48,8 +48,6 @@ public partial class Tasks
             _jobLogStreams.ModuleJobs,
             request.Metadata
         );
-
-        var runnerHubClient = new RunnerHubClient(connection);
 
         try
         {

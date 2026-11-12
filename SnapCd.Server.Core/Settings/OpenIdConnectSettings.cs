@@ -28,6 +28,15 @@ public class OpenIdConnectSettings
     public TokenSigningSettings TokenSigning { get; set; } = new();
 
     /// <summary>
+    /// How long an issued access token is valid, in minutes. Unset leaves the default of one hour.
+    ///
+    /// A Runner's and an Agent's hub connection is authenticated once, against the token it was
+    /// opened with, and the Server closes it when that token expires. So this also sets how often
+    /// every connected Runner and Agent reconnects.
+    /// </summary>
+    public int? AccessTokenLifetimeMinutes { get; set; }
+
+    /// <summary>
     /// Optional external SSO providers. SSO providers are a paid feature and are honoured only
     /// when the active license tier permits it; on tiers that don't include SSO, this block is
     /// silently zeroed out before the providers are registered.

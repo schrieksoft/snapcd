@@ -23,7 +23,6 @@ public class RunnerConnectionJob : AuditBase, IEntity, IOrganizationChild
     public Guid RunnerConnectionId { get; set; }
     public Guid ModuleJobId { get; set; }
 
-    [MaxLength(255)] public string TaskName { get; set; } = null!;
 
     // Navigation properties
     public virtual Organization Organization { get; set; } = null!;

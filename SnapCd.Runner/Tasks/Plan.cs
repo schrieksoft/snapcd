@@ -25,7 +25,7 @@ public partial class Tasks
     /// </summary>
     public async Task Plan(
         PlanRequestBase request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         IJobLogStream logStream,
         Func<Guid, PlanCompletedData, Task> completed,
         Func<Guid, Task> cancelled,
@@ -52,8 +52,6 @@ public partial class Tasks
             logStream,
             request.Metadata
         );
-
-        var runnerHubClient = new RunnerHubClient(connection);
 
         var planOutput = string.Empty;
 

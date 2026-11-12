@@ -15,10 +15,10 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task SourceRefresh(SourceRefreshRequest request, HubConnection connection)
+    public async Task SourceRefresh(SourceRefreshRequest request, Func<HubConnection?> connection)
     {
         var logger = _loggerFactory.CreateLogger<Tasks>();
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
@@ -61,7 +61,7 @@ public partial class Tasks
                     var pathHashes = await _bareCloneCache.GetTreeHashes(request.SourceUrl, definitiveRevision, allPaths);
 
                     await InvokeWithRetryAsync(
-                        () => runnerHubClient.InvokeSourceRefreshCompletedV2(
+                        () => runnerHubClient().InvokeSourceRefreshCompletedV2(
                             request.SourceUrl,
                             request.SourceRevision,
                             request.SourceType,
@@ -73,7 +73,7 @@ public partial class Tasks
                                 ModuleClosures = closures,
                                 TriggeredByNotification = request.TriggeredByNotification
                             }),
-                        nameof(runnerHubClient.InvokeSourceRefreshCompletedV2),
+                        nameof(RunnerHubClient.InvokeSourceRefreshCompletedV2),
                         Guid.Empty,
                         connection); // SourceRefresh is stateless, no JobId
                     return;
@@ -87,13 +87,13 @@ public partial class Tasks
             }
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSourceRefreshCompleted(
+                () => runnerHubClient().InvokeSourceRefreshCompleted(
                     request.SourceUrl,
                     request.SourceRevision,
                     request.SourceType,
                     request.SourceRevisionType,
                     definitiveRevision),
-                nameof(runnerHubClient.InvokeSourceRefreshCompleted),
+                nameof(RunnerHubClient.InvokeSourceRefreshCompleted),
                 Guid.Empty,
                 connection); // SourceRefresh is stateless, no JobId
         }
@@ -104,14 +104,14 @@ public partial class Tasks
             var errorMessage = $"Failed to refresh revision.\n- SourceUrl: {request.SourceUrl}\n- SourceType: {request.SourceType}\n- SourceRevision: {request.SourceRevision}\n- SourceRevisionType: {request.SourceRevisionType}\nError message: {ex.Message}";
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSourceRefreshFaulted(
+                () => runnerHubClient().InvokeSourceRefreshFaulted(
                     request.SourceUrl,
                     request.SourceRevision,
                     request.SourceType,
                     request.SourceRevisionType,
                     errorMessage,
                     ex.StackTrace),
-                nameof(runnerHubClient.InvokeSourceRefreshFaulted),
+                nameof(RunnerHubClient.InvokeSourceRefreshFaulted),
                 Guid.Empty,
                 connection); // SourceRefresh is stateless, no JobId
         }

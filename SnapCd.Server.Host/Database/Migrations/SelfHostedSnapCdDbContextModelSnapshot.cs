@@ -6420,11 +6420,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("RunnerConnectionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("TaskName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
                     b.HasKey("Id", "OrganizationId");
 
                     b.HasIndex("Id")
@@ -6483,11 +6478,6 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid>("StateMigrationJobId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("TaskName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
 
                     b.HasKey("Id", "OrganizationId");
 
@@ -8978,6 +8968,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -9083,6 +9076,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
@@ -9193,6 +9189,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
@@ -9307,6 +9306,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
@@ -9488,6 +9490,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -9604,6 +9609,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -9719,6 +9727,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
@@ -9847,6 +9858,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("MissedHeartbeat")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");

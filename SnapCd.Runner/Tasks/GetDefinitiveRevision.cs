@@ -21,7 +21,7 @@ public partial class Tasks
     /// </summary>
     public async Task GetDefinitiveRevision(
         GetDefinitiveRevisionRequest request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         Func<Guid, string, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)
@@ -47,8 +47,6 @@ public partial class Tasks
             _jobLogStreams.ModuleJobs,
             request.Metadata
         );
-
-        var runnerHubClient = new RunnerHubClient(connection);
 
         try
         {

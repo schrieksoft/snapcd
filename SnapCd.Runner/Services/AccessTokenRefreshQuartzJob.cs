@@ -10,6 +10,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Quartz;
 using SnapCd.Runner.Constants;
+using SnapCd.Runner.Hub;
 using SnapCd.Runner.Settings;
 
 namespace SnapCd.Runner.Services;
@@ -20,6 +21,7 @@ public class AccessTokenCacheQuartzJob : IJob
     private readonly RunnerSettings _runnerSettings;
     private readonly ServerSettings _serverSettings;
     private readonly ServicePrincipalTokenService _tokenService;
+    private readonly RunnerHubConnection _hubConnection;
     private readonly ILogger<AccessTokenCacheQuartzJob> _logger;
 
     public AccessTokenCacheQuartzJob(
@@ -27,12 +29,14 @@ public class AccessTokenCacheQuartzJob : IJob
         IOptions<RunnerSettings> runnerSettings,
         IOptions<ServerSettings> serverSettings,
         ServicePrincipalTokenService tokenService,
+        RunnerHubConnection hubConnection,
         ILogger<AccessTokenCacheQuartzJob> logger)
     {
         _cache = cache;
         _runnerSettings = runnerSettings.Value;
         _serverSettings = serverSettings.Value;
         _tokenService = tokenService;
+        _hubConnection = hubConnection;
         _logger = logger;
     }
 
@@ -56,19 +60,15 @@ public class AccessTokenCacheQuartzJob : IJob
 
                     _logger.LogInformation("Token refreshed. Expires at {ExpirationTime}", expirationTime);
 
-                    // Schedule the next execution 5 minutes before the expiration
-                    var triggerTime = expirationTime.AddMinutes(-5);
+                    // The server authenticates a hub connection once, against the token it was
+                    // opened with, and closes it when that token expires. A cached token only
+                    // reaches the server on a new connection.
+                    await ReconnectHub(cancellationToken);
 
-                    if (triggerTime > DateTime.UtcNow)
-                    {
-                        _logger.LogDebug("Next token refresh scheduled for {TriggerTime}", triggerTime);
-                        await ScheduleNextExecution(context, triggerTime, cancellationToken);
-                    }
-                    else
-                    {
-                        _logger.LogDebug("Trigger time is in the past. Immediate re-run scheduled.");
-                        await context.Scheduler.TriggerJob(context.JobDetail.Key, cancellationToken);
-                    }
+                    var triggerTime = expirationTime - RefreshLeadTime(timeUntilExpiration);
+
+                    _logger.LogDebug("Next token refresh scheduled for {TriggerTime}", triggerTime);
+                    await ScheduleNextExecution(context, triggerTime, cancellationToken);
                 }
                 else
                 {
@@ -85,6 +85,65 @@ public class AccessTokenCacheQuartzJob : IJob
         {
             _logger.LogError(ex, "Token refresh failed. Scheduling retry in 30 seconds");
             await ScheduleNextExecution(context, DateTimeOffset.UtcNow.AddSeconds(30), cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// How far ahead of expiry to fetch the next token. The server decides the lifetime and reports
+    /// it as expires_in, so the lead scales with it: a fixed lead longer than the lifetime itself
+    /// would schedule every refresh in the past and spin.
+    /// </summary>
+    /// <summary>
+    /// Places the first refresh against the token obtained at startup. Quartz is configured before
+    /// that token exists, so the trigger cannot be registered with the job.
+    /// </summary>
+    public static async Task ScheduleFirstRefresh(IServiceProvider services)
+    {
+        var cache = services.GetRequiredService<IMemoryCache>();
+        var logger = services.GetRequiredService<ILogger<AccessTokenCacheQuartzJob>>();
+        var scheduler = await services.GetRequiredService<ISchedulerFactory>().GetScheduler();
+
+        var expiry = cache.Get<DateTime?>(MemoryCacheConstants.AccessTokenExpiryCacheKey);
+
+        var triggerTime = expiry is { } e
+            ? e - RefreshLeadTime(e - DateTime.UtcNow)
+            : DateTime.UtcNow;
+
+        if (triggerTime <= DateTime.UtcNow) triggerTime = DateTime.UtcNow.AddSeconds(1);
+
+        logger.LogInformation("First token refresh scheduled for {TriggerTime}", triggerTime);
+
+        await scheduler.ScheduleJob(
+            TriggerBuilder.Create()
+                .ForJob(nameof(AccessTokenCacheQuartzJob))
+                .WithIdentity($"{nameof(AccessTokenCacheQuartzJob)}First")
+                .StartAt(triggerTime)
+                .Build());
+    }
+
+    public static TimeSpan RefreshLeadTime(TimeSpan lifetime)
+    {
+        var lead = lifetime * 0.2;
+
+        return lead > MaxRefreshLead ? MaxRefreshLead : lead;
+    }
+
+    /// <summary>Caps the lead so a long-lived token is not fetched needlessly early.</summary>
+    private static readonly TimeSpan MaxRefreshLead = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Opens a connection carrying the refreshed token. A failure here is not fatal: the old
+    /// connection stays up until its token expires, and the close handler reconnects after it.
+    /// </summary>
+    private async Task ReconnectHub(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _hubConnection.DisconnectAndReconnectAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not reconnect the hub with the refreshed token");
         }
     }
 

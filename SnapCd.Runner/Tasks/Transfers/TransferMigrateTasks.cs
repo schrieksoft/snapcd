@@ -20,7 +20,7 @@ public partial class Tasks
     /// resources; the source strips them, and demonolith refuses to strip until the receiver's run
     /// receipt is in its checkout - committed and merged, like the map.
     /// </summary>
-    public Task TransferMigrateRun(TransferMigrateRunRequestBase request, HubConnection connection) =>
+    public Task TransferMigrateRun(TransferMigrateRunRequestBase request, Func<HubConnection?> connection) =>
         RunTransferStep(request.JobId, request.ModuleId, nameof(TransferMigrateRun), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
@@ -58,7 +58,7 @@ public partial class Tasks
             client => client.InvokeTransferMigrateRunCancelled(request.JobId, request.ModuleId));
 
     /// <summary>Checks the written state plans clean, which closes this Module's move.</summary>
-    public Task TransferMigrateVerify(TransferMigrateVerifyRequestBase request, HubConnection connection) =>
+    public Task TransferMigrateVerify(TransferMigrateVerifyRequestBase request, Func<HubConnection?> connection) =>
         RunTransferStep(request.JobId, request.ModuleId, nameof(TransferMigrateVerify), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>

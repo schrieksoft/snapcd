@@ -10,4 +10,8 @@ using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps;
 
-public class HeartbeatCompleted : StepResponseBase;
+public class HeartbeatCompleted : StepResponseBase
+{
+    /// <summary>What the saga should record, so the next heartbeat knows what this one found.</summary>
+    public bool MissedHeartbeat { get; set; }
+}

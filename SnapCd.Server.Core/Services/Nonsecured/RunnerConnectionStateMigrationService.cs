@@ -26,7 +26,7 @@ public class RunnerConnectionStateMigrationService
         _dbContext = dbContext;
     }
 
-    public async Task CreateOrUpdate(Guid organizationId, Guid stateMigrationJobId, string taskName, Guid runnerId, string? runnerInstanceName)
+    public async Task CreateOrUpdate(Guid organizationId, Guid stateMigrationJobId, Guid runnerId, string? runnerInstanceName)
     {
 
         var connection = await _dbContext.RunnerConnections
@@ -50,7 +50,6 @@ public class RunnerConnectionStateMigrationService
         if (existing != null)
         {
             existing.RunnerConnectionId = connection.Id;
-            existing.TaskName = taskName;
             existing.ModifiedDateTime = DateTime.UtcNow;
         }
         else
@@ -61,7 +60,6 @@ public class RunnerConnectionStateMigrationService
                 OrganizationId = organizationId,
                 RunnerConnectionId = connection.Id,
                 StateMigrationJobId = stateMigrationJobId,
-                TaskName = taskName,
                 ModifiedDateTime = DateTime.UtcNow
             });
         }

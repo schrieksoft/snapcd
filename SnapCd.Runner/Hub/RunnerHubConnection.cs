@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.SplitMigrate;
+using SnapCd.Contracts;
 using SnapCd.Contracts.Endpoints;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Runner.Constants;
@@ -50,11 +51,21 @@ public class RunnerHubConnection :
     private readonly Lazy<Tasks.Tasks> _tasks;
 
     /// <summary>Replies go back over the connection the request arrived on.</summary>
-    private RunnerHubClient Client => new(_connection!);
+    /// <summary>
+    /// Bound to the field rather than to a connection, because a method group taken off this
+    /// property captures the client once and the step that holds it outlives the reconnect.
+    /// </summary>
+    private RunnerHubClient Client => new(() => _connection!);
 
     private HubConnection? _connection;
     private bool _isDisposing;
     private int _restarting;
+
+    /// <summary>
+    /// Set while this class is replacing the connection itself. The Closed handler cannot otherwise
+    /// tell a stop it asked for from one the transport imposed, and would restart a second time.
+    /// </summary>
+    private int _replacingConnection;
 
     private readonly LogBuffer _logBuffer;
 
@@ -167,6 +178,13 @@ public class RunnerHubConnection :
             }
 
             var logger = _loggerFactory.CreateLogger<RunnerHubConnection>();
+
+            if (Volatile.Read(ref _replacingConnection) == 1)
+            {
+                logger.LogDebug("SignalR connection closed to be replaced");
+                return;
+            }
+
             logger.LogError(error, "SignalR connection closed unexpectedly; restarting the connection");
 
             // WithAutomaticReconnect covers transient drops only: once the connection reaches the
@@ -176,9 +194,6 @@ public class RunnerHubConnection :
             if (Interlocked.CompareExchange(ref _restarting, 1, 0) == 0)
                 _ = RestartAfterCloseAsync();
         };
-
-        // Register handler for GetDefinitiveRevision
-        var client = new RunnerHubClient(_connection!);
 
         _connection.On<GetDefinitiveRevisionRequest>(nameof(IApplyEndpoints.ApplyGetDefinitiveRevision),
             request =>
@@ -574,6 +589,14 @@ public class RunnerHubConnection :
                 return Task.CompletedTask;
             });
 
+        // The server asks on reconnect, because what it dispatched is not what is still running.
+        _connection.On(nameof(IRunnerLifecycleEndpoints.ReportRunningJobs),
+            () =>
+            {
+                Task.Run(ReportRunningJobs);
+                return Task.CompletedTask;
+            });
+
         // Register handler for SourceRefresh (stateless operation)
         _connection.On<SourceRefreshRequest>(nameof(IRunnerLifecycleEndpoints.SourceRefresh),
             request =>
@@ -660,6 +683,7 @@ public class RunnerHubConnection :
         // Temporarily disable disposing flag to allow reconnection
         var wasDisposing = _isDisposing;
         _isDisposing = false;
+        Volatile.Write(ref _replacingConnection, 1);
 
         try
         {
@@ -677,10 +701,15 @@ public class RunnerHubConnection :
             // Reconnect - will use fresh token from cache via AccessTokenProvider
             await StartAsync(cancellationToken);
 
+            // Cleared before the new connection has a chance to close, so a real drop on it is
+            // still treated as one.
+            Volatile.Write(ref _replacingConnection, 0);
+
             _logger.LogInformation("Successfully reconnected with refreshed token");
         }
         finally
         {
+            Volatile.Write(ref _replacingConnection, 0);
             _isDisposing = wasDisposing;
         }
     }
@@ -828,7 +857,7 @@ public class RunnerHubConnection :
         var client = Client;
         var moduleId = request.Metadata.ModuleId;
         return _tasks.Value.GetModule(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             jobId => client.InvokeTransferGetModuleCompleted(jobId, moduleId),
             jobId => client.InvokeTransferGetModuleCancelled(jobId, moduleId),
@@ -840,7 +869,7 @@ public class RunnerHubConnection :
         var client = Client;
         var moduleId = request.Metadata.ModuleId;
         return _tasks.Value.Init(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             jobId => client.InvokeTransferInitCompleted(jobId, moduleId),
             jobId => client.InvokeTransferInitCancelled(jobId, moduleId),
@@ -852,7 +881,7 @@ public class RunnerHubConnection :
         var client = Client;
         var moduleId = request.Metadata.ModuleId;
         return _tasks.Value.Validate(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             jobId => client.InvokeTransferValidateCompleted(jobId, moduleId),
             jobId => client.InvokeTransferValidateCancelled(jobId, moduleId),
@@ -860,42 +889,42 @@ public class RunnerHubConnection :
     }
 
     public Task AnalyseTransferRefactorMap(AnalyseTransferRefactorMapRequestBase request) =>
-        _tasks.Value.AnalyseTransferRefactorMap(request, _connection!);
+        _tasks.Value.AnalyseTransferRefactorMap(request, () => _connection);
 
     public Task TransferMigrateMap(TransferMigrateMapRequestBase request) =>
-        _tasks.Value.TransferMigrateMap(request, _connection!);
+        _tasks.Value.TransferMigrateMap(request, () => _connection);
 
     public Task TransferMigrateProve(TransferMigrateProveRequestBase request) =>
-        _tasks.Value.TransferMigrateProve(request, _connection!);
+        _tasks.Value.TransferMigrateProve(request, () => _connection);
 
     public Task TransferMigrateRun(TransferMigrateRunRequestBase request) =>
-        _tasks.Value.TransferMigrateRun(request, _connection!);
+        _tasks.Value.TransferMigrateRun(request, () => _connection);
 
     public Task TransferMigrateVerify(TransferMigrateVerifyRequestBase request) =>
-        _tasks.Value.TransferMigrateVerify(request, _connection!);
+        _tasks.Value.TransferMigrateVerify(request, () => _connection);
 
     // Apply
 
     public Task ApplyCancelKill(CancelKillRequest request) =>
-        _tasks.Value.ApplyCancelKill(request, _connection!);
+        _tasks.Value.ApplyCancelKill(request, () => _connection);
 
     public Task ApplyFromPlan(ApplyFromPlanRequestBase request) =>
         _tasks.Value.ApplyFromPlan(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeApplyFromPlanCompleted,
             Client.InvokeApplyFromPlanCancelled,
             Client.InvokeApplyFromPlanFaulted);
 
     public Task ApplyGetDefinitiveRevision(GetDefinitiveRevisionRequest request) =>
         _tasks.Value.GetDefinitiveRevision(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeApplyGetDefinitiveRevisionCompleted,
             Client.InvokeApplyGetDefinitiveRevisionCancelled,
             Client.InvokeApplyGetDefinitiveRevisionFaulted);
 
     public Task ApplyGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.ModuleJobLogs,
             Client.InvokeApplyGetModuleCompleted,
             Client.InvokeApplyGetModuleCancelled,
@@ -903,7 +932,7 @@ public class RunnerHubConnection :
 
     public Task ApplyInit(InitRequestBase request) =>
         _tasks.Value.Init(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.ModuleJobLogs,
             Client.InvokeApplyInitCompleted,
             Client.InvokeApplyInitCancelled,
@@ -911,21 +940,21 @@ public class RunnerHubConnection :
 
     public Task ApplyOutput(OutputRequestBase request) =>
         _tasks.Value.Output(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeApplyOutputCompleted,
             Client.InvokeApplyOutputCancelled,
             Client.InvokeApplyOutputFaulted);
 
     public Task ApplyProbe(ProbeRequestBase request) =>
         _tasks.Value.Probe(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeApplyProbeCompleted,
             Client.InvokeApplyProbeCancelled,
             Client.InvokeApplyProbeFaulted);
 
     public Task ApplyPlan(PlanRequestBase request) =>
         _tasks.Value.Plan(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.ModuleJobLogs,
             Client.InvokeApplyPlanCompleted,
             Client.InvokeApplyPlanCancelled,
@@ -933,14 +962,14 @@ public class RunnerHubConnection :
 
     public Task ApplyPolicyValidate(PolicyValidateRequestBase request) =>
         _tasks.Value.PolicyValidate(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeApplyPolicyValidateCompleted,
             Client.InvokeApplyPolicyValidateCancelled,
             Client.InvokeApplyPolicyValidateFaulted);
 
     public Task ApplyValidate(ValidateRequestBase request) =>
         _tasks.Value.Validate(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.ModuleJobLogs,
             Client.InvokeApplyValidateCompleted,
             Client.InvokeApplyValidateCancelled,
@@ -948,7 +977,7 @@ public class RunnerHubConnection :
 
     public Task ApplyVariables(VariablesRequestBase request) =>
         _tasks.Value.Variables(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeApplyVariablesCompleted,
             Client.InvokeApplyVariablesCancelled,
             Client.InvokeApplyVariablesFaulted);
@@ -956,25 +985,25 @@ public class RunnerHubConnection :
     // Destroy
 
     public Task DestroyCancelKill(CancelKillRequest request) =>
-        _tasks.Value.DestroyCancelKill(request, _connection!);
+        _tasks.Value.DestroyCancelKill(request, () => _connection);
 
     public Task DestroyFromPlan(DestroyFromPlanRequestBase request) =>
         _tasks.Value.DestroyFromPlan(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeDestroyFromPlanCompleted,
             Client.InvokeDestroyFromPlanCancelled,
             Client.InvokeDestroyFromPlanFaulted);
 
     public Task DestroyGetDefinitiveRevision(GetDefinitiveRevisionRequest request) =>
         _tasks.Value.GetDefinitiveRevision(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeDestroyGetDefinitiveRevisionCompleted,
             Client.InvokeDestroyGetDefinitiveRevisionCancelled,
             Client.InvokeDestroyGetDefinitiveRevisionFaulted);
 
     public Task DestroyGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.ModuleJobLogs,
             Client.InvokeDestroyGetModuleCompleted,
             Client.InvokeDestroyGetModuleCancelled,
@@ -982,7 +1011,7 @@ public class RunnerHubConnection :
 
     public Task DestroyInit(InitRequestBase request) =>
         _tasks.Value.Init(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.ModuleJobLogs,
             Client.InvokeDestroyInitCompleted,
             Client.InvokeDestroyInitCancelled,
@@ -990,28 +1019,28 @@ public class RunnerHubConnection :
 
     public Task DestroyOutput(OutputRequestBase request) =>
         _tasks.Value.Output(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeDestroyOutputCompleted,
             Client.InvokeDestroyOutputCancelled,
             Client.InvokeDestroyOutputFaulted);
 
     public Task DestroyPlan(PlanDestroyRequestBase request) =>
         _tasks.Value.PlanDestroy(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeDestroyPlanCompleted,
             Client.InvokeDestroyPlanCancelled,
             Client.InvokeDestroyPlanFaulted);
 
     public Task DestroyPolicyValidate(PolicyValidateRequestBase request) =>
         _tasks.Value.PolicyValidate(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeDestroyPolicyValidateCompleted,
             Client.InvokeDestroyPolicyValidateCancelled,
             Client.InvokeDestroyPolicyValidateFaulted);
 
     public Task DestroyValidate(ValidateRequestBase request) =>
         _tasks.Value.Validate(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.ModuleJobLogs,
             Client.InvokeDestroyValidateCompleted,
             Client.InvokeDestroyValidateCancelled,
@@ -1019,7 +1048,7 @@ public class RunnerHubConnection :
 
     public Task DestroyVariables(VariablesRequestBase request) =>
         _tasks.Value.Variables(
-            request, _connection!,
+            request, () => _connection,
             Client.InvokeDestroyVariablesCompleted,
             Client.InvokeDestroyVariablesCancelled,
             Client.InvokeDestroyVariablesFaulted);
@@ -1027,11 +1056,11 @@ public class RunnerHubConnection :
     // Split
 
     public Task SplitCancelKill(CancelKillRequest request) =>
-        _tasks.Value.SplitCancelKill(request, _connection!);
+        _tasks.Value.SplitCancelKill(request, () => _connection);
 
     public Task SplitGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeSplitGetModuleCompleted,
             Client.InvokeSplitGetModuleCancelled,
@@ -1039,27 +1068,27 @@ public class RunnerHubConnection :
 
     public Task SplitInit(InitRequestBase request) =>
         _tasks.Value.Init(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeSplitInitCompleted,
             Client.InvokeSplitInitCancelled,
             Client.InvokeSplitInitFaulted);
 
     public Task SplitMigrateMap(SplitMigrateMapRequestBase request) =>
-        _tasks.Value.SplitMigrateMap(request, _connection!);
+        _tasks.Value.SplitMigrateMap(request, () => _connection);
 
     public Task SplitMigrateProve(SplitMigrateProveRequestBase request) =>
-        _tasks.Value.SplitMigrateProve(request, _connection!);
+        _tasks.Value.SplitMigrateProve(request, () => _connection);
 
     public Task SplitMigrateRun(SplitMigrateRunRequestBase request) =>
-        _tasks.Value.SplitMigrateRun(request, _connection!);
+        _tasks.Value.SplitMigrateRun(request, () => _connection);
 
     public Task SplitMigrateVerify(SplitMigrateVerifyRequestBase request) =>
-        _tasks.Value.SplitMigrateVerify(request, _connection!);
+        _tasks.Value.SplitMigrateVerify(request, () => _connection);
 
     public Task SplitPlan(PlanRequestBase request) =>
         _tasks.Value.Plan(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             (jobId,
             data) => Client.InvokeSplitPlanCompleted(jobId,
@@ -1073,17 +1102,17 @@ public class RunnerHubConnection :
             stack));
 
     public Task SplitPlanEmptyVerify(SplitPlanEmptyVerifyRequestBase request) =>
-        _tasks.Value.SplitPlanEmptyVerify(request, _connection!);
+        _tasks.Value.SplitPlanEmptyVerify(request, () => _connection);
 
     public Task SplitRefactorDiff(SplitRefactorDiffRequestBase request) =>
-        _tasks.Value.SplitRefactorDiff(request, _connection!);
+        _tasks.Value.SplitRefactorDiff(request, () => _connection);
 
     public Task SplitRefactorValidate(SplitRefactorValidateRequestBase request) =>
-        _tasks.Value.SplitRefactorValidate(request, _connection!);
+        _tasks.Value.SplitRefactorValidate(request, () => _connection);
 
     public Task SplitValidate(ValidateRequestBase request) =>
         _tasks.Value.Validate(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeSplitValidateCompleted,
             Client.InvokeSplitValidateCancelled,
@@ -1092,11 +1121,11 @@ public class RunnerHubConnection :
     // LookupAddresses
 
     public Task LookupAddresses(LookupAddressesRequestBase request) =>
-        _tasks.Value.LookupAddresses(request, _connection!);
+        _tasks.Value.LookupAddresses(request, () => _connection);
 
     public Task LookupAddressesGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeLookupAddressesGetModuleCompleted,
             Client.InvokeLookupAddressesGetModuleCancelled,
@@ -1104,7 +1133,7 @@ public class RunnerHubConnection :
 
     public Task LookupAddressesInit(InitRequestBase request) =>
         _tasks.Value.Init(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeLookupAddressesInitCompleted,
             Client.InvokeLookupAddressesInitCancelled,
@@ -1113,17 +1142,17 @@ public class RunnerHubConnection :
     // Move
 
     public Task Move(StateMoveRequestBase request) =>
-        _tasks.Value.Move(request, _connection!);
+        _tasks.Value.Move(request, () => _connection);
 
     public Task MoveCancelKill(CancelKillRequest request) =>
-        _tasks.Value.MoveCancelKill(request, _connection!);
+        _tasks.Value.MoveCancelKill(request, () => _connection);
 
     public Task MoveDryRun(StateMoveRequestBase request) =>
-        _tasks.Value.MoveDryRun(request, _connection!);
+        _tasks.Value.MoveDryRun(request, () => _connection);
 
     public Task MoveGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeMoveGetModuleCompleted,
             Client.InvokeMoveGetModuleCancelled,
@@ -1131,7 +1160,7 @@ public class RunnerHubConnection :
 
     public Task MoveInit(InitRequestBase request) =>
         _tasks.Value.Init(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeMoveInitCompleted,
             Client.InvokeMoveInitCancelled,
@@ -1140,14 +1169,14 @@ public class RunnerHubConnection :
     // Import
 
     public Task Import(StateMoveRequestBase request) =>
-        _tasks.Value.Import(request, _connection!);
+        _tasks.Value.Import(request, () => _connection);
 
     public Task ImportCancelKill(CancelKillRequest request) =>
-        _tasks.Value.ImportCancelKill(request, _connection!);
+        _tasks.Value.ImportCancelKill(request, () => _connection);
 
     public Task ImportGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeImportGetModuleCompleted,
             Client.InvokeImportGetModuleCancelled,
@@ -1155,29 +1184,29 @@ public class RunnerHubConnection :
 
     public Task ImportInit(InitRequestBase request) =>
         _tasks.Value.Init(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeImportInitCompleted,
             Client.InvokeImportInitCancelled,
             Client.InvokeImportInitFaulted);
 
     public Task ImportPreCheck(StateMoveRequestBase request) =>
-        _tasks.Value.ImportPreCheck(request, _connection!);
+        _tasks.Value.ImportPreCheck(request, () => _connection);
 
     // Remove
 
     public Task Remove(StateMoveRequestBase request) =>
-        _tasks.Value.Remove(request, _connection!);
+        _tasks.Value.Remove(request, () => _connection);
 
     public Task RemoveCancelKill(CancelKillRequest request) =>
-        _tasks.Value.RemoveCancelKill(request, _connection!);
+        _tasks.Value.RemoveCancelKill(request, () => _connection);
 
     public Task RemoveDryRun(StateMoveRequestBase request) =>
-        _tasks.Value.RemoveDryRun(request, _connection!);
+        _tasks.Value.RemoveDryRun(request, () => _connection);
 
     public Task RemoveGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeRemoveGetModuleCompleted,
             Client.InvokeRemoveGetModuleCancelled,
@@ -1185,13 +1214,44 @@ public class RunnerHubConnection :
 
     public Task RemoveInit(InitRequestBase request) =>
         _tasks.Value.Init(
-            request, _connection!,
+            request, () => _connection,
             _tasks.Value.StateMigrationLogs,
             Client.InvokeRemoveInitCompleted,
             Client.InvokeRemoveInitCancelled,
             Client.InvokeRemoveInitFaulted);
 
     // RunnerLifecycle
+
+    /// <summary>
+    /// Reports each job this runner is still working on, so the server can tell a reconnected
+    /// runner from a replaced one. A runner that was restarted reports nothing, which is correct:
+    /// its work did not survive.
+    /// </summary>
+    public async Task ReportRunningJobs()
+    {
+        var jobIds = _processRegistry.ActiveRequestIds(CancellationType.ImmediateKill);
+
+        _logger.LogInformation("Reporting {Count} running job(s) after reconnecting", jobIds.Count);
+
+        foreach (var jobId in jobIds)
+        {
+            try
+            {
+                await Client.InvokeReportRunningTask(
+                    jobId, ReconnectedTaskName, _runnerSettings.Id, _runnerSettings.Instance);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not report running job {JobId} after reconnecting", jobId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stands in for the step name on a report the runner was asked for rather than one it sent on
+    /// its own schedule. The next scheduled report carries the real step.
+    /// </summary>
+    private const string ReconnectedTaskName = "(reconnected)";
 
     public async Task Ping(Guid pingId)
     {
@@ -1207,7 +1267,7 @@ public class RunnerHubConnection :
     }
 
     public Task SourceRefresh(SourceRefreshRequest request) =>
-        _tasks.Value.SourceRefresh(request, _connection!);
+        _tasks.Value.SourceRefresh(request, () => _connection);
 
     public async ValueTask DisposeAsync()
     {

@@ -101,8 +101,13 @@ public class HeartbeatConsumerTests : IAsyncLifetime
         Assert.True(await HeartbeatSucceeds<StateMigrationHeartbeatRequested>(await SeedStateMigration(ageSeconds: 5)));
 
     [Fact]
-    public async Task A_Job_With_No_Connection_Row_Fails() =>
-        Assert.False(await HeartbeatSucceeds<ModuleJobHeartbeatRequested>(Guid.NewGuid()));
+    public async Task A_Job_With_No_Connection_Row_Survives_One_Heartbeat() =>
+        Assert.True(await HeartbeatSucceeds<ModuleJobHeartbeatRequested>(Guid.NewGuid()));
+
+    [Fact]
+    public async Task A_Job_With_No_Connection_Row_Fails_On_The_Second_Heartbeat() =>
+        Assert.False(await HeartbeatSucceeds<ModuleJobHeartbeatRequested>(
+            Guid.NewGuid(), missedHeartbeat: true));
 
     [Fact]
     public async Task The_First_Report_On_A_State_Migration_Leaves_It_Live()
@@ -111,7 +116,7 @@ public class HeartbeatConsumerTests : IAsyncLifetime
 
         await new RunnerConnectionStateMigrationService(
             _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext())
-            .CreateOrUpdate(_module.OrganizationId, jobId, "Plan", _module.RunnerId, Instance);
+            .CreateOrUpdate(_module.OrganizationId, jobId, _module.RunnerId, Instance);
 
         Assert.True(await HeartbeatSucceeds<StateMigrationHeartbeatRequested>(jobId));
     }
@@ -140,7 +145,7 @@ public class HeartbeatConsumerTests : IAsyncLifetime
     /// is the point of the split: the old shared message let a third family compile and fail at
     /// runtime.
     /// </summary>
-    private async Task<bool> HeartbeatSucceeds<TRequest>(Guid jobId)
+    private async Task<bool> HeartbeatSucceeds<TRequest>(Guid jobId, bool missedHeartbeat = false)
         where TRequest : HeartbeatRequestedBase, new()
     {
         var client = _harness.Bus.CreateRequestClient<TRequest>();
@@ -149,7 +154,8 @@ public class HeartbeatConsumerTests : IAsyncLifetime
             CorrelationId = jobId,
             OrganizationId = _module.OrganizationId,
             RunnerId = _module.RunnerId,
-            RunnerInstanceName = Instance
+            RunnerInstanceName = Instance,
+            MissedHeartbeat = missedHeartbeat
         });
 
         return response.Is<HeartbeatCompleted>(out _);
@@ -177,7 +183,6 @@ public class HeartbeatConsumerTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             RunnerConnectionId = _runnerConnectionId,
             ModuleJobId = jobId,
-            TaskName = "Plan",
             ModifiedDateTime = DateTime.UtcNow.AddSeconds(-ageSeconds)
         });
         await db.SaveChangesAsync();
@@ -205,7 +210,6 @@ public class HeartbeatConsumerTests : IAsyncLifetime
             OrganizationId = _module.OrganizationId,
             RunnerConnectionId = _runnerConnectionId,
             StateMigrationJobId = jobId,
-            TaskName = "Plan",
             ModifiedDateTime = DateTime.UtcNow.AddSeconds(-ageSeconds)
         });
         await db.SaveChangesAsync();

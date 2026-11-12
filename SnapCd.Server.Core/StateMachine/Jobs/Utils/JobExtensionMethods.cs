@@ -157,7 +157,8 @@ public static class JobExtensionMethods
                             CorrelationId = context.Saga.CorrelationId,
                             OrganizationId = context.Saga.OrganizationId,
                             RunnerInstanceName = context.Saga.RunnerInstanceName,
-                            RunnerId = context.Saga.RunnerId
+                            RunnerId = context.Saga.RunnerId,
+                            MissedHeartbeat = context.Saga.MissedHeartbeat
                         }));
     }
 
@@ -179,6 +180,7 @@ public static class JobExtensionMethods
         where TSaga : JobSagaBase
     {
         return binder
+            .Then(context => context.Saga.MissedHeartbeat = context.Message.MissedHeartbeat)
             .Schedule(heartbeatScheduled,
                 context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId });
     }

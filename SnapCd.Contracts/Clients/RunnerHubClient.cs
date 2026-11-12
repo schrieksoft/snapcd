@@ -19,12 +19,23 @@ namespace SnapCd.Contracts.Clients;
 
 public class RunnerHubClient
 {
-    private readonly HubConnection _hubConnection;
+    private readonly Func<HubConnection> _resolve;
 
     public RunnerHubClient(HubConnection hubConnection)
     {
-        _hubConnection = hubConnection;
+        _resolve = () => hubConnection;
     }
+
+    /// <summary>
+    /// For a caller whose connection is replaced while a step runs. Reconnecting disposes the old
+    /// connection, and a delegate bound to one invoke call for the rest of the step.
+    /// </summary>
+    public RunnerHubClient(Func<HubConnection> resolve)
+    {
+        _resolve = resolve;
+    }
+
+    private HubConnection _hubConnection => _resolve();
 
 
     public async Task InvokeSplitPlanEmptyVerifyCompleted(Guid jobId)

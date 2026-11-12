@@ -20,5 +20,12 @@ public interface IRunnerLifecycleEndpoints
 {
     Task Ping(Guid pingId);
 
+    /// <summary>
+    /// Report every job still running here. The server asks on a reconnect, where it knows what it
+    /// dispatched to this instance but not what survived: a dropped connection and a restarted
+    /// runner look the same to it, and only the runner knows which happened.
+    /// </summary>
+    Task ReportRunningJobs();
+
     Task SourceRefresh(SourceRefreshRequest request);
 }

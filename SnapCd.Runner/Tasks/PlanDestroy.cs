@@ -22,7 +22,7 @@ public partial class Tasks
     /// </summary>
     public async Task PlanDestroy(
         PlanDestroyRequestBase request,
-        HubConnection connection,
+        Func<HubConnection?> connection,
         Func<Guid, PlanCompletedData, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, PolicyOutcome?, Task> faulted)
@@ -48,8 +48,6 @@ public partial class Tasks
             _jobLogStreams.ModuleJobs,
             request.Metadata
         );
-
-        var runnerHubClient = new RunnerHubClient(connection);
 
         var planOutput = string.Empty;
 

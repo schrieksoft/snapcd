@@ -18,7 +18,7 @@ namespace SnapCd.Runner.Tasks;
 public partial class Tasks
 {
     /// <summary>Pushes each module's state to its derived backend. The job's only irreversible step.</summary>
-    public async Task SplitMigrateRun(SplitMigrateRunRequestBase request, HubConnection connection)
+    public async Task SplitMigrateRun(SplitMigrateRunRequestBase request, Func<HubConnection?> connection)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -41,7 +41,7 @@ public partial class Tasks
             request.Metadata
         );
 
-        var runnerHubClient = new RunnerHubClient(connection);
+        RunnerHubClient runnerHubClient() => new(connection()!);
 
         try
         {
@@ -66,8 +66,8 @@ public partial class Tasks
             ReportPushes(taskContext, request.RootDirectory);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitMigrateRunCompleted(request.JobId),
-                nameof(runnerHubClient.InvokeSplitMigrateRunCompleted),
+                () => runnerHubClient().InvokeSplitMigrateRunCompleted(request.JobId),
+                nameof(RunnerHubClient.InvokeSplitMigrateRunCompleted),
                 request.JobId,
                 connection);
 
@@ -77,8 +77,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("SplitMigrateRun was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitMigrateRunCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeSplitMigrateRunCancelled),
+                () => runnerHubClient().InvokeSplitMigrateRunCancelled(request.JobId),
+                nameof(RunnerHubClient.InvokeSplitMigrateRunCancelled),
                 request.JobId,
                 connection);
         }
@@ -93,8 +93,8 @@ public partial class Tasks
             ReportPushes(taskContext, request.RootDirectory);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeSplitMigrateRunFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeSplitMigrateRunFaulted),
+                () => runnerHubClient().InvokeSplitMigrateRunFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(RunnerHubClient.InvokeSplitMigrateRunFaulted),
                 request.JobId,
                 connection);
         }
