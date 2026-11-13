@@ -15,7 +15,7 @@
 }
 else if (Graph != null)
 {
-    <MudStack Class="mb-3">
+    <MudStack Row="true" Class="graph-toggles">
         <MudSwitch @bind-Value="_showModulesOutsideNamespace" Color="Color.Secondary">
             Show Modules outside Namespace
         </MudSwitch>
@@ -28,7 +28,7 @@ else if (Graph != null)
         </MudTooltip>
     </MudStack>
 
-    <div @ref="ScrollContainer" data-dag-scroll style="overflow: auto; height: @(ScrollContainerHeight)px;">
+    <div @ref="ScrollContainer" data-dag-scroll class="dag-scroll">
         <NamespaceDependencyGraphExecutionFlow DependencyGraphWithStates="GetFilteredGraph()"
                                                UninvolvedModuleIds="UninvolvedModuleIds"
                                                PrimaryNamespaceId="NamespaceId"/>

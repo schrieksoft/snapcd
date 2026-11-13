@@ -15,7 +15,7 @@
 }
 else if (Graph != null)
 {
-    <MudStack Class="mb-3">
+    <MudStack Row="true" Class="graph-toggles">
         <MudTooltip Text="@GetToggleTooltipText()">
             <MudSwitch Color="Color.Secondary" Value="ShowDestroyGraph"
                        ValueChanged="@(async (bool val) => await OnShowDestroyGraphChanged(val))"
@@ -25,7 +25,7 @@ else if (Graph != null)
         </MudTooltip>
     </MudStack>
 
-    <div @ref="ScrollContainer" data-dag-scroll style="overflow: auto; height: @(ScrollContainerHeight)px;">
+    <div @ref="ScrollContainer" data-dag-scroll class="dag-scroll">
         <StackDependencyGraphExecutionFlow DependencyGraphWithStates="Graph"/>
     </div>
 }

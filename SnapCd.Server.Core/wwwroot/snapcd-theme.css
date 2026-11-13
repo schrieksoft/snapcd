@@ -387,6 +387,48 @@ body.dark-mode .scalar-card {
 .dependencies-surface {
   background-color: transparent !important;
   box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 4px 16px 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* A switch's label is the same size as the field labels beside it. MudBlazor sizes it from
+   .mud-switch-label-medium at 1rem, which wins on source order over the body1 size. */
+.mud-switch-label-medium,
+.mud-switch .mud-typography-body1 {
+  font-size: 0.875rem !important;
+}
+
+/* A form field is the same size as the text around it. MudBlazor sets 1rem on the input and on
+   the floating label itself, so the body1 size alone does not reach them. */
+.mud-input,
+.mud-input-control > .mud-input-control-input-container > label.mud-input-label {
+  font-size: 0.875rem;
+}
+
+/* The toggles are a control strip above the graph, not a stacked form: one row, tight, and at
+   the same 14px as the tabs and the lists. */
+.graph-toggles {
+  gap: 20px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.graph-toggles .mud-switch {
+  margin: 0;
+}
+
+
+
+/* The graph is as wide and as tall as it needs to be, and scrolls both ways inside the panel. */
+.dag-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
 }
 
 /* The pager is a row of small controls, not body text. */
@@ -448,13 +490,6 @@ body.dark-mode .scalar-card {
 .module-tab-host {
   flex: 1 1 0;
   min-height: 0;
-}
-
-/* A list row's or a section's title sits with the tabs, the tree and the nav at 14px. MudBlazor
-   renders them as body1, which is 16px and reads a size larger than everything around it. */
-.panel-scroll .mud-expand-panel-header .mud-typography-body1,
-.tab-panel-body .mud-expand-panel-header .mud-typography-body1 {
-  font-size: 0.875rem;
 }
 
 /* A panel with no pager of its own still has to scroll rather than be clipped by the region. */

@@ -39,7 +39,6 @@ public abstract class DependencyGraphViewBase<TGraph> : ComponentBase, IDisposab
     protected TGraph? Graph;
     protected bool ShowDestroyGraph;
     protected ElementReference ScrollContainer;
-    protected int ScrollContainerHeight = 500;
 
     private TGraph? _applyGraph;
     private TGraph? _destroyGraph;
@@ -82,23 +81,6 @@ public abstract class DependencyGraphViewBase<TGraph> : ComponentBase, IDisposab
 
         await LoadGraph();
         UpdateSubscriptions();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (Graph == null) return;
-
-        var top = await JS.InvokeAsync<double>("eval", "document.querySelector('[data-dag-scroll]')?.getBoundingClientRect().top ?? 0");
-
-        if (top <= 0) return;
-
-        var newHeight = (int)(await JS.InvokeAsync<double>("eval", "window.innerHeight") - top - 16);
-
-        if (newHeight != ScrollContainerHeight && newHeight > 100)
-        {
-            ScrollContainerHeight = newHeight;
-            StateHasChanged();
-        }
     }
 
     private async Task LoadGraph()
