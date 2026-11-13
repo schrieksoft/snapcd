@@ -188,6 +188,7 @@ public class
 
         var tasks = outputSet.Outputs
             .OfType<SecretOutput>()
+            .Where(outputSecret => !outputSecret.BlankOutput)
             .Select(async outputSecret =>
             {
                 var outputDto = (outputSetDto.Outputs ?? []).First(x => x.Name == outputSecret.Name);
