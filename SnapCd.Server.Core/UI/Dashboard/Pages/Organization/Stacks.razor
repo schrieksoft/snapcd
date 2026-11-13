@@ -38,8 +38,17 @@
 
 <CascadingValue Value="OrganizationId">
     @* The stacks are a quarter of the width, and what is selected in them fills the rest. *@
+    @* Sits directly under the nav menu's own tab and lines up with it, because it does the same
+       thing one level in. *@
+    <div class="drawer-toggle-button drawer-toggle-second"
+         title="@(_treeCollapsed ? "Show the tree" : "Hide the tree")"
+         @onclick="ToggleTree">
+        <MudIcon Icon="@(_treeCollapsed ? SnapCdIcons.ChevronRight : SnapCdIcons.ChevronLeft)"
+                 Color="Color.Surface" Size="Size.Small"/>
+    </div>
+
     <div class="split-layout" @ref="_splitLayout">
-        <div class="split-pane split-pane-tree">
+        <div class="@($"split-pane split-pane-tree {(_treeCollapsed ? "split-pane-collapsed" : "")}")">
             <div class="tree-column">
                 @if (_pin != null)
                 {
@@ -204,6 +213,11 @@
     private bool _urlPending;
 
     private int _stackPageSize = 10;
+
+    private bool _treeCollapsed;
+
+    /// <summary>Hides the tree so the panel beside it has the whole width, as the nav menu does.</summary>
+    private void ToggleTree() => _treeCollapsed = !_treeCollapsed;
 
     private HierarchyPin? _pin;
     private IJSObjectReference? _pinModule;
@@ -492,6 +506,17 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+    }
+
+    /* Collapsed, the tree gives up its width entirely and the panel beside it takes the lot. */
+    .split-pane-collapsed {
+        width: 0 !important;
+        flex: 0 0 0 !important;
+        overflow: hidden;
+    }
+
+    .split-pane-collapsed + .split-handle {
+        display: none;
     }
 
     .split-handle {

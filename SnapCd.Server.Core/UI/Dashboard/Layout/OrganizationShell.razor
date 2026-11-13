@@ -151,6 +151,18 @@
         fill: var(--snap-sidebar-text) !important;
     }
 
+    /* Directly under the drawer's own tab: 32px top plus its 36px height, plus a 4px gap. A page
+       that renders one of these is outside this component, so its left follows the same layout
+       class the drawer sets rather than a value the page would have to be told. */
+    .drawer-toggle-second {
+        top: 72px;
+        left: 0;
+    }
+
+    .mud-drawer-open-responsive-md-left .drawer-toggle-second {
+        left: 240px;
+    }
+
     .drawer-toggle-button.drawer-open {
         left: 240px;
     }
