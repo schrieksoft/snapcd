@@ -1,9 +1,24 @@
 const STORAGE_KEY = 'snapcd.tree.pin';
 
-/** The pinned stack or namespace, or null. Storage can be blocked, which only costs the pin. */
+const PATTERN = /^(stack:[^/]+|namespace:[^/]+\/[^/]+)$/;
+
+/**
+ * The pinned stack or namespace, or null. A value that is not in the shape this module writes is
+ * discarded rather than handed on, so a stale or hand-edited entry cannot reach the server.
+ * Storage can also be blocked outright, which only costs the pin.
+ */
 export function read() {
     try {
-        return window.localStorage.getItem(STORAGE_KEY);
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+
+        if (raw === null) return null;
+
+        if (typeof raw !== 'string' || raw.length > 512 || !PATTERN.test(raw)) {
+            window.localStorage.removeItem(STORAGE_KEY);
+            return null;
+        }
+
+        return raw;
     } catch {
         return null;
     }

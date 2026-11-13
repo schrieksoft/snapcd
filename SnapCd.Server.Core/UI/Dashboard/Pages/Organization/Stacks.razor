@@ -41,6 +41,19 @@
     <div class="split-layout" @ref="_splitLayout">
         <div class="split-pane split-pane-tree">
             <div class="tree-column">
+                @if (_pin != null)
+                {
+                    <div class="pin-bar">
+                        <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small"/>
+                        <span class="pin-bar-label">@_pin.Label</span>
+                        <MudTooltip Text="Clear the pin">
+                            <MudIconButton Icon="@SnapCdIcons.Close"
+                                           Size="Size.Small"
+                                           OnClick="ClearPin"/>
+                        </MudTooltip>
+                    </div>
+                }
+
                 @if (_searchTerms.Any())
                 {
                     <div class="search-chips-header mb-2">
@@ -81,6 +94,8 @@
 
                 <ListStacks @ref="_listStacksComponent"
                             SearchTerms="@_searchTerms"
+                            Pin="@_pin"
+                            OnPinRequested="@HandlePinRequested"
                             SearchScope="@_searchScope"
                             PageSize="@_stackPageSize"
                             OnSelected="@HandleSelected"
@@ -190,6 +205,47 @@
 
     private int _stackPageSize = 10;
 
+    private HierarchyPin? _pin;
+    private IJSObjectReference? _pinModule;
+
+    /// <summary>Narrows the tree to one stack or namespace, remembered in this browser.</summary>
+    private async Task HandlePinRequested(HierarchyPin? pin)
+    {
+        _pin = pin;
+        await SavePin();
+        await ReloadStacks();
+    }
+
+    private Task ClearPin() => HandlePinRequested(null);
+
+    private async Task LoadPin()
+    {
+        try
+        {
+            _pinModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/SnapCd.Server.Core/snapcd-pin.js");
+            _pin = HierarchyPin.FromStorageValue(await _pinModule.InvokeAsync<string?>("read"));
+        }
+        catch (JSException)
+        {
+            // Without storage the tree simply opens unpinned.
+        }
+    }
+
+    private async Task SavePin()
+    {
+        try
+        {
+            _pinModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/SnapCd.Server.Core/snapcd-pin.js");
+            await _pinModule.InvokeVoidAsync("write", _pin?.ToStorageValue());
+        }
+        catch (JSException)
+        {
+            // The pin still applies to this visit; it just is not remembered.
+        }
+    }
+
     private ElementReference _splitLayout;
     private IJSObjectReference? _splitterModule;
 
@@ -201,7 +257,17 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender) await AttachSplitter();
+        if (firstRender)
+        {
+            await AttachSplitter();
+            await LoadPin();
+
+            if (_pin != null)
+            {
+                StateHasChanged();
+                return;
+            }
+        }
 
         if (_pendingSelection != null)
         {

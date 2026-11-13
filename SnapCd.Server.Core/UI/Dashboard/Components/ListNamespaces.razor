@@ -84,7 +84,18 @@ else
                     }
                     else
                     {
-                        @NamespaceTitle(ns)
+                        <div class="tree-row">
+                            @if (OnPinRequested.HasDelegate)
+                            {
+                                <MudTooltip Text="@(IsPinned(ns.Name) ? "Clear the pin" : "Pin to this namespace")">
+                                    <MudIconButton Icon="@Icons.Material.Filled.PushPin"
+                                                   Size="Size.Small"
+                                                   Class="@(IsPinned(ns.Name) ? "tree-pin tree-pin-on" : "tree-pin")"
+                                                   OnClick="@(() => TogglePin(ns.Name))"/>
+                                </MudTooltip>
+                            }
+                            @NamespaceTitle(ns)
+                        </div>
                     }
                 </TitleContent>
                 <ChildContent>
@@ -136,6 +147,21 @@ else
     [Parameter] public EventCallback<HierarchyCreation> OnCreateRequested { get; set; }
     /// <summary>What the tree has selected, so this level can mark its own node.</summary>
     [Parameter] public HierarchySelection? Selected { get; set; }
+
+    /// <summary>The pin the tree is narrowed to, so this level can mark and offer its own.</summary>
+    [Parameter] public HierarchyPin? Pin { get; set; }
+
+    [Parameter] public EventCallback<HierarchyPin?> OnPinRequested { get; set; }
+
+    private bool IsPinned(string namespaceName) =>
+        Pin is { NamespaceName: not null } pin
+        && pin.StackName == StackName
+        && pin.NamespaceName == namespaceName;
+
+    private Task TogglePin(string namespaceName) =>
+        OnPinRequested.InvokeAsync(IsPinned(namespaceName)
+            ? null
+            : HierarchyPin.OfNamespace(StackName, namespaceName));
 
     private bool IsSelected(string namespaceName) =>
         Selected is { Scope: SearchScope.Namespace } sel
@@ -286,6 +312,31 @@ else
         }
 
         _expandedNamespaces.Clear(); // Clear expanded state
+
+        if (Pin is { NamespaceName: not null } pinned && pinned.StackName == StackName)
+        {
+            using var pinnedRepo = NamespaceRepoFactory.Create();
+            var found = await pinnedRepo.ListMetadata(
+                OrganizationId,
+                q => q.Where(x => x.StackId == StackId && x.Name == pinned.NamespaceName),
+                orderBy: q => q.OrderBy(x => x.Name));
+
+            // The namespace a pin names can be deleted or renamed, so the pin goes rather than
+            // leaving the tree empty with nothing to explain it.
+            if (found.Count == 0)
+            {
+                await OnPinRequested.InvokeAsync(null);
+                return;
+            }
+
+            _namespaces = found;
+            _totalPages = 1;
+            _matchCount = 0;
+
+            foreach (var ns in _namespaces) _expandedNamespaces.Add(ns.Id);
+
+            return;
+        }
 
         if (SearchTerms.Any() && SearchScope != SearchScope.Stack)
         {

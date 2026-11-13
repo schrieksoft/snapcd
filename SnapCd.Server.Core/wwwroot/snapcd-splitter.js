@@ -7,10 +7,21 @@ function clamp(value) {
     return Math.min(MAX_PERCENT, Math.max(MIN_PERCENT, value));
 }
 
+/** A value that cannot be read is discarded, so a bad one is not re-read on every visit. */
 function read() {
     try {
-        const stored = parseFloat(window.localStorage.getItem(STORAGE_KEY));
-        return isNaN(stored) ? null : clamp(stored);
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+
+        if (raw === null) return null;
+
+        const stored = parseFloat(raw);
+
+        if (isNaN(stored)) {
+            window.localStorage.removeItem(STORAGE_KEY);
+            return null;
+        }
+
+        return clamp(stored);
     } catch {
         return null;
     }
