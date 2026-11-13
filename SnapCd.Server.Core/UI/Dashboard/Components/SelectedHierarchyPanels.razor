@@ -91,7 +91,7 @@ else
 
     @if (_showing == PanelType.Dependencies)
     {
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
+        <MudPaper Elevation="0" Class="pa-4 mb-4 dependencies-surface">
             @if (_stack != null)
             {
                 <StackDependencyGraph StackId="_stack.Id" StackName="@_stack.Name"/>
@@ -104,21 +104,23 @@ else
     }
     else if (_showing == PanelType.Configure)
     {
-        @if (_stack != null)
-        {
-            <ConfigureStack Stack="_stack"
-                            PrincipalProvider="_principalProvider"
-                            OnStackDeleted="OnChanged"
-                            OnStackSaved="OnChanged"/>
-        }
-        else if (_namespace != null)
-        {
-            <ConfigureNamespace Namespace="_namespace"
-                                StackName="@Selection.StackName"
+        <div class="panel-scroll">
+            @if (_stack != null)
+            {
+                <ConfigureStack Stack="_stack"
                                 PrincipalProvider="_principalProvider"
-                                OnNamespaceDeleted="OnChanged"
-                                OnNamespaceSaved="OnChanged"/>
-        }
+                                OnStackDeleted="OnChanged"
+                                OnStackSaved="OnChanged"/>
+            }
+            else if (_namespace != null)
+            {
+                <ConfigureNamespace Namespace="_namespace"
+                                    StackName="@Selection.StackName"
+                                    PrincipalProvider="_principalProvider"
+                                    OnNamespaceDeleted="OnChanged"
+                                    OnNamespaceSaved="OnChanged"/>
+            }
+        </div>
     }
 }
 

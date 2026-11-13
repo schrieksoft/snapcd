@@ -19,11 +19,6 @@
 @implements IDisposable
 
 <MudPaper Elevation="1" Class="pa-4 mb-4 tab-panel">
-    <MudTooltip Text="Refresh">
-        <MudIconButton Icon="@SnapCdIcons.Refresh" Color="Color.Primary" Size="Size.Medium"
-                       OnClick="() => ReloadOutputSets()"/>
-    </MudTooltip>
-
     @if (_outputSets == null)
     {
         <MudText Typo="Typo.body1"><em>Loading output sets...</em></MudText>

@@ -90,7 +90,13 @@
                                 <div class="starred-type-label">@GetStarredGroupLabel(group.Key)</div>
                                 @foreach (var favorite in group)
                                 {
-                                    <MudNavLink Href="@favorite.Url" Match="NavLinkMatch.All" title="@favorite.FullPath">@favorite.Label</MudNavLink>
+                                    @* Every favourite shares the /Tree path and differs only in its query, which
+                                       NavLinkMatch does not look at, so the active one is decided here. *@
+                                    @* A plain anchor, because MudNavLink decides its own active state from the
+                                       path alone and every favourite shares /Tree. *@
+                                    <a href="@favorite.Url"
+                                       class="@(IsCurrentFavorite(favorite) ? "favorite-link favorite-link-current" : "favorite-link")"
+                                       title="@favorite.FullPath">@favorite.Label</a>
                                 }
                             }
                         </MudNavGroup>
@@ -332,6 +338,25 @@
     private bool _subscribedToFavorites;
 
     private record FavoriteLink(FavoriteTargetType TargetType, string Label, string Url, string FullPath);
+
+    /// <summary>Whether the browser is on exactly this favourite, query string included.</summary>
+    private bool IsCurrentFavorite(FavoriteLink favorite)
+    {
+        var current = new Uri(NavigationManager.Uri);
+        var target = new Uri(NavigationManager.ToAbsoluteUri(favorite.Url).ToString());
+
+        if (!string.Equals(current.AbsolutePath, target.AbsolutePath, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return SelectionOf(current.Query) == SelectionOf(target.Query);
+    }
+
+    /// <summary>The stack, namespace and module a query names, so unrelated parameters are ignored.</summary>
+    private static (string?, string?, string?) SelectionOf(string query)
+    {
+        var parsed = System.Web.HttpUtility.ParseQueryString(query);
+        return (parsed["stack"], parsed["namespace"], parsed["module"]);
+    }
 
     private static string GetStarredGroupLabel(FavoriteTargetType targetType) => targetType switch
     {

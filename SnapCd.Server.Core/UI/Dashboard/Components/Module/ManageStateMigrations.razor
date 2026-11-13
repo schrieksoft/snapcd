@@ -182,6 +182,7 @@
 }
 else
 {
+    <div class="panel-scroll">
     <MudExpansionPanels MultiExpansion="false">
         @foreach (var job in _jobs.OrderByDescending(j => j.TimestampStart))
         {
@@ -364,6 +365,7 @@ else
             </MudExpansionPanel>
         }
     </MudExpansionPanels>
+    </div>
 }
 
 @code {

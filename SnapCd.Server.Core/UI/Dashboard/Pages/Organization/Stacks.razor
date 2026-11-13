@@ -165,8 +165,13 @@
                     ? HierarchySelection.OfNamespace(SelectedStack, SelectedNamespace)
                     : HierarchySelection.OfModule(SelectedStack, SelectedNamespace, SelectedModule);
 
-        if (fromUrl != null && fromUrl != _selection) _selection = fromUrl;
+        // Changing the selection changes the panels' @key, which disposes one keyed component and
+        // builds another. Done inside the location-changed event, that mutates the set of
+        // query-parameter subscribers Blazor is still iterating, so it is applied after the render.
+        if (fromUrl != null && fromUrl != _selection) _pendingSelection = fromUrl;
     }
+
+    private HierarchySelection? _pendingSelection;
 
     // The selection keys the panels, so this event also disposes one keyed component and builds
     // another. Navigating in the same call stack mutates the query-parameter provider's subscriber
@@ -190,20 +195,31 @@
 
     // A stack row is 30px and the heading above the list takes its own space, so how many rows
     // fit is a property of the column's height rather than a number worth fixing in advance.
-    private const int StackRowHeight = 30;
+    // A collapsed row and the 4px gap below it, which is what one row costs when nothing is open.
+    // An expanded branch is taller, and the column scrolls for it, which is what the scroll is for.
+    private const int StackRowHeight = 34;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender) await AttachSplitter();
+
+        if (_pendingSelection != null)
+        {
+            _selection = _pendingSelection;
+            _pendingSelection = null;
+            StateHasChanged();
+            return;
+        }
+
         if (_urlPending)
         {
             _urlPending = false;
             UpdateUrl();
         }
 
-        if (!firstRender) return;
-
+        // Not only on the first render: arriving with a selection applies that selection on a
+        // later pass, and the rows are only worth measuring against once they are in place.
         await MeasureStackPageSize();
-        await AttachSplitter();
     }
 
     public async ValueTask DisposeAsync()

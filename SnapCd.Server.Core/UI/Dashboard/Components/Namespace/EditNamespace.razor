@@ -14,6 +14,7 @@
 @using SnapCd.Server.Core.Services.Interfaces.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
 @using NameValidator = SnapCd.Server.Core.Services.Utils.NameValidator
+@inject IJSRuntime JsRuntime
 @implements IDisposable
 
 <MudForm @ref="_form" ReadOnly="@(!_canSave)">
@@ -26,11 +27,15 @@
             <!-- Read-only IDs -->
             <MudItem md="12">
                 <MudTextField Label="Namespace ID" @bind-Value="Namespace.Id" Variant="Variant.Outlined" ReadOnly
-                              Disabled="true"/>
+                              Adornment="Adornment.End" AdornmentIcon="@SnapCdIcons.ContentCopy"
+                              AdornmentAriaLabel="Copy Namespace ID"
+                              OnAdornmentClick="@(() => CopyId("Namespace ID", Namespace.Id))"/>
             </MudItem>
             <MudItem md="12">
                 <MudTextField Label="Stack ID" @bind-Value="Namespace.StackId" Variant="Variant.Outlined" ReadOnly
-                              Disabled="true"/>
+                              Adornment="Adornment.End" AdornmentIcon="@SnapCdIcons.ContentCopy"
+                              AdornmentAriaLabel="Copy Stack ID"
+                              OnAdornmentClick="@(() => CopyId("Stack ID", Namespace.StackId))"/>
             </MudItem>
 
             <!-- Core Properties -->
@@ -416,4 +421,18 @@
         // Add any necessary cleanup logic here
     }
 
+
+    /// <summary>Puts an id on the clipboard, so it can be pasted into a provider config or a query.</summary>
+    private async Task CopyId(string label, Guid id)
+    {
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", id.ToString());
+            Snackbar.Add($"{label} copied to clipboard", Severity.Success);
+        }
+        catch (JSException)
+        {
+            Snackbar.Add("Could not copy to the clipboard", Severity.Error);
+        }
+    }
 }

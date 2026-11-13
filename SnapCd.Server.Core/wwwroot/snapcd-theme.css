@@ -383,10 +383,87 @@ body.dark-mode .scalar-card {
   text-decoration: underline;
 }
 
+/* The graph supplies its own colour, so the surface behind it is the page itself. */
+.dependencies-surface {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* The pager is a row of small controls, not body text. */
+.tree-pager .mud-link,
+.tab-panel-pager .mud-link {
+  font-size: 0.75rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The page numbers share one baseline, so the current one changes colour and not its weight. */
+.page-number {
+  color: var(--snap-text-2);
+}
+
+.page-number-current {
+  color: var(--snap-accent) !important;
+}
+
+.tree-pager .mud-icon-button,
+.tab-panel-pager .mud-icon-button {
+  padding: 2px;
+}
+
+.tree-pager .mud-icon-button .mud-icon-root,
+.tab-panel-pager .mud-icon-button .mud-icon-root,
+.tree-pager svg,
+.tab-panel-pager svg {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+
+/* Favourites all share the /Tree path, so NavLinkMatch marks every one of them active. The
+   active styling is taken off them and put back only on the one the query string names. */
+.favorite-link {
+  display: block;
+  padding: 8px 16px 8px 37px;
+  font-size: 0.875rem;
+  color: var(--snap-sidebar-text);
+  text-decoration: none;
+  border-inline-start: 3px solid transparent;
+}
+
+.favorite-link:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.mud-drawer .mud-drawer-content a.favorite-link-current,
+.mud-drawer a.favorite-link-current,
+.favorite-link-current {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--snap-accent) !important;
+  border-inline-start-color: var(--snap-accent);
+}
+
 /* The module header keeps its own height; the tab below it takes whatever is left. */
 .module-tab-host {
   flex: 1 1 0;
   min-height: 0;
+}
+
+/* A list row's or a section's title sits with the tabs, the tree and the nav at 14px. MudBlazor
+   renders them as body1, which is 16px and reads a size larger than everything around it. */
+.panel-scroll .mud-expand-panel-header .mud-typography-body1,
+.tab-panel-body .mud-expand-panel-header .mud-typography-body1 {
+  font-size: 0.875rem;
+}
+
+/* A panel with no pager of its own still has to scroll rather than be clipped by the region. */
+.panel-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
 }
 
 /* A tab whose list scrolls on its own: the header above and the pager below stay put, so the

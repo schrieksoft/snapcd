@@ -16,8 +16,8 @@
 else if (Graph != null)
 {
     <MudStack Class="mb-3">
-        <MudSwitch @bind-Value="_showOnlyNamespaceModules" Color="Color.Secondary">
-            Only Show Modules within Namespace
+        <MudSwitch @bind-Value="_showModulesOutsideNamespace" Color="Color.Secondary">
+            Show Modules outside Namespace
         </MudSwitch>
         <MudTooltip Text="@GetToggleTooltipText()">
             <MudSwitch Color="Color.Secondary" Value="ShowDestroyGraph"
@@ -51,7 +51,7 @@ else if (Error != null)
     /// </summary>
     [Parameter] public HashSet<Guid>? UninvolvedModuleIds { get; set; }
 
-    private bool _showOnlyNamespaceModules;
+    private bool _showModulesOutsideNamespace;
 
     protected override Guid ScopeId => NamespaceId;
 
@@ -61,10 +61,10 @@ else if (Error != null)
     protected override Task<NamespaceDependencyGraphDto> BuildDestroyGraph() =>
         DestroyServiceFactory.Create().BuildNamespaceDestroyGraphAsync(NamespaceId, NamespaceName);
 
-    /// <summary>Hides the modules outside this Namespace that its own modules depend on.</summary>
+    /// <summary>Shows the modules outside this Namespace that its own modules depend on.</summary>
     private NamespaceDependencyGraphDto GetFilteredGraph()
     {
-        if (Graph == null || !_showOnlyNamespaceModules) return Graph!;
+        if (Graph == null || _showModulesOutsideNamespace) return Graph!;
 
         return new NamespaceDependencyGraphDto
         {

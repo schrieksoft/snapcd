@@ -27,7 +27,7 @@
                 }
                 else
                 {
-                    <MudLink Class="my-auto cursor-pointer" Style="@(CurrentPage == item ? "font-weight: bold; color: var(--mud-palette-primary);" : "color: var(--mud-palette-text-primary);")"
+                    <MudLink Class="@($"my-auto cursor-pointer page-number{(CurrentPage == item ? " page-number-current" : "")}")"
                              OnClick="() => GoToPage(item)">
                         @item
                     </MudLink>
