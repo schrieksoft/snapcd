@@ -7,7 +7,7 @@
    for terms covering either use. *@
 
 @page "/Tree"
-@layout OrganizationMainLayout
+@layout FullHeightLayout
 
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -79,47 +79,14 @@
                     </div>
                 }
 
-                @if (_showSelectionMode)
-                {
-                    <div class="selection-controls mb-2">
-                        <MudCheckBox T="bool"
-                                     Value="_selectAllStacks"
-                                     ValueChanged="OnSelectAllChanged"
-                                     Label="Select all Stacks"
-                                     Color="Color.Secondary"
-                                     Dense="true"/>
-
-                        @if (_selectedStacks.Any())
-                        {
-                            <MudButton Variant="Variant.Filled"
-                                       Color="Color.Secondary"
-                                       StartIcon="@SnapCdIcons.Delete"
-                                       OnClick="DeleteSelectedStacks"
-                                       Size="Size.Small">
-                                Delete Selected (@_selectedStacks.Count)
-                            </MudButton>
-                        }
-                    </div>
-                }
-
                 <ListStacks @ref="_listStacksComponent"
                             SearchTerms="@_searchTerms"
                             SearchScope="@_searchScope"
-                            ShowCheckboxes="@_showSelectionMode"
-                            SelectAll="@_selectAllStacks"
                             PageSize="@_stackPageSize"
-                            OnSelectionChanged="@HandleStackSelectionChanged"
                             OnSelected="@HandleSelected"
                             OnCreateRequested="@HandleCreateRequested"
                             Selected="@_selection">
                     <HeadingActions>
-                        <MudTooltip Text="Select multiple">
-                            <MudIconButton Icon="@SnapCdIcons.Checklist"
-                                           Color="@(_showSelectionMode ? Color.Secondary : Color.Primary)"
-                                           Size="Size.Small"
-                                           OnClick="() => ToggleSelectionMode()"/>
-                        </MudTooltip>
-
                         <MudTooltip Text="Search stacks">
                             <MudIconButton Icon="@SnapCdIcons.Search"
                                            Color="@(_showStackSearch ? Color.Secondary : Color.Primary)"
@@ -168,9 +135,6 @@
     private string _searchInput = string.Empty;
     private List<string> _searchTerms = new();
     private SearchScope _searchScope = SearchScope.Stack;
-    private bool _selectAllStacks;
-    private HashSet<Guid> _selectedStacks = new();
-    private bool _showSelectionMode;
 
     protected override void OnInitialized()
     {
@@ -227,7 +191,6 @@
     // A stack row is 30px and the heading above the list takes its own space, so how many rows
     // fit is a property of the column's height rather than a number worth fixing in advance.
     private const int StackRowHeight = 30;
-    private const int TreeHeadingHeight = 44;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -281,11 +244,12 @@
 
         try
         {
+            // The container gives the rows their height; this only reads it, to pick a page size
+            // that fills the space rather than overflowing it.
             available = await JS.InvokeAsync<double>(
                 "eval",
-                "(function(){var e=document.querySelector('.tree-column');" +
-                "if(!e)return 0;var t=e.getBoundingClientRect().top;" +
-                "return window.innerHeight - t - 24;})()");
+                "(function(){var e=document.querySelector('.tree-scroll');" +
+                "return e?e.getBoundingClientRect().height:0;})()");
         }
         catch (JSException)
         {
@@ -294,7 +258,7 @@
 
         if (available <= 0) return;
 
-        var fits = (int)((available - TreeHeadingHeight) / StackRowHeight);
+        var fits = (int)(available / StackRowHeight);
         var wanted = Math.Clamp(fits, 5, 100);
 
         if (wanted == _stackPageSize) return;
@@ -396,58 +360,6 @@
         }
     }
 
-    private void OnSelectAllChanged(bool value)
-    {
-        _selectAllStacks = value;
-    }
-
-    private void ToggleSelectionMode()
-    {
-        _showSelectionMode = !_showSelectionMode;
-
-        // Clear selections when exiting selection mode
-        if (!_showSelectionMode)
-        {
-            _selectAllStacks = false;
-            _selectedStacks.Clear();
-        }
-    }
-
-    private void HandleStackSelectionChanged(HashSet<Guid> selectedStacks)
-    {
-        _selectedStacks = selectedStacks;
-        StateHasChanged();
-    }
-
-    private async Task DeleteSelectedStacks()
-    {
-        if (!_selectedStacks.Any() || _listStacksComponent == null)
-            return;
-
-        var selectedStacks = _listStacksComponent.GetSelectedStacks();
-
-        var parameters = new DialogParameters<DeleteSelectedStacksDialog>
-        {
-            { x => x.Stacks, selectedStacks },
-            { x => x.OrganizationId, OrganizationId }
-        };
-
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<DeleteSelectedStacksDialog>("Delete Selected Stacks", parameters, options);
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
-        {
-            // Clear selection
-            _selectAllStacks = false;
-            _selectedStacks.Clear();
-
-            // Reload stacks list
-            await ReloadStacks();
-
-            Snackbar.Add($"Successfully deleted {selectedStacks.Count} stack(s)", Severity.Success);
-        }
-    }
 }
 
 <style>
@@ -473,20 +385,31 @@
     .split-layout {
         --tree-width: 25%;
         display: flex;
-        align-items: flex-start;
+        align-items: stretch;
         gap: 0;
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     .split-pane-tree {
         width: var(--tree-width);
         flex: 0 0 var(--tree-width);
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
     }
 
+    /* The right pane gives its content the height; what scrolls inside is the content's own
+       business, so a tab can pin its pager while only its list scrolls. */
     .split-pane-content {
         flex: 1 1 auto;
         min-width: 0;
         padding-left: 12px;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
 
     .split-handle {
@@ -532,13 +455,51 @@
     }
 
     /* The tree scrolls within the viewport so the page itself does not grow with the hierarchy. */
+    /* A fixed height, not a max: the pager stays at the bottom however few rows a page holds.
+       --tree-top is the column's distance from the top of the viewport, measured on first render. */
     .tree-column {
         display: flex;
         flex-direction: column;
-        max-height: calc(100vh - 136px);
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    /* Only the rows scroll. The pager below them stays put. */
+    /* 1 1 0 rather than 1 1 auto, so a short page still fills the column instead of collapsing. */
+    .tree-column .tree-scroll {
+        flex: 1 1 0;
+        min-height: 0;
         overflow-y: auto;
         overflow-x: auto;
         padding-right: 4px;
+    }
+
+    /* The pager sits on the page, not on a raised surface, and takes a row's height. */
+    /* Matches the sidebar's Account bar, so the two borders sit on one line: that bar is a
+       40px nav link inside 4px of padding, and both end at the bottom of the window. */
+    .tree-column .tree-pager {
+        flex: 0 0 auto;
+        box-sizing: border-box;
+        min-height: 57px;
+        display: flex;
+        align-items: center;
+        padding: 4px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .tree-column .tree-pager > * {
+        flex: 1 1 auto;
+    }
+
+    .tree-column .tree-pager .mud-paper {
+        background-color: transparent;
+        box-shadow: none;
+        padding: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    .tree-column .tree-pager .mud-icon-button {
+        padding: 4px;
     }
 
 

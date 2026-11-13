@@ -180,7 +180,7 @@
             }
             else
             {
-                <div @key="_module.Id">
+                <div class="module-tab-host" @key="_module.Id">
                     @if (_showing == ShowingType.Jobs)
                     {
                         <ManageModuleJobs Module="_module"
@@ -232,6 +232,14 @@
 </CascadingValue>
 
 <style>
+    /* The tab fills what is left under the header, so its own list can scroll inside it. */
+    .module-tab-host {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 0;
+        min-height: 0;
+    }
+
     .module-page-header {
         margin-bottom: 16px;
     }

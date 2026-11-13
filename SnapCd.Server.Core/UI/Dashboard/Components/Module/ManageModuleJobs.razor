@@ -74,6 +74,8 @@
 @*                    OnClick="() => ReloadModuleJobs()"/> *@
 @* </MudTooltip> *@
 
+<div class="tab-panel">
+<div class="tab-panel-body">
 @if (_moduleJobs == null)
 {
     <MudText Typo="Typo.body1"><em>Loading jobs...</em></MudText>
@@ -211,12 +213,16 @@ else
     </MudExpansionPanels>
 }
 
+</div>
 @if (_totalPages > 1)
 {
-    <Pagination CurrentPage="_currentPage"
-                TotalPages="_totalPages"
-                PageChanged="HandlePageChanged"/>
+    <div class="tab-panel-pager">
+        <Pagination CurrentPage="_currentPage"
+                    TotalPages="_totalPages"
+                    PageChanged="HandlePageChanged"/>
+    </div>
 }
+</div>
 
 
 @code {

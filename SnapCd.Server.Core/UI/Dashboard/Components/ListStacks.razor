@@ -7,7 +7,10 @@
    for terms covering either use. *@
 
 @inject PersistentComponentState ApplicationState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Stacks
 @using SnapCd.Server.Core.Views.Metadata
 
 @if (_stacks == null)
@@ -31,15 +34,44 @@ else
                                OnClick="@(() => OnCreateRequested.InvokeAsync(HierarchyCreation.OfStack()))"/>
             </MudTooltip>
         }
+        <MudTooltip Text="Select multiple">
+            <MudIconButton Icon="@SnapCdIcons.Checklist"
+                           Color="@(_selecting ? Color.Secondary : Color.Primary)"
+                           Size="Size.Small"
+                           OnClick="ToggleSelecting"/>
+        </MudTooltip>
         @HeadingActions
     </div>
 
-    <div class="stack-list">
+    @if (_selecting)
+    {
+        <div class="selection-controls mb-2">
+            <MudCheckBox T="bool"
+                         Value="_selectAll"
+                         ValueChanged="OnSelectAllChanged"
+                         Label="Select all Stacks"
+                         Color="Color.Secondary"
+                         Dense="true"/>
+
+            @if (_selectedStacks.Any())
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@SnapCdIcons.Delete"
+                           OnClick="DeleteSelected"
+                           Size="Size.Small">
+                    Delete Selected (@_selectedStacks.Count)
+                </MudButton>
+            }
+        </div>
+    }
+
+    <div class="stack-list tree-scroll">
         @foreach (var stack in _stacks)
         {
             <MudExpansionPanel @key="stack.Id" Expanded="_expandedStacks.Contains(stack.Id)" Class="@(IsSelected(stack.Name) ? "mb-1 tree-node-selected" : "mb-1")">
                 <TitleContent>
-                    @if (ShowCheckboxes)
+                    @if (ShowCheckboxes || _selecting)
                     {
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <MudCheckBox Color="Color.Secondary" T="bool"
@@ -73,15 +105,17 @@ else
 
     @if (_totalPages > 1)
     {
-        <Pagination CurrentPage="_currentPage"
-                    TotalPages="_totalPages"
-                    PageChanged="HandlePageChanged"/>
+        <div class="tree-pager">
+            <Pagination CurrentPage="_currentPage"
+                        TotalPages="_totalPages"
+                        PageChanged="HandlePageChanged"/>
+        </div>
     }
 }
 
 <style>
     .stack-list {
-        margin-bottom: 2rem;
+        margin-bottom: 0;
     }
 
     .search-highlight {
@@ -327,6 +361,52 @@ else
         {
             await OnSelectionChanged.InvokeAsync(_selectedStacks);
         }
+    }
+
+    private bool _selecting;
+    private bool _selectAll;
+
+    private void ToggleSelecting()
+    {
+        _selecting = !_selecting;
+
+        if (_selecting) return;
+
+        _selectAll = false;
+        _selectedStacks.Clear();
+    }
+
+    private void OnSelectAllChanged(bool value)
+    {
+        _selectAll = value;
+        _selectedStacks = value && _stacks != null
+            ? new HashSet<Guid>(_stacks.Select(x => x.Id))
+            : new HashSet<Guid>();
+    }
+
+    private async Task DeleteSelected()
+    {
+        var selected = GetSelectedStacks();
+
+        if (selected.Count == 0) return;
+
+        var parameters = new DialogParameters<DeleteSelectedStacksDialog>
+        {
+            { x => x.Stacks, selected },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteSelectedStacksDialog>("Delete Selected Stacks", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false }) return;
+
+        var count = selected.Count;
+        _selectAll = false;
+        _selectedStacks.Clear();
+        await LoadStacks();
+        Snackbar.Add($"Successfully deleted {count} stack(s)", Severity.Success);
     }
 
     public List<StackMetadata> GetSelectedStacks()

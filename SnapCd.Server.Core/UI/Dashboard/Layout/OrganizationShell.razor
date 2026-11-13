@@ -1,0 +1,327 @@
+﻿@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@implements IDisposable
+
+@using SnapCd.Contracts
+@inject IHttpContextAccessor HttpContextAccessor
+@using SnapCd.Server.Core.Filters
+@using SnapCd.Server.Core.Services.Interfaces
+@using SnapCd.Server.Core.Services.Interfaces.Edition
+@using SnapCd.Server.Core.Services.Interfaces.OrganizationContext
+@using SnapCd.Server.Core.Services.Nonsecured.OrganizationContext
+@using SnapCd.Server.Core.Services.Nonsecured.PrincipalProvider
+@using SnapCd.Server.Core.Services.Secured
+@using SnapCd.Server.Core.Services.Utils.Dashboard
+@using SnapCd.Server.Core.UI
+@inject NavigationManager NavigationManager
+@inject ThemeService ThemeService
+@inject IVersionService VersionService
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject IOrganizationContext OrganizationContext
+@inject IOrganizationActivationService OrganizationActivation
+@inject IPostOrganizationCreateRedirectPolicy PostOrganizationCreateRedirectPolicy
+@inject OrganizationMembershipCacheService MembershipCache
+@inject HttpContextPrincipalProvider PrincipalProvider
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<OrganizationShell> Logger
+
+
+<MudThemeProvider Theme="_myCustomTheme" IsDarkMode="@_isDarkMode"/>
+<ExpectedErrorBoundary Detached="true">
+    <MudPopoverProvider/>
+</ExpectedErrorBoundary>
+<ExpectedErrorBoundary Detached="true">
+    <MudDialogProvider/>
+</ExpectedErrorBoundary>
+<MudSnackbarProvider/>
+<MudLayout>
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Never" Elevation="2"
+               Style="display: flex; flex-direction: column; background-color: var(--snap-bg-sidebar) !important; height: 100vh; top: 0;">
+        <div style="flex: 1; overflow-y: auto; background-color: var(--snap-bg-sidebar);">
+            <NavMenu CurrentPageType="@PageType"/> @* See https://stackx48a overflow.com/a/63225118/141789*@
+        </div>
+        <NavVersionFooter/>
+        <div style="display: flex; align-items: center; padding: 4px 0; border-top: 1px solid rgba(255,255,255,0.15); background-color: var(--snap-bg-sidebar);">
+            <MudNavLink Href="/Account" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.AccountCircle"
+                        Style="flex: 1; color: var(--snap-sidebar-text) !important;">
+                Account
+            </MudNavLink>
+            @if (RenderModeHelper.IsStaticServersideRendering(HttpContext, NavigationManager))
+            {
+                <form action="Theme/ToggleDarkMode" method="post" style="margin: 0;">
+                    <AntiforgeryToken/>
+                    <MudTooltip Text="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")">
+                        <MudStaticButton Style="box-shadow: none; min-width: unset; padding: 8px;"
+                                         Variant="Variant.Text" FormAction="FormAction.Submit">
+                            <MudIcon
+                                Icon="@(_isDarkMode ? SnapCdIcons.LightMode : SnapCdIcons.DarkMode)"/>
+                        </MudStaticButton>
+                    </MudTooltip>
+                </form>
+            }
+            else
+            {
+                <MudTooltip Text="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")">
+                    <MudIconButton Style="box-shadow: none;"
+                                   OnClick="@(_ => ToggleDarkMode())"
+                                   Icon="@(_isDarkMode ? SnapCdIcons.LightMode : SnapCdIcons.DarkMode)"/>
+                </MudTooltip>
+            }
+        </div>
+    </MudDrawer>
+
+    <!-- Custom Drawer Toggle Button -->
+    <div class="drawer-toggle-button @(_drawerOpen ? "drawer-open" : "drawer-closed")" @onclick="DrawerToggle">
+        <MudIcon Icon="@(_drawerOpen ? SnapCdIcons.ChevronLeft : SnapCdIcons.ChevronRight)"
+                 Color="Color.Surface" Size="Size.Small"/>
+    </div>
+
+    <!-- Spacer to offset main content -->
+    <div
+        style="position: fixed; top: 0; left: 0; width: 18px; height: 100vh; z-index: 1000; pointer-events: none;"></div>
+
+    <MudMainContent Class="@($"pa-4 {(FillViewport ? "shell-fill" : "")}")">
+        <div class="shell-body" style="margin-left: 18px;">
+            <ExpectedErrorBoundary>
+                <MaintenanceModeBanner/>
+                @if (IsAllowedToNavigate())
+                {
+                    @* TODO: <UsageLimitExceededBanner/> — component not yet implemented *@
+                    @ChildContent
+                }
+                else
+                {
+                    <p>You are not authorized to view this page.</p>
+                }
+            </ExpectedErrorBoundary>
+        </div>
+    </MudMainContent>
+</MudLayout>
+
+<style>
+    /* The content fills the viewport instead of growing, so the regions inside it can own
+       their own scrolling. Every wrapper between here and them has to pass the height on. */
+    .shell-fill {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+        /* The regions inside run to the bottom of the window, so the padding below them goes. */
+        padding-bottom: 0 !important;
+    }
+
+    .shell-fill > .shell-body,
+    .shell-fill > .shell-body > .mud-error-boundary {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .drawer-toggle-button {
+        position: fixed;
+        top: 32px;
+        background-color: var(--snap-bg-sidebar);
+        width: 18px;
+        height: 36px;
+        border-radius: 0 4px 4px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 1300;
+        transition: left 0.3s ease;
+        box-shadow: var(--snap-shadow-md);
+    }
+
+    .drawer-toggle-button,
+    .drawer-toggle-button .mud-icon-root,
+    .drawer-toggle-button svg {
+        color: var(--snap-sidebar-text) !important;
+    }
+
+    .drawer-toggle-button svg path:not([fill="none"]) {
+        fill: var(--snap-sidebar-text) !important;
+    }
+
+    .drawer-toggle-button.drawer-open {
+        left: 240px;
+    }
+
+    .drawer-toggle-button.drawer-closed {
+        left: 0px;
+    }
+
+    .drawer-toggle-button:hover {
+        background-color: var(--snap-bg-raised);
+    }
+
+    .mud-drawer .mud-drawer-content {
+        background-color: var(--snap-bg-sidebar) !important;
+    }
+
+    .mud-drawer .mud-drawer-content,
+    .mud-drawer .mud-drawer-content * {
+        color: var(--snap-sidebar-text) !important;
+    }
+
+    .mud-drawer .mud-drawer-content .mud-icon-root,
+    .mud-drawer .mud-drawer-content svg {
+        color: var(--snap-sidebar-text) !important;
+    }
+
+    .mud-drawer .mud-drawer-content svg path:not([fill="none"]) {
+        fill: var(--snap-sidebar-text) !important;
+    }
+
+    .mud-drawer .mud-nav-link.mud-nav-link-active,
+    .mud-drawer .mud-nav-link.active {
+        background-color: rgba(232,236,239,0.15) !important;
+        border-left: 3px solid var(--snap-accent, #E85D1A) !important;
+        padding-left: calc(var(--mud-nav-link-padding-left, 16px) - 3px);
+    }
+</style>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    /// <summary>What the shell wraps: a page's body, or a layout's own regions.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The layout's own Body, which names the routed page the nav and gates read.</summary>
+    [Parameter] public RenderFragment? RouteBody { get; set; }
+
+    /// <summary>Set where the content sizes itself to the viewport rather than growing with it.</summary>
+    [Parameter] public bool FillViewport { get; set; }
+
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private bool _isDarkMode;
+    private bool _drawerOpen = true;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        ThemeService.Initialize(ThemeCookie.IsDark(HttpContextAccessor.HttpContext));
+        _isDarkMode = ThemeService.IsDarkMode;
+        ThemeService.OnThemeChanged += ThemeChanged;
+    }
+
+    // A layout is outside any ErrorBoundary it declares.
+    protected override async Task OnParametersSetAsync()
+    {
+        PageType = RouteBody is null ? null : (RouteBody.Target as RouteView)?.RouteData.PageType;
+        try
+        {
+            await EnforceOrganizationActivationGateAsync();
+            await EvaluatePageRoleGateAsync();
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Navigation gate could not be evaluated for {PageType}", PageType);
+            _pageRoleAllowed = false;
+        }
+    }
+
+    private async Task EnforceOrganizationActivationGateAsync()
+    {
+        if (OrganizationId == Guid.Empty) return;
+        if (PageType is null) return;
+
+        var billable = PageType
+            .GetCustomAttributes(typeof(OrganizationScopedFeatureAttribute), inherit: true)
+            .Any();
+        if (!billable) return;
+
+        var activated = await OrganizationActivation.IsActivatedAsync(OrganizationId);
+        if (!activated)
+        {
+            if (PostOrganizationCreateRedirectPolicy.NotActivatedRedirectPath is { } redirectPath)
+                NavigationManager.NavigateTo(redirectPath, forceLoad: false, replace: true);
+        }
+    }
+
+
+    private MudTheme _myCustomTheme = SnapCdTheme.Default;
+
+    private async Task ToggleDarkMode()
+    {
+        await ThemeService.ToggleThemeAsync();
+    }
+
+    private void ThemeChanged()
+    {
+        _isDarkMode = ThemeService.IsDarkMode;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= ThemeChanged;
+    }
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    public Type? PageType { get; set; }
+
+    private bool _pageRoleAllowed = true;
+
+    private bool IsAllowedToNavigate() => _pageRoleAllowed;
+
+    private async Task EvaluatePageRoleGateAsync()
+    {
+        if (PageType is null)
+        {
+            _pageRoleAllowed = true;
+            return;
+        }
+
+        var attr = PageType
+            .GetCustomAttributes(typeof(AuthorizeOnNavigationPermission), inherit: true)
+            .OfType<AuthorizeOnNavigationPermission>()
+            .FirstOrDefault();
+
+        if (attr is null || attr.AnyOf.Length == 0)
+        {
+            _pageRoleAllowed = true;
+            return;
+        }
+
+        if (OrganizationId == Guid.Empty)
+        {
+            _pageRoleAllowed = true;
+            return;
+        }
+
+        if (PrincipalProvider.GetPrincipalDiscriminatorOrDefault() != PrincipalDiscriminator.User)
+        {
+            _pageRoleAllowed = false;
+            return;
+        }
+
+        var userId = PrincipalProvider.GetSubjectOrDefault(OrganizationId);
+        if (userId == Guid.Empty)
+        {
+            _pageRoleAllowed = false;
+            return;
+        }
+
+        _pageRoleAllowed = await MembershipCache.HasAnyOrganizationRoleAsync(userId, OrganizationId, attr.AnyOf);
+    }
+
+}

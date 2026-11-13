@@ -383,6 +383,60 @@ body.dark-mode .scalar-card {
   text-decoration: underline;
 }
 
+/* The module header keeps its own height; the tab below it takes whatever is left. */
+.module-tab-host {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* A tab whose list scrolls on its own: the header above and the pager below stay put, so the
+   pager keeps its place whatever the row count. The region it sits in supplies the height. */
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.tab-panel > .tab-panel-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+/* Matches the tree's pager, and the sidebar's Account bar it lines up with. */
+.tab-panel > .tab-panel-pager {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  min-height: 57px;
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tab-panel > .tab-panel-pager > * {
+  flex: 1 1 auto;
+}
+
+.tab-panel > .tab-panel-pager .mud-paper {
+  background-color: transparent;
+  box-shadow: none;
+  padding: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.tab-panel > .tab-panel-pager .mud-icon-button {
+  padding: 4px;
+}
+
+.hierarchy-parents {
+  color: var(--snap-text-2);
+  margin-top: 2px;
+}
+
 /* Carries the heading and the button that creates at that level. */
 .list-heading-row {
   display: flex;

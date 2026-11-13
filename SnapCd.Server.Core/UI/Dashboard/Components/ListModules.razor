@@ -7,10 +7,13 @@
    for terms covering either use. *@
 
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Modules
 @using SnapCd.Server.Core.Views.Metadata
 @implements IDisposable
 
 @inject PersistentComponentState ApplicationState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <div class="list-heading-row">
         <div class="list-heading">Modules</div>
@@ -23,7 +26,36 @@
                                OnClick="@(() => OnCreateRequested.InvokeAsync(HierarchyCreation.OfModule(NamespaceId)))"/>
             </MudTooltip>
         }
+        <MudTooltip Text="Select multiple">
+            <MudIconButton Icon="@SnapCdIcons.Checklist"
+                           Color="@(_selecting ? Color.Secondary : Color.Primary)"
+                           Size="Size.Small"
+                           OnClick="ToggleSelecting"/>
+        </MudTooltip>
     </div>
+
+    @if (_selecting)
+    {
+        <div class="selection-controls mb-2">
+            <MudCheckBox T="bool"
+                         Value="_selectAll"
+                         ValueChanged="OnSelectAllChanged"
+                         Label="Select all Modules"
+                         Color="Color.Secondary"
+                         Dense="true"/>
+
+            @if (_selectedModules.Any())
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@SnapCdIcons.Delete"
+                           OnClick="DeleteSelected"
+                           Size="Size.Small">
+                    Delete Selected (@_selectedModules.Count)
+                </MudButton>
+            }
+        </div>
+    }
 
 @if (_paginatedModules.Count == 0)
 {
@@ -35,7 +67,7 @@
     {
         <MudExpansionPanel @key="module.Id" Disabled="true" HideIcon="true" Class="@(IsSelected(module.Name) ? "mb-1 tree-leaf tree-node-selected" : "mb-1 tree-leaf")">
             <TitleContent>
-                @if (ShowCheckboxes)
+                @if (ShowCheckboxes || _selecting)
                 {
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <MudCheckBox Color="Color.Secondary" T="bool"
@@ -124,6 +156,52 @@
     private List<string> _previousSearchTerms = new();
     private HashSet<Guid> _selectedModules = new();
     private bool _previousSelectAll;
+    private bool _selecting;
+    private bool _selectAll;
+
+    private void ToggleSelecting()
+    {
+        _selecting = !_selecting;
+
+        if (_selecting) return;
+
+        _selectAll = false;
+        _selectedModules.Clear();
+    }
+
+    private void OnSelectAllChanged(bool value)
+    {
+        _selectAll = value;
+        _selectedModules = value
+            ? new HashSet<Guid>(_paginatedModules.Select(m => m.Id))
+            : new HashSet<Guid>();
+    }
+
+    private async Task DeleteSelected()
+    {
+        var selected = GetSelectedModules();
+
+        if (selected.Count == 0) return;
+
+        var parameters = new DialogParameters<DeleteSelectedModulesDialog>
+        {
+            { x => x.Modules, selected },
+            { x => x.NamespaceName, NamespaceName },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteSelectedModulesDialog>("Delete Selected Modules", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false }) return;
+
+        var count = selected.Count;
+        _selectAll = false;
+        _selectedModules.Clear();
+        await LoadModules();
+        Snackbar.Add($"Successfully deleted {count} module(s)", Severity.Success);
+    }
 
     protected override async Task OnParametersSetAsync()
     {

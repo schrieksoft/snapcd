@@ -170,7 +170,8 @@ else
                 @if (!_hasStoredKey || _replaceMode)
                 {
                     <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="SaveLicenseKey"
                                Disabled="@(string.IsNullOrWhiteSpace(_newLicenseKey))"
                                Class="mt-2 mb-2">
@@ -179,8 +180,9 @@ else
 
                     @if (_replaceMode)
                     {
-                        <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Default"
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
                                    OnClick="CancelReplace"
                                    Class="mt-2 mb-2">
                             Cancel
@@ -192,6 +194,7 @@ else
                 {
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="BeginReplace"
                                Class="mt-2 mb-2">
                         Replace License Key
@@ -199,6 +202,7 @@ else
 
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="RefreshLicense"
                                Class="mt-2 mb-2">
                         Refresh License
@@ -206,6 +210,7 @@ else
 
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="RemoveLicenseKey"
                                Class="mt-2 mb-2">
                         Remove License Key

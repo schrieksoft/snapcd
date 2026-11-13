@@ -15,7 +15,7 @@ public static class SnapCdTheme
 
     // Text/icons on a solid accent fill: white in light mode (Ink reads as
     // off-brand there), Ink in dark mode.
-    private const string OnAccentLight = "#FFFFFF";
+    private const string OnAccentLight = "#12171D";
     private const string OnAccentDark = "#12171D";
 
     public static MudTheme Default { get; } = new()

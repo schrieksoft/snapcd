@@ -7,7 +7,10 @@
    for terms covering either use. *@
 
 @inject PersistentComponentState ApplicationState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Namespaces
 @using SnapCd.Server.Core.Views.Metadata
 @implements IDisposable
 
@@ -32,14 +35,43 @@ else
                                OnClick="@(() => OnCreateRequested.InvokeAsync(HierarchyCreation.OfNamespace(StackId)))"/>
             </MudTooltip>
         }
+        <MudTooltip Text="Select multiple">
+            <MudIconButton Icon="@SnapCdIcons.Checklist"
+                           Color="@(_selecting ? Color.Secondary : Color.Primary)"
+                           Size="Size.Small"
+                           OnClick="ToggleSelecting"/>
+        </MudTooltip>
     </div>
+
+    @if (_selecting)
+    {
+        <div class="selection-controls mb-2">
+            <MudCheckBox T="bool"
+                         Value="_selectAll"
+                         ValueChanged="OnSelectAllChanged"
+                         Label="Select all Namespaces"
+                         Color="Color.Secondary"
+                         Dense="true"/>
+
+            @if (_selectedNamespaces.Any())
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@SnapCdIcons.Delete"
+                           OnClick="DeleteSelected"
+                           Size="Size.Small">
+                    Delete Selected (@_selectedNamespaces.Count)
+                </MudButton>
+            }
+        </div>
+    }
 
     <div class="namespace-list">
         @foreach (var ns in _namespaces)
         {
             <MudExpansionPanel @key="ns.Id" Expanded="_expandedNamespaces.Contains(ns.Id)" Class="@(IsSelected(ns.Name) ? "mb-1 tree-node-selected" : "mb-1")">
                 <TitleContent>
-                    @if (ShowCheckboxes)
+                    @if (ShowCheckboxes || _selecting)
                     {
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <MudCheckBox Color="Color.Secondary" T="bool"
@@ -136,6 +168,52 @@ else
     private List<string> _previousSearchTerms = new();
     private HashSet<Guid> _expandedNamespaces = new();
     private HashSet<Guid> _selectedNamespaces = new();
+    private bool _selecting;
+    private bool _selectAll;
+
+    private void ToggleSelecting()
+    {
+        _selecting = !_selecting;
+
+        if (_selecting) return;
+
+        _selectAll = false;
+        _selectedNamespaces.Clear();
+    }
+
+    private void OnSelectAllChanged(bool value)
+    {
+        _selectAll = value;
+        _selectedNamespaces = value && _namespaces != null
+            ? new HashSet<Guid>(_namespaces.Select(n => n.Id))
+            : new HashSet<Guid>();
+    }
+
+    private async Task DeleteSelected()
+    {
+        var selected = GetSelectedNamespaces();
+
+        if (selected.Count == 0) return;
+
+        var parameters = new DialogParameters<DeleteSelectedNamespacesDialog>
+        {
+            { x => x.Namespaces, selected },
+            { x => x.StackName, StackName },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteSelectedNamespacesDialog>("Delete Selected Namespaces", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false }) return;
+
+        var count = selected.Count;
+        _selectAll = false;
+        _selectedNamespaces.Clear();
+        await LoadNamespaces();
+        Snackbar.Add($"Successfully deleted {count} namespace(s)", Severity.Success);
+    }
     private bool _previousSelectAll;
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
