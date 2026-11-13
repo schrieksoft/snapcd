@@ -106,7 +106,7 @@
             <MudTabPanel Text="Inherited from Namespace" Style="text-transform: none">
                 <div style="opacity: 0.6;">
                     <MudText Typo="Typo.caption" Class="mb-2">
-                        Manage these from <MudLink Typo="Typo.caption" Style="font-weight: bold; color: var(--snap-accent, #E85D1A); text-decoration: underline;" Href="@($"/Namespace/{StackName}/{NamespaceName}?action=configure&section=missions")">here</MudLink>.
+                        Manage these from <MudLink Typo="Typo.caption" Style="font-weight: bold; color: var(--snap-accent, #E85D1A); text-decoration: underline;" Href="@($"/Tree?stack={StackName}&namespace={NamespaceName}&action=configure&section=missions")">here</MudLink>.
                     </MudText>
                     <MudDivider Class="mb-3"/>
                     <AgentGroupedMissions TRow="NamespaceMission"
@@ -128,7 +128,7 @@
             <MudTabPanel Text="Inherited from Stack" Style="text-transform: none">
                 <div style="opacity: 0.6;">
                     <MudText Typo="Typo.caption" Class="mb-2">
-                        Manage these from <MudLink Typo="Typo.caption" Style="font-weight: bold; color: var(--snap-accent, #E85D1A); text-decoration: underline;" Href="@($"/Stack/{StackName}?action=configure&section=missions")">here</MudLink>.
+                        Manage these from <MudLink Typo="Typo.caption" Style="font-weight: bold; color: var(--snap-accent, #E85D1A); text-decoration: underline;" Href="@($"/Tree?stack={StackName}&action=configure&section=missions")">here</MudLink>.
                     </MudText>
                     <MudDivider Class="mb-3"/>
                     <AgentGroupedMissions TRow="StackMission"

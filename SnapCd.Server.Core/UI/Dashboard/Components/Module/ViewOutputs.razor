@@ -18,12 +18,7 @@
 
 @implements IDisposable
 
-<MudPaper Elevation="1" Class="pa-4 mb-4">
-    <MudTooltip Text="Refresh">
-        <MudIconButton Icon="@SnapCdIcons.Refresh" Color="Color.Primary" Size="Size.Medium"
-                       OnClick="() => ReloadOutputSets()"/>
-    </MudTooltip>
-
+<MudPaper Elevation="1" Class="pa-4 mb-4 tab-panel">
     @if (_outputSets == null)
     {
         <MudText Typo="Typo.body1"><em>Loading output sets...</em></MudText>
@@ -37,6 +32,7 @@
         @* <MudExpansionPanels MultiExpansion="true"> *@
         @*     @foreach (var outputSet in _outputSets) *@
         @*     { *@
+        <div class="tab-panel-body">
         <MudExpansionPanels MultiExpansion="true">
             @foreach (var outputSet in _outputSets)
             {
@@ -169,12 +165,16 @@
                 </MudExpansionPanel>
             }
         </MudExpansionPanels>
-        @*     } *@
-        @* </MudExpansionPanels> *@
+        </div>
 
-        <Pagination CurrentPage="@_currentOutputSetPage"
-                    TotalPages="@_totalOutputSetPages"
-                    PageChanged="@(page => SetOutputSetPage(page))"/>
+        @if (_totalOutputSetPages > 1)
+        {
+            <div class="tab-panel-pager">
+                <Pagination CurrentPage="@_currentOutputSetPage"
+                            TotalPages="@_totalOutputSetPages"
+                            PageChanged="@(page => SetOutputSetPage(page))"/>
+            </div>
+        }
     }
 </MudPaper>
 

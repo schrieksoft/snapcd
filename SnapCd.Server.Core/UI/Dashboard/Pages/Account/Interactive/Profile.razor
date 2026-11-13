@@ -253,7 +253,7 @@
 
         @if (_currentLogins?.Count > 0)
         {
-            <MudText Typo="Typo.subtitle1" GutterBottom="true" Class="mt-4 mb-2">Connected Logins</MudText>
+            <MudText Typo="Typo.body1" GutterBottom="true" Class="mt-4 mb-2">Connected Logins</MudText>
             <div class="connected-accounts-container">
                 <div class="connected-accounts-buttons">
                     @foreach (var login in _currentLogins)
@@ -290,7 +290,7 @@
 
         @if (_otherLogins?.Count > 0)
         {
-            <MudText Typo="Typo.subtitle1" GutterBottom="true" Class="mt-4 mb-2">Add an External Login</MudText>
+            <MudText Typo="Typo.body1" GutterBottom="true" Class="mt-4 mb-2">Add an External Login</MudText>
             <div style="max-width: 50%; margin: 0;">
                 <div class="manage-external-login-buttons">
                     @foreach (var provider in _otherLogins)

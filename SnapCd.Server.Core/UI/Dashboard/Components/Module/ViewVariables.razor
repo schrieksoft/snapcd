@@ -12,12 +12,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudPaper Elevation="1" Class="pa-4 mb-4">
-    <MudTooltip Text="Refresh">
-        <MudIconButton Icon="@SnapCdIcons.Refresh" Color="Color.Primary" Size="Size.Medium"
-                       OnClick="() => ReloadVariableSets()"/>
-    </MudTooltip>
-
+<MudPaper Elevation="1" Class="pa-4 mb-4 tab-panel">
     @if (_variableSets == null)
     {
         <MudText Typo="Typo.body1"><em>Loading variable sets...</em></MudText>
@@ -28,6 +23,7 @@
     }
     else
     {
+        <div class="tab-panel-body">
         <MudExpansionPanels MultiExpansion="true">
             @foreach (var variableSet in _variableSets)
             {
@@ -188,10 +184,16 @@
                 </MudExpansionPanel>
             }
         </MudExpansionPanels>
+        </div>
 
-        <Pagination CurrentPage="@_currentVariableSetPage"
-                    TotalPages="@_totalVariableSetPages"
-                    PageChanged="@(page => SetVariableSetPage(page))"/>
+        @if (_totalVariableSetPages > 1)
+        {
+            <div class="tab-panel-pager">
+                <Pagination CurrentPage="@_currentVariableSetPage"
+                            TotalPages="@_totalVariableSetPages"
+                            PageChanged="@(page => SetVariableSetPage(page))"/>
+            </div>
+        }
     }
 </MudPaper>
 

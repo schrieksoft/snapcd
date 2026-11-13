@@ -15,7 +15,7 @@ public static class SnapCdTheme
 
     // Text/icons on a solid accent fill: white in light mode (Ink reads as
     // off-brand there), Ink in dark mode.
-    private const string OnAccentLight = "#FFFFFF";
+    private const string OnAccentLight = "#12171D";
     private const string OnAccentDark = "#12171D";
 
     public static MudTheme Default { get; } = new()
@@ -100,7 +100,9 @@ public static class SnapCdTheme
             H6 = new H6Typography { FontFamily = FontFamily },
             Subtitle1 = new Subtitle1Typography { FontFamily = FontFamily },
             Subtitle2 = new Subtitle2Typography { FontFamily = FontFamily },
-            Body1 = new Body1Typography { FontFamily = FontFamily },
+            // 14px, the size the tabs, the tree and the nav use. Inputs inherit from it, so this
+            // is what keeps a form field the same size as the text around it.
+            Body1 = new Body1Typography { FontFamily = FontFamily, FontSize = "0.875rem" },
             Body2 = new Body2Typography { FontFamily = FontFamily },
             Button = new ButtonTypography { FontFamily = FontFamily },
             Caption = new CaptionTypography { FontFamily = FontFamily },

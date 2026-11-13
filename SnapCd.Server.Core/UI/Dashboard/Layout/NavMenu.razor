@@ -81,8 +81,8 @@
                                     Icon="@link.Icon">@link.Text</MudNavLink>
                     }
 
-                    @* Starred items sit below Stacks *@
-                    @if (link.Href == "Stacks" && _favoriteLinks.Any())
+                    @* Starred items sit below the tree *@
+                    @if (link.Href == "Tree" && _favoriteLinks.Any())
                     {
                         <MudNavGroup Title="Starred" Icon="@SnapCdIcons.Star" Expanded="false" Class="starred-nav-group">
                             @foreach (var group in _favoriteLinks.GroupBy(f => f.TargetType).OrderBy(g => g.Key))
@@ -90,7 +90,13 @@
                                 <div class="starred-type-label">@GetStarredGroupLabel(group.Key)</div>
                                 @foreach (var favorite in group)
                                 {
-                                    <MudNavLink Href="@favorite.Url" Match="NavLinkMatch.All" title="@favorite.FullPath">@favorite.Label</MudNavLink>
+                                    @* Every favourite shares the /Tree path and differs only in its query, which
+                                       NavLinkMatch does not look at, so the active one is decided here. *@
+                                    @* A plain anchor, because MudNavLink decides its own active state from the
+                                       path alone and every favourite shares /Tree. *@
+                                    <a href="@favorite.Url"
+                                       class="@(IsCurrentFavorite(favorite) ? "favorite-link favorite-link-current" : "favorite-link")"
+                                       title="@favorite.FullPath">@favorite.Label</a>
                                 }
                             }
                         </MudNavGroup>
@@ -333,6 +339,25 @@
 
     private record FavoriteLink(FavoriteTargetType TargetType, string Label, string Url, string FullPath);
 
+    /// <summary>Whether the browser is on exactly this favourite, query string included.</summary>
+    private bool IsCurrentFavorite(FavoriteLink favorite)
+    {
+        var current = new Uri(NavigationManager.Uri);
+        var target = new Uri(NavigationManager.ToAbsoluteUri(favorite.Url).ToString());
+
+        if (!string.Equals(current.AbsolutePath, target.AbsolutePath, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return SelectionOf(current.Query) == SelectionOf(target.Query);
+    }
+
+    /// <summary>The stack, namespace and module a query names, so unrelated parameters are ignored.</summary>
+    private static (string?, string?, string?) SelectionOf(string query)
+    {
+        var parsed = System.Web.HttpUtility.ParseQueryString(query);
+        return (parsed["stack"], parsed["namespace"], parsed["module"]);
+    }
+
     private static string GetStarredGroupLabel(FavoriteTargetType targetType) => targetType switch
     {
         FavoriteTargetType.Stack => "Stacks",
@@ -367,7 +392,7 @@
                     m => new FavoriteLink(
                         FavoriteTargetType.Module,
                         m.Name,
-                        $"/Module/{m.StackName}/{m.NamespaceName}/{m.Name}",
+                        $"/Tree?stack={m.StackName}&namespace={m.NamespaceName}&module={m.Name}",
                         $"{m.StackName}/{m.NamespaceName}/{m.Name}"));
             }
 
@@ -383,7 +408,7 @@
                     n => new FavoriteLink(
                         FavoriteTargetType.Namespace,
                         n.Name,
-                        $"/Namespace/{n.StackName}/{n.Name}",
+                        $"/Tree?stack={n.StackName}&namespace={n.Name}",
                         $"{n.StackName}/{n.Name}"));
             }
 
@@ -398,7 +423,7 @@
                     s => new FavoriteLink(
                         FavoriteTargetType.Stack,
                         s.Name,
-                        $"/Stack/{s.Name}",
+                        $"/Tree?stack={s.Name}",
                         s.Name));
             }
 
@@ -466,7 +491,7 @@
     private List<NavLinkItem> _generalNavLinks = new()
     {
         new NavLinkItem("Dashboard", NavLinkMatch.All, SnapCdIcons.SpaceDashboard, "Dashboard", typeof(OrganizationHome)),
-        new NavLinkItem("Stacks", NavLinkMatch.Prefix, SnapCdIcons.Layers, "Stacks", typeof(Stacks))
+        new NavLinkItem("Tree", NavLinkMatch.Prefix, SnapCdIcons.Layers, "Tree", typeof(Stacks))
     };
 
     // System Section - collapsible group

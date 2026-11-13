@@ -80,7 +80,7 @@
                                         <MudCardHeader Class="pb-2">
                                             <CardHeaderContent>
                                                 <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                                    <MudLink Href="@($"/Module/{node.DisplayName}")"
+                                                    <MudLink Href="@(HierarchyRoute.ForDisplayName(node.DisplayName))"
                                                              Typo="Typo.body2"
                                                              Class="font-weight-medium"
                                                              Style="@(isRoot ? "color: white !important;" : "")">
@@ -120,7 +120,7 @@
                                                                             <MudChip T="string" Size="Size.Small"
                                                                                      Color="Color.Default"
                                                                                      Variant="Variant.Text"
-                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Module/{dep}"))">
+                                                                                     OnClick="@(() => Navigation.NavigateTo(HierarchyRoute.ForDisplayName(dep)))">
                                                                                 @dep
                                                                             </MudChip>
                                                                         }
@@ -144,7 +144,7 @@
                                                                             <MudChip T="string" Size="Size.Small"
                                                                                      Color="Color.Default"
                                                                                      Variant="Variant.Text"
-                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Module/{trigger}"))">
+                                                                                     OnClick="@(() => Navigation.NavigateTo(HierarchyRoute.ForDisplayName(trigger)))">
                                                                                 @trigger
                                                                             </MudChip>
                                                                         }

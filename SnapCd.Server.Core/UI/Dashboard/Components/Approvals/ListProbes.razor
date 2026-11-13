@@ -102,7 +102,7 @@
                                 {
                                     <MudIcon Icon="@icon" Color="@color" Size="Size.Small"/>
                                 }
-                                <MudLink Href="@($"/Module/{module.StackName}/{module.NamespaceName}/{module.ModuleName}")"
+                                <MudLink Href="@($"/Tree?stack={module.StackName}&namespace={module.NamespaceName}&module={module.ModuleName}")"
                                          Typo="Typo.body2"
                                          Style="font-family: var(--snap-font-mono);"
                                          @onclick:stopPropagation="true">
@@ -352,7 +352,7 @@
 
         var task = Uri.EscapeDataString($"Probe (ProbeWave {_wave.Id})");
 
-        return $"/Module/{module.StackName}/{module.NamespaceName}/{module.ModuleName}"
+        return $"/Tree?stack={module.StackName}&namespace={module.NamespaceName}&module={module.ModuleName}"
                + $"?action=Jobs&job={jobId}&tab=logs&task={task}";
     }
 

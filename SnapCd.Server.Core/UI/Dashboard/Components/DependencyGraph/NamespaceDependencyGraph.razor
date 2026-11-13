@@ -5,35 +5,22 @@
    system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
-@using System.Linq
 @using SnapCd.Server.Core.Dtos
-@using SnapCd.Server.Core.Services.Nonsecured.DependencyGraph
-@using SnapCd.Server.Core.Services.Utils.Notification
-@implements IDisposable
+@inherits DependencyGraphViewBase<NamespaceDependencyGraphDto>
 
-@inject DestroyModuleGraphServiceFactory DestroyServiceFactory
-@inject ApplyModuleGraphServiceFactory ApplyServiceFactory
-@inject PersistentComponentState ApplicationState
-@inject ModuleStateModifiedNotificationService ModuleStateModifiedNotificationService
-@inject DependencyGraphServiceFactory DependencyGraphServiceFactory
-@inject IJSRuntime JS
-
-
-@if (_isLoading)
+@if (IsLoading)
 {
     <MudProgressCircular Indeterminate="true"/>
     <MudText Typo="Typo.body2" Class="mt-2">Loading dependency graph...</MudText>
 }
-else if (_dependencyGraph != null)
+else if (Graph != null)
 {
-    var filteredGraph = GetFilteredGraph();
-
-    <MudStack Class="mb-3">
-        <MudSwitch @bind-Value="_showOnlyNamespaceModules" Color="Color.Secondary">
-            Only Show Modules within Namespace
+    <MudStack Row="true" Class="graph-toggles">
+        <MudSwitch @bind-Value="_showModulesOutsideNamespace" Color="Color.Secondary">
+            Show Modules outside Namespace
         </MudSwitch>
         <MudTooltip Text="@GetToggleTooltipText()">
-            <MudSwitch Color="Color.Secondary" Value="_showDestroyGraph"
+            <MudSwitch Color="Color.Secondary" Value="ShowDestroyGraph"
                        ValueChanged="@(async (bool val) => await OnShowDestroyGraphChanged(val))"
                        Disabled="DisableDirectionToggle">
                 Show Destroy Graph
@@ -41,317 +28,51 @@ else if (_dependencyGraph != null)
         </MudTooltip>
     </MudStack>
 
-    <div @ref="_scrollContainer" data-dag-scroll style="overflow: auto; height: @(_scrollContainerHeight)px;">
-        <NamespaceDependencyGraphExecutionFlow DependencyGraphWithStates="filteredGraph"
+    <div @ref="ScrollContainer" data-dag-scroll class="dag-scroll">
+        <NamespaceDependencyGraphExecutionFlow DependencyGraphWithStates="GetFilteredGraph()"
                                                UninvolvedModuleIds="UninvolvedModuleIds"
                                                PrimaryNamespaceId="NamespaceId"/>
     </div>
 }
-else if (_error != null)
+else if (Error != null)
 {
     <MudAlert Severity="Severity.Error">
-        Error loading dependency graph: @_error
+        Error loading dependency graph: @Error
     </MudAlert>
 }
 
 @code {
     [Parameter] public Guid NamespaceId { get; set; }
     [Parameter] public string NamespaceName { get; set; } = null!;
-    [Parameter] public string Direction { get; set; } = "Apply"; // "Apply" or "Destroy"
+
+    /// <summary>
+    /// Modules the pending operation leaves alone, drawn greyed out. A Namespace is not bounded: a
+    /// module in it can depend on one elsewhere, so a selection does not cover everything shown.
+    /// </summary>
     [Parameter] public HashSet<Guid>? UninvolvedModuleIds { get; set; }
-    [Parameter] public bool DisableDirectionToggle { get; set; } = false;
-    [CascadingParameter] public Guid OrganizationId { get; set; }
 
-    private bool _isLoading = true;
-    private string? _error = null;
-    private NamespaceDependencyGraphDto? _dependencyGraph = null;
-    private NamespaceDependencyGraphDto? _applyDependencyGraph = null;
-    private NamespaceDependencyGraphDto? _destroyDependencyGraph = null;
-    private bool _showOnlyNamespaceModules = false;
-    private bool _showDestroyGraph = false;
+    private bool _showModulesOutsideNamespace;
 
-    // private PersistingComponentStateSubscription _persistenceSubscription;
-    private HashSet<Guid> _subscribedModuleIds = new();
-    private ElementReference _scrollContainer;
-    private int _scrollContainerHeight = 500;
+    protected override Guid ScopeId => NamespaceId;
 
-    // Track previous parameter values to detect changes
-    private Guid _previousNamespaceId;
-    private string _previousNamespaceName = string.Empty;
-    private string _previousDirection = string.Empty;
+    protected override Task<NamespaceDependencyGraphDto> BuildApplyGraph() =>
+        ApplyServiceFactory.Create().BuildNamespaceApplyGraphAsync(NamespaceId, NamespaceName);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (_dependencyGraph != null)
-        {
-            var top = await JS.InvokeAsync<double>("eval", "document.querySelector('[data-dag-scroll]')?.getBoundingClientRect().top ?? 0");
-            if (top > 0)
-            {
-                var newHeight = (int)(await JS.InvokeAsync<double>("eval", "window.innerHeight") - top - 16);
-                if (newHeight != _scrollContainerHeight && newHeight > 100)
-                {
-                    _scrollContainerHeight = newHeight;
-                    StateHasChanged();
-                }
-            }
-        }
-    }
+    protected override Task<NamespaceDependencyGraphDto> BuildDestroyGraph() =>
+        DestroyServiceFactory.Create().BuildNamespaceDestroyGraphAsync(NamespaceId, NamespaceName);
 
-    protected override async Task OnInitializedAsync()
-    {
-        // Initialize parameter tracking
-        _previousNamespaceId = NamespaceId;
-        _previousNamespaceName = NamespaceName;
-        _previousDirection = Direction;
-
-        // Sync internal toggle with Direction parameter
-        _showDestroyGraph = Direction == "Destroy";
-
-        await LoadDependencyGraph();
-        UpdateSubscriptions();
-
-        // Pre-rendering persistence - commented out since pre-rendering is disabled
-        // var cacheKey = $"namespace_dependency_graph_{NamespaceId}_{Direction}";
-        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
-        // {
-        //     ApplicationState.PersistAsJson(cacheKey, new CachedDependencyGraphData
-        //     {
-        //         DependencyGraph = _dependencyGraph,
-        //         IsLoading = _isLoading,
-        //         Error = _error,
-        //         ShowDestroyGraph = _showDestroyGraph
-        //     });
-        //     return Task.CompletedTask;
-        // });
-        //
-        // if (ApplicationState.TryTakeFromJson<CachedDependencyGraphData>(cacheKey, out var cachedData))
-        // {
-        //     _dependencyGraph = cachedData.DependencyGraph;
-        //     _isLoading = false;
-        //     _error = cachedData.Error;
-        //     _showDestroyGraph = cachedData.ShowDestroyGraph;
-        //     UpdateSubscriptions();
-        // }
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        // Always sync internal toggle with Direction parameter
-        _showDestroyGraph = Direction == "Destroy";
-
-        // Check if any parameters have actually changed
-        var parametersChanged = NamespaceId != _previousNamespaceId ||
-                                NamespaceName != _previousNamespaceName ||
-                                Direction != _previousDirection;
-
-        if (!parametersChanged)
-        {
-            // No parameters changed, but toggle might have been synced, so trigger re-render
-            StateHasChanged();
-            return;
-        }
-
-        // Update previous parameter values
-        _previousNamespaceId = NamespaceId;
-        _previousNamespaceName = NamespaceName;
-        _previousDirection = Direction;
-
-        // Clear both caches when parameters change
-        _applyDependencyGraph = null;
-        _destroyDependencyGraph = null;
-
-        // Reload when parameters actually change
-        await LoadDependencyGraph();
-        UpdateSubscriptions();
-    }
-
-    private async Task LoadDependencyGraph()
-    {
-        _isLoading = true;
-        _error = null;
-
-        try
-        {
-            if (_showDestroyGraph)
-            {
-                var destroyService = DestroyServiceFactory.Create();
-                _destroyDependencyGraph = await destroyService.BuildNamespaceDestroyGraphAsync(NamespaceId, NamespaceName);
-                _dependencyGraph = _destroyDependencyGraph;
-            }
-            else
-            {
-                var applyService = ApplyServiceFactory.Create();
-                _applyDependencyGraph = await applyService.BuildNamespaceApplyGraphAsync(NamespaceId, NamespaceName);
-                _dependencyGraph = _applyDependencyGraph;
-            }
-        }
-        catch (Exception ex)
-        {
-            _error = ex.Message;
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    private void UpdateSubscriptions()
-    {
-        // Get all module IDs from BOTH graphs
-        var moduleIdsToSubscribe = new HashSet<Guid>();
-        if (_applyDependencyGraph != null)
-        {
-            foreach (var node in _applyDependencyGraph.NodeStates)
-                moduleIdsToSubscribe.Add(node.ModuleId);
-        }
-        if (_destroyDependencyGraph != null)
-        {
-            foreach (var node in _destroyDependencyGraph.NodeStates)
-                moduleIdsToSubscribe.Add(node.ModuleId);
-        }
-
-        // Unsubscribe from modules no longer in either graph
-        var toUnsubscribe = _subscribedModuleIds.Except(moduleIdsToSubscribe).ToList();
-        foreach (var moduleId in toUnsubscribe)
-        {
-            ModuleStateModifiedNotificationService.Unsubscribe(moduleId, HandleModuleStateChanged);
-            _subscribedModuleIds.Remove(moduleId);
-        }
-
-        // Subscribe to new modules
-        var toSubscribe = moduleIdsToSubscribe.Except(_subscribedModuleIds).ToList();
-        foreach (var moduleId in toSubscribe)
-        {
-            ModuleStateModifiedNotificationService.Subscribe(moduleId, HandleModuleStateChanged);
-            _subscribedModuleIds.Add(moduleId);
-        }
-    }
-
-    private async Task HandleModuleStateChanged(Guid moduleId)
-    {
-        using var dependencyGraphService = DependencyGraphServiceFactory.Create();
-        var moduleState = await dependencyGraphService.GetModuleStateAsync(moduleId);
-
-        if (moduleState != null)
-        {
-            bool updated = false;
-
-            // Update in apply graph if exists
-            if (_applyDependencyGraph?.NodeStates != null)
-            {
-                var nodeToUpdate = _applyDependencyGraph.NodeStates.FirstOrDefault(n => n.ModuleId == moduleId);
-                if (nodeToUpdate != null)
-                {
-                    ModuleGraphServiceBase.UpdateNodeState(nodeToUpdate, moduleState);
-                    updated = true;
-                }
-            }
-
-            // Update in destroy graph if exists
-            if (_destroyDependencyGraph?.NodeStates != null)
-            {
-                var nodeToUpdate = _destroyDependencyGraph.NodeStates.FirstOrDefault(n => n.ModuleId == moduleId);
-                if (nodeToUpdate != null)
-                {
-                    ModuleGraphServiceBase.UpdateNodeState(nodeToUpdate, moduleState);
-                    updated = true;
-                }
-            }
-
-            if (updated)
-                await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    private async Task OnShowDestroyGraphChanged(bool value)
-    {
-        _showDestroyGraph = value;
-
-        if (_showDestroyGraph)
-        {
-            if (_destroyDependencyGraph != null)
-            {
-                // Already cached, just switch
-                _dependencyGraph = _destroyDependencyGraph;
-            }
-            else
-            {
-                // Not cached, need to load
-                await LoadDependencyGraph();
-            }
-        }
-        else
-        {
-            if (_applyDependencyGraph != null)
-            {
-                // Already cached, just switch
-                _dependencyGraph = _applyDependencyGraph;
-            }
-            else
-            {
-                // Not cached, need to load
-                await LoadDependencyGraph();
-            }
-        }
-
-        UpdateSubscriptions();
-    }
-
+    /// <summary>Shows the modules outside this Namespace that its own modules depend on.</summary>
     private NamespaceDependencyGraphDto GetFilteredGraph()
     {
-        if (_dependencyGraph == null || !_showOnlyNamespaceModules)
-        {
-            return _dependencyGraph!;
-        }
+        if (Graph == null || _showModulesOutsideNamespace) return Graph!;
 
-        // Filter nodes to only include ones from the current namespace
-        var filteredNodes = _dependencyGraph.NodeStates
-            .Where(n => n.NamespaceId == NamespaceId)
-            .ToList();
-
-        // Create a new graph with filtered nodes
         return new NamespaceDependencyGraphDto
         {
-            NamespaceId = _dependencyGraph.NamespaceId,
-            NamespaceName = _dependencyGraph.NamespaceName,
-            Direction = _dependencyGraph.Direction,
-            TargetState = _dependencyGraph.TargetState,
-            NodeStates = filteredNodes
+            NamespaceId = Graph.NamespaceId,
+            NamespaceName = Graph.NamespaceName,
+            Direction = Graph.Direction,
+            TargetState = Graph.TargetState,
+            NodeStates = Graph.NodeStates.Where(n => n.NamespaceId == NamespaceId).ToList()
         };
     }
-
-
-    private class CachedDependencyGraphData
-    {
-        public NamespaceDependencyGraphDto? DependencyGraph { get; set; }
-        public bool IsLoading { get; set; }
-        public string? Error { get; set; }
-        public bool ShowDestroyGraph { get; set; }
-    }
-
-    public void Dispose()
-    {
-        // _persistenceSubscription.Dispose();
-
-        // Unsubscribe from all module notifications
-        foreach (var moduleId in _subscribedModuleIds)
-        {
-            ModuleStateModifiedNotificationService.Unsubscribe(moduleId, HandleModuleStateChanged);
-        }
-
-        _subscribedModuleIds.Clear();
-    }
-
-    private string GetToggleTooltipText()
-    {
-        if (DisableDirectionToggle)
-        {
-            return "Toggle is disabled while \"Apply All Modules\" or \"Destroy All Modules\" operation is active";
-        }
-
-        return _showDestroyGraph
-            ? "Switch to Apply dependency graph view"
-            : "Switch to Destroy dependency graph view";
-    }
-
 }

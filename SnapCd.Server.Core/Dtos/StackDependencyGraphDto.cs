@@ -10,11 +10,15 @@ using SnapCd.Contracts;
 
 namespace SnapCd.Server.Core.Dtos;
 
-public class StackDependencyGraphDto
+public class StackDependencyGraphDto : IDependencyGraphDto
 {
     public Guid StackId { get; set; }
     public string StackName { get; set; } = null!;
     public string Direction { get; set; } = "Apply"; // "Apply" or "Destroy"
     public DesiredStateHeadline TargetState { get; set; }
     public List<DependencyGraphNodeStateDto> NodeStates { get; set; } = new();
+
+    Guid IDependencyGraphDto.ScopeId => StackId;
+
+    string IDependencyGraphDto.ScopeName => StackName;
 }

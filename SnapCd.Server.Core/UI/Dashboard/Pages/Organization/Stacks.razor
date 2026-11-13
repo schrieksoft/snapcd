@@ -6,8 +6,8 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Stacks"
-@layout OrganizationMainLayout
+@page "/Tree"
+@layout FullHeightLayout
 
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -17,6 +17,8 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 @inject IOrganizationContext OrganizationContext
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 @inject SnapCd.Server.Core.Repositories.Organizations.Secured.StackSecuredRepositoryFactory CreatePermissionRepoFactory
 
 @using Microsoft.AspNetCore.Authorization
@@ -32,51 +34,38 @@
 @attribute [OrganizationScopedFeature]
 @attribute [AuthorizeOnNavigationPermission]
 
-<PageTitle>Stacks</PageTitle>
+<PageTitle>Tree</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    <div class="page-header">
-        <MudText Typo="Typo.h4" Class="page-header-title">Stacks</MudText>
+    @* The stacks are a quarter of the width, and what is selected in them fills the rest. *@
+    @* Sits directly under the nav menu's own tab and lines up with it, because it does the same
+       thing one level in. *@
+    <div class="drawer-toggle-button drawer-toggle-second"
+         title="@(_treeCollapsed ? "Show the tree" : "Hide the tree")"
+         @onclick="ToggleTree">
+        <MudIcon Icon="@(_treeCollapsed ? SnapCdIcons.ChevronRight : SnapCdIcons.ChevronLeft)"
+                 Color="Color.Surface" Size="Size.Small"/>
     </div>
 
-    @if (_showCreate)
-    {
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <CreateStack OnCreated="HandleCreated"
-                         OnCancel="HandleCreateCanceled"/>
-        </MudPaper>
-    }
-    else
-    {
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
-                       Size="Size.Small"
-                       OnClick="ShowCreate">
-                Create
-            </MudButton>
-        </MudPaper>
-    }
-
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <div class="stack-header">
-                <MudTooltip Text="Select multiple">
-                    <MudIconButton Icon="@SnapCdIcons.Checklist"
-                                   Color="@(_showSelectionMode ? Color.Secondary : Color.Primary)"
-                                   Size="Size.Small"
-                                   OnClick="() => ToggleSelectionMode()"/>
-                </MudTooltip>
-
-                <MudTooltip Text="Search stacks">
-                    <MudIconButton Icon="@SnapCdIcons.Search"
-                                   Color="@(_showStackSearch ? Color.Secondary : Color.Primary)"
-                                   Size="Size.Small"
-                                   OnClick="@(() => _showStackSearch = !_showStackSearch)"/>
-                </MudTooltip>
+    <div class="split-layout" @ref="_splitLayout">
+        <div class="@($"split-pane split-pane-tree {(_treeCollapsed ? "split-pane-collapsed" : "")}")">
+            <div class="tree-column">
+                @if (_pin != null)
+                {
+                    <div class="pin-bar">
+                        <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small"/>
+                        <span class="pin-bar-label">@_pin.Label</span>
+                        <MudTooltip Text="Clear the pin">
+                            <MudIconButton Icon="@SnapCdIcons.Close"
+                                           Size="Size.Small"
+                                           OnClick="ClearPin"/>
+                        </MudTooltip>
+                    </div>
+                }
 
                 @if (_searchTerms.Any())
                 {
-                    <div class="search-chips-header">
+                    <div class="search-chips-header mb-2">
                         @foreach (var term in _searchTerms)
                         {
                             <MudChip T="string"
@@ -90,15 +79,15 @@
 
                 @if (_showStackSearch)
                 {
-                    <div class="search-input-container">
+                    <div class="search-input-container mb-2">
                         <MudSelect @bind-Value="_searchScope"
                                    Label="Search in"
                                    Variant="Variant.Outlined"
                                    Dense="true"
                                    Class="search-scope-select">
-                                      <MudSelectItem Value="@SearchScope.Stack">Stacks</MudSelectItem>
-                                      <MudSelectItem Value="@SearchScope.Namespace">Namespaces</MudSelectItem>
-                                      <MudSelectItem Value="@SearchScope.Module">Modules</MudSelectItem>
+                            <MudSelectItem Value="@SearchScope.Stack">Stacks</MudSelectItem>
+                            <MudSelectItem Value="@SearchScope.Namespace">Namespaces</MudSelectItem>
+                            <MudSelectItem Value="@SearchScope.Module">Modules</MudSelectItem>
                         </MudSelect>
                         <MudTextField @bind-Value="_searchInput"
                                       Label="Search across stacks, namespaces, and modules"
@@ -111,38 +100,37 @@
                                       Class="search-field-inline"/>
                     </div>
                 }
+
+                <ListStacks @ref="_listStacksComponent"
+                            SearchTerms="@_searchTerms"
+                            Pin="@_pin"
+                            OnPinRequested="@HandlePinRequested"
+                            SearchScope="@_searchScope"
+                            PageSize="@_stackPageSize"
+                            OnSelected="@HandleSelected"
+                            OnCreateRequested="@HandleCreateRequested"
+                            Selected="@_selection">
+                    <HeadingActions>
+                        <MudTooltip Text="Search stacks">
+                            <MudIconButton Icon="@SnapCdIcons.Search"
+                                           Color="@(_showStackSearch ? Color.Secondary : Color.Primary)"
+                                           Size="Size.Small"
+                                           OnClick="@(() => _showStackSearch = !_showStackSearch)"/>
+                        </MudTooltip>
+                    </HeadingActions>
+                </ListStacks>
             </div>
-
-            @if (_showSelectionMode)
-            {
-                <div class="selection-controls">
-                    <MudCheckBox T="bool"
-                                 Value="_selectAllStacks"
-                                 ValueChanged="OnSelectAllChanged"
-                                 Label="Select all Stacks"
-                                 Color="Color.Secondary"
-                                 Dense="true"/>
-
-                    @if (_selectedStacks.Any())
-                    {
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   StartIcon="@SnapCdIcons.Delete"
-                                   OnClick="DeleteSelectedStacks"
-                                   Size="Size.Small">
-                            Delete Selected (@_selectedStacks.Count)
-                        </MudButton>
-                    }
-                </div>
-            }
-        </MudPaper>
-
-        <ListStacks @ref="_listStacksComponent"
-                    SearchTerms="@_searchTerms"
-                                 SearchScope="@_searchScope"
-                    ShowCheckboxes="@_showSelectionMode"
-                    SelectAll="@_selectAllStacks"
-                    OnSelectionChanged="@HandleStackSelectionChanged"/>
+        </div>
+        <div class="split-handle" data-splitter-handle title="Drag to resize. Double-click to reset."></div>
+        <div class="split-pane split-pane-content">
+            <SelectedHierarchyPanels @key="(_creation, _selection)"
+                                     Selection="_selection"
+                                     Creation="_creation"
+                                     OnChanged="HandleSelectionChanged"
+                                     OnCreated="HandleCreated"
+                                     OnCreateCancelled="HandleCreateCanceled"/>
+        </div>
+    </div>
 </CascadingValue>
 
 @code {
@@ -150,16 +138,27 @@
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
     [SupplyParameterFromQuery] public string? Search { get; set; }
 
+    /// <summary>Selects a Stack on arrival, so a link elsewhere can point at one.</summary>
+    [SupplyParameterFromQuery(Name = "stack")] public string? SelectedStack { get; set; }
+
+    /// <summary>Given alongside stack, selects that Namespace within it.</summary>
+    [SupplyParameterFromQuery(Name = "namespace")] public string? SelectedNamespace { get; set; }
+
+    /// <summary>Given alongside stack and namespace, selects that Module within them.</summary>
+    [SupplyParameterFromQuery(Name = "module")] public string? SelectedModule { get; set; }
+
     private ListStacks? _listStacksComponent;
 
-    private bool _showCreate;
+    /// <summary>What the tree has selected, which the panels beside it follow.</summary>
+    private HierarchySelection? _selection;
+
+    /// <summary>A level the tree asked to create at, which takes the column until it is done.</summary>
+    private HierarchyCreation? _creation;
+
     private bool _showStackSearch;
     private string _searchInput = string.Empty;
     private List<string> _searchTerms = new();
     private SearchScope _searchScope = SearchScope.Stack;
-    private bool _selectAllStacks;
-    private HashSet<Guid> _selectedStacks = new();
-    private bool _showSelectionMode;
 
     protected override void OnInitialized()
     {
@@ -172,23 +171,216 @@
         {
             _searchTerms = Search.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
         }
+
     }
 
-    private void ShowCreate()
+    /// <summary>
+    /// The query values arrive with the parameters, not before them, so the selection is read here.
+    /// A click sets both the selection and the address bar, so the two agree and this is a no-op
+    /// until the address bar names something else.
+    /// </summary>
+    protected override void OnParametersSet()
     {
-        _showCreate = true;
+        var fromUrl = string.IsNullOrEmpty(SelectedStack)
+            ? null
+            : string.IsNullOrEmpty(SelectedNamespace)
+                ? HierarchySelection.OfStack(SelectedStack)
+                : string.IsNullOrEmpty(SelectedModule)
+                    ? HierarchySelection.OfNamespace(SelectedStack, SelectedNamespace)
+                    : HierarchySelection.OfModule(SelectedStack, SelectedNamespace, SelectedModule);
+
+        // Changing the selection changes the panels' @key, which disposes one keyed component and
+        // builds another. Done inside the location-changed event, that mutates the set of
+        // query-parameter subscribers Blazor is still iterating, so it is applied after the render.
+        if (fromUrl != null && fromUrl != _selection) _pendingSelection = fromUrl;
+    }
+
+    private HierarchySelection? _pendingSelection;
+
+    // The selection keys the panels, so this event also disposes one keyed component and builds
+    // another. Navigating in the same call stack mutates the query-parameter provider's subscriber
+    // set while it is enumerating, so the URL is written after the render that changes it.
+    private void HandleSelected(HierarchySelection selection)
+    {
+        _creation = null;
+        _selection = selection;
+        _urlPending = true;
+    }
+
+    // The selection keys the panels, so changing it disposes one keyed component and builds
+    // another. Navigating in the same call stack mutates the query-parameter provider's
+    // subscriber set while it is enumerating them, so the URL is written after the render.
+    private bool _urlPending;
+
+    private int _stackPageSize = 10;
+
+    private bool _treeCollapsed;
+
+    /// <summary>Hides the tree so the panel beside it has the whole width, as the nav menu does.</summary>
+    private void ToggleTree() => _treeCollapsed = !_treeCollapsed;
+
+    private HierarchyPin? _pin;
+    private IJSObjectReference? _pinModule;
+
+    /// <summary>Narrows the tree to one stack or namespace, remembered in this browser.</summary>
+    private async Task HandlePinRequested(HierarchyPin? pin)
+    {
+        _pin = pin;
+        await SavePin();
+        await ReloadStacks();
+    }
+
+    private Task ClearPin() => HandlePinRequested(null);
+
+    private async Task LoadPin()
+    {
+        try
+        {
+            _pinModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/SnapCd.Server.Core/snapcd-pin.js");
+            _pin = HierarchyPin.FromStorageValue(await _pinModule.InvokeAsync<string?>("read"));
+        }
+        catch (JSException)
+        {
+            // Without storage the tree simply opens unpinned.
+        }
+    }
+
+    private async Task SavePin()
+    {
+        try
+        {
+            _pinModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/SnapCd.Server.Core/snapcd-pin.js");
+            await _pinModule.InvokeVoidAsync("write", _pin?.ToStorageValue());
+        }
+        catch (JSException)
+        {
+            // The pin still applies to this visit; it just is not remembered.
+        }
+    }
+
+    private ElementReference _splitLayout;
+    private IJSObjectReference? _splitterModule;
+
+    // A stack row is 30px and the heading above the list takes its own space, so how many rows
+    // fit is a property of the column's height rather than a number worth fixing in advance.
+    // A collapsed row and the 4px gap below it, which is what one row costs when nothing is open.
+    // An expanded branch is taller, and the column scrolls for it, which is what the scroll is for.
+    private const int StackRowHeight = 34;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AttachSplitter();
+            await LoadPin();
+
+            if (_pin != null)
+            {
+                StateHasChanged();
+                return;
+            }
+        }
+
+        if (_pendingSelection != null)
+        {
+            _selection = _pendingSelection;
+            _pendingSelection = null;
+            StateHasChanged();
+            return;
+        }
+
+        if (_urlPending)
+        {
+            _urlPending = false;
+            UpdateUrl();
+        }
+
+        // Not only on the first render: arriving with a selection applies that selection on a
+        // later pass, and the rows are only worth measuring against once they are in place.
+        await MeasureStackPageSize();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_splitterModule == null) return;
+
+        try
+        {
+            await _splitterModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is already gone, so the module went with it.
+        }
+    }
+
+    private async Task AttachSplitter()
+    {
+        try
+        {
+            _splitterModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/SnapCd.Server.Core/snapcd-splitter.js");
+            await _splitterModule.InvokeVoidAsync("attach", _splitLayout);
+        }
+        catch (JSException)
+        {
+            // Without the handle the columns keep the width the stylesheet gives them.
+        }
+    }
+
+    /// <summary>
+    /// How many stack rows the column has room for. Measured once: a resize changes the answer,
+    /// but the scroll area absorbs that without a reload.
+    /// </summary>
+    private async Task MeasureStackPageSize()
+    {
+        double available;
+
+        try
+        {
+            // The container gives the rows their height; this only reads it, to pick a page size
+            // that fills the space rather than overflowing it.
+            available = await JS.InvokeAsync<double>(
+                "eval",
+                "(function(){var e=document.querySelector('.tree-scroll');" +
+                "return e?e.getBoundingClientRect().height:0;})()");
+        }
+        catch (JSException)
+        {
+            return;
+        }
+
+        if (available <= 0) return;
+
+        var fits = (int)(available / StackRowHeight);
+        var wanted = Math.Clamp(fits, 5, 100);
+
+        if (wanted == _stackPageSize) return;
+
+        _stackPageSize = wanted;
+        StateHasChanged();
+    }
+
+    /// <summary>A create form replaces whatever the column was showing until it closes.</summary>
+    private void HandleCreateRequested(HierarchyCreation creation) => _creation = creation;
+
+    /// <summary>A panel renamed or deleted what it was showing, so the tree and the panels reload.</summary>
+    private async Task HandleSelectionChanged()
+    {
+        _selection = null;
+
+        if (_listStacksComponent != null) await _listStacksComponent.LoadStacks();
     }
 
     private async Task HandleCreated()
     {
-        _showCreate = false;
+        _creation = null;
         await ReloadStacks();
     }
 
-    private void HandleCreateCanceled()
-    {
-        _showCreate = false;
-    }
+    private void HandleCreateCanceled() => _creation = null;
 
     private async Task ReloadStacks()
     {
@@ -223,20 +415,37 @@
         await ReloadStacks();
     }
 
-    private void UpdateUrlWithSearchTerms()
+    private void UpdateUrlWithSearchTerms() => UpdateUrl();
+
+    /// <summary>
+    /// Writes the search and the selection into the address bar together, so a link copied from it
+    /// opens the same node. It replaces the history entry, because selecting in a tree is not a
+    /// navigation the back button should step through.
+    /// </summary>
+    private void UpdateUrl()
     {
         var uri = NavigationManager.Uri;
-        var baseUrl = uri.Contains('?') ? uri.Substring(0, uri.IndexOf('?')) : uri;
+        var baseUrl = uri.Contains('?') ? uri[..uri.IndexOf('?')] : uri;
+
+        var query = new List<string>();
 
         if (_searchTerms.Any())
+            query.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
+
+        if (_selection != null)
         {
-            var searchTermsParam = string.Join(",", _searchTerms);
-            NavigationManager.NavigateTo($"{baseUrl}?search={Uri.EscapeDataString(searchTermsParam)}", false);
+            query.Add($"stack={Uri.EscapeDataString(_selection.StackName)}");
+
+            if (_selection.NamespaceName != null)
+                query.Add($"namespace={Uri.EscapeDataString(_selection.NamespaceName)}");
+
+            if (_selection.ModuleName != null)
+                query.Add($"module={Uri.EscapeDataString(_selection.ModuleName)}");
         }
-        else
-        {
-            NavigationManager.NavigateTo(baseUrl, false);
-        }
+
+        var target = query.Any() ? $"{baseUrl}?{string.Join("&", query)}" : baseUrl;
+
+        NavigationManager.NavigateTo(target, forceLoad: false, replace: true);
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -247,58 +456,6 @@
         }
     }
 
-    private void OnSelectAllChanged(bool value)
-    {
-        _selectAllStacks = value;
-    }
-
-    private void ToggleSelectionMode()
-    {
-        _showSelectionMode = !_showSelectionMode;
-
-        // Clear selections when exiting selection mode
-        if (!_showSelectionMode)
-        {
-            _selectAllStacks = false;
-            _selectedStacks.Clear();
-        }
-    }
-
-    private void HandleStackSelectionChanged(HashSet<Guid> selectedStacks)
-    {
-        _selectedStacks = selectedStacks;
-        StateHasChanged();
-    }
-
-    private async Task DeleteSelectedStacks()
-    {
-        if (!_selectedStacks.Any() || _listStacksComponent == null)
-            return;
-
-        var selectedStacks = _listStacksComponent.GetSelectedStacks();
-
-        var parameters = new DialogParameters<DeleteSelectedStacksDialog>
-        {
-            { x => x.Stacks, selectedStacks },
-            { x => x.OrganizationId, OrganizationId }
-        };
-
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<DeleteSelectedStacksDialog>("Delete Selected Stacks", parameters, options);
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
-        {
-            // Clear selection
-            _selectAllStacks = false;
-            _selectedStacks.Clear();
-
-            // Reload stacks list
-            await ReloadStacks();
-
-            Snackbar.Add($"Successfully deleted {selectedStacks.Count} stack(s)", Severity.Success);
-        }
-    }
 }
 
 <style>
@@ -319,6 +476,139 @@
         padding: 1rem;
         border-radius: 4px;
     }
+
+    /* The split is a CSS variable so the drag can move it without a re-render. */
+    .split-layout {
+        --tree-width: 25%;
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .split-pane-tree {
+        width: var(--tree-width);
+        flex: 0 0 var(--tree-width);
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    /* The right pane gives its content the height; what scrolls inside is the content's own
+       business, so a tab can pin its pager while only its list scrolls. */
+    .split-pane-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding-left: 12px;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* Collapsed, the tree gives up its width entirely and the panel beside it takes the lot. */
+    .split-pane-collapsed {
+        width: 0 !important;
+        flex: 0 0 0 !important;
+        overflow: hidden;
+    }
+
+    .split-pane-collapsed + .split-handle {
+        display: none;
+    }
+
+    .split-handle {
+        flex: 0 0 9px;
+        align-self: stretch;
+        min-height: 200px;
+        cursor: col-resize;
+        position: relative;
+        touch-action: none;
+    }
+
+    .split-handle::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 4px;
+        width: 1px;
+        background: var(--snap-border);
+    }
+
+    .split-handle:hover::before,
+    .is-splitting .split-handle::before {
+        background: var(--snap-accent);
+        width: 2px;
+    }
+
+    @@media (max-width: 960px) {
+        .split-layout {
+            flex-direction: column;
+        }
+
+        .split-pane-tree,
+        .split-pane-content {
+            width: 100%;
+            flex: 1 1 auto;
+            padding-left: 0;
+        }
+
+        .split-handle {
+            display: none;
+        }
+    }
+
+    /* The tree scrolls within the viewport so the page itself does not grow with the hierarchy. */
+    /* A fixed height, not a max: the pager stays at the bottom however few rows a page holds.
+       --tree-top is the column's distance from the top of the viewport, measured on first render. */
+    .tree-column {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    /* Only the rows scroll. The pager below them stays put. */
+    /* 1 1 0 rather than 1 1 auto, so a short page still fills the column instead of collapsing. */
+    .tree-column .tree-scroll {
+        flex: 1 1 0;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: auto;
+        padding-right: 4px;
+    }
+
+    /* The pager sits on the page, not on a raised surface, and takes a row's height. */
+    /* Matches the sidebar's Account bar, so the two borders sit on one line: that bar is a
+       40px nav link inside 4px of padding, and both end at the bottom of the window. */
+    .tree-column .tree-pager {
+        flex: 0 0 auto;
+        box-sizing: border-box;
+        min-height: 57px;
+        display: flex;
+        align-items: center;
+        padding: 4px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .tree-column .tree-pager > * {
+        flex: 1 1 auto;
+    }
+
+    .tree-column .tree-pager .mud-paper {
+        background-color: transparent;
+        box-shadow: none;
+        padding: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    .tree-column .tree-pager .mud-icon-button {
+        padding: 4px;
+    }
+
 
     .stack-header {
         display: flex;

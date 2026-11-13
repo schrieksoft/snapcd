@@ -13,6 +13,7 @@
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 
+<div class="panel-scroll">
 <MudExpansionPanels MultiExpansion="false">
     <MudExpansionPanel Expanded="@IsSection(Section.Edit)"
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Edit, e))">
@@ -220,6 +221,7 @@
         </ChildContent>
     </MudExpansionPanel>
 </MudExpansionPanels>
+</div>
 
 @code {
     [Parameter] public required Module Module { get; set; }

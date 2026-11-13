@@ -34,6 +34,6 @@ else
     /// builds for the same purpose. Null where no job is in flight, which leaves plain text.
     /// </summary>
     private string? Href => Node.CurrentModuleJobId is { } jobId
-        ? $"/Module/{Node.DisplayName}?action=Jobs&job={jobId}&tab=approvals"
+        ? HierarchyRoute.ForDisplayName(Node.DisplayName, $"action=Jobs&job={jobId}&tab=approvals")
         : null;
 }

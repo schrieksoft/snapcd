@@ -87,7 +87,7 @@ else
                             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                                 <MudText Typo="Typo.body2">@BareTask(task)</MudText>
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary">Source:</MudText>
-                                <MudLink Href="@($"/Module/{origin.StackName}/{origin.NamespaceName}/{origin.ModuleName}")"
+                                <MudLink Href="@($"/Tree?stack={origin.StackName}&namespace={origin.NamespaceName}&module={origin.ModuleName}")"
                                          Typo="Typo.body2"
                                          Style="font-family: var(--snap-font-mono);"
                                          @onclick:stopPropagation="true">

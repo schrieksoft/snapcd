@@ -6,11 +6,8 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Module/{stackName}/{namespaceName}/{moduleName}"
-@layout OrganizationMainLayout
 
 @using Microsoft.AspNetCore.Authorization
-@using SnapCd.Server.Core.UI.Dashboard.Components.Module
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Queue
 @using System.Threading
 @using SnapCd.Contracts
@@ -55,186 +52,194 @@
 
 
 
-@attribute [Authorize]
-@attribute [AuthorizeOnNavigationPermission]
-@attribute [OrganizationScopedFeature]
 
-<PageTitle>Module: @ModuleName</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    @if (_meta != null)
-    {
-        <div class="module-page-header">
-            <div class="d-flex align-center gap-3">
-                <MudText Typo="Typo.h4" Class="module-page-title">@ModuleName</MudText>
-                @if (_actualStateSummary != null)
-                {
-                    <span
-                        class="module-status-badge module-status-badge--@GetStatusBadgeClass(_actualStateSummary.State)">
-                        <span class="module-status-dot"></span>
-                        @FormatActualState(_actualStateSummary.State)
-                    </span>
-                }
-                @if (_moduleSaga is { Paused: true })
-                {
-                    <span class="module-status-badge module-status-badge--default">
-                        <span class="module-status-dot"></span>
-                        @(IsDraining ? "Pausing" : "Paused")
-                    </span>
-                }
-                <FavoriteToggle TargetType="FavoriteTargetType.Module" TargetId="_meta.Id"/>
-            </div>
-            <MudText Typo="Typo.body2" Class="module-page-subtitle">
-                <span class="module-page-parents">
-                    Stack: <MudLink Href="@($"/Stack/{StackName}{_parentQuery}")">@StackName</MudLink>
-                    ·
-                    Namespace: <MudLink
-                        Href="@($"/Namespace/{StackName}/{NamespaceName}{_parentQuery}")">@NamespaceName</MudLink>
-                </span>
-                @if (_moduleSaga?.ActualResourceCount.HasValue == true
-                     || _revisionSummary != null
-                     || _runnerAvailabilitySummary != null)
-                {
-                    @: ·
-                }
-                @if (_moduleSaga?.ActualResourceCount.HasValue == true)
-                {
-                    @:@_moduleSaga.ActualResourceCount.Value @(_moduleSaga.ActualResourceCount.Value == 1 ? "resource" : "resources")
-                    @: ·
-                }
-                @if (_revisionSummary != null)
-                {
-                    @:@FormatRevisionState(_revisionSummary.State)
-                    @if (!string.IsNullOrEmpty(_revisionSummary.Subtext))
+        @if (_meta != null)
+        {
+            <div class="module-page-header">
+                <div class="d-flex align-center gap-3">
+                    <MudText Typo="Typo.h4" Class="module-page-title">Module: @ModuleName</MudText>
+                    @if (_actualStateSummary != null)
                     {
-                        @: <span class="module-page-mono">@ShortenRevision(_revisionSummary.Subtext)</span>
+                        <span
+                            class="module-status-badge module-status-badge--@GetStatusBadgeClass(_actualStateSummary.State)">
+                            <span class="module-status-dot"></span>
+                            @FormatActualState(_actualStateSummary.State)
+                        </span>
                     }
-                }
-                @if (_runnerAvailabilitySummary != null)
-                {
-                    @: · @_runnerAvailabilitySummary.Text
-                }
-            </MudText>
-        </div>
-
-        @if (_runnerAvailabilitySummary is { ActiveCount: 0 })
-        {
-            <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
-                No active runners are connected. Jobs for this module will remain queued until a runner instance
-                checks in.
-            </MudAlert>
-        }
-
-        @if (_runner != null && _runner.IsDisabled)
-        {
-            <MudAlert Severity="Severity.Warning" Class="mb-4">
-                <MudIcon Icon="@SnapCdIcons.Warning" Class="mr-2"/>
-                The Runner "@_runner.Name" assigned to this module is currently inactive and will not process new
-                jobs.
-            </MudAlert>
-        }
-
-        @if (_moduleSaga is { Paused: true })
-        {
-            @* Pausing belongs with the state migrations that need it; resuming does not, since a
-               paused module is unavailable on every tab. *@
-            <MudAlert Severity="Severity.Info" Class="mb-4">
-                @* The button leads the sentence it acts on, rather than sitting at the far end of it. *@
-                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
-                    <MudTooltip Text="A resume is already in progress." Disabled="@(!_resuming)">
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@_resuming" OnClick="Resume">resume
-                        </MudButton>
-                    </MudTooltip>
-                    <div>
-                        @if (IsDraining)
+                    @if (_moduleSaga is { Paused: true })
+                    {
+                        <span class="module-status-badge module-status-badge--default">
+                            <span class="module-status-dot"></span>
+                            @(IsDraining ? "Pausing" : "Paused")
+                        </span>
+                    }
+                    <FavoriteToggle TargetType="FavoriteTargetType.Module" TargetId="_meta.Id"/>
+                </div>
+                <MudText Typo="Typo.body2" Class="module-page-subtitle">
+                    <span class="module-page-parents">
+                        Stack: <MudLink Href="@($"/Tree?stack={StackName}{_parentQuery}")">@StackName</MudLink>
+                        ·
+                        Namespace: <MudLink
+                            Href="@($"/Tree?stack={StackName}&namespace={NamespaceName}{_parentQuery}")">@NamespaceName</MudLink>
+                    </span>
+                    @if (_moduleSaga?.ActualResourceCount.HasValue == true
+                         || _revisionSummary != null
+                         || _runnerAvailabilitySummary != null)
+                    {
+                        @: ·
+                    }
+                    @if (_moduleSaga?.ActualResourceCount.HasValue == true)
+                    {
+                        @:@_moduleSaga.ActualResourceCount.Value @(_moduleSaga.ActualResourceCount.Value == 1 ? "resource" : "resources")
+                        @: ·
+                    }
+                    @if (_revisionSummary != null)
+                    {
+                        @:@FormatRevisionState(_revisionSummary.State)
+                        @if (!string.IsNullOrEmpty(_revisionSummary.Subtext))
                         {
-                            @:This module is pausing. The job already in flight runs to completion; no further work is dispatched.
+                            @: <span class="module-page-mono">@ShortenRevision(_revisionSummary.Subtext)</span>
                         }
-                        else
-                        {
-                            @:This module is paused. Triggered and dependency-driven work is queued rather than dispatched,
-                            @:and apply and destroy are unavailable until it is resumed.
-                        }
-                        @if (!string.IsNullOrEmpty(_moduleSaga.PauseReason))
-                        {
-                            @: — @_moduleSaga.PauseReason
-                        }
-                    </div>
-                </MudStack>
-            </MudAlert>
-        }
-
-        <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
-
-        @* Everything module-scoped lives inside this keyed container. When the route
-           switches to a different module, @key changes, so Blazor tears down and
-           recreates every child here — running each one's Dispose (clean teardown of
-           timers/subscriptions) and OnInitialized (fresh load) automatically.
-
-           IMPORTANT: any component you add that loads data for THIS module (typically
-           in OnInitialized) MUST go inside this container. Placed outside it, it would
-           be reused across module switches and show stale data. *@
-        @if (!_canRead)
-        {
-            <MudAlert Severity="Severity.Info" Class="mt-3">
-                You can see this module's name, but not its contents.
-            </MudAlert>
-        }
-        else
-        {
-            <div @key="_module!.Id">
-                @if (_showing == ShowingType.Jobs)
-                {
-                    <ManageModuleJobs Module="_module"
-                                      InitialJobId="@(Guid.TryParse(Job, out var __jid) ? __jid : (Guid?)null)"
-                                      InitialTab="@Tab"
-                                      InitialTask="@Task"
-                                      OnJobsStateChanged="HandleJobsStateChanged"
-                                      IsQueued="@(_queuedSummary is { State: true })"
-                                      QueuedText="@(_queuedSummary?.Text)"
-                                      QueuedReasonText="@GetQueuedReasonDisplayText()"
-                                      ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin && _runnerAvailabilitySummary is not { ActiveCount: 0 })"
-                                      IsPaused="@(_moduleSaga is { Paused: true })"
-                                      OnRunQueueNow="RunQueueNow"
-                                      OnClearQueue="ClearQueue"/>
-                }
-
-                @if (_showing == ShowingType.Configure)
-                {
-                    <ConfigureModule Module="_module"
-                                     StackId="_stackId"
-                                     StackName="@StackName"
-                                     NamespaceName="@NamespaceName"
-                                     PrincipalProvider="_literalPrincipalProvider"
-                                     InitialSection="@_configureSection"
-                                     OnSectionChanged="HandleConfigureSectionChanged"
-                                     OnModuleDeleted="HandleModuleDeleted"
-                                     OnModuleSaved="HandleModuleSaved"/>
-                }
-
-                @if (_showing == ShowingType.Outputs)
-                {
-                    <ViewOutputs Module="_module" StackName="@StackName"/>
-                }
-
-                @if (_showing == ShowingType.Variables)
-                {
-                    <ViewVariables Module="_module" StackName="@StackName"/>
-                }
-
-                @if (_showing == ShowingType.StateMigrations)
-                {
-                    <ManageStateMigrations Module="_module"
-                                           ModuleSaga="_moduleSaga"
-                                           PrincipalProvider="_literalPrincipalProvider"/>
-                }
+                    }
+                    @if (_runnerAvailabilitySummary != null)
+                    {
+                        @: · @_runnerAvailabilitySummary.Text
+                    }
+                </MudText>
             </div>
+
+            @if (_runnerAvailabilitySummary is { ActiveCount: 0 })
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
+                    No active runners are connected. Jobs for this module will remain queued until a runner instance
+                    checks in.
+                </MudAlert>
+            }
+
+            @if (_runner != null && _runner.IsDisabled)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-4">
+                    <MudIcon Icon="@SnapCdIcons.Warning" Class="mr-2"/>
+                    The Runner "@_runner.Name" assigned to this module is currently inactive and will not process new
+                    jobs.
+                </MudAlert>
+            }
+
+            @if (_moduleSaga is { Paused: true })
+            {
+                @* Pausing belongs with the state migrations that need it; resuming does not, since a
+                   paused module is unavailable on every tab. *@
+                <MudAlert Severity="Severity.Info" Class="mb-4">
+                    @* The button leads the sentence it acts on, rather than sitting at the far end of it. *@
+                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                        <MudTooltip Text="A resume is already in progress." Disabled="@(!_resuming)">
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       Disabled="@_resuming" OnClick="Resume">resume
+                            </MudButton>
+                        </MudTooltip>
+                        <div>
+                            @if (IsDraining)
+                            {
+                                @:This module is pausing. The job already in flight runs to completion; no further work is dispatched.
+                            }
+                            else
+                            {
+                                @:This module is paused. Triggered and dependency-driven work is queued rather than dispatched,
+                                @:and apply and destroy are unavailable until it is resumed.
+                            }
+                            @if (!string.IsNullOrEmpty(_moduleSaga.PauseReason))
+                            {
+                                @: — @_moduleSaga.PauseReason
+                            }
+                        </div>
+                    </MudStack>
+                </MudAlert>
+            }
+
+            <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
+
+            @* Everything module-scoped lives inside this keyed container. When the route
+               switches to a different module, @key changes, so Blazor tears down and
+               recreates every child here — running each one's Dispose (clean teardown of
+               timers/subscriptions) and OnInitialized (fresh load) automatically.
+
+               IMPORTANT: any component you add that loads data for THIS module (typically
+               in OnInitialized) MUST go inside this container. Placed outside it, it would
+               be reused across module switches and show stale data. *@
+            @if (!_canRead)
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-3">
+                    You can see this module's name, but not its contents.
+                </MudAlert>
+            }
+            else if (_module == null || _moduleSaga == null)
+            {
+                <MudProgressCircular Indeterminate="true" Class="mt-3"/>
+            }
+            else
+            {
+                <div class="module-tab-host" @key="_module.Id">
+                    @if (_showing == ShowingType.Jobs)
+                    {
+                        <ManageModuleJobs Module="_module"
+                                          InitialJobId="@(Guid.TryParse(Job, out var __jid) ? __jid : (Guid?)null)"
+                                          InitialTab="@Tab"
+                                          InitialTask="@Task"
+                                          OnJobsStateChanged="HandleJobsStateChanged"
+                                          IsQueued="@(_queuedSummary is { State: true })"
+                                          QueuedText="@(_queuedSummary?.Text)"
+                                          QueuedReasonText="@GetQueuedReasonDisplayText()"
+                                          ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin && _runnerAvailabilitySummary is not { ActiveCount: 0 })"
+                                          IsPaused="@(_moduleSaga is { Paused: true })"
+                                          OnRunQueueNow="RunQueueNow"
+                                          OnClearQueue="ClearQueue"/>
+                    }
+
+                    @if (_showing == ShowingType.Configure)
+                    {
+                        <ConfigureModule Module="_module"
+                                         StackId="_stackId"
+                                         StackName="@StackName"
+                                         NamespaceName="@NamespaceName"
+                                         PrincipalProvider="_literalPrincipalProvider"
+                                         InitialSection="@_configureSection"
+                                         OnSectionChanged="HandleConfigureSectionChanged"
+                                         OnModuleDeleted="HandleModuleDeleted"
+                                         OnModuleSaved="HandleModuleSaved"/>
+                    }
+
+                    @if (_showing == ShowingType.Outputs)
+                    {
+                        <ViewOutputs Module="_module" StackName="@StackName"/>
+                    }
+
+                    @if (_showing == ShowingType.Variables)
+                    {
+                        <ViewVariables Module="_module" StackName="@StackName"/>
+                    }
+
+                    @if (_showing == ShowingType.StateMigrations)
+                    {
+                        <ManageStateMigrations Module="_module"
+                                               ModuleSaga="_moduleSaga"
+                                               PrincipalProvider="_literalPrincipalProvider"/>
+                    }
+                </div>
+            }
         }
-    }
 </CascadingValue>
 
 <style>
+    /* The tab fills what is left under the header, so its own list can scroll inside it. */
+    .module-tab-host {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 0;
+        min-height: 0;
+    }
+
     .module-page-header {
         margin-bottom: 16px;
     }
@@ -657,7 +662,7 @@
 
         if (_runner != null)
         {
-            using var connectionRepository = RunnerConnectionRepositoryFactory.Create();
+            using var connectionRepository = RunnerConnectionRepositoryFactory.Create(_literalPrincipalProvider);
             _activeRunners = await connectionRepository.GetActiveConnectionsByRunnerId(_runner.Id, OrganizationId);
         }
 
@@ -1177,7 +1182,7 @@
 
         async Task Reload()
         {
-            using var moduleRepo = RepoFactory.Create();
+            using var moduleRepo = RepoFactory.Create(_literalPrincipalProvider);
 
             // Metadata establishes identity, so the page still renders for someone who may
             // name the module but not read it. The tabs all need the full entity.
@@ -1189,7 +1194,7 @@
             _canReadForConfiguration = _canRead;
 
             // The Module's own navigation would need read on the Namespace; its metadata is enough.
-            using var namespaceRepo = NamespaceRepoFactory.Create();
+            using var namespaceRepo = NamespaceRepoFactory.Create(_literalPrincipalProvider);
             _stackId = (await namespaceRepo.GetMetadata(_meta.NamespaceId, OrganizationId)).StackId;
 
             if (!_canRead)
@@ -1200,7 +1205,7 @@
             _runnerUnreadable = false;
             if (_meta.RunnerId != Guid.Empty)
             {
-                using var runnerRepo = RunnerRepoFactory.Create();
+                using var runnerRepo = RunnerRepoFactory.Create(_literalPrincipalProvider);
                 try
                 {
                     _runner = await runnerRepo.Get(_meta.RunnerId, OrganizationId);
@@ -1222,7 +1227,7 @@
         catch (EntityNotFoundException)
         {
             Snackbar.Add($"Module \"{StackName}/{NamespaceName}/{ModuleName}\" does not exist.", Severity.Error);
-            NavigationManager.NavigateTo("/Stacks", true);
+            NavigationManager.NavigateTo("/Tree", true);
             return;
         }
 
@@ -1372,7 +1377,7 @@
         if (!string.IsNullOrEmpty(Search))
             queryParams.Add($"search={Uri.EscapeDataString(Search)}");
 
-        var newUrl = $"/Module/{StackName}/{NamespaceName}/{ModuleName}?" + string.Join("&", queryParams);
+        var newUrl = $"/Tree?stack={StackName}&namespace={NamespaceName}&module={ModuleName}&" + string.Join("&", queryParams);
         NavigationManager.NavigateTo(newUrl, false, true);
     }
 
@@ -1384,12 +1389,12 @@
 
     private void HandleModuleDeleted()
     {
-        NavigationManager.NavigateTo($"/Namespace/{StackName}/{NamespaceName}");
+        NavigationManager.NavigateTo($"/Tree?stack={StackName}&namespace={NamespaceName}");
     }
 
     private async Task HandleModuleSaved()
     {
-        using var moduleRepo = RepoFactory.Create();
+        using var moduleRepo = RepoFactory.Create(_literalPrincipalProvider);
 
         // The route carries the name, so a rename makes ModuleName stale. The edit form writes to
         // its own copy of the entity, so the current name has to be read back by id rather than
@@ -1399,7 +1404,7 @@
         var current = await moduleRepo.GetMetadata(_module.Id, OrganizationId);
         if (!string.Equals(current.Name, ModuleName, StringComparison.Ordinal))
         {
-            NavigationManager.NavigateTo($"/Module/{StackName}/{NamespaceName}/{current.Name}", false);
+            NavigationManager.NavigateTo($"/Tree?stack={StackName}&namespace={NamespaceName}&module={current.Name}", false);
             return;
         }
 
@@ -1423,7 +1428,7 @@
             queryParams.Add($"search={Uri.EscapeDataString(Search)}");
 
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        var newUrl = $"/Module/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
+        var newUrl = $"/Tree?stack={StackName}&namespace={NamespaceName}&module={ModuleName}{queryString.Replace("?", "&")}";
         NavigationManager.NavigateTo(newUrl, false);
     }
 

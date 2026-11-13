@@ -7,12 +7,55 @@
    for terms covering either use. *@
 
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Modules
 @using SnapCd.Server.Core.Views.Metadata
 @implements IDisposable
 
 @inject PersistentComponentState ApplicationState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
-<div class="list-heading">Modules</div>
+<div class="list-heading-row">
+        <div class="list-heading">Modules</div>
+        @if (OnCreateRequested.HasDelegate)
+        {
+            <MudTooltip Text="Create a module">
+                <MudIconButton Icon="@SnapCdIcons.Add"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="@(() => OnCreateRequested.InvokeAsync(HierarchyCreation.OfModule(NamespaceId)))"/>
+            </MudTooltip>
+        }
+        <MudTooltip Text="Select multiple">
+            <MudIconButton Icon="@SnapCdIcons.Checklist"
+                           Color="@(_selecting ? Color.Secondary : Color.Primary)"
+                           Size="Size.Small"
+                           OnClick="ToggleSelecting"/>
+        </MudTooltip>
+    </div>
+
+    @if (_selecting)
+    {
+        <div class="selection-controls mb-2">
+            <MudCheckBox T="bool"
+                         Value="_selectAll"
+                         ValueChanged="OnSelectAllChanged"
+                         Label="Select all Modules"
+                         Color="Color.Secondary"
+                         Dense="true"/>
+
+            @if (_selectedModules.Any())
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@SnapCdIcons.Delete"
+                           OnClick="DeleteSelected"
+                           Size="Size.Small">
+                    Delete Selected (@_selectedModules.Count)
+                </MudButton>
+            }
+        </div>
+    }
 
 @if (_paginatedModules.Count == 0)
 {
@@ -22,9 +65,9 @@
 <div class="module-list">
     @foreach (var module in _paginatedModules)
     {
-        <MudExpansionPanel @key="module.Id" Disabled="true" HideIcon="true" Class="mb-1">
+        <MudExpansionPanel @key="module.Id" Disabled="true" HideIcon="true" Class="@(IsSelected(module.Name) ? "mb-1 tree-leaf tree-node-selected" : "mb-1 tree-leaf")">
             <TitleContent>
-                @if (ShowCheckboxes)
+                @if (ShowCheckboxes || _selecting)
                 {
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <MudCheckBox Color="Color.Secondary" T="bool"
@@ -32,14 +75,12 @@
                                      ValueChanged="@(value => OnModuleSelectionChanged(module.Id, value))"
                                      Dense="true"
                                      Style="margin: 0; padding: 0;"/>
-                        <MudLink
-                            Href="@($"/Module/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
+                        @ModuleTitle(module)
                     </div>
                 }
                 else
                 {
-                    <MudLink
-                        Href="@($"/Module/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
+                    @ModuleTitle(module)
                 }
             </TitleContent>
             <ChildContent>
@@ -74,6 +115,35 @@
     [Parameter] public EventCallback<HashSet<Guid>> OnSelectionChanged { get; set; }
     [Parameter] public bool SelectAll { get; set; }
     [Parameter] public bool ShowCheckboxes { get; set; }
+    /// <summary>
+    /// Set where the tree sits beside a column that can show a create form. Unset, the level's
+    /// heading carries no button.
+    /// </summary>
+    [Parameter] public EventCallback<HierarchyCreation> OnCreateRequested { get; set; }
+
+    /// <summary>
+    /// Set where the tree sits beside panels that show what is selected. Unset, a name is a link
+    /// to that Module's own page.
+    /// </summary>
+    [Parameter] public EventCallback<HierarchySelection> OnSelected { get; set; }
+
+    /// <summary>What the tree has selected, so this level can mark its own node.</summary>
+    [Parameter] public HierarchySelection? Selected { get; set; }
+
+    /// <summary>A name either selects within the page or navigates to one, never both.</summary>
+    private RenderFragment ModuleTitle(ModuleMetadata module) => !OnSelected.HasDelegate
+        ? @<MudLink Href="@($"/Tree?stack={StackName}&namespace={NamespaceName}&module={module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
+        : @<span class="tree-node-name"
+                @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfModule(StackName, NamespaceName, module.Name)))"
+                @onclick:stopPropagation="true">
+               @GetHighlightedModuleName(module.Name)
+           </span>;
+
+    private bool IsSelected(string moduleName) =>
+        Selected is { Scope: SearchScope.Module } sel
+        && sel.StackName == StackName
+        && sel.NamespaceName == NamespaceName
+        && sel.ModuleName == moduleName;
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private ModuleSecuredRepositoryFactory RepoFactory { get; set; } = null!;
@@ -86,6 +156,52 @@
     private List<string> _previousSearchTerms = new();
     private HashSet<Guid> _selectedModules = new();
     private bool _previousSelectAll;
+    private bool _selecting;
+    private bool _selectAll;
+
+    private void ToggleSelecting()
+    {
+        _selecting = !_selecting;
+
+        if (_selecting) return;
+
+        _selectAll = false;
+        _selectedModules.Clear();
+    }
+
+    private void OnSelectAllChanged(bool value)
+    {
+        _selectAll = value;
+        _selectedModules = value
+            ? new HashSet<Guid>(_paginatedModules.Select(m => m.Id))
+            : new HashSet<Guid>();
+    }
+
+    private async Task DeleteSelected()
+    {
+        var selected = GetSelectedModules();
+
+        if (selected.Count == 0) return;
+
+        var parameters = new DialogParameters<DeleteSelectedModulesDialog>
+        {
+            { x => x.Modules, selected },
+            { x => x.NamespaceName, NamespaceName },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteSelectedModulesDialog>("Delete Selected Modules", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false }) return;
+
+        var count = selected.Count;
+        _selectAll = false;
+        _selectedModules.Clear();
+        await LoadModules();
+        Snackbar.Add($"Successfully deleted {count} module(s)", Severity.Success);
+    }
 
     protected override async Task OnParametersSetAsync()
     {

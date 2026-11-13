@@ -90,7 +90,7 @@ else
                     <div class="fleet-topline">
                         <span class="fleet-count">@_fleetTotal module@(_fleetTotal == 1 ? "" : "s")</span>
                         <span class="fleet-scope">
-                            <a href="/Stacks">@_stackCount stack@(_stackCount == 1 ? "" : "s")</a> · @_namespaceCount namespace@(_namespaceCount == 1 ? "" : "s")
+                            <a href="/Tree">@_stackCount stack@(_stackCount == 1 ? "" : "s")</a> · @_namespaceCount namespace@(_namespaceCount == 1 ? "" : "s")
                         </span>
                     </div>
                     <div class="fleet-bar">
@@ -223,10 +223,10 @@ else
                                         @PathLinks(favorite.StackName, favorite.NamespaceName!, favorite.ModuleName!)
                                         break;
                                     case FavoriteTargetType.Namespace:
-                                        <span class="dash-path"><a href="@($"/Stack/{favorite.StackName}")">@favorite.StackName</a><span class="dash-path-sep">/</span><a href="@($"/Namespace/{favorite.StackName}/{favorite.NamespaceName}")">@favorite.NamespaceName</a></span>
+                                        <span class="dash-path"><a href="@($"/Tree?stack={favorite.StackName}")">@favorite.StackName</a><span class="dash-path-sep">/</span><a href="@($"/Tree?stack={favorite.StackName}&namespace={favorite.NamespaceName}")">@favorite.NamespaceName</a></span>
                                         break;
                                     default:
-                                        <span class="dash-path"><a href="@($"/Stack/{favorite.StackName}")">@favorite.StackName</a></span>
+                                        <span class="dash-path"><a href="@($"/Tree?stack={favorite.StackName}")">@favorite.StackName</a></span>
                                         break;
                                 }
                             </span>
@@ -283,7 +283,7 @@ else
                                     </span>
                                     <span class="attn-sub">
                                         waiting @FormatWaitTime(item.Approval.TimestampStart) ·
-                                        <a class="attn-action" href="@($"{ModuleUrl(item.Approval.StackName, item.Approval.NamespaceName, item.Approval.ModuleName)}?Job={item.Approval.JobId}&Tab=approvals")">review Job #@item.Approval.JobNumber →</a>
+                                        <a class="attn-action" href="@($"{ModuleUrl(item.Approval.StackName, item.Approval.NamespaceName, item.Approval.ModuleName)}&Job={item.Approval.JobId}&Tab=approvals")">review Job #@item.Approval.JobNumber →</a>
                                     </span>
                                 </div>
                                 break;
@@ -348,7 +348,7 @@ else
                                     </span>
                                 </td>
                                 <td class="dash-mono">
-                                    <a href="@($"{ModuleUrl(job.StackName, job.NamespaceName, job.ModuleName)}?Job={job.JobId}")">#@job.JobNumber</a>
+                                    <a href="@($"{ModuleUrl(job.StackName, job.NamespaceName, job.ModuleName)}&Job={job.JobId}")">#@job.JobNumber</a>
                                 </td>
                                 <td>@PathLinks(job.StackName, job.NamespaceName, job.ModuleName)</td>
                                 <td>@FormatJobType(job.JobType)</td>
@@ -825,7 +825,7 @@ else
     }
 
     private RenderFragment PathLinks(string stack, string ns, string module) =>
-        @<span class="dash-path"><a href="@($"/Stack/{stack}")">@stack</a><span class="dash-path-sep">/</span><a href="@($"/Namespace/{stack}/{ns}")">@ns</a><span class="dash-path-sep">/</span><a href="@($"/Module/{stack}/{ns}/{module}")">@module</a></span>;
+        @<span class="dash-path"><a href="@($"/Tree?stack={stack}")">@stack</a><span class="dash-path-sep">/</span><a href="@($"/Tree?stack={stack}&namespace={ns}")">@ns</a><span class="dash-path-sep">/</span><a href="@($"/Tree?stack={stack}&namespace={ns}&module={module}")">@module</a></span>;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1357,7 +1357,7 @@ else
         }
     }
 
-    private static string ModuleUrl(string stack, string ns, string module) => $"/Module/{stack}/{ns}/{module}";
+    private static string ModuleUrl(string stack, string ns, string module) => $"/Tree?stack={stack}&namespace={ns}&module={module}";
 
     private static string GetFavoriteGroupLabel(FavoriteTargetType targetType) => targetType switch
     {

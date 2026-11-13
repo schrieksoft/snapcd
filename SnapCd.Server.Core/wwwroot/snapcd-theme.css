@@ -72,6 +72,7 @@
   --snap-code-bg: #000000;
   --snap-code-text: #E8ECEF;
 
+  --snap-accent-tint: #3A1C09;
   --snap-success-tint: #0a2618;
   --snap-error-tint: #2a0a0a;
 
@@ -341,6 +342,296 @@ body.dark-mode .scalar-card {
   letter-spacing: 0.08em;
   color: var(--snap-text-3);
   margin-bottom: 8px;
+}
+
+/* The node whose panels fill the column beside the tree. */
+/* Marks the node, so it sits on the header row rather than the panel's whole height. */
+.tree-node-selected > .mud-expand-panel-header {
+  background-color: var(--snap-accent-tint);
+  border-left: 3px solid var(--snap-accent);
+}
+
+.tree-node-selected > .mud-expand-panel-header,
+.tree-node-selected > .mud-expand-panel-header .tree-node-name {
+  color: var(--snap-text);
+  font-weight: 600;
+}
+
+/* The chevron is 24px against the name's 14px, so it alone decides a tree row's height. */
+.stack-list .mud-expand-panel-icon,
+.namespace-list .mud-expand-panel-icon {
+  height: 14px;
+  width: 14px;
+  font-size: 14px;
+}
+
+/* A module cannot expand, so its panel is disabled; its name is still a name, not disabled text. */
+.tree-leaf > .mud-expand-panel-header {
+  cursor: default;
+}
+
+.tree-leaf > .mud-expand-panel-header .tree-node-name {
+  color: var(--snap-text);
+}
+
+/* The pin bar says what the tree is narrowed to, and is the one place it can be cleared. */
+.pin-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background-color: var(--snap-accent-tint);
+  border-left: 3px solid var(--snap-accent);
+  color: var(--snap-text);
+}
+
+.pin-bar-label {
+  flex: 1 1 auto;
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The pin only shows on hover, or when it is the pin in force. */
+.tree-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.tree-row .tree-node-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Taken out of the flow and set in the indent left of the name, so showing it moves no text. */
+.tree-pin {
+  position: absolute;
+  left: -22px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+}
+
+.tree-pin svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Only hovering the pin's own square reveals it, so moving along a row does not flicker it on. */
+.tree-pin:hover,
+.tree-pin:focus-visible,
+.tree-pin-on {
+  opacity: 1;
+}
+
+.tree-pin-on {
+  color: var(--snap-accent) !important;
+}
+
+/* Selecting a node is a click on the name, so it carries the affordance a link would. */
+.tree-node-name {
+  cursor: pointer;
+}
+
+.tree-node-name:hover {
+  text-decoration: underline;
+}
+
+/* The graph supplies its own colour, so the surface behind it is the page itself. */
+.dependencies-surface {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 4px 16px 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* A switch's label is the same size as the field labels beside it. MudBlazor sizes it from
+   .mud-switch-label-medium at 1rem, which wins on source order over the body1 size. */
+.mud-switch-label-medium,
+.mud-switch .mud-typography-body1 {
+  font-size: 0.875rem !important;
+}
+
+/* A form field is the same size as the text around it. MudBlazor sets 1rem on the input and on
+   the floating label itself, so the body1 size alone does not reach them. */
+.mud-input,
+.mud-input-control > .mud-input-control-input-container > label.mud-input-label {
+  font-size: 0.875rem;
+}
+
+/* The toggles are a control strip above the graph, not a stacked form: one row, tight, and at
+   the same 14px as the tabs and the lists. */
+.graph-toggles {
+  gap: 20px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.graph-toggles .mud-switch {
+  margin: 0;
+}
+
+
+
+/* The graph is as wide and as tall as it needs to be, and scrolls both ways inside the panel. */
+.dag-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* The pager is a row of small controls, not body text. */
+.tree-pager .mud-link,
+.tab-panel-pager .mud-link {
+  font-size: 0.75rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The page numbers share one baseline, so the current one changes colour and not its weight. */
+.page-number {
+  color: var(--snap-text-2);
+}
+
+.page-number-current {
+  color: var(--snap-accent) !important;
+}
+
+.tree-pager .mud-icon-button,
+.tab-panel-pager .mud-icon-button {
+  padding: 2px;
+}
+
+.tree-pager .mud-icon-button .mud-icon-root,
+.tab-panel-pager .mud-icon-button .mud-icon-root,
+.tree-pager svg,
+.tab-panel-pager svg {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+
+/* Favourites all share the /Tree path, so NavLinkMatch marks every one of them active. The
+   active styling is taken off them and put back only on the one the query string names. */
+.favorite-link {
+  display: block;
+  padding: 8px 16px 8px 37px;
+  font-size: 0.875rem;
+  color: var(--snap-sidebar-text);
+  text-decoration: none;
+  border-inline-start: 3px solid transparent;
+}
+
+.favorite-link:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.mud-drawer .mud-drawer-content a.favorite-link-current,
+.mud-drawer a.favorite-link-current,
+.favorite-link-current {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--snap-accent) !important;
+  border-inline-start-color: var(--snap-accent);
+}
+
+/* The module header keeps its own height; the tab below it takes whatever is left. */
+.module-tab-host {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* A panel with no pager of its own still has to scroll rather than be clipped by the region. */
+.panel-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+/* A tab whose list scrolls on its own: the header above and the pager below stay put, so the
+   pager keeps its place whatever the row count. The region it sits in supplies the height. */
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.tab-panel > .tab-panel-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+/* The paper's own bottom spacing would lift the pager off the line the others sit on. */
+.mud-paper.tab-panel {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Matches the tree's pager, and the sidebar's Account bar it lines up with. */
+.tab-panel > .tab-panel-pager {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  min-height: 57px;
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tab-panel > .tab-panel-pager > * {
+  flex: 1 1 auto;
+}
+
+.tab-panel > .tab-panel-pager .mud-paper {
+  background-color: transparent;
+  box-shadow: none;
+  padding: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.tab-panel > .tab-panel-pager .mud-icon-button {
+  padding: 4px;
+}
+
+.hierarchy-parents {
+  color: var(--snap-text-2);
+  margin-top: 2px;
+}
+
+/* Carries the heading and the button that creates at that level. */
+.list-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.list-heading-row .list-heading {
+  margin-bottom: 0;
 }
 
 /* Blazor injects these itself, so the ids and classes below are the framework's, not the app's. */

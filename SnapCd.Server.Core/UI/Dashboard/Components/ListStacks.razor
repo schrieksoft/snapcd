@@ -7,7 +7,10 @@
    for terms covering either use. *@
 
 @inject PersistentComponentState ApplicationState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Stacks
 @using SnapCd.Server.Core.Views.Metadata
 
 @if (_stacks == null)
@@ -20,14 +23,55 @@ else if (_stacks.Count == 0)
 }
 else
 {
-    <div class="list-heading">Stacks</div>
+    <div class="list-heading-row">
+        <div class="list-heading">Stacks</div>
+        @if (OnCreateRequested.HasDelegate)
+        {
+            <MudTooltip Text="Create a stack">
+                <MudIconButton Icon="@SnapCdIcons.Add"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="@(() => OnCreateRequested.InvokeAsync(HierarchyCreation.OfStack()))"/>
+            </MudTooltip>
+        }
+        <MudTooltip Text="Select multiple">
+            <MudIconButton Icon="@SnapCdIcons.Checklist"
+                           Color="@(_selecting ? Color.Secondary : Color.Primary)"
+                           Size="Size.Small"
+                           OnClick="ToggleSelecting"/>
+        </MudTooltip>
+        @HeadingActions
+    </div>
 
-    <div class="stack-list">
+    @if (_selecting)
+    {
+        <div class="selection-controls mb-2">
+            <MudCheckBox T="bool"
+                         Value="_selectAll"
+                         ValueChanged="OnSelectAllChanged"
+                         Label="Select all Stacks"
+                         Color="Color.Secondary"
+                         Dense="true"/>
+
+            @if (_selectedStacks.Any())
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@SnapCdIcons.Delete"
+                           OnClick="DeleteSelected"
+                           Size="Size.Small">
+                    Delete Selected (@_selectedStacks.Count)
+                </MudButton>
+            }
+        </div>
+    }
+
+    <div class="stack-list tree-scroll">
         @foreach (var stack in _stacks)
         {
-            <MudExpansionPanel @key="stack.Id" Expanded="_expandedStacks.Contains(stack.Id)" Class="mb-1">
+            <MudExpansionPanel @key="stack.Id" Expanded="_expandedStacks.Contains(stack.Id)" Class="@(IsSelected(stack.Name) ? "mb-1 tree-node-selected" : "mb-1")">
                 <TitleContent>
-                    @if (ShowCheckboxes)
+                    @if (ShowCheckboxes || _selecting)
                     {
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <MudCheckBox Color="Color.Secondary" T="bool"
@@ -35,17 +79,28 @@ else
                                          ValueChanged="@(value => OnStackSelectionChanged(stack.Id, value))"
                                          Dense="true"
                                          Style="margin: 0; padding: 0;"/>
-                            <MudLink Href="@($"/Stack/{stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+                            @StackTitle(stack)
                         </div>
                     }
                     else
                     {
-                        <MudLink Href="@($"/Stack/{stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+                        <div class="tree-row">
+                            @if (OnPinRequested.HasDelegate)
+                            {
+                                <MudTooltip Text="@(IsPinned(stack.Name) ? "Clear the pin" : "Pin to this stack")">
+                                    <MudIconButton Icon="@Icons.Material.Filled.PushPin"
+                                                   Size="Size.Small"
+                                                   Class="@(IsPinned(stack.Name) ? "tree-pin tree-pin-on" : "tree-pin")"
+                                                   OnClick="@(() => TogglePin(stack.Name))"/>
+                                </MudTooltip>
+                            }
+                            @StackTitle(stack)
+                        </div>
                     }
                 </TitleContent>
                 <ChildContent>
                     <div class="mt-2">
-                        <ListNamespaces StackName="@stack.Name" StackId="@stack.Id" SearchTerms="@SearchTerms" SearchScope="@SearchScope"/>
+                        <ListNamespaces StackName="@stack.Name" StackId="@stack.Id" SearchTerms="@SearchTerms" SearchScope="@SearchScope" OnSelected="OnSelected" OnCreateRequested="OnCreateRequested" Selected="Selected" Pin="Pin" OnPinRequested="OnPinRequested"/>
                     </div>
                 </ChildContent>
             </MudExpansionPanel>
@@ -61,15 +116,17 @@ else
 
     @if (_totalPages > 1)
     {
-        <Pagination CurrentPage="_currentPage"
-                    TotalPages="_totalPages"
-                    PageChanged="HandlePageChanged"/>
+        <div class="tree-pager">
+            <Pagination CurrentPage="_currentPage"
+                        TotalPages="_totalPages"
+                        PageChanged="HandlePageChanged"/>
+        </div>
     }
 }
 
 <style>
     .stack-list {
-        margin-bottom: 2rem;
+        margin-bottom: 0;
     }
 
     .search-highlight {
@@ -86,6 +143,46 @@ else
     [Parameter] public EventCallback<HashSet<Guid>> OnSelectionChanged { get; set; }
     [Parameter] public bool SelectAll { get; set; }
     [Parameter] public bool ShowCheckboxes { get; set; }
+    /// <summary>
+    /// Set where the tree sits beside a column that can show a create form. Unset, the level's
+    /// heading carries no button.
+    /// </summary>
+    [Parameter] public EventCallback<HierarchyCreation> OnCreateRequested { get; set; }
+
+    /// <summary>Controls the caller puts beside the create button, such as search and selection.</summary>
+    [Parameter] public RenderFragment? HeadingActions { get; set; }
+    /// <summary>What the tree has selected, so this level can mark its own node.</summary>
+    [Parameter] public HierarchySelection? Selected { get; set; }
+
+    /// <summary>The stack or namespace the tree is narrowed to, or null for all of them.</summary>
+    [Parameter] public HierarchyPin? Pin { get; set; }
+
+    [Parameter] public EventCallback<HierarchyPin?> OnPinRequested { get; set; }
+
+    private bool IsPinned(string stackName) =>
+        Pin is { NamespaceName: null } pin && pin.StackName == stackName;
+
+    private Task TogglePin(string stackName) =>
+        OnPinRequested.InvokeAsync(IsPinned(stackName) ? null : HierarchyPin.OfStack(stackName));
+
+    /// <summary>A Stack is the selected node only when no Namespace below it is.</summary>
+    private bool IsSelected(string stackName) =>
+        Selected is { Scope: SearchScope.Stack } sel && sel.StackName == stackName;
+
+    /// <summary>
+    /// Set where the tree sits beside panels that show what is selected. Unset, a name is a link
+    /// to that Stack's own page.
+    /// </summary>
+    [Parameter] public EventCallback<HierarchySelection> OnSelected { get; set; }
+
+    /// <summary>A name either selects within the page or navigates to one, never both.</summary>
+    private RenderFragment StackTitle(StackMetadata stack) => !OnSelected.HasDelegate
+        ? @<MudLink Href="@($"/Tree?stack={stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+        : @<span class="tree-node-name"
+                @onclick="@(() => OnSelected.InvokeAsync(HierarchySelection.OfStack(stack.Name)))"
+                @onclick:stopPropagation="true">
+               @GetHighlightedStackName(stack.Name)
+           </span>;
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
@@ -96,7 +193,10 @@ else
     private int _matchCount;
     private int _currentPage = 1;
     private int _totalPages = 1;
-    private const int PageSize = 10;
+    /// <summary>How many rows the caller's column has space for, so the list fills it.</summary>
+    [Parameter] public int PageSize { get; set; } = 10;
+
+    private int _loadedPageSize;
     private List<string> _previousSearchTerms = new();
     private HashSet<Guid> _expandedStacks = new();
     private HashSet<Guid> _selectedStacks = new();
@@ -105,6 +205,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _previousSearchTerms = new List<string>(SearchTerms);
+        _loadedPageSize = PageSize;
         await LoadStacks();
     }
 
@@ -113,7 +214,13 @@ else
         if (!SearchTerms.SequenceEqual(_previousSearchTerms))
         {
             _previousSearchTerms = new List<string>(SearchTerms);
+            _loadedPageSize = PageSize;
             await LoadStacks();
+        }
+        else if (PageSize != _loadedPageSize)
+        {
+            _loadedPageSize = PageSize;
+            await LoadStacks(resetPage: false);
         }
 
         if (SelectAll != _previousSelectAll)
@@ -147,6 +254,31 @@ else
         }
 
         _expandedStacks.Clear(); // Clear expanded state
+
+        if (Pin != null)
+        {
+            using var pinnedRepo = RepoFactory.Create();
+            var pinned = await pinnedRepo.ListMetadata(
+                OrganizationId,
+                q => q.Where(x => x.Name == Pin.StackName),
+                orderBy: q => q.OrderBy(x => x.Name));
+
+            // A pin outlives what it points at: the stack may have been deleted or renamed, or
+            // the principal may no longer read it. Dropping it is better than an empty tree.
+            if (pinned.Count == 0)
+            {
+                await OnPinRequested.InvokeAsync(null);
+                return;
+            }
+
+            _stacks = pinned;
+            _totalPages = 1;
+            _matchCount = 0;
+
+            foreach (var stack in _stacks) _expandedStacks.Add(stack.Id);
+
+            return;
+        }
 
         if (SearchTerms.Any())
         {
@@ -238,6 +370,21 @@ else
             );
             _stacks = stacks.OrderBy(s => s.Name).ToList();
         }
+
+        ExpandToSelection();
+    }
+
+    /// <summary>
+    /// Opens the Stack holding the selected node, so a link to a Namespace or a Module arrives
+    /// with that node on screen.
+    /// </summary>
+    private void ExpandToSelection()
+    {
+        if (Selected is null || _stacks is null) return;
+
+        var stack = _stacks.FirstOrDefault(x => x.Name == Selected.StackName);
+
+        if (stack != null) _expandedStacks.Add(stack.Id);
     }
 
     private async Task HandlePageChanged(int newPage)
@@ -261,6 +408,52 @@ else
         {
             await OnSelectionChanged.InvokeAsync(_selectedStacks);
         }
+    }
+
+    private bool _selecting;
+    private bool _selectAll;
+
+    private void ToggleSelecting()
+    {
+        _selecting = !_selecting;
+
+        if (_selecting) return;
+
+        _selectAll = false;
+        _selectedStacks.Clear();
+    }
+
+    private void OnSelectAllChanged(bool value)
+    {
+        _selectAll = value;
+        _selectedStacks = value && _stacks != null
+            ? new HashSet<Guid>(_stacks.Select(x => x.Id))
+            : new HashSet<Guid>();
+    }
+
+    private async Task DeleteSelected()
+    {
+        var selected = GetSelectedStacks();
+
+        if (selected.Count == 0) return;
+
+        var parameters = new DialogParameters<DeleteSelectedStacksDialog>
+        {
+            { x => x.Stacks, selected },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteSelectedStacksDialog>("Delete Selected Stacks", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false }) return;
+
+        var count = selected.Count;
+        _selectAll = false;
+        _selectedStacks.Clear();
+        await LoadStacks();
+        Snackbar.Add($"Successfully deleted {count} stack(s)", Severity.Success);
     }
 
     public List<StackMetadata> GetSelectedStacks()
