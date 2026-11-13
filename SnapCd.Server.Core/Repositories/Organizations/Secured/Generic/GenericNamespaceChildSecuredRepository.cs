@@ -221,12 +221,16 @@ public abstract class
 
     {
         // Direct role assignments
+        // A role on any Namespace above the Module's own reaches it, so the assignment is matched
+        // against the ancestor chain rather than the one Namespace.
         var modulesFromNamespaceRoles =
             from module in Repository.DbContext.Set<TEntity>()
             join ns in Repository.DbContext.Namespaces
                 on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = ns.Id, ns.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
-                on new { NamespaceId = ns.Id, ns.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where module.OrganizationId == organizationId
                   && assignment.PrincipalId == principalId
                   && namespaceRoles.Contains(assignment.RoleName)
@@ -301,6 +305,8 @@ public abstract class
         return from module in Repository.DbContext.Set<TEntity>()
             join ns in Repository.DbContext.Namespaces
                 on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = ns.Id, ns.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join groupMember in Repository.DbContext.Set<TGroupMember>()
                 .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on module.OrganizationId equals groupMember.OrganizationId
@@ -308,7 +314,7 @@ public abstract class
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
                 equals new { rgm.RootGroupId, rgm.RootOrganizationId }
             join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                on new { NamespaceId = ns.Id, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where module.OrganizationId == organizationId
                   && namespaceRoles.Contains(assignment.RoleName)
@@ -457,8 +463,10 @@ public abstract class
         var namespacesFromNamespacePermission =
             from ns in Repository.DbContext.Namespaces
             where ns.OrganizationId == organizationId
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = ns.Id, ns.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
-                on new { NamespaceId = ns.Id, ns.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
                   && (assignment.RoleName == NamespaceRole.Owner || assignment.RoleName == NamespaceRole.Contributor)
             select ns;
@@ -467,6 +475,8 @@ public abstract class
         var namespacesFromNamespacePermissionViaGroup =
             from ns in Repository.DbContext.Namespaces
             where ns.OrganizationId == organizationId
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = ns.Id, ns.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join groupMember in Repository.DbContext.Set<TGroupMember>()
                 .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on ns.OrganizationId equals groupMember.OrganizationId
@@ -474,7 +484,7 @@ public abstract class
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
                 equals new { rgm.RootGroupId, rgm.RootOrganizationId }
             join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                on new { NamespaceId = ns.Id, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where assignment.RoleName == NamespaceRole.Owner || assignment.RoleName == NamespaceRole.Contributor
             select ns;

@@ -35,8 +35,21 @@ public class NamespaceClassMap : IEntityTypeConfiguration<Namespace>
             .HasConversion<string>();
 
         entity
+            .Property(d => d.DefaultOutputSetDownstreamRestriction)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
             .Property(p => p.CreatedDateTime)
             .ValueGeneratedOnAdd();
+
+        entity
+            .Property(p => p.Number)
+            .UseIdentityColumn();
+
+        entity
+            .HasIndex(p => p.Number)
+            .IsUnique();
 
         // Foreign Key to Organization
         entity
@@ -64,6 +77,18 @@ public class NamespaceClassMap : IEntityTypeConfiguration<Namespace>
         // Critical for Namespace -> Stack traversal performance
         entity
             .HasIndex(n => new { n.StackId, n.Id });
+
+        // Restrict, not Cascade: Stack already cascades into Namespaces and SQL Server allows one
+        // cascade path into a table. NamespaceRepository clears the children itself.
+        entity
+            .HasOne(e => e.ParentNamespace)
+            .WithMany(e => e.ChildNamespaces)
+            .HasForeignKey(e => new { e.ParentNamespaceId, e.OrganizationId })
+            .HasPrincipalKey(e => new { e.Id, e.OrganizationId })
+            .OnDelete(DeleteBehavior.Restrict);
+
+        entity
+            .HasIndex(n => new { n.ParentNamespaceId, n.OrganizationId });
 
         // Unique index on Id field
         entity

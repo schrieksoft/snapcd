@@ -28,6 +28,13 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public Guid OrganizationId { get; set; }
 
     public Guid StackId { get; set; }
+
+    /// <summary>The Namespace this one sits under, or null when it sits directly under the Organization.</summary>
+    public Guid? ParentNamespaceId { get; set; }
+
+    /// <summary>Assigned by the database on insert. Rises but is not contiguous, and is never reused.</summary>
+    public int Number { get; set; }
+
     [MaxLength(255)] public string Name { get; set; } = null!;
     public List<Module>? Modules { get; set; }
 
@@ -97,6 +104,29 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
 
     public bool? DefaultDriftCheckEnabled { get; set; }
     public int? DefaultDriftCheckIntervalMinutes { get; set; }
+
+    /// <summary>Default for Modules below this Namespace that do not set their own restriction.</summary>
+    public OutputSetDownstreamRestriction? DefaultOutputSetDownstreamRestriction { get; set; }
+
+    // Whether this Namespace's value for each default above is pinned for the whole subtree.
+    // True makes resolution ignore a value set below it; the value may still be saved.
+
+    public bool? RestrictOverrideOnCleanInitEnabled { get; set; }
+    public bool? RestrictOverrideOnTriggerPathFilterEnabled { get; set; }
+    public bool? RestrictOverrideOnApplyApprovalThreshold { get; set; }
+    public bool? RestrictOverrideOnDestroyApprovalThreshold { get; set; }
+    public bool? RestrictOverrideOnStateMigrationApprovalThreshold { get; set; }
+    public bool? RestrictOverrideOnApprovalTimeoutMinutes { get; set; }
+    public bool? RestrictOverrideOnEngine { get; set; }
+    public bool? RestrictOverrideOnDriftCheckEnabled { get; set; }
+    public bool? RestrictOverrideOnDriftCheckIntervalMinutes { get; set; }
+    public bool? RestrictOverrideOnOutputSetDownstreamRestriction { get; set; }
+
+    [JsonIgnore] // So that JSON Serialization does not create a loop
+    public Namespace? ParentNamespace { get; set; }
+
+    [JsonIgnore] // So that JSON Serialization does not create a loop
+    public List<Namespace> ChildNamespaces { get; set; } = new();
 
     public Guid ParentId()
     {

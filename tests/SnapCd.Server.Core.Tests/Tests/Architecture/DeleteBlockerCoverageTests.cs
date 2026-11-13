@@ -60,6 +60,7 @@ public class DeleteBlockerCoverageTests
             {
                 var table = foreignKey.DeclaringEntityType.GetTableName();
                 if (table == null || cleared.Contains(table)) continue;
+                if (Enforced[owner].Contains(table)) continue;
 
                 uncovered.Add(
                     $"{table}.{string.Join(",", foreignKey.Properties.Select(p => p.Name))} " +
@@ -105,6 +106,19 @@ public class DeleteBlockerCoverageTests
     {
         [typeof(Module)] = ["StateMigrationJobs"],
         [typeof(Namespace)] = ["ModuleInputs"],
+        [typeof(Stack)] = [],
+        [typeof(ModuleJob)] = []
+    };
+
+    /// <summary>
+    /// References that are meant to block the delete rather than be cleared before it. A Namespace
+    /// holding children refuses to go: the subtree is deleted from the bottom up, deliberately,
+    /// because removing one Namespace must not silently take an arbitrarily deep tree with it.
+    /// </summary>
+    private static readonly Dictionary<Type, string[]> Enforced = new()
+    {
+        [typeof(Module)] = [],
+        [typeof(Namespace)] = ["Namespaces"],
         [typeof(Stack)] = [],
         [typeof(ModuleJob)] = []
     };

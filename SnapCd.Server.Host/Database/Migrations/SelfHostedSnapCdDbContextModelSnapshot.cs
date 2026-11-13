@@ -3750,6 +3750,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("DefaultOutputSetDownstreamRestriction")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int?>("DefaultStateMigrationApprovalThreshold")
                         .HasColumnType("int");
 
@@ -3775,6 +3779,45 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<int>("Number")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Number"));
+
+                    b.Property<Guid?>("ParentNamespaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool?>("RestrictOverrideOnApplyApprovalThreshold")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("RestrictOverrideOnApprovalTimeoutMinutes")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("RestrictOverrideOnCleanInitEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("RestrictOverrideOnDestroyApprovalThreshold")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("RestrictOverrideOnDriftCheckEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("RestrictOverrideOnDriftCheckIntervalMinutes")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("RestrictOverrideOnEngine")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("RestrictOverrideOnOutputSetDownstreamRestriction")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("RestrictOverrideOnStateMigrationApprovalThreshold")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("RestrictOverrideOnTriggerPathFilterEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("StackId")
                         .HasColumnType("uniqueidentifier");
 
@@ -3789,7 +3832,12 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("Id")
                         .IsUnique();
 
+                    b.HasIndex("Number")
+                        .IsUnique();
+
                     b.HasIndex("StackId");
+
+                    b.HasIndex("ParentNamespaceId", "OrganizationId");
 
                     b.HasIndex("StackId", "Id");
 
@@ -10099,6 +10147,30 @@ namespace SnapCd.Server.Host.Database.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Views.NamespaceAncestor", b =>
+                {
+                    b.Property<Guid>("NamespaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AncestorNamespaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Depth")
+                        .HasColumnType("int");
+
+                    b.HasKey("NamespaceId", "AncestorNamespaceId", "OrganizationId");
+
+                    b.HasIndex("AncestorNamespaceId", "OrganizationId")
+                        .HasDatabaseName("IX_NsAnc_AncestorId_OrgId");
+
+                    b.ToTable("NamespaceAncestors", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Views.RecursiveDependencyEdge", b =>
                 {
                     b.Property<string>("DefinedDisplayName")
@@ -12159,6 +12231,11 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "ParentNamespace")
+                        .WithMany("ChildNamespaces")
+                        .HasForeignKey("ParentNamespaceId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Stack", "Stack")
                         .WithMany("Namespaces")
                         .HasForeignKey("StackId", "OrganizationId")
@@ -12166,6 +12243,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Organization");
+
+                    b.Navigation("ParentNamespace");
 
                     b.Navigation("Stack");
                 });
@@ -14353,6 +14432,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("AdditionalTriggerPaths");
 
                     b.Navigation("AgentNamespaceSupplies");
+
+                    b.Navigation("ChildNamespaces");
 
                     b.Navigation("Hooks");
 

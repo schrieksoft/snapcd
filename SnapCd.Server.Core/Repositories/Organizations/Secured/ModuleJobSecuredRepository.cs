@@ -164,8 +164,10 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
         var hasNamespacePermission = (
             from module in Repository.DbContext.Modules
             where module.Id == moduleId && module.OrganizationId == organizationId
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
-                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
                   && RunJobPermissionMap.NamespaceRoles.Contains(assignment.RoleName)
             select assignment
@@ -224,8 +226,10 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
                 join rgm in Repository.DbContext.RecursiveGroupMembers
                     on new { RootGroupId = gum.GroupId, RootOrganizationId = gum.OrganizationId }
                     equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+                join ancestor in Repository.DbContext.NamespaceAncestors
+                    on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
                 join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                    on new { NamespaceId = module.NamespaceId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
+                    on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.NamespaceId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
                 where RunJobPermissionMap.NamespaceRoles.Contains(assignment.RoleName)
                 select assignment
@@ -281,8 +285,10 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
                 join rgm in Repository.DbContext.RecursiveGroupMembers
                     on new { RootGroupId = gspm.GroupId, RootOrganizationId = gspm.OrganizationId }
                     equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+                join ancestor in Repository.DbContext.NamespaceAncestors
+                    on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
                 join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                    on new { NamespaceId = module.NamespaceId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
+                    on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.NamespaceId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
                 where RunJobPermissionMap.NamespaceRoles.Contains(assignment.RoleName)
                 select assignment
@@ -395,8 +401,10 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
 
         var fromNamespaceRoles =
             from module in modules
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
-                on new { module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
                   && RunJobPermissionMap.NamespaceRoles.Contains(assignment.RoleName)
             select module;
@@ -452,8 +460,10 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
 
         var fromNamespaceRoles =
             from module in modules
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                on new { module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             join grp in groups
                 on new { GroupId = assignment.PrincipalId, assignment.OrganizationId } equals new { grp.GroupId, grp.OrganizationId }
             where RunJobPermissionMap.NamespaceRoles.Contains(assignment.RoleName)

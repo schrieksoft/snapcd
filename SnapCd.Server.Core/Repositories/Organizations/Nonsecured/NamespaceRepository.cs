@@ -161,6 +161,17 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
     }
 
 
+    public async Task<Namespace> Get(int number, Guid organizationId)
+    {
+        var @namespace = await DbContext.Namespaces
+            .SingleOrDefaultAsync(i => i.Number == number && i.OrganizationId == organizationId);
+
+        if (@namespace == null) throw new EntityNotFoundException($"Namespace with number {number} not found.");
+
+        return @namespace;
+    }
+
+
     public override async Task<Namespace> ExecuteCreate(Namespace entity)
     {
         NameValidator.EnsureValid(entity.Name, "Namespace");
@@ -199,6 +210,18 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
 
     public override async Task ExecuteDelete(Guid id, Guid organizationId)
     {
+        // A Namespace holding children is deleted from the bottom up, so that removing one does
+        // not silently take an arbitrarily deep tree of Namespaces and their Modules with it.
+        var childNames = await DbContext.Namespaces
+            .Where(n => n.ParentNamespaceId == id && n.OrganizationId == organizationId)
+            .Select(n => n.Name)
+            .ToListAsync();
+
+        if (childNames.Count > 0)
+            throw new InvalidNamespaceRefereceException(
+                $"Cannot delete this Namespace because it still contains {childNames.Count} " +
+                $"Namespace(s): {string.Join(", ", childNames)}. Delete or move them first.");
+
         // The Modules go by cascade rather than through ModuleRepository, so what a Module cannot
         // take with it is cleared here too.
         await DbContext.ClearRowsBlockingModuleDelete(m => m.NamespaceId == id, organizationId);

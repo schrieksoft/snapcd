@@ -241,8 +241,10 @@ public class VariableSecuredRepository : GenericSecuredRepository<
                 on input.VariableSetId equals variableSet.Id
             join module in Repository.DbContext.Modules
                 on new { ModuleId = variableSet.ModuleId, variableSet.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
-                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where input.OrganizationId == organizationId
                   && assignment.PrincipalId == principalId
                   && namespaceRoles.Contains(assignment.RoleName)
@@ -339,8 +341,10 @@ public class VariableSecuredRepository : GenericSecuredRepository<
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
                 equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                on new { NamespaceId = module.NamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where input.OrganizationId == organizationId
                   && namespaceRoles.Contains(assignment.RoleName)

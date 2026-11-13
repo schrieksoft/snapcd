@@ -251,10 +251,14 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         where TGroupMember : class, IGroupMember
     {
         // Direct role assignments
+        // The closure holds each Namespace at depth 0, so one join covers a role on the Namespace
+        // itself and a role on anything above it.
         var namespacesFromNamespaceRoles =
             from ns in Repository.DbContext.Namespaces
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = ns.Id, ns.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
-                on new { NamespaceId = ns.Id, ns.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where ns.OrganizationId == organizationId
                   && assignment.PrincipalId == principalId
                   && namespaceRoles.Contains(assignment.RoleName)
@@ -312,8 +316,10 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
                 equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = ns.Id, ns.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                on new { NamespaceId = ns.Id, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where ns.OrganizationId == organizationId
                   && namespaceRoles.Contains(assignment.RoleName)

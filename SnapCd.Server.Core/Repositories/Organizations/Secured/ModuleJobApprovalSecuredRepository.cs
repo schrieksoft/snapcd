@@ -223,8 +223,10 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
         var hasNamespaceRole = (
             from module in Repository.DbContext.Modules
             where module.Id == moduleId && module.OrganizationId == organizationId
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
-                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
                   && CreatePermissionMap.NamespaceRoles.Contains(assignment.RoleName)
             select assignment
@@ -389,8 +391,10 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
                 on new { ModuleJobId = approval.ModuleJobId, approval.OrganizationId } equals new { ModuleJobId = job.Id, job.OrganizationId }
             join module in Repository.DbContext.Modules
                 on new { ModuleId = job.ModuleId, job.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
-                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where approval.OrganizationId == organizationId
                   && assignment.PrincipalId == principalId
                   && namespaceRoles.Contains(assignment.RoleName)

@@ -382,9 +382,15 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         if (hasStackPermissionViaGroup)
             return true;
 
+        // A role on any Namespace above this one also grants creation in it. The closure holds the
+        // Namespace itself at depth 0, so this set covers both.
+        var ancestorIds = Repository.DbContext.NamespaceAncestors
+            .Where(a => a.NamespaceId == namespaceId && a.OrganizationId == organizationId)
+            .Select(a => a.AncestorNamespaceId);
+
         // Check direct namespace role assignment
         var hasNamespacePermission = Repository.DbContext.Set<TNamespaceRoleAssignment>()
-            .Any(ra => ra.NamespaceId == namespaceId
+            .Any(ra => ancestorIds.Contains(ra.NamespaceId)
                        && ra.OrganizationId == organizationId
                        && ra.PrincipalId == principalId
                        && CreatePermissionMap.NamespaceRoles.Contains(ra.RoleName));
@@ -402,9 +408,10 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
                     on new { RootGroupId = gum.GroupId, RootOrganizationId = gum.OrganizationId }
                     equals new { rgm.RootGroupId, rgm.RootOrganizationId }
                 join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                    on new { NamespaceId = namespaceId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
-                    equals new { assignment.NamespaceId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where CreatePermissionMap.NamespaceRoles.Contains(assignment.RoleName)
+                    on new { OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
+                    equals new { assignment.OrganizationId, GroupId = assignment.PrincipalId }
+                where ancestorIds.Contains(assignment.NamespaceId)
+                      && CreatePermissionMap.NamespaceRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             PrincipalDiscriminator.ServicePrincipal => (
@@ -414,9 +421,10 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
                     on new { RootGroupId = gspm.GroupId, RootOrganizationId = gspm.OrganizationId }
                     equals new { rgm.RootGroupId, rgm.RootOrganizationId }
                 join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                    on new { NamespaceId = namespaceId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
-                    equals new { assignment.NamespaceId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where CreatePermissionMap.NamespaceRoles.Contains(assignment.RoleName)
+                    on new { OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
+                    equals new { assignment.OrganizationId, GroupId = assignment.PrincipalId }
+                where ancestorIds.Contains(assignment.NamespaceId)
+                      && CreatePermissionMap.NamespaceRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             _ => false

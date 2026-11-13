@@ -19,6 +19,7 @@ public static class ExceptionHandler
         var message = ex switch
         {
             InvalidStackReferenceException => "Invalid reference: The selected item belongs to a different stack.",
+            InvalidNamespaceRefereceException ex2 => ex2.Message,
             InvalidSecretScopeException => "Invalid secret scope: The secret cannot be used in this context.",
             OutputRestrictedException => "Restricted output: The producing Module withholds it from this Module.",
             UniqueConstraintException => "A record with this name or identifier already exists.",

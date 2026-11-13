@@ -220,8 +220,10 @@ public abstract class GenericModuleChildSecuredRepository<TEntity, TDto, TMetada
             from entity in Repository.DbContext.Set<TEntity>()
             join module in Repository.DbContext.Modules
                 on new { ModuleId = entity.ModuleId, entity.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
-                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where entity.OrganizationId == organizationId
                   && assignment.PrincipalId == principalId
                   && namespaceRoles.Contains(assignment.RoleName)
@@ -314,8 +316,10 @@ public abstract class GenericModuleChildSecuredRepository<TEntity, TDto, TMetada
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
                 equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                on new { NamespaceId = module.NamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where entity.OrganizationId == organizationId
                   && namespaceRoles.Contains(assignment.RoleName)
@@ -399,8 +403,10 @@ public abstract class GenericModuleChildSecuredRepository<TEntity, TDto, TMetada
         var modulesFromNamespaceRoles =
             from module in Repository.DbContext.Modules
             where module.OrganizationId == organizationId
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
-                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
                   && namespaceRoles.Contains(assignment.RoleName)
             select module;
@@ -453,8 +459,10 @@ public abstract class GenericModuleChildSecuredRepository<TEntity, TDto, TMetada
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
                 equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+            join ancestor in Repository.DbContext.NamespaceAncestors
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { ancestor.NamespaceId, ancestor.OrganizationId }
             join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
-                on new { NamespaceId = module.NamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
+                on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where namespaceRoles.Contains(assignment.RoleName)
             select module;
