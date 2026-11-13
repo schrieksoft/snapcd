@@ -10644,6 +10644,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                 {
                     b.HasBaseType("SnapCd.Server.Core.Entities.Definition.Output");
 
+                    b.Property<bool>("BlankOutput")
+                        .HasColumnType("bit");
+
                     b.Property<string>("RemoteSecretName")
                         .IsRequired()
                         .HasMaxLength(255)

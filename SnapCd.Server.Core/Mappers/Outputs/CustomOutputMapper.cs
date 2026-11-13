@@ -130,10 +130,16 @@ public class CustomOutputMapper
 
             case SecretOutput secretOutput:
             {
-                using var vault = _vaultFactory.Create(keyVaultUrl);
-                var value = await vault.GetSecretAsync(secretOutput.RemoteSecretName);
-                outputDto.Value = value;
                 outputDto.Sensitive = true;
+
+                if (secretOutput.BlankOutput)
+                {
+                    outputDto.Value = string.Empty;
+                    return outputDto;
+                }
+
+                using var vault = _vaultFactory.Create(keyVaultUrl);
+                outputDto.Value = await vault.GetSecretAsync(secretOutput.RemoteSecretName);
                 return outputDto;
             }
 
@@ -157,7 +163,8 @@ public class CustomOutputMapper
             OrganizationId = organizationId,
             OutputSetId = outputSetId,
             Type = outputCreateDto.Type,
-            TypeDefinition = outputCreateDto.TypeDefinition
+            TypeDefinition = outputCreateDto.TypeDefinition,
+            BlankOutput = string.IsNullOrEmpty(outputCreateDto.Value)
         };
     }
 

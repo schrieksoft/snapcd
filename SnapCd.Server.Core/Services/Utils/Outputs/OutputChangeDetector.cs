@@ -52,8 +52,13 @@ public static class OutputChangeDetector
                     }
                     break;
 
-                case SecretOutput:
-                    if (secretChanges.TryGetValue(output.Name, out var wasChanged) && wasChanged)
+                case SecretOutput secret:
+                    // A blank value has no vault write, so the change shows in the flag.
+                    if (previousOutput is not SecretOutput prevSecret || prevSecret.BlankOutput != secret.BlankOutput)
+                    {
+                        changedOutputs.Add(output.Name);
+                    }
+                    else if (secretChanges.TryGetValue(output.Name, out var wasChanged) && wasChanged)
                     {
                         // Vault secret was created or updated
                         changedOutputs.Add(output.Name);

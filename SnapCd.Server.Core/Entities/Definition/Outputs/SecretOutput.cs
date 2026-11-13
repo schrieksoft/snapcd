@@ -23,6 +23,12 @@ public class SecretOutput : Output, ISecretOutput
     /// </summary>
     public DateTime? RemoteValueMissingSince { get; set; }
 
+    /// <summary>
+    /// The value is empty. A vault cannot store an empty value, so none is written and none is read.
+    /// <see cref="RemoteSecretName"/> stays set, so the name is stable across a value coming back.
+    /// </summary>
+    public bool BlankOutput { get; set; }
+
     public virtual SecretDiscriminator GetSecretDiscriminator()
     {
         return SecretDiscriminator.SecretOutput;
