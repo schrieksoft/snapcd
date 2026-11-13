@@ -61,7 +61,7 @@ public class ResolvedModule
     public string? RunnerInstanceName { get; set; }
     public string? InitBeforeHook { get; set; }
     public string? InitAfterHook { get; set; }
-    public bool IgnoreNamespaceExtraFiles { get; set; }
+    public bool IgnoreInheritedExtraFiles { get; set; }
 
     public bool CleanInitEnabled { get; set; }
     public bool DriftCheckEnabled { get; set; }

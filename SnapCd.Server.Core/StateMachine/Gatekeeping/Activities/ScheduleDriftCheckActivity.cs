@@ -44,8 +44,8 @@ public class ScheduleDriftCheckActivity<TMessage> :
                 {
                     m.DriftCheckEnabled,
                     m.DriftCheckIntervalMinutes,
-                    NamespaceDefaultDriftCheckEnabled = m.Namespace.DefaultDriftCheckEnabled,
-                    NamespaceDefaultDriftCheckIntervalMinutes = m.Namespace.DefaultDriftCheckIntervalMinutes
+                    NamespaceDefaultDriftCheckEnabled = m.Namespace.ResolvedDefaults.Where(d => d.OrganizationId == m.OrganizationId).Select(d => d.DriftCheckEnabled).FirstOrDefault(),
+                    NamespaceDefaultDriftCheckIntervalMinutes = m.Namespace.ResolvedDefaults.Where(d => d.OrganizationId == m.OrganizationId).Select(d => d.DriftCheckIntervalMinutes).FirstOrDefault()
                 })
                 .FirstOrDefaultAsync();
 

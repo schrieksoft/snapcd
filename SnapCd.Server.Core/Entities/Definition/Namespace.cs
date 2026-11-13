@@ -108,6 +108,17 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     /// <summary>Default for Modules below this Namespace that do not set their own restriction.</summary>
     public OutputSetDownstreamRestriction? DefaultOutputSetDownstreamRestriction { get; set; }
 
+    // Stop inheriting a collection from the Namespaces above this one. The same switches a Module
+    // has, so a Namespace part way up a tree can start fresh.
+
+    public bool IgnoreInheritedExtraFiles { get; set; }
+    public bool IgnoreInheritedFlags { get; set; }
+    public bool IgnoreInheritedHooks { get; set; }
+    public bool IgnoreInheritedPolicies { get; set; }
+    public bool IgnoreInheritedMissions { get; set; }
+    public bool IgnoreInheritedIntegrationEvents { get; set; }
+    public bool IgnoreInheritedTriggerPaths { get; set; }
+
     // Whether this Namespace's value for each default above is pinned for the whole subtree.
     // True makes resolution ignore a value set below it; the value may still be saved.
 
@@ -121,6 +132,10 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public bool? RestrictOverrideOnDriftCheckEnabled { get; set; }
     public bool? RestrictOverrideOnDriftCheckIntervalMinutes { get; set; }
     public bool? RestrictOverrideOnOutputSetDownstreamRestriction { get; set; }
+
+    /// <summary>This Namespace's defaults with its ancestors applied. Read-only, one row.</summary>
+    [JsonIgnore]
+    public List<Views.NamespaceResolvedDefault> ResolvedDefaults { get; set; } = new();
 
     [JsonIgnore] // So that JSON Serialization does not create a loop
     public Namespace? ParentNamespace { get; set; }

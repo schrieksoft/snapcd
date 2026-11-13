@@ -25,8 +25,14 @@ public class NamespaceApprovalThresholdModifiedCompetingConsumer : IConsumer<Nam
 
     public async Task Consume(ConsumeContext<NamespaceApprovalThresholdModifiedEvent> context)
     {
+        // Every Module below this Namespace inherits the threshold, not only those directly in it,
+        // so the fan-out follows the descendant side of the closure.
+        var descendantIds = _dbContext.NamespaceAncestors
+            .Where(a => a.AncestorNamespaceId == context.Message.NamespaceId)
+            .Select(a => a.NamespaceId);
+
         var moduleIds = _dbContext.Modules
-            .Where(x => x.NamespaceId == context.Message.NamespaceId)
+            .Where(x => descendantIds.Contains(x.NamespaceId))
             .Select(x => x.Id).ToList();
 
         foreach (var moduleId in moduleIds) await _bus.Publish(new ModuleApprovalThresholdModifiedEvent { ModuleId = moduleId });

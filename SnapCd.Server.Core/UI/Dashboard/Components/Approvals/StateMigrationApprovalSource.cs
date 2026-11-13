@@ -76,7 +76,9 @@ public class StateMigrationApprovalSource : IApprovalSource
         return await repo.Get(moduleId, organizationId, x => x
             .Include(m => m.Namespace)
             .Select(y => y.StateMigrationApprovalThreshold
-                         ?? y.Namespace.DefaultStateMigrationApprovalThreshold
+                         ?? y.Namespace.ResolvedDefaults
+                             .Where(d => d.OrganizationId == y.OrganizationId)
+                             .Select(d => d.StateMigrationApprovalThreshold).FirstOrDefault()
                          ?? 1));
     }
 

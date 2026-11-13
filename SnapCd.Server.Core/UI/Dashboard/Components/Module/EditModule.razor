@@ -208,17 +208,17 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch Disabled="@(!_canUpdate)" T="bool" @bind-Value="Module.IgnoreNamespaceExtraFiles" Label="Ignore Namespace Extra Files"
+                <MudSwitch Disabled="@(!_canUpdate)" T="bool" @bind-Value="Module.IgnoreInheritedExtraFiles" Label="Ignore Namespace Extra Files"
                            Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch Disabled="@(!_canUpdate)" T="bool" @bind-Value="Module.IgnoreNamespaceFlags" Label="Ignore Namespace Flags"
+                <MudSwitch Disabled="@(!_canUpdate)" T="bool" @bind-Value="Module.IgnoreInheritedFlags" Label="Ignore Namespace Flags"
                            Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch Disabled="@(!_canUpdate)" T="bool" @bind-Value="Module.IgnoreNamespaceHooks" Label="Ignore Namespace Hooks"
+                <MudSwitch Disabled="@(!_canUpdate)" T="bool" @bind-Value="Module.IgnoreInheritedHooks" Label="Ignore Namespace Hooks"
                            Color="Color.Secondary"/>
             </MudItem>
 

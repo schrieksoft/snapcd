@@ -18,6 +18,51 @@ public class NamespaceCreateDto
     /// <summary>ID of the Namespace's parent Stack.</summary>
     public Guid? StackId { get; set; }
 
+    /// <summary>ID of the Namespace this one sits inside. Leave unset for a Namespace at the top level.</summary>
+    public Guid? ParentNamespaceId { get; set; }
+
+    /// <summary>Assigned when the Namespace is created and never changed. Read only.</summary>
+    public int Number { get; set; }
+
+    /// <summary>What Modules below this Namespace give to consumers outside it. Must be 'All' or 'SensitiveOnly'. Unset places no restriction.</summary>
+    public OutputSetDownstreamRestriction? DefaultOutputSetDownstreamRestriction { get; set; }
+
+    /// <summary>If this is set to true, any Extra Files inherited from the Namespaces above this one will not be used.</summary>
+    public bool IgnoreInheritedExtraFiles { get; set; }
+    /// <summary>If this is set to true, any Flags inherited from the Namespaces above this one will not be used.</summary>
+    public bool IgnoreInheritedFlags { get; set; }
+    /// <summary>If this is set to true, any Hooks inherited from the Namespaces above this one will not be used.</summary>
+    public bool IgnoreInheritedHooks { get; set; }
+    /// <summary>If this is set to true, any Policies inherited from the Namespaces above this one will not be evaluated.</summary>
+    public bool IgnoreInheritedPolicies { get; set; }
+    /// <summary>If this is set to true, any Missions inherited from the Namespaces above this one will not match.</summary>
+    public bool IgnoreInheritedMissions { get; set; }
+    /// <summary>If this is set to true, any Integration Events inherited from the Namespaces above this one will not fire.</summary>
+    public bool IgnoreInheritedIntegrationEvents { get; set; }
+    /// <summary>If this is set to true, any Additional Trigger Paths inherited from the Namespaces above this one will not apply.</summary>
+    public bool IgnoreInheritedTriggerPaths { get; set; }
+
+    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own clean-init setting; this Namespace's value is used throughout its subtree.</summary>
+    public bool? RestrictOverrideOnCleanInitEnabled { get; set; }
+    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own path-scoped triggering setting; this Namespace's value is used throughout its subtree.</summary>
+    public bool? RestrictOverrideOnTriggerPathFilterEnabled { get; set; }
+    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own 'Apply' approval threshold; this Namespace's value is used throughout its subtree.</summary>
+    public bool? RestrictOverrideOnApplyApprovalThreshold { get; set; }
+    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own 'Destroy' approval threshold; this Namespace's value is used throughout its subtree.</summary>
+    public bool? RestrictOverrideOnDestroyApprovalThreshold { get; set; }
+    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own state migration approval threshold; this Namespace's value is used throughout its subtree.</summary>
+    public bool? RestrictOverrideOnStateMigrationApprovalThreshold { get; set; }
+    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own approval timeout; this Namespace's value is used throughout its subtree.</summary>
+    public bool? RestrictOverrideOnApprovalTimeoutMinutes { get; set; }
+    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own engine; this Namespace's value is used throughout its subtree.</summary>
+    public bool? RestrictOverrideOnEngine { get; set; }
+    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own drift check setting; this Namespace's value is used throughout its subtree.</summary>
+    public bool? RestrictOverrideOnDriftCheckEnabled { get; set; }
+    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own drift check interval; this Namespace's value is used throughout its subtree.</summary>
+    public bool? RestrictOverrideOnDriftCheckIntervalMinutes { get; set; }
+    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own downstream output restriction; this Namespace's value is used throughout its subtree.</summary>
+    public bool? RestrictOverrideOnOutputSetDownstreamRestriction { get; set; }
+
     /// <summary>Setting will remove all .terraform* files and folders (state files, locks, downloaded providers, downloaded modules etc.) and perform a clean init every time the Module is executed. All modules in this Namespace will use this value, unless explicitly overriden on the Module itself.</summary>
     public bool? DefaultCleanInitEnabled { get; set; }
 

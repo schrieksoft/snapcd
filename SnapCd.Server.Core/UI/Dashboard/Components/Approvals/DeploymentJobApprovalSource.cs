@@ -86,24 +86,24 @@ public class DeploymentJobApprovalSource : IApprovalSource
 
         using var repo = _moduleRepoFactory.Create(_principalProvider);
 
-        var module = await repo.Get<ModuleEntity>(moduleId, organizationId, x => x
-            .Include(m => m.Namespace)
-            .Select(y => new ModuleEntity
+        // The Namespace part comes from the resolved-defaults view, so a threshold set anywhere
+        // above the Module's own Namespace applies. Mirrors DeploymentApprovalThreshold.
+        var thresholds = await repo.Get(moduleId, organizationId, x => x
+            .Select(y => new
             {
-                Id = moduleId,
-                ApplyApprovalThreshold = y.ApplyApprovalThreshold,
-                DestroyApprovalThreshold = y.DestroyApprovalThreshold,
-                Namespace = new NamespaceEntity
-                {
-                    Id = y.Namespace.Id,
-                    DefaultApplyApprovalThreshold = y.Namespace.DefaultApplyApprovalThreshold,
-                    DefaultDestroyApprovalThreshold = y.Namespace.DefaultDestroyApprovalThreshold
-                }
+                y.ApplyApprovalThreshold,
+                y.DestroyApprovalThreshold,
+                InheritedApply = y.Namespace.ResolvedDefaults
+                    .Where(d => d.OrganizationId == y.OrganizationId)
+                    .Select(d => d.ApplyApprovalThreshold).FirstOrDefault(),
+                InheritedDestroy = y.Namespace.ResolvedDefaults
+                    .Where(d => d.OrganizationId == y.OrganizationId)
+                    .Select(d => d.DestroyApprovalThreshold).FirstOrDefault()
             }));
 
         return _jobSagaType == nameof(ApplyJobSaga)
-            ? module.ApplyApprovalThreshold ?? module.Namespace.DefaultApplyApprovalThreshold ?? 0
-            : module.DestroyApprovalThreshold ?? module.Namespace.DefaultDestroyApprovalThreshold ?? 0;
+            ? thresholds.ApplyApprovalThreshold ?? thresholds.InheritedApply ?? 0
+            : thresholds.DestroyApprovalThreshold ?? thresholds.InheritedDestroy ?? 0;
     }
 
     public Task Approve(Guid jobId, Guid moduleId, Guid organizationId) =>

@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 
@@ -44,6 +45,14 @@ public class IntegrationEventMatcher(SnapCdDbContext dbContext, IntegrationSuppl
             .FirstOrDefaultAsync(ct);
         if (scope is null) return [];
 
+        var module = await dbContext.Modules.AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == moduleId && m.OrganizationId == organizationId, ct);
+
+        var namespaceIds = module is { IgnoreInheritedIntegrationEvents: true }
+            ? new List<Guid> { scope.NamespaceId }
+            : await InheritedNamespaces.ForNamespace(
+                dbContext, scope.NamespaceId, organizationId, n => n.IgnoreInheritedIntegrationEvents, ct);
+
         var candidates = new List<IntegrationEventMatch>();
 
         candidates.AddRange(await dbContext.OrganizationIntegrationEvents
@@ -53,7 +62,7 @@ public class IntegrationEventMatcher(SnapCdDbContext dbContext, IntegrationSuppl
             .Where(x => x.OrganizationId == organizationId && x.StackId == scope.StackId && !x.IsDisabled && x.Trigger == trigger)
             .Select(x => new IntegrationEventMatch(x.Id, IntegrationEventScope.Stack, x.IntegrationId, x.Trigger, x.Template, x.Filter)).ToListAsync(ct));
         candidates.AddRange(await dbContext.NamespaceIntegrationEvents
-            .Where(x => x.OrganizationId == organizationId && x.NamespaceId == scope.NamespaceId && !x.IsDisabled && x.Trigger == trigger)
+            .Where(x => x.OrganizationId == organizationId && namespaceIds.Contains(x.NamespaceId) && !x.IsDisabled && x.Trigger == trigger)
             .Select(x => new IntegrationEventMatch(x.Id, IntegrationEventScope.Namespace, x.IntegrationId, x.Trigger, x.Template, x.Filter)).ToListAsync(ct));
         candidates.AddRange(await dbContext.ModuleIntegrationEvents
             .Where(x => x.OrganizationId == organizationId && x.ModuleId == moduleId && !x.IsDisabled && x.Trigger == trigger)

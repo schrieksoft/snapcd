@@ -112,9 +112,13 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public virtual ICollection<ServicePrincipalModuleRoleAssignment> ServicePrincipalModuleRoleAssignments { get; set; } = new List<ServicePrincipalModuleRoleAssignment>();
     public virtual ICollection<GroupModuleRoleAssignment> GroupModuleRoleAssignments { get; set; } = new List<GroupModuleRoleAssignment>();
 
-    public bool IgnoreNamespaceExtraFiles { get; set; }
-    public bool IgnoreNamespaceFlags { get; set; }
-    public bool IgnoreNamespaceHooks { get; set; }
+    public bool IgnoreInheritedExtraFiles { get; set; }
+    public bool IgnoreInheritedFlags { get; set; }
+    public bool IgnoreInheritedHooks { get; set; }
+    public bool IgnoreInheritedPolicies { get; set; }
+    public bool IgnoreInheritedMissions { get; set; }
+    public bool IgnoreInheritedIntegrationEvents { get; set; }
+    public bool IgnoreInheritedTriggerPaths { get; set; }
 
     public bool? CleanInitEnabled { get; set; }
 

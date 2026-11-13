@@ -8,6 +8,7 @@
 
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Server.Core.Services.Utils;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
@@ -53,7 +54,15 @@ public class MissionMatcher
             .FirstOrDefaultAsync(ct);
         if (scope is null) return false;
 
-        var matches = await GatherMatchesAsync(_dbContext, organizationId, moduleId, scope.NamespaceId, scope.StackId, triggeredType, ct);
+        var module = await _dbContext.Modules.AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == moduleId && m.OrganizationId == organizationId, ct);
+
+        var namespaceIds = module is { IgnoreInheritedMissions: true }
+            ? [scope.NamespaceId]
+            : await InheritedNamespaces.ForNamespace(
+                _dbContext, scope.NamespaceId, organizationId, n => n.IgnoreInheritedMissions, ct);
+
+        var matches = await GatherMatchesAsync(_dbContext, organizationId, moduleId, namespaceIds, scope.StackId, triggeredType, ct);
         if (matches.Count == 0)
             return false;
 
@@ -146,7 +155,7 @@ public class MissionMatcher
     }
 
     private static async Task<List<MissionMatch>> GatherMatchesAsync(
-        SnapCdDbContext _dbContext, Guid orgId, Guid moduleId, Guid namespaceId, Guid stackId,
+        SnapCdDbContext _dbContext, Guid orgId, Guid moduleId, List<Guid> namespaceIds, Guid stackId,
         MissionType triggeredType, CancellationToken ct)
     {
         var matches = new List<MissionMatch>();
@@ -164,7 +173,7 @@ public class MissionMatcher
             .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName)).ToListAsync(ct));
 
         matches.AddRange(await _dbContext.NamespaceMissions
-            .Where(x => x.OrganizationId == orgId && x.NamespaceId == namespaceId && !x.IsDisabled && x.MissionType == triggeredType)
+            .Where(x => x.OrganizationId == orgId && namespaceIds.Contains(x.NamespaceId) && !x.IsDisabled && x.MissionType == triggeredType)
             .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName)).ToListAsync(ct));
 
         return matches;

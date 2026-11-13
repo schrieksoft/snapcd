@@ -22,9 +22,13 @@ namespace SnapCd.Server.Core.Services.Nonsecured.Approvals;
 public static class StateMigrationApprovalThreshold
 {
     public static async Task<int> Resolve(Guid moduleId, Guid organizationId, SnapCdDbContext dbContext) =>
-        await dbContext.Modules
-            .Include(x => x.Namespace)
-            .Where(x => x.Id == moduleId && x.OrganizationId == organizationId)
-            .Select(x => x.StateMigrationApprovalThreshold ?? x.Namespace.DefaultStateMigrationApprovalThreshold ?? 1)
-            .SingleAsync();
+        await (
+            from x in dbContext.Modules
+            join d in dbContext.NamespaceResolvedDefaults
+                on new { NamespaceId = x.NamespaceId, x.OrganizationId } equals new { d.NamespaceId, d.OrganizationId }
+                into resolved
+            from d in resolved.DefaultIfEmpty()
+            where x.Id == moduleId && x.OrganizationId == organizationId
+            select x.StateMigrationApprovalThreshold ?? (d == null ? null : d.StateMigrationApprovalThreshold) ?? 1
+        ).SingleAsync();
 }

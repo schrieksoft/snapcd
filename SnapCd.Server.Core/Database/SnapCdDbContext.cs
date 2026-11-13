@@ -87,6 +87,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<RecursiveGroupMember> RecursiveGroupMembers { get; set; }
 
     public DbSet<NamespaceAncestor> NamespaceAncestors { get; set; }
+
+    public DbSet<NamespaceResolvedDefault> NamespaceResolvedDefaults { get; set; }
     public DbSet<DerivedOrganizationRoleAssignment> DerivedOrganizationRoleAssignments { get; set; }
     public DbSet<DerivedRunnerRoleAssignment> DerivedRunnerRoleAssignments { get; set; }
     public DbSet<DerivedAgentRoleAssignment> DerivedAgentRoleAssignments { get; set; }
@@ -515,6 +517,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new GroupGroupMemberClassMap());
         modelBuilder.ApplyConfiguration(new RecursiveGroupMemberClassMap());
         modelBuilder.ApplyConfiguration(new NamespaceAncestorClassMap());
+        modelBuilder.ApplyConfiguration(new NamespaceResolvedDefaultClassMap());
         modelBuilder.ApplyConfiguration(new DerivedOrganizationRoleAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new DerivedRunnerRoleAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new DerivedAgentRoleAssignmentClassMap());

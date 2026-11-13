@@ -21,15 +21,20 @@ public static class DeploymentApprovalThreshold
 {
     public static async Task<int> Resolve(JobSagaBase saga, Guid moduleId, Guid organizationId, SnapCdDbContext dbContext)
     {
-        var thresholds = await dbContext.Modules
-            .Include(x => x.Namespace)
-            .Where(x => x.Id == moduleId && x.OrganizationId == organizationId)
-            .Select(x => new
+        // The Namespace value comes from the resolved-defaults view, so a threshold set on any
+        // Namespace above the Module's own applies to it.
+        var thresholds = await (
+            from x in dbContext.Modules
+            join d in dbContext.NamespaceResolvedDefaults
+                on new { NamespaceId = x.NamespaceId, x.OrganizationId } equals new { d.NamespaceId, d.OrganizationId }
+                into resolved
+            from d in resolved.DefaultIfEmpty()
+            where x.Id == moduleId && x.OrganizationId == organizationId
+            select new
             {
-                Apply = x.ApplyApprovalThreshold ?? x.Namespace.DefaultApplyApprovalThreshold ?? 0,
-                Destroy = x.DestroyApprovalThreshold ?? x.Namespace.DefaultDestroyApprovalThreshold ?? 0
-            })
-            .SingleAsync();
+                Apply = x.ApplyApprovalThreshold ?? (d == null ? null : d.ApplyApprovalThreshold) ?? 0,
+                Destroy = x.DestroyApprovalThreshold ?? (d == null ? null : d.DestroyApprovalThreshold) ?? 0
+            }).SingleAsync();
 
         return saga switch
         {

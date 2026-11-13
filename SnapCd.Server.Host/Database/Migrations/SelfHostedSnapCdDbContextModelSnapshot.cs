@@ -1982,13 +1982,25 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<bool>("IgnoreNamespaceExtraFiles")
+                    b.Property<bool>("IgnoreInheritedExtraFiles")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IgnoreNamespaceFlags")
+                    b.Property<bool>("IgnoreInheritedFlags")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IgnoreNamespaceHooks")
+                    b.Property<bool>("IgnoreInheritedHooks")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedIntegrationEvents")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedMissions")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedPolicies")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedTriggerPaths")
                         .HasColumnType("bit");
 
                     b.Property<Guid>("ModifiedBy")
@@ -3758,6 +3770,27 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool?>("DefaultTriggerPathFilterEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedExtraFiles")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedFlags")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedHooks")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedIntegrationEvents")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedMissions")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedPolicies")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IgnoreInheritedTriggerPaths")
                         .HasColumnType("bit");
 
                     b.Property<Guid>("ModifiedBy")

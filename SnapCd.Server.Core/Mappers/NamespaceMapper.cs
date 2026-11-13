@@ -32,6 +32,25 @@ public static class NamespaceMapper
             DefaultEngine = dto.DefaultEngine,
             DefaultDriftCheckEnabled = dto.DefaultDriftCheckEnabled,
             DefaultDriftCheckIntervalMinutes = dto.DefaultDriftCheckIntervalMinutes,
+            ParentNamespaceId = dto.ParentNamespaceId,
+            DefaultOutputSetDownstreamRestriction = dto.DefaultOutputSetDownstreamRestriction,
+            IgnoreInheritedExtraFiles = dto.IgnoreInheritedExtraFiles,
+            IgnoreInheritedFlags = dto.IgnoreInheritedFlags,
+            IgnoreInheritedHooks = dto.IgnoreInheritedHooks,
+            IgnoreInheritedPolicies = dto.IgnoreInheritedPolicies,
+            IgnoreInheritedMissions = dto.IgnoreInheritedMissions,
+            IgnoreInheritedIntegrationEvents = dto.IgnoreInheritedIntegrationEvents,
+            IgnoreInheritedTriggerPaths = dto.IgnoreInheritedTriggerPaths,
+            RestrictOverrideOnCleanInitEnabled = dto.RestrictOverrideOnCleanInitEnabled,
+            RestrictOverrideOnTriggerPathFilterEnabled = dto.RestrictOverrideOnTriggerPathFilterEnabled,
+            RestrictOverrideOnApplyApprovalThreshold = dto.RestrictOverrideOnApplyApprovalThreshold,
+            RestrictOverrideOnDestroyApprovalThreshold = dto.RestrictOverrideOnDestroyApprovalThreshold,
+            RestrictOverrideOnStateMigrationApprovalThreshold = dto.RestrictOverrideOnStateMigrationApprovalThreshold,
+            RestrictOverrideOnApprovalTimeoutMinutes = dto.RestrictOverrideOnApprovalTimeoutMinutes,
+            RestrictOverrideOnEngine = dto.RestrictOverrideOnEngine,
+            RestrictOverrideOnDriftCheckEnabled = dto.RestrictOverrideOnDriftCheckEnabled,
+            RestrictOverrideOnDriftCheckIntervalMinutes = dto.RestrictOverrideOnDriftCheckIntervalMinutes,
+            RestrictOverrideOnOutputSetDownstreamRestriction = dto.RestrictOverrideOnOutputSetDownstreamRestriction,
         };
     }
 
@@ -52,6 +71,26 @@ public static class NamespaceMapper
             DefaultEngine = entity.DefaultEngine,
             DefaultDriftCheckEnabled = entity.DefaultDriftCheckEnabled,
             DefaultDriftCheckIntervalMinutes = entity.DefaultDriftCheckIntervalMinutes,
+            ParentNamespaceId = entity.ParentNamespaceId,
+            Number = entity.Number,
+            DefaultOutputSetDownstreamRestriction = entity.DefaultOutputSetDownstreamRestriction,
+            IgnoreInheritedExtraFiles = entity.IgnoreInheritedExtraFiles,
+            IgnoreInheritedFlags = entity.IgnoreInheritedFlags,
+            IgnoreInheritedHooks = entity.IgnoreInheritedHooks,
+            IgnoreInheritedPolicies = entity.IgnoreInheritedPolicies,
+            IgnoreInheritedMissions = entity.IgnoreInheritedMissions,
+            IgnoreInheritedIntegrationEvents = entity.IgnoreInheritedIntegrationEvents,
+            IgnoreInheritedTriggerPaths = entity.IgnoreInheritedTriggerPaths,
+            RestrictOverrideOnCleanInitEnabled = entity.RestrictOverrideOnCleanInitEnabled,
+            RestrictOverrideOnTriggerPathFilterEnabled = entity.RestrictOverrideOnTriggerPathFilterEnabled,
+            RestrictOverrideOnApplyApprovalThreshold = entity.RestrictOverrideOnApplyApprovalThreshold,
+            RestrictOverrideOnDestroyApprovalThreshold = entity.RestrictOverrideOnDestroyApprovalThreshold,
+            RestrictOverrideOnStateMigrationApprovalThreshold = entity.RestrictOverrideOnStateMigrationApprovalThreshold,
+            RestrictOverrideOnApprovalTimeoutMinutes = entity.RestrictOverrideOnApprovalTimeoutMinutes,
+            RestrictOverrideOnEngine = entity.RestrictOverrideOnEngine,
+            RestrictOverrideOnDriftCheckEnabled = entity.RestrictOverrideOnDriftCheckEnabled,
+            RestrictOverrideOnDriftCheckIntervalMinutes = entity.RestrictOverrideOnDriftCheckIntervalMinutes,
+            RestrictOverrideOnOutputSetDownstreamRestriction = entity.RestrictOverrideOnOutputSetDownstreamRestriction,
         };
     }
 
@@ -79,5 +118,24 @@ public static class NamespaceMapper
         entity.DefaultEngine = dto.DefaultEngine;
         entity.DefaultDriftCheckEnabled = dto.DefaultDriftCheckEnabled;
         entity.DefaultDriftCheckIntervalMinutes = dto.DefaultDriftCheckIntervalMinutes;
+        entity.ParentNamespaceId = dto.ParentNamespaceId;
+        entity.DefaultOutputSetDownstreamRestriction = dto.DefaultOutputSetDownstreamRestriction;
+        entity.IgnoreInheritedExtraFiles = dto.IgnoreInheritedExtraFiles;
+        entity.IgnoreInheritedFlags = dto.IgnoreInheritedFlags;
+        entity.IgnoreInheritedHooks = dto.IgnoreInheritedHooks;
+        entity.IgnoreInheritedPolicies = dto.IgnoreInheritedPolicies;
+        entity.IgnoreInheritedMissions = dto.IgnoreInheritedMissions;
+        entity.IgnoreInheritedIntegrationEvents = dto.IgnoreInheritedIntegrationEvents;
+        entity.IgnoreInheritedTriggerPaths = dto.IgnoreInheritedTriggerPaths;
+        entity.RestrictOverrideOnCleanInitEnabled = dto.RestrictOverrideOnCleanInitEnabled;
+        entity.RestrictOverrideOnTriggerPathFilterEnabled = dto.RestrictOverrideOnTriggerPathFilterEnabled;
+        entity.RestrictOverrideOnApplyApprovalThreshold = dto.RestrictOverrideOnApplyApprovalThreshold;
+        entity.RestrictOverrideOnDestroyApprovalThreshold = dto.RestrictOverrideOnDestroyApprovalThreshold;
+        entity.RestrictOverrideOnStateMigrationApprovalThreshold = dto.RestrictOverrideOnStateMigrationApprovalThreshold;
+        entity.RestrictOverrideOnApprovalTimeoutMinutes = dto.RestrictOverrideOnApprovalTimeoutMinutes;
+        entity.RestrictOverrideOnEngine = dto.RestrictOverrideOnEngine;
+        entity.RestrictOverrideOnDriftCheckEnabled = dto.RestrictOverrideOnDriftCheckEnabled;
+        entity.RestrictOverrideOnDriftCheckIntervalMinutes = dto.RestrictOverrideOnDriftCheckIntervalMinutes;
+        entity.RestrictOverrideOnOutputSetDownstreamRestriction = dto.RestrictOverrideOnOutputSetDownstreamRestriction;
     }
 }

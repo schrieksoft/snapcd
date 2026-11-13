@@ -72,12 +72,20 @@ public class ModuleCreateDto
     /// <summary>Name a specific runner instance to select (should unique identify the the instance). Use this if you have enabled multiple instances on your runner, but want all jobs for this Module to go to a specific instance.</summary>
     public string? RunnerInstanceName { get; set; }
 
-    /// <summary>If this is set to true, any Extra Files that have been set on Namespace level will not be used on this specific Module.</summary>
-    public bool IgnoreNamespaceExtraFiles { get; set; }
-    /// <summary>If this is set to true, any Flags (Terraform Flags, Terraform Array Flags, Pulumi Flags, Pulumi Array Flags) that have been set on Namespace level will not be used on this specific Module.</summary>
-    public bool IgnoreNamespaceFlags { get; set; }
-    /// <summary>If this is set to true, any Hooks set on Namespace level will not be used on this specific Module.</summary>
-    public bool IgnoreNamespaceHooks { get; set; }
+    /// <summary>If this is set to true, any Extra Files inherited from this Module's Namespaces will not be used on this specific Module.</summary>
+    public bool IgnoreInheritedExtraFiles { get; set; }
+    /// <summary>If this is set to true, any Flags (Terraform Flags, Terraform Array Flags, Pulumi Flags, Pulumi Array Flags) inherited from this Module's Namespaces will not be used on this specific Module.</summary>
+    public bool IgnoreInheritedFlags { get; set; }
+    /// <summary>If this is set to true, any Hooks inherited from this Module's Namespaces will not be used on this specific Module.</summary>
+    public bool IgnoreInheritedHooks { get; set; }
+    /// <summary>If this is set to true, any Policies inherited from this Module's Namespaces will not be evaluated on this specific Module.</summary>
+    public bool IgnoreInheritedPolicies { get; set; }
+    /// <summary>If this is set to true, any Missions inherited from this Module's Namespaces will not match this specific Module.</summary>
+    public bool IgnoreInheritedMissions { get; set; }
+    /// <summary>If this is set to true, any Integration Events inherited from this Module's Namespaces will not fire for this specific Module.</summary>
+    public bool IgnoreInheritedIntegrationEvents { get; set; }
+    /// <summary>If this is set to true, any Additional Trigger Paths inherited from this Module's Namespaces will not apply to this specific Module.</summary>
+    public bool IgnoreInheritedTriggerPaths { get; set; }
 
     /// <summary>Setting will remove all .terraform* files and folders (state files, locks, downloaded providers, downloaded modules etc.) and perform a clean init every time the Module is executed. Setting this will override any default value set on the Module's parent Namespace.</summary>
     public bool? CleanInitEnabled { get; set; }

@@ -191,19 +191,19 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.IgnoreNamespaceExtraFiles"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.IgnoreInheritedExtraFiles"
                            Label="Ignore Namespace Extra Files"
                            Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.IgnoreNamespaceFlags"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.IgnoreInheritedFlags"
                            Label="Ignore Namespace Flags"
                            Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.IgnoreNamespaceHooks"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.IgnoreInheritedHooks"
                            Label="Ignore Namespace Hooks"
                            Color="Color.Secondary"/>
             </MudItem>

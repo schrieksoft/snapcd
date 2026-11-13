@@ -34,23 +34,65 @@ public static class TriggerPathClosure
     /// trigger paths, normalized, deduplicated and ordinally sorted. Requires AdditionalTriggerPaths and
     /// Namespace.AdditionalTriggerPaths to be loaded.
     /// </summary>
-    public static List<string> WatchedPaths(Module module)
+    public static List<string> WatchedPaths(Module module, IReadOnlyList<Namespace>? chain = null)
     {
+        var inherited = Inheritable(module, chain)
+            .SelectMany(ns => ns.AdditionalTriggerPaths.Select(p => p.Path));
+
         return new[] { module.SourceSubdirectory }
             .Concat(module.AdditionalTriggerPaths.Select(p => p.Path))
-            .Concat(module.Namespace?.AdditionalTriggerPaths.Select(p => p.Path) ?? Enumerable.Empty<string>())
+            .Concat(inherited)
             .Select(NormalizePath)
             .Distinct(StringComparer.Ordinal)
             .OrderBy(p => p, StringComparer.Ordinal)
             .ToList();
     }
 
+    private static List<Namespace>? ChainFor(Module module, IReadOnlyDictionary<Guid, List<Namespace>>? chains) =>
+        chains != null && chains.TryGetValue(module.NamespaceId, out var chain) ? chain : null;
+
+    /// <summary>
+    /// The Namespaces a Module takes trigger paths from: the chain where one was loaded, else its own
+    /// Namespace alone. Stops at a Module or Namespace that refuses what is above it.
+    /// </summary>
+    private static IEnumerable<Namespace> Inheritable(Module module, IReadOnlyList<Namespace>? chain)
+    {
+        if (module.IgnoreInheritedTriggerPaths) yield break;
+
+        if (chain == null)
+        {
+            if (module.Namespace != null) yield return module.Namespace;
+            yield break;
+        }
+
+        foreach (var ns in chain)
+        {
+            yield return ns;
+            if (ns.IgnoreInheritedTriggerPaths) yield break;
+        }
+    }
+
     /// <summary>
     /// Whether path-scoped triggering is on for the Module: module flag, else namespace default, else false.
     /// </summary>
-    public static bool FilterEnabled(Module module)
+    public static bool FilterEnabled(Module module, IReadOnlyList<Namespace>? chain = null)
     {
-        return module.TriggerPathFilterEnabled ?? module.Namespace?.DefaultTriggerPathFilterEnabled ?? false;
+        if (module.TriggerPathFilterEnabled is { } own) return own;
+
+        var inherited = chain ?? (module.Namespace == null ? [] : new List<Namespace> { module.Namespace });
+
+        bool? nearest = null;
+
+        foreach (var ns in inherited)
+        {
+            nearest ??= ns.DefaultTriggerPathFilterEnabled;
+
+            // Furthest pin wins, matching how the other inherited defaults resolve.
+            if (ns.RestrictOverrideOnTriggerPathFilterEnabled == true && ns.DefaultTriggerPathFilterEnabled is { } pinned)
+                nearest = pinned;
+        }
+
+        return nearest ?? false;
     }
 
     /// <summary>
@@ -58,11 +100,13 @@ public static class TriggerPathClosure
     /// filter-enabled member. Every dispatch site must use this: the consumer judges a filter-enabled module only
     /// by a report that hashed all of its declared paths, so a member whose paths are left out is never triggered.
     /// </summary>
-    public static List<string> GroupWatchedPaths(IEnumerable<Module> groupMembers)
+    public static List<string> GroupWatchedPaths(
+        IEnumerable<Module> groupMembers,
+        IReadOnlyDictionary<Guid, List<Namespace>>? chains = null)
     {
         return groupMembers
-            .Where(FilterEnabled)
-            .SelectMany(WatchedPaths)
+            .Where(m => FilterEnabled(m, ChainFor(m, chains)))
+            .SelectMany(m => WatchedPaths(m, ChainFor(m, chains)))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(p => p, StringComparer.Ordinal)
             .ToList();

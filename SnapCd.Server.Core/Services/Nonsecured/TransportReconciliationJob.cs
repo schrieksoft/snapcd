@@ -194,8 +194,8 @@ public class TransportReconciliationJob
                 Saga = s,
                 s.Module.DriftCheckEnabled,
                 s.Module.DriftCheckIntervalMinutes,
-                NamespaceEnabled = s.Module.Namespace.DefaultDriftCheckEnabled,
-                NamespaceInterval = s.Module.Namespace.DefaultDriftCheckIntervalMinutes
+                NamespaceEnabled = s.Module.Namespace.ResolvedDefaults.Where(d => d.OrganizationId == s.Module.OrganizationId).Select(d => d.DriftCheckEnabled).FirstOrDefault(),
+                NamespaceInterval = s.Module.Namespace.ResolvedDefaults.Where(d => d.OrganizationId == s.Module.OrganizationId).Select(d => d.DriftCheckIntervalMinutes).FirstOrDefault()
             })
             .ToListAsync();
 

@@ -118,19 +118,34 @@ public class ResolvedConfigurationService : IDisposable
         if (module.Runner.IsDisabled == true)
             throw new Exception($"The selected Runner (with name \"{module.Runner.Name}\") is disabled. Unable to execute Job.");
 
+        var chain = await LoadInheritanceChain(module.NamespaceId, module.OrganizationId);
+
+        // Furthest first: the merge helpers let a later entry overwrite an earlier one, so a
+        // nearer Namespace's flag wins.
+        var flagChain = UpTo(chain, n => n.IgnoreInheritedFlags).AsEnumerable().Reverse().ToList();
+
 
         // REMOVED: Output processing is now handled by client calls to OutputService
         // Client will call ListByModuleInputFromOutputs and ListByModuleInputFromOutputSets with module.Id
 
 
         // Handle new namespace scoped secret entities
+        // Nearest first, so a nearer Namespace's secret input of the same name wins.
         var paramSelectedNamespaceScopedSecrets = new List<SelectedNamespaceSecret>();
-        paramSelectedNamespaceScopedSecrets.AddRange(await GetSelectedNamespaceScopedSecrets(module.Namespace.Id, module.Namespace.StackId, module.Namespace.Name,
-            module.Namespace.NamespaceParamFromSecrets, module.OrganizationId));
+        foreach (var ns in chain)
+            paramSelectedNamespaceScopedSecrets.AddRange(await GetSelectedNamespaceScopedSecrets(
+                ns.Id, ns.StackId, ns.Name, ns.NamespaceParamFromSecrets, module.OrganizationId));
+
+        paramSelectedNamespaceScopedSecrets = paramSelectedNamespaceScopedSecrets
+            .GroupBy(x => x.InputName).Select(g => g.First()).ToList();
 
         var envVarSelectedNamespaceScopedSecrets = new List<SelectedNamespaceSecret>();
-        envVarSelectedNamespaceScopedSecrets.AddRange(await GetSelectedNamespaceScopedSecrets(module.Namespace.Id, module.Namespace.StackId, module.Namespace.Name,
-            module.Namespace.NamespaceEnvVarFromSecrets, module.OrganizationId));
+        foreach (var ns in chain)
+            envVarSelectedNamespaceScopedSecrets.AddRange(await GetSelectedNamespaceScopedSecrets(
+                ns.Id, ns.StackId, ns.Name, ns.NamespaceEnvVarFromSecrets, module.OrganizationId));
+
+        envVarSelectedNamespaceScopedSecrets = envVarSelectedNamespaceScopedSecrets
+            .GroupBy(x => x.InputName).Select(g => g.First()).ToList();
 
 
         // Handle new scoped secret entities
@@ -163,7 +178,17 @@ public class ResolvedConfigurationService : IDisposable
             .ToList();
 
         var moduleExtraFiles = module.ModuleExtraFiles.Select(ModuleExtraFileMapper.ToExtraFileDto).ToList();
-        var namespaceExtraFiles = module.Namespace.NamespaceExtraFiles.Select(NamespaceExtraFileMapper.ToExtraFileDto).ToList();
+        // Furthest first, so a nearer Namespace's file of the same name replaces a further one's.
+        var namespaceExtraFiles = UpTo(chain, n => n.IgnoreInheritedExtraFiles)
+            .AsEnumerable().Reverse()
+            .SelectMany(ns => ns.NamespaceExtraFiles)
+            .Select(NamespaceExtraFileMapper.ToExtraFileDto)
+            .Aggregate(new List<ExtraFileDto>(), (acc, f) =>
+            {
+                acc.RemoveAll(existing => existing.FileName == f.FileName);
+                acc.Add(f);
+                return acc;
+            });
 
         var declaredConfiguration = new ResolvedModule
         {
@@ -173,7 +198,7 @@ public class ResolvedConfigurationService : IDisposable
             OrganizationId = module.OrganizationId,
             RunnerId = module.RunnerId,
 
-            ExtraFiles = await ResolveExtraFiles(moduleExtraFiles, namespaceExtraFiles, module.IgnoreNamespaceExtraFiles),
+            ExtraFiles = await ResolveExtraFiles(moduleExtraFiles, namespaceExtraFiles, module.IgnoreInheritedExtraFiles),
 
             ModuleName = module.Name,
             NamespaceName = module.Namespace.Name,
@@ -184,7 +209,7 @@ public class ResolvedConfigurationService : IDisposable
             SourceType = module.SourceType,
             SourceRevisionType = module.SourceRevisionType,
             DependsOnModules = dependsOnModules,
-            Policies = ResolvePolicies(module),
+            Policies = ResolvePolicies(module, chain),
             // REMOVED: Output selections are now handled by client calls to OutputService
             // SelectedModuleParamsFromOutputs = paramSelectedOutputs,
             // SelectedModuleOutputEnvVars = envVarSelectedOutputs,
@@ -205,49 +230,49 @@ public class ResolvedConfigurationService : IDisposable
             ModuleParamFromLiterals = module.ModuleParamFromLiterals?.Select(ModuleInputFromLiteralMapper.ToDto).ToList(),
             ModuleParamFromNamespaces = module.ModuleParamFromNamespaces?.Select(ModuleInputFromNamespaceMapper.ToDto).ToList(),
 
-            NamespaceParamFromLiterals = module.Namespace.NamespaceParamFromLiterals.Select(NamespaceInputFromLiteralMapper.ToDto).ToList(),
-            NamespaceEnvVarFromLiterals = module.Namespace.NamespaceEnvVarFromLiterals.Select(NamespaceInputFromLiteralMapper.ToDto).ToList(),
+            NamespaceParamFromLiterals = chain.SelectMany(ns => ns.NamespaceParamFromLiterals).GroupBy(x => x.Name).Select(g => g.First()).Select(NamespaceInputFromLiteralMapper.ToDto).ToList(),
+            NamespaceEnvVarFromLiterals = chain.SelectMany(ns => ns.NamespaceEnvVarFromLiterals).GroupBy(x => x.Name).Select(g => g.First()).Select(NamespaceInputFromLiteralMapper.ToDto).ToList(),
 
-            NamespaceParamFromDefinitions = module.Namespace.NamespaceParamFromDefinitions.Select(NamespaceInputFromDefinitionMapper.ToDto).ToList(),
-            NamespaceEnvVarFromDefinitions = module.Namespace.NamespaceEnvVarFromDefinitions.Select(NamespaceInputFromDefinitionMapper.ToDto).ToList(),
+            NamespaceParamFromDefinitions = chain.SelectMany(ns => ns.NamespaceParamFromDefinitions).GroupBy(x => x.Name).Select(g => g.First()).Select(NamespaceInputFromDefinitionMapper.ToDto).ToList(),
+            NamespaceEnvVarFromDefinitions = chain.SelectMany(ns => ns.NamespaceEnvVarFromDefinitions).GroupBy(x => x.Name).Select(g => g.First()).Select(NamespaceInputFromDefinitionMapper.ToDto).ToList(),
 
-            InitBeforeHook = ResolveHook(HookTask.Init, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            InitAfterHook = ResolveHook(HookTask.Init, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            IgnoreNamespaceExtraFiles = module.IgnoreNamespaceExtraFiles,
+            InitBeforeHook = ResolveHook(HookTask.Init, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            InitAfterHook = ResolveHook(HookTask.Init, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            IgnoreInheritedExtraFiles = module.IgnoreInheritedExtraFiles,
 
-            CleanInitEnabled = module.CleanInitEnabled ?? module.Namespace.DefaultCleanInitEnabled ?? false,
-            DriftCheckEnabled = module.DriftCheckEnabled ?? module.Namespace.DefaultDriftCheckEnabled ?? false,
-            DriftCheckIntervalMinutes = module.DriftCheckIntervalMinutes ?? module.Namespace.DefaultDriftCheckIntervalMinutes,
-            PlanBeforeHook = ResolveHook(HookTask.Plan, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            PlanAfterHook = ResolveHook(HookTask.Plan, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            PlanDestroyBeforeHook = ResolveHook(HookTask.PlanDestroy, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            PlanDestroyAfterHook = ResolveHook(HookTask.PlanDestroy, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            ApplyBeforeHook = ResolveHook(HookTask.Apply, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            ApplyAfterHook = ResolveHook(HookTask.Apply, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            DestroyBeforeHook = ResolveHook(HookTask.Destroy, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            DestroyAfterHook = ResolveHook(HookTask.Destroy, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            OutputBeforeHook = ResolveHook(HookTask.Output, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            OutputAfterHook = ResolveHook(HookTask.Output, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            ValidateBeforeHook = ResolveHook(HookTask.Validate, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            ValidateAfterHook = ResolveHook(HookTask.Validate, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            CleanInitEnabled = module.CleanInitEnabled ?? Inherited(chain, n => n.DefaultCleanInitEnabled, n => n.RestrictOverrideOnCleanInitEnabled) ?? false,
+            DriftCheckEnabled = module.DriftCheckEnabled ?? Inherited(chain, n => n.DefaultDriftCheckEnabled, n => n.RestrictOverrideOnDriftCheckEnabled) ?? false,
+            DriftCheckIntervalMinutes = module.DriftCheckIntervalMinutes ?? Inherited(chain, n => n.DefaultDriftCheckIntervalMinutes, n => n.RestrictOverrideOnDriftCheckIntervalMinutes),
+            PlanBeforeHook = ResolveHook(HookTask.Plan, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            PlanAfterHook = ResolveHook(HookTask.Plan, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            PlanDestroyBeforeHook = ResolveHook(HookTask.PlanDestroy, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            PlanDestroyAfterHook = ResolveHook(HookTask.PlanDestroy, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            ApplyBeforeHook = ResolveHook(HookTask.Apply, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            ApplyAfterHook = ResolveHook(HookTask.Apply, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            DestroyBeforeHook = ResolveHook(HookTask.Destroy, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            DestroyAfterHook = ResolveHook(HookTask.Destroy, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            OutputBeforeHook = ResolveHook(HookTask.Output, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            OutputAfterHook = ResolveHook(HookTask.Output, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            ValidateBeforeHook = ResolveHook(HookTask.Validate, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
+            ValidateAfterHook = ResolveHook(HookTask.Validate, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
             SourceRevision = module.SourceRevision,
             SourceUrl = module.SourceUrl,
 
-            ApprovalTimeoutMinutes = module.ApprovalTimeoutMinutes ?? module.Namespace.DefaultApprovalTimeoutMinutes,
+            ApprovalTimeoutMinutes = module.ApprovalTimeoutMinutes ?? Inherited(chain, n => n.DefaultApprovalTimeoutMinutes, n => n.RestrictOverrideOnApprovalTimeoutMinutes),
 
-            Engine = GetEngineString(module.Engine, module.Namespace.DefaultEngine),
-            PulumiFlags = module.IgnoreNamespaceFlags
+            Engine = GetEngineString(module.Engine, Inherited(chain, n => n.DefaultEngine, n => n.RestrictOverrideOnEngine)),
+            PulumiFlags = module.IgnoreInheritedFlags
                 ? module.PulumiFlags.Select(f => new PulumiFlagEntry { Task = f.Task, Flag = f.Flag, Value = f.Value }).ToList()
-                : MergePulumiFlags(module.Namespace.PulumiFlags, module.PulumiFlags),
-            PulumiArrayFlags = module.IgnoreNamespaceFlags
+                : MergePulumiFlags(flagChain.SelectMany(ns => ns.PulumiFlags).ToList(), module.PulumiFlags),
+            PulumiArrayFlags = module.IgnoreInheritedFlags
                 ? module.PulumiArrayFlags.Select(f => new PulumiArrayFlagEntry { Task = f.Task, Flag = f.Flag, Value = f.Value }).ToList()
-                : MergePulumiArrayFlags(module.Namespace.PulumiArrayFlags, module.PulumiArrayFlags),
-            TerraformFlags = module.IgnoreNamespaceFlags
+                : MergePulumiArrayFlags(flagChain.SelectMany(ns => ns.PulumiArrayFlags).ToList(), module.PulumiArrayFlags),
+            TerraformFlags = module.IgnoreInheritedFlags
                 ? module.TerraformFlags.Select(f => new TerraformFlagEntry { Task = f.Task, Flag = f.Flag, Value = f.Value }).ToList()
-                : MergeTerraformFlags(module.Namespace.TerraformFlags, module.TerraformFlags),
-            TerraformArrayFlags = module.IgnoreNamespaceFlags
+                : MergeTerraformFlags(flagChain.SelectMany(ns => ns.TerraformFlags).ToList(), module.TerraformFlags),
+            TerraformArrayFlags = module.IgnoreInheritedFlags
                 ? module.TerraformArrayFlags.Select(f => new TerraformArrayFlagEntry { Task = f.Task, Flag = f.Flag, Value = f.Value }).ToList()
-                : MergeTerraformArrayFlags(module.Namespace.TerraformArrayFlags, module.TerraformArrayFlags)
+                : MergeTerraformArrayFlags(flagChain.SelectMany(ns => ns.TerraformArrayFlags).ToList(), module.TerraformArrayFlags)
         };
 
         // var appliedConfigurationJson = await Serialize(declaredConfiguration);
@@ -296,6 +321,98 @@ public class ResolvedConfigurationService : IDisposable
     {
         var declared = await GetDeclared(id, organizationId);
         return sourceRevisionOverride is null ? declared : SourceRevisionOverride.Apply(declared, sourceRevisionOverride);
+    }
+
+    /// <summary>
+    /// The chain up to and including the first Namespace that stops inheriting that collection.
+    /// Everything above it is cut off, as a Module's own Ignore switches cut off its Namespace.
+    /// </summary>
+    private static List<Namespace> UpTo(List<Namespace> chain, Func<Namespace, bool> ignoresAncestors)
+    {
+        var kept = new List<Namespace>();
+
+        foreach (var ns in chain)
+        {
+            kept.Add(ns);
+            if (ignoresAncestors(ns)) break;
+        }
+
+        return kept;
+    }
+
+    /// <summary>
+    /// The value the chain supplies for one setting: the nearest Namespace that sets it, unless a
+    /// Namespace further up pins it, in which case the pinning one wins.
+    /// </summary>
+    /// <param name="chain">Namespaces nearest first.</param>
+    /// <param name="value">The setting on a Namespace.</param>
+    /// <param name="pinned">Whether that Namespace refuses an override below it.</param>
+    private static T? Inherited<T>(
+        List<Namespace> chain,
+        Func<Namespace, T?> value,
+        Func<Namespace, bool?> pinned)
+        where T : struct
+    {
+        T? nearest = null;
+
+        foreach (var ns in chain)
+        {
+            nearest ??= value(ns);
+
+            // Furthest pin wins, so keep walking rather than stopping at the first one.
+            if (pinned(ns) == true && value(ns) is { } enforced) nearest = enforced;
+        }
+
+        return nearest;
+    }
+
+    /// <summary>
+    /// The Namespaces a Module inherits from, nearest first: its own, then each one above it. The
+    /// collections are loaded here rather than through the Module's own includes, which cannot
+    /// reach a chain of unknown length.
+    /// </summary>
+    private async Task<List<Namespace>> LoadInheritanceChain(Guid namespaceId, Guid organizationId)
+    {
+        var byDepth = await _dbContext.NamespaceAncestors
+            .AsNoTracking()
+            .Where(a => a.NamespaceId == namespaceId && a.OrganizationId == organizationId)
+            .OrderBy(a => a.Depth)
+            .Select(a => a.AncestorNamespaceId)
+            .ToListAsync();
+
+        if (byDepth.Count == 0) return [];
+
+        var namespaces = await _dbContext.Namespaces
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Where(n => byDepth.Contains(n.Id) && n.OrganizationId == organizationId)
+            .Include(n => n.NamespaceExtraFiles)
+            .Include(n => n.NamespaceEnvVarFromDefinitions)
+            .Include(n => n.NamespaceEnvVarFromLiterals)
+            .Include(n => n.NamespaceEnvVarFromSecrets)
+            .ThenInclude(x => x.Secret)
+            .Include(n => n.NamespaceParamFromDefinitions)
+            .Include(n => n.NamespaceParamFromLiterals)
+            .Include(n => n.NamespaceParamFromSecrets)
+            .ThenInclude(x => x.Secret)
+            .Include(n => n.TerraformInlinePolicies)
+            .Include(n => n.TerraformRemotePolicies)
+            .Include(n => n.TerraformLocalPolicies)
+            .Include(n => n.PulumiInlinePolicies)
+            .Include(n => n.PulumiRemotePolicies)
+            .Include(n => n.PulumiLocalPolicies)
+            .Include(n => n.PulumiFlags)
+            .Include(n => n.PulumiArrayFlags)
+            .Include(n => n.TerraformFlags)
+            .Include(n => n.TerraformArrayFlags)
+            .Include(n => n.Hooks)
+            .ToListAsync();
+
+        return byDepth
+            .Select(id => namespaces.FirstOrDefault(n => n.Id == id))
+            .Where(n => n != null)
+            .Select(n => n!)
+            .ToList();
     }
 
     public async Task<ResolvedModule> GetDeclared(Guid id, Guid organizationId)
@@ -492,9 +609,13 @@ public class ResolvedConfigurationService : IDisposable
     // - ListByModuleInputFromOutputs(Guid moduleId)
     // - ListByModuleInputFromOutputSets(Guid moduleId)
 
-    private List<ResolvedPolicy> ResolvePolicies(Module module)
+    private List<ResolvedPolicy> ResolvePolicies(Module module, List<Namespace> chain)
     {
-        var engine = module.Engine ?? module.Namespace.DefaultEngine ?? StateManagementEngine.OpenTofu;
+        var engine = module.Engine ?? Inherited(chain, n => n.DefaultEngine, n => n.RestrictOverrideOnEngine) ?? StateManagementEngine.OpenTofu;
+
+        // Policies accumulate rather than override, so a Namespace that ignores its ancestors
+        // truncates what is collected.
+        var policyChain = UpTo(chain, n => n.IgnoreInheritedPolicies);
         var policies = new List<ResolvedPolicy>();
 
         if (engine is StateManagementEngine.OpenTofu or StateManagementEngine.Terraform)
@@ -505,11 +626,11 @@ public class ResolvedConfigurationService : IDisposable
                 { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Remote, EvaluateOn = x.EvaluateOn, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
             policies.AddRange(module.TerraformLocalPolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
                 { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Local, EvaluateOn = x.EvaluateOn, Path = x.Path }));
-            policies.AddRange(module.Namespace.TerraformInlinePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+            policies.AddRange(policyChain.SelectMany(ns => ns.TerraformInlinePolicies).Where(x => x.Enabled).Select(x => new ResolvedPolicy
                 { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Inline, EvaluateOn = x.EvaluateOn, PolicyContent = x.PolicyContent }));
-            policies.AddRange(module.Namespace.TerraformRemotePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+            policies.AddRange(policyChain.SelectMany(ns => ns.TerraformRemotePolicies).Where(x => x.Enabled).Select(x => new ResolvedPolicy
                 { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Remote, EvaluateOn = x.EvaluateOn, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
-            policies.AddRange(module.Namespace.TerraformLocalPolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+            policies.AddRange(policyChain.SelectMany(ns => ns.TerraformLocalPolicies).Where(x => x.Enabled).Select(x => new ResolvedPolicy
                 { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Local, EvaluateOn = x.EvaluateOn, Path = x.Path }));
         }
         else if (engine is StateManagementEngine.Pulumi)
@@ -520,11 +641,11 @@ public class ResolvedConfigurationService : IDisposable
                 { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Remote, EvaluateOn = PolicyEvaluateOn.ApplyOnly, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
             policies.AddRange(module.PulumiLocalPolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
                 { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Local, EvaluateOn = PolicyEvaluateOn.ApplyOnly, Path = x.Path }));
-            policies.AddRange(module.Namespace.PulumiInlinePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+            policies.AddRange(policyChain.SelectMany(ns => ns.PulumiInlinePolicies).Where(x => x.Enabled).Select(x => new ResolvedPolicy
                 { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Inline, EvaluateOn = PolicyEvaluateOn.ApplyOnly, PolicyContent = x.PolicyContent, Runtime = x.Runtime, AdditionalDependencies = x.AdditionalDependencies }));
-            policies.AddRange(module.Namespace.PulumiRemotePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+            policies.AddRange(policyChain.SelectMany(ns => ns.PulumiRemotePolicies).Where(x => x.Enabled).Select(x => new ResolvedPolicy
                 { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Remote, EvaluateOn = PolicyEvaluateOn.ApplyOnly, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
-            policies.AddRange(module.Namespace.PulumiLocalPolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+            policies.AddRange(policyChain.SelectMany(ns => ns.PulumiLocalPolicies).Where(x => x.Enabled).Select(x => new ResolvedPolicy
                 { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Local, EvaluateOn = PolicyEvaluateOn.ApplyOnly, Path = x.Path }));
         }
 
@@ -659,16 +780,20 @@ public class ResolvedConfigurationService : IDisposable
         return result;
     }
 
+    /// <summary>The Module's own hook, else the nearest Namespace above it that defines one.</summary>
     private static string? ResolveHook(
         HookTask task, HookPhase phase,
-        List<ModuleHook> moduleHooks, List<NamespaceHook> namespaceHooks,
+        List<ModuleHook> moduleHooks, List<Namespace> chain,
         bool ignoreNamespace)
     {
         var mh = moduleHooks.FirstOrDefault(h => h.Task == task && h.Phase == phase);
         if (mh != null) return mh.Script;
         if (ignoreNamespace) return null;
-        var nh = namespaceHooks.FirstOrDefault(h => h.Task == task && h.Phase == phase);
-        return nh?.Script;
+
+        return chain
+            .SelectMany(ns => ns.Hooks)
+            .FirstOrDefault(h => h.Task == task && h.Phase == phase)
+            ?.Script;
     }
 
     /// <summary>

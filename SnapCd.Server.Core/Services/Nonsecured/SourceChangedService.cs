@@ -109,8 +109,17 @@ public class SourceChangedService
             )
             .ToList();
 
+        // One pass for the batch: asking per Module would be a query each.
+        var chains = await InheritedNamespaces.ForNamespaces(
+            _dbContext,
+            modules.Select(m => m.NamespaceId).Distinct().ToList(),
+            organizationId,
+            q => q.Include(n => n.AdditionalTriggerPaths));
+
+        List<Entities.Definition.Namespace>? ChainOf(Entities.Definition.Module m) => chains.TryGetValue(m.NamespaceId, out var c) ? c : null;
+
         // Modules without path-scoped triggering keep today's behaviour: the notification IS the trigger.
-        foreach (var module in modules.Where(m => !TriggerPathClosure.FilterEnabled(m)))
+        foreach (var module in modules.Where(m => !TriggerPathClosure.FilterEnabled(m, ChainOf(m))))
             await _bus.Publish(new GatekeepingJobRequested
             {
                 ModuleId = module.Id,
@@ -121,7 +130,7 @@ public class SourceChangedService
         // Filter-enabled modules converge on the closure-hash primitive: dispatch one targeted refresh per
         // refresh group and let SourceRefreshCompletedCompetingConsumer decide from the reported hashes.
         var groups = modules
-            .Where(TriggerPathClosure.FilterEnabled)
+            .Where(m => TriggerPathClosure.FilterEnabled(m, ChainOf(m)))
             .GroupBy(x => new { x.SourceType, x.SourceUrl, x.SourceRevision, x.SourceRevisionType, x.OrganizationId, x.RunnerId });
 
         foreach (var group in groups)
