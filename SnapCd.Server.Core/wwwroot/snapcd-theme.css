@@ -483,6 +483,12 @@ body.dark-mode .scalar-card {
   padding-right: 4px;
 }
 
+/* The paper's own bottom spacing would lift the pager off the line the others sit on. */
+.mud-paper.tab-panel {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
 /* Matches the tree's pager, and the sidebar's Account bar it lines up with. */
 .tab-panel > .tab-panel-pager {
   flex: 0 0 auto;

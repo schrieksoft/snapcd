@@ -182,9 +182,10 @@
 }
 else
 {
-    <div class="panel-scroll">
+    <div class="tab-panel">
+    <div class="tab-panel-body">
     <MudExpansionPanels MultiExpansion="false">
-        @foreach (var job in _jobs.OrderByDescending(j => j.TimestampStart))
+        @foreach (var job in PagedJobs)
         {
             var dotColor = job.Status switch
             {
@@ -366,6 +367,16 @@ else
         }
     </MudExpansionPanels>
     </div>
+
+    @if (TotalPages > 1)
+    {
+        <div class="tab-panel-pager">
+            <Pagination CurrentPage="_currentPage"
+                        TotalPages="TotalPages"
+                        PageChanged="HandlePageChanged"/>
+        </div>
+    }
+    </div>
 }
 
 @code {
@@ -403,6 +414,22 @@ else
 
     private string? _blockedReason;
     private List<StateMigrationJob> _jobs = [];
+
+    private const int PageSize = 10;
+    private int _currentPage = 1;
+
+    private int TotalPages => (int)Math.Ceiling(_jobs.Count / (double)PageSize);
+
+    /// <summary>
+    /// The page being shown, newest first. Clamped because a reload can leave fewer jobs than the
+    /// page last looked at, which would otherwise show an empty list with no way back.
+    /// </summary>
+    private IEnumerable<StateMigrationJob> PagedJobs =>
+        _jobs.OrderByDescending(j => j.TimestampStart)
+            .Skip((Math.Clamp(_currentPage, 1, Math.Max(TotalPages, 1)) - 1) * PageSize)
+            .Take(PageSize);
+
+    private void HandlePageChanged(int page) => _currentPage = page;
     private bool _isDraining;
     private Dictionary<Guid, List<StateMigrationJobAddress>> _addresses = [];
 

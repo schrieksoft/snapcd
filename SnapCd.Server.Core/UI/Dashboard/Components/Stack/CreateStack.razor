@@ -9,10 +9,11 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using NameValidator = SnapCd.Server.Core.Services.Utils.NameValidator
-<MudPaper Elevation="1" Class="pa-4 mb-4">
+<MudPaper Elevation="1" Class="pa-4 mb-4 tab-panel">
     <div class="page-header">
         <MudText Typo="Typo.h4" Class="page-header-title">Create Stack</MudText>
     </div>
+    <div class="tab-panel-body">
     @if (!_canCreate)
     {
         <ReadOnlyNotice Message="You do not have permission to create a Stack."/>
@@ -48,6 +49,7 @@
             </MudItem>
         </MudGrid>
     </EditForm>
+    </div>
 </MudPaper>
 
 @code {
