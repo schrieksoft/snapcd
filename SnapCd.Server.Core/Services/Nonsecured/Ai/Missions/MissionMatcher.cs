@@ -73,10 +73,7 @@ public class MissionMatcher
             .ToListAsync(ct);
         var liveSet = liveAgents.ToHashSet();
 
-        var ordered = matches
-            .OrderBy(m => liveSet.Contains(m.AgentId) ? 0 : 1)
-            .ThenBy(m => m.MissionId)
-            .ToList();
+        var ordered = InPreferenceOrder(matches, liveSet);
 
         ModuleJobMission? mission = null;
         var dispatched = false;
@@ -162,22 +159,54 @@ public class MissionMatcher
 
         matches.AddRange(await _dbContext.OrganizationMissions
             .Where(x => x.OrganizationId == orgId && !x.IsDisabled && x.MissionType == triggeredType)
-            .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName)).ToListAsync(ct));
+            .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName, int.MaxValue)).ToListAsync(ct));
 
         matches.AddRange(await _dbContext.StackMissions
             .Where(x => x.OrganizationId == orgId && x.StackId == stackId && !x.IsDisabled && x.MissionType == triggeredType)
-            .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName)).ToListAsync(ct));
+            .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName, int.MaxValue - 1)).ToListAsync(ct));
 
         matches.AddRange(await _dbContext.ModuleMissions
             .Where(x => x.OrganizationId == orgId && x.ModuleId == moduleId && !x.IsDisabled && x.MissionType == triggeredType)
-            .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName)).ToListAsync(ct));
+            .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName, 0)).ToListAsync(ct));
 
-        matches.AddRange(await _dbContext.NamespaceMissions
+        // One hop per Namespace between the Module and the one that declared it. Indexed after the
+        // query: a list lookup inside a projection is not translatable.
+        var namespaceMissions = await _dbContext.NamespaceMissions
             .Where(x => x.OrganizationId == orgId && namespaceIds.Contains(x.NamespaceId) && !x.IsDisabled && x.MissionType == triggeredType)
-            .Select(x => new MissionMatch(x.AgentId, x.Id, x.MissionType, x.SidecarName)).ToListAsync(ct));
+            .Select(x => new { x.AgentId, x.Id, x.MissionType, x.SidecarName, x.NamespaceId })
+            .ToListAsync(ct);
+
+        matches.AddRange(namespaceMissions.Select(x => new MissionMatch(
+            x.AgentId, x.Id, x.MissionType, x.SidecarName,
+            namespaceIds.IndexOf(x.NamespaceId) + 1)));
 
         return matches;
     }
 
-    private readonly record struct MissionMatch(Guid AgentId, Guid MissionId, MissionType MissionType, string? SidecarName);
+    /// <summary>
+    /// The order missions are tried in. Nearest declaration first, so a Namespace's mission
+    /// overrides the ones above it even when its Agent is down and nothing runs: an override that
+    /// quietly stopped applying would be the worse surprise. A live Agent only breaks a tie between
+    /// missions at the same distance.
+    /// </summary>
+    public static List<MissionMatch> InPreferenceOrder(
+        IEnumerable<MissionMatch> matches,
+        IReadOnlySet<Guid> liveAgentIds) =>
+        matches
+            .OrderBy(m => m.Distance)
+            .ThenBy(m => liveAgentIds.Contains(m.AgentId) ? 0 : 1)
+            .ThenBy(m => m.MissionId)
+            .ToList();
+
+    /// <param name="Distance">
+    /// Hops from the Module to whatever scope declared the mission: 0 the Module itself, 1 its own
+    /// Namespace, then one per Namespace above that, and int.MaxValue for the Organization. The
+    /// nearest declaration wins, so a Namespace overrides the ones above it.
+    /// </param>
+    public readonly record struct MissionMatch(
+        Guid AgentId,
+        Guid MissionId,
+        MissionType MissionType,
+        string? SidecarName,
+        int Distance);
 }

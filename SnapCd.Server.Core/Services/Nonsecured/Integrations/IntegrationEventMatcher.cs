@@ -32,8 +32,13 @@ public class IntegrationEventMatcher(SnapCdDbContext dbContext, IntegrationSuppl
 {
     public void Dispose() => dbContext.Dispose();
 
+    /// <param name="Distance">
+    /// Hops from the Module to the Namespace that declared the event, so a nearer Namespace
+    /// overrides the ones above it. Zero where the scope is not a Namespace, which Scope already
+    /// orders.
+    /// </param>
     public readonly record struct IntegrationEventMatch(
-        Guid EventId, IntegrationEventScope Scope, Guid IntegrationId, IntegrationTrigger Trigger, string? Template, string? Filter);
+        Guid EventId, IntegrationEventScope Scope, Guid IntegrationId, IntegrationTrigger Trigger, string? Template, string? Filter, int Distance = 0);
 
     public async Task<List<IntegrationEventMatch>> MatchAsync(
         Guid moduleId, Guid organizationId, IntegrationTrigger trigger, CancellationToken ct = default)
@@ -61,9 +66,16 @@ public class IntegrationEventMatcher(SnapCdDbContext dbContext, IntegrationSuppl
         candidates.AddRange(await dbContext.StackIntegrationEvents
             .Where(x => x.OrganizationId == organizationId && x.StackId == scope.StackId && !x.IsDisabled && x.Trigger == trigger)
             .Select(x => new IntegrationEventMatch(x.Id, IntegrationEventScope.Stack, x.IntegrationId, x.Trigger, x.Template, x.Filter)).ToListAsync(ct));
-        candidates.AddRange(await dbContext.NamespaceIntegrationEvents
+        // The distance is the Namespace's position in the chain. Read the id and index it after the
+        // query: a list lookup inside a projection is not translatable.
+        var namespaceEvents = await dbContext.NamespaceIntegrationEvents
             .Where(x => x.OrganizationId == organizationId && namespaceIds.Contains(x.NamespaceId) && !x.IsDisabled && x.Trigger == trigger)
-            .Select(x => new IntegrationEventMatch(x.Id, IntegrationEventScope.Namespace, x.IntegrationId, x.Trigger, x.Template, x.Filter)).ToListAsync(ct));
+            .Select(x => new { x.Id, x.NamespaceId, x.IntegrationId, x.Trigger, x.Template, x.Filter })
+            .ToListAsync(ct);
+
+        candidates.AddRange(namespaceEvents.Select(x => new IntegrationEventMatch(
+            x.Id, IntegrationEventScope.Namespace, x.IntegrationId, x.Trigger, x.Template, x.Filter,
+            namespaceIds.IndexOf(x.NamespaceId))));
         candidates.AddRange(await dbContext.ModuleIntegrationEvents
             .Where(x => x.OrganizationId == organizationId && x.ModuleId == moduleId && !x.IsDisabled && x.Trigger == trigger)
             .Select(x => new IntegrationEventMatch(x.Id, IntegrationEventScope.Module, x.IntegrationId, x.Trigger, x.Template, x.Filter)).ToListAsync(ct));
@@ -82,10 +94,11 @@ public class IntegrationEventMatcher(SnapCdDbContext dbContext, IntegrationSuppl
             if (supplied) matched.Add(c);
         }
 
-        // Scope is declared least-to-most specific, so the highest value is the most specific event.
+        // Scope is declared least-to-most specific, so the highest value is the most specific
+        // event. Within a scope, the nearest Namespace that declared one wins.
         return matched
             .GroupBy(m => m.IntegrationId)
-            .Select(g => g.OrderByDescending(m => m.Scope).First())
+            .Select(g => g.OrderByDescending(m => m.Scope).ThenBy(m => m.Distance).First())
             .ToList();
     }
 }
