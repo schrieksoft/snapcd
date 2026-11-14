@@ -50,6 +50,9 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public SourceType SourceType { get; set; } = SourceType.Git;
     public SourceRevisionType SourceRevisionType { get; set; } = SourceRevisionType.Default;
     public OutputSetDownstreamRestriction? OutputSetDownstreamRestriction { get; set; }
+
+    /// <summary>Who that restriction does not apply to. Null withholds from every unsupplied consumer.</summary>
+    public OutputRestrictionExemption? OutputRestrictionExemption { get; set; }
     public List<ModuleOutputDownstreamRestriction> ModuleOutputDownstreamRestrictions { get; set; } = new();
     public List<OutputSetModuleSupply> SuppliedOutputSets { get; set; } = new();
     public List<OutputSetModuleSupply> ReceivedOutputSetSupplies { get; set; } = new();

@@ -2025,6 +2025,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("NamespaceId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("OutputRestrictionExemption")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("OutputSetDownstreamRestriction")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -3759,6 +3763,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("DefaultEngine")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("DefaultOutputRestrictionExemption")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -10204,6 +10212,54 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Views.NamespaceResolvedDefault", b =>
+                {
+                    b.Property<Guid>("NamespaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("ApplyApprovalThreshold")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ApprovalTimeoutMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("CleanInitEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("DestroyApprovalThreshold")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("DriftCheckEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("DriftCheckIntervalMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Engine")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OutputRestrictionExemption")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OutputSetDownstreamRestriction")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("StateMigrationApprovalThreshold")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("TriggerPathFilterEnabled")
+                        .HasColumnType("bit");
+
+                    b.HasKey("NamespaceId", "OrganizationId");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("NamespaceResolvedDefaults", (string)null);
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Views.RecursiveDependencyEdge", b =>
                 {
                     b.Property<string>("DefinedDisplayName")
@@ -13705,6 +13761,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Views.NamespaceResolvedDefault", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", null)
+                        .WithMany("ResolvedDefaults")
+                        .HasForeignKey("NamespaceId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleEnvVarFromDefinition", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
@@ -14503,6 +14568,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("ReceivedOutputSetSupplies");
 
                     b.Navigation("ReceivedOutputSupplies");
+
+                    b.Navigation("ResolvedDefaults");
 
                     b.Navigation("RunnerNamespaceSupplies");
 

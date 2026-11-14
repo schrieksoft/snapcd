@@ -108,6 +108,9 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     /// <summary>Default for Modules below this Namespace that do not set their own restriction.</summary>
     public OutputSetDownstreamRestriction? DefaultOutputSetDownstreamRestriction { get; set; }
 
+    /// <summary>Who that restriction does not apply to. Null withholds from every unsupplied consumer.</summary>
+    public OutputRestrictionExemption? DefaultOutputRestrictionExemption { get; set; }
+
     // Stop inheriting a collection from the Namespaces above this one. The same switches a Module
     // has, so a Namespace part way up a tree can start fresh.
 

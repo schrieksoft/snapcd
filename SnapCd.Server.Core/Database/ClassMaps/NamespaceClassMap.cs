@@ -40,6 +40,11 @@ public class NamespaceClassMap : IEntityTypeConfiguration<Namespace>
             .HasMaxLength(50);
 
         entity
+            .Property(d => d.DefaultOutputRestrictionExemption)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
             .Property(p => p.CreatedDateTime)
             .ValueGeneratedOnAdd();
 

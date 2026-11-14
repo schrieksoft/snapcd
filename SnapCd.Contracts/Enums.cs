@@ -118,6 +118,19 @@ public enum OutputSetDownstreamRestriction
     SensitiveOnly
 }
 
+/// <summary>
+/// Who a downstream output restriction does not apply to. Null withholds from every consumer that
+/// has not been supplied the Output, which is the restriction on its own.
+/// </summary>
+public enum OutputRestrictionExemption
+{
+    /// <summary>Modules in the Namespace that carries the restriction.</summary>
+    OwnNamespace,
+
+    /// <summary>Modules in the Namespace that carries the restriction, or in any Namespace below it.</summary>
+    OwnNamespaceAndDescendants
+}
+
 public enum PrincipalDiscriminator
 {
     User,

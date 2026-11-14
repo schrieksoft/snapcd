@@ -33,6 +33,20 @@ namespace SnapCd.Server.Host.Database.Migrations
                 table: "Modules",
                 newName: "IgnoreInheritedExtraFiles");
 
+            migrationBuilder.AddColumn<string>(
+                name: "DefaultOutputRestrictionExemption",
+                table: "Namespaces",
+                type: "nvarchar(50)",
+                maxLength: 50,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "OutputRestrictionExemption",
+                table: "Modules",
+                type: "nvarchar(50)",
+                maxLength: 50,
+                nullable: true);
+
             migrationBuilder.AddColumn<bool>(
                 name: "IgnoreInheritedExtraFiles",
                 table: "Namespaces",
@@ -114,6 +128,14 @@ namespace SnapCd.Server.Host.Database.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropColumn(
+                name: "DefaultOutputRestrictionExemption",
+                table: "Namespaces");
+
+            migrationBuilder.DropColumn(
+                name: "OutputRestrictionExemption",
+                table: "Modules");
+
             migrationBuilder.DropColumn(
                 name: "IgnoreInheritedExtraFiles",
                 table: "Namespaces");

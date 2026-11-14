@@ -29,5 +29,6 @@ public class NamespaceResolvedDefaultClassMap : IEntityTypeConfiguration<Namespa
 
         entity.Property(e => e.Engine).HasConversion<string>();
         entity.Property(e => e.OutputSetDownstreamRestriction).HasConversion<string>();
+        entity.Property(e => e.OutputRestrictionExemption).HasConversion<string>();
     }
 }

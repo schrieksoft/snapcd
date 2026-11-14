@@ -75,14 +75,12 @@ public class ModuleInputFromOutputRepository<TEntity> : GenericModuleChildDefini
     public override async Task<TEntity> ExecuteCreate(TEntity entity)
     {
         ValidateNotSelfReferencing(entity);
-        await ValidateOutputModuleStackScope(entity);
         return await base.ExecuteCreate(entity);
     }
 
     public override async Task<TEntity> ExecuteUpdate(TEntity entity)
     {
         ValidateNotSelfReferencing(entity);
-        await ValidateOutputModuleStackScope(entity);
         return await base.ExecuteUpdate(entity);
     }
 
@@ -102,32 +100,4 @@ public class ModuleInputFromOutputRepository<TEntity> : GenericModuleChildDefini
         if (entity.ModuleId == entity.OutputModuleId) throw new ArgumentException("A module cannot reference its own outputs as inputs");
     }
 
-    private async Task ValidateOutputModuleStackScope(TEntity entity)
-    {
-        // 1. Check if the output module exists
-        var outputModule = await DbContext.Modules
-            .Include(m => m.Namespace)
-            .FirstOrDefaultAsync(m => m.Id == entity.OutputModuleId);
-
-        if (outputModule == null)
-            throw new InvalidStackReferenceException(
-                $"Output module with ID {entity.OutputModuleId} not found.");
-
-        // 2. Get the current module's stack ID
-        var currentModuleStackId = await DbContext.Modules
-            .Where(m => m.Id == entity.ModuleId)
-            .Select(m => m.Namespace.StackId)
-            .FirstOrDefaultAsync();
-
-        if (currentModuleStackId == Guid.Empty)
-            throw new InvalidStackReferenceException(
-                $"Module with ID {entity.ModuleId} not found.");
-
-        // 3. Compare stack IDs
-        if (outputModule.Namespace.StackId != currentModuleStackId)
-            throw new InvalidStackReferenceException(
-                $"Cannot reference output from module in different stack. " +
-                $"Output module belongs to stack {outputModule.Namespace.StackId}, " +
-                $"but current module belongs to stack {currentModuleStackId}.");
-    }
 }

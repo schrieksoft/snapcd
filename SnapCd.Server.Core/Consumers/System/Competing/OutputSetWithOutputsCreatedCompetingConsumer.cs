@@ -11,6 +11,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;
 
@@ -70,7 +71,9 @@ public class OutputSetWithOutputsCreatedCompetingConsumer : IConsumer<OutputSetW
         return _dbContext.Set<TEntity>()
             .Where(x =>
                 x.OutputModuleId == outputModuleId &&
-                x.Module.Namespace.StackId == x.OutputModule.Namespace.StackId &&
+                OutputReadability
+                    .ReadableConsumerIds(_dbContext, outputModuleId, organizationId, null, null)
+                    .Contains(x.ModuleId) &&
                 x.Module.TriggerOnUpstreamOutputChanged &&
                 x.OrganizationId == organizationId
             )
@@ -97,7 +100,9 @@ public class OutputSetWithOutputsCreatedCompetingConsumer : IConsumer<OutputSetW
         return _dbContext.Set<TEntity>()
             .Where(x =>
                 x.OutputModuleId == outputModuleId &&
-                x.Module.Namespace.StackId == x.OutputModule.Namespace.StackId &&
+                OutputReadability
+                    .ReadableConsumerIds(_dbContext, outputModuleId, organizationId, null, null)
+                    .Contains(x.ModuleId) &&
                 x.Module.TriggerOnUpstreamOutputChanged &&
                 x.OrganizationId == organizationId &&
                 createdOrUpdatedOutputs.Contains(x.OutputName)

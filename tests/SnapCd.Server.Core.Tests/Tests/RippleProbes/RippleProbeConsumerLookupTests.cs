@@ -8,6 +8,7 @@
 
 
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Base;
@@ -189,18 +190,45 @@ public class RippleProbeConsumerLookupTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Cross-stack references are filtered out rather than refused. OutputSetParamResolver throws
-    /// on the same condition, because it is resolving inputs for a job that is about to run; this
-    /// only answers which Modules are affected, and one in another stack is not.
+    /// Where a consumer sits no longer decides whether a change reaches it. Only the producer's
+    /// restriction does, so an unrestricted producer reaches a consumer anywhere.
     /// </summary>
     [Fact]
-    public async Task A_consumer_in_another_stack_is_filtered_out()
+    public async Task A_consumer_elsewhere_is_reached_when_nothing_is_withheld()
     {
         await AddParamFromOutput(_otherStackConsumerId, outputName: "vpc_id", variableName: "network_id");
 
         var consumers = await Lookup(["vpc_id"]);
 
-        Assert.Empty(consumers);
+        var consumer = Assert.Single(consumers);
+        Assert.Equal(_otherStackConsumerId, consumer.ModuleId);
+    }
+
+    /// <summary>
+    /// A producer that withholds everything reaches nobody it has not supplied, wherever they sit.
+    /// </summary>
+    [Fact]
+    public async Task A_consumer_elsewhere_is_not_reached_when_the_producer_withholds()
+    {
+        await AddParamFromOutput(_otherStackConsumerId, outputName: "vpc_id", variableName: "network_id");
+        await SetProducerRestriction(OutputSetDownstreamRestriction.All);
+
+        try
+        {
+            Assert.Empty(await Lookup(["vpc_id"]));
+        }
+        finally
+        {
+            await SetProducerRestriction(null);
+        }
+    }
+
+    private async Task SetProducerRestriction(OutputSetDownstreamRestriction? restriction)
+    {
+        await using var db = _fixture.CreateDbContext();
+        await db.Modules
+            .Where(m => m.Id == _producerId)
+            .ExecuteUpdateAsync(x => x.SetProperty(m => m.OutputSetDownstreamRestriction, restriction));
     }
 
     [Fact]

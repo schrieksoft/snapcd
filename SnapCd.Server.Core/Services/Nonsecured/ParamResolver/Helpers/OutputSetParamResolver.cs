@@ -45,55 +45,16 @@ public class OutputSetParamResolver
 
     public async Task<List<ModuleResolvedInput>> ListByModuleInputFromOutputSets(Guid moduleId, Guid organizationId, string engine, bool formatStrings = true)
     {
-        // 1. Validate stack scope - get requesting module's stack
-        var requestingStackId = await ValidateAndGetModuleStackId(moduleId);
 
         // 2. Get all ModuleParamFromOutputSet entities for this module
         var moduleInputFromOutputSets = await GetModuleInputFromOutputSets(moduleId);
 
-        // 3. Validate that all referenced output modules are in the same stack
-        await ValidateOutputModuleStackScope(moduleInputFromOutputSets, requestingStackId);
 
         // 4. Get all outputs from the referenced modules' output sets and create resolved inputs
         return await GetOutputsFromOutputSetsResolved(moduleInputFromOutputSets, moduleId, organizationId, engine, formatStrings);
     }
 
-    private async Task<Guid> ValidateAndGetModuleStackId(Guid moduleId)
-    {
-        var stackId = await _dbContext.Modules
-            .Where(m => m.Id == moduleId)
-            .Select(m => m.Namespace.StackId)
-            .FirstOrDefaultAsync();
 
-        if (stackId == Guid.Empty) throw new InvalidStackReferenceException($"Module with ID {moduleId} not found");
-
-        return stackId;
-    }
-
-    private async Task ValidateOutputModuleStackScope(
-        IEnumerable<IModuleInputFromOutputSet> moduleInputs,
-        Guid requestingStackId)
-    {
-        var outputModuleIds = moduleInputs.Select(mi => mi.OutputModuleId).Distinct().ToList();
-        if (!outputModuleIds.Any()) return;
-
-        var outputModuleStacks = await _dbContext.Modules
-            .Where(m => outputModuleIds.Contains(m.Id))
-            .Select(m => new { ModuleId = m.Id, m.Namespace.StackId })
-            .ToListAsync();
-
-        var crossStackReferences = outputModuleStacks
-            .Where(oms => oms.StackId != requestingStackId)
-            .ToList();
-
-        if (crossStackReferences.Any())
-        {
-            var violatingModules = string.Join(", ", crossStackReferences.Select(r => r.ModuleId));
-            throw new InvalidStackReferenceException(
-                $"Cannot reference output sets from modules in different stacks. " +
-                $"Output modules {violatingModules} are in different stacks.");
-        }
-    }
 
     private async Task<List<IModuleInputFromOutputSet>> GetModuleInputFromOutputSets(Guid moduleId)
     {

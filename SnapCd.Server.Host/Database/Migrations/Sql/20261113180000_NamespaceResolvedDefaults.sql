@@ -39,6 +39,7 @@ WITH Candidates AS
         n.DefaultDriftCheckEnabled,
         n.DefaultDriftCheckIntervalMinutes,
         n.DefaultOutputSetDownstreamRestriction,
+        n.DefaultOutputRestrictionExemption,
         n.RestrictOverrideOnCleanInitEnabled,
         n.RestrictOverrideOnTriggerPathFilterEnabled,
         n.RestrictOverrideOnApplyApprovalThreshold,
@@ -69,6 +70,7 @@ Ranked AS
         DefaultDriftCheckEnabled,
         DefaultDriftCheckIntervalMinutes,
         DefaultOutputSetDownstreamRestriction,
+        DefaultOutputRestrictionExemption,
 
         ROW_NUMBER() OVER (PARTITION BY NamespaceId, OrganizationId
             ORDER BY CASE WHEN DefaultCleanInitEnabled IS NULL THEN 2
@@ -118,7 +120,12 @@ Ranked AS
         ROW_NUMBER() OVER (PARTITION BY NamespaceId, OrganizationId
             ORDER BY CASE WHEN DefaultOutputSetDownstreamRestriction IS NULL THEN 2
                           WHEN RestrictOverrideOnOutputSetDownstreamRestriction = 1 THEN 0 ELSE 1 END,
-                     CASE WHEN RestrictOverrideOnOutputSetDownstreamRestriction = 1 THEN -Depth ELSE Depth END) AS RnRestriction
+                     CASE WHEN RestrictOverrideOnOutputSetDownstreamRestriction = 1 THEN -Depth ELSE Depth END) AS RnRestriction,
+
+        ROW_NUMBER() OVER (PARTITION BY NamespaceId, OrganizationId
+            ORDER BY CASE WHEN DefaultOutputRestrictionExemption IS NULL THEN 2
+                          WHEN RestrictOverrideOnOutputSetDownstreamRestriction = 1 THEN 0 ELSE 1 END,
+                     CASE WHEN RestrictOverrideOnOutputSetDownstreamRestriction = 1 THEN -Depth ELSE Depth END) AS RnExemption
     FROM Candidates
 )
 SELECT
@@ -133,7 +140,8 @@ SELECT
     MAX(CASE WHEN RnEngine           = 1 THEN DefaultEngine END)                          AS Engine,
     CAST(MAX(CASE WHEN RnDrift = 1 THEN CAST(DefaultDriftCheckEnabled AS INT) END) AS BIT)AS DriftCheckEnabled,
     MAX(CASE WHEN RnDriftInterval    = 1 THEN DefaultDriftCheckIntervalMinutes END)       AS DriftCheckIntervalMinutes,
-    MAX(CASE WHEN RnRestriction      = 1 THEN DefaultOutputSetDownstreamRestriction END)  AS OutputSetDownstreamRestriction
+    MAX(CASE WHEN RnRestriction      = 1 THEN DefaultOutputSetDownstreamRestriction END)  AS OutputSetDownstreamRestriction,
+    MAX(CASE WHEN RnExemption        = 1 THEN DefaultOutputRestrictionExemption END)      AS OutputRestrictionExemption
 FROM Ranked
 GROUP BY NamespaceId, OrganizationId;
 GO

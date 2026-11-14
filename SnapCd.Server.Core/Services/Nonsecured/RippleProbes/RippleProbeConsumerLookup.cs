@@ -8,6 +8,7 @@
 
 
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Services.Utils.RippleProbes;
@@ -76,12 +77,28 @@ public class RippleProbeConsumerLookup : IDisposable
             .Where(x =>
                 x.OutputModuleId == outputModuleId &&
                 x.OrganizationId == organizationId &&
-                x.Module.Namespace.StackId == x.OutputModule.Namespace.StackId &&
                 changedOutputNames.Contains(x.OutputName))
             .Select(x => new { x.ModuleId, x.OutputName, VariableName = x.Name })
             .ToListAsync();
 
-        return rows.Select(r => (r.ModuleId, r.OutputName, r.VariableName)).ToList();
+        if (rows.Count == 0) return [];
+
+        // A consumer the producer withholds from is not affected by the change. Resolved in one
+        // query over the candidates rather than per row, which EF cannot translate.
+        var readable = (await OutputReadability
+            .ReadableConsumerIds(
+                _dbContext,
+                outputModuleId,
+                organizationId,
+                rows.Select(r => r.ModuleId).Distinct().ToList(),
+                null)
+            .ToListAsync())
+            .ToHashSet();
+
+        return rows
+            .Where(r => readable.Contains(r.ModuleId))
+            .Select(r => (r.ModuleId, r.OutputName, r.VariableName))
+            .ToList();
     }
 
     /// <summary>
@@ -95,13 +112,15 @@ public class RippleProbeConsumerLookup : IDisposable
         Guid organizationId,
         List<string> changedOutputNames)
     {
-        var moduleIds = await _dbContext.ModuleParamFromOutputSets
-            .Where(x =>
-                x.OutputModuleId == outputModuleId &&
-                x.OrganizationId == organizationId &&
-                x.Module.Namespace.StackId == x.OutputModule.Namespace.StackId)
+        var candidates = await _dbContext.ModuleParamFromOutputSets
+            .Where(x => x.OutputModuleId == outputModuleId && x.OrganizationId == organizationId)
             .Select(x => x.ModuleId)
             .Distinct()
+            .ToListAsync();
+
+        // Only the consumers that may read something of this producer's at all.
+        var moduleIds = await OutputReadability
+            .ReadableConsumerIds(_dbContext, outputModuleId, organizationId, candidates, null)
             .ToListAsync();
 
         var edges = new List<(Guid, string)>();

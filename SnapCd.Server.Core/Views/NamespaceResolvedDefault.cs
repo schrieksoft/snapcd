@@ -29,4 +29,5 @@ public class NamespaceResolvedDefault
     public bool? DriftCheckEnabled { get; set; }
     public int? DriftCheckIntervalMinutes { get; set; }
     public OutputSetDownstreamRestriction? OutputSetDownstreamRestriction { get; set; }
+    public OutputRestrictionExemption? OutputRestrictionExemption { get; set; }
 }

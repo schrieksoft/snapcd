@@ -87,6 +87,11 @@ public class ModuleClassMap : IEntityTypeConfiguration<Module>
             .HasMaxLength(50);
 
         entity
+            .Property(d => d.OutputRestrictionExemption)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
             .Property(d => d.WaitForApplyDependencies)
             .HasConversion<string>()
             .HasMaxLength(50);

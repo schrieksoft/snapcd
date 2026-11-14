@@ -53,12 +53,196 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
         await AddSecretOutput(_outputSetId, "db_password");
 
         await ClearSuppliesFromProducer();
+
+        // The exemption, the inherited restriction and the parent link are shared fixture state,
+        // so a row left by another test here would decide an assertion for the wrong reason.
+        await SetExemption(null);
+        await SetNamespaceRestriction(_fixture.Namespaces["000"].Id, null, null);
+        await Reparent(_fixture.Namespaces["001"].Id, null);
     }
 
     /// <summary>
     /// A supply overrides every restriction, so a row left behind by another test class reading
     /// from this producer makes every restriction assertion here pass for the wrong reason.
     /// </summary>
+
+    // ----- The exemption: who a restriction does not apply to -----
+
+    [Fact]
+    public async Task An_exemption_for_the_own_namespace_lets_a_module_in_it_read()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await SetExemption(OutputRestrictionExemption.OwnNamespace);
+
+        // The consumer shares the producer's Namespace.
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
+
+        Assert.Equal(2, readable.Count);
+    }
+
+    [Fact]
+    public async Task An_exemption_for_the_own_namespace_still_withholds_from_another_namespace()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await SetExemption(OutputRestrictionExemption.OwnNamespace);
+
+        var outsider = _fixture.Modules["0010"].Id;
+
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), outsider, _organizationId);
+
+        Assert.Empty(readable);
+    }
+
+    [Fact]
+    public async Task An_exemption_for_descendants_reaches_a_module_in_a_child_namespace()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await SetExemption(OutputRestrictionExemption.OwnNamespaceAndDescendants);
+
+        var child = _fixture.Namespaces["001"];
+        var outsider = _fixture.Modules["0010"].Id;
+
+        await Reparent(child.Id, _fixture.Namespaces["000"].Id);
+
+        try
+        {
+            var readable = await Checker().FilterReadable(await ProducerOutputs(), outsider, _organizationId);
+
+            Assert.Equal(2, readable.Count);
+        }
+        finally
+        {
+            await Reparent(child.Id, null);
+        }
+    }
+
+    [Fact]
+    public async Task An_exemption_for_the_own_namespace_alone_does_not_reach_a_child_namespace()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await SetExemption(OutputRestrictionExemption.OwnNamespace);
+
+        var child = _fixture.Namespaces["001"];
+        var outsider = _fixture.Modules["0010"].Id;
+
+        await Reparent(child.Id, _fixture.Namespaces["000"].Id);
+
+        try
+        {
+            var readable = await Checker().FilterReadable(await ProducerOutputs(), outsider, _organizationId);
+
+            Assert.Empty(readable);
+        }
+        finally
+        {
+            await Reparent(child.Id, null);
+        }
+    }
+
+    [Fact]
+    public async Task No_exemption_withholds_even_from_the_own_namespace()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await SetExemption(null);
+
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
+
+        Assert.Empty(readable);
+    }
+
+    [Fact]
+    public async Task An_exemption_refuses_a_named_read_from_outside_and_allows_one_from_inside()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await SetExemption(OutputRestrictionExemption.OwnNamespace);
+
+        await Checker().EnsureReadable(_consumerId, [(_producerId, "vpc_id")], _organizationId);
+
+        var outsider = _fixture.Modules["0010"].Id;
+
+        await Assert.ThrowsAsync<OutputRestrictedException>(
+            () => Checker().EnsureReadable(outsider, [(_producerId, "vpc_id")], _organizationId));
+    }
+
+    // ----- The restriction inherited from a Namespace rather than set on the Module -----
+
+    [Fact]
+    public async Task A_restriction_set_on_the_namespace_withholds_from_outside_it()
+    {
+        await SetRestriction(null);
+        await SetNamespaceRestriction(_fixture.Namespaces["000"].Id,
+            OutputSetDownstreamRestriction.All, OutputRestrictionExemption.OwnNamespace);
+
+        try
+        {
+            var outsider = _fixture.Modules["0010"].Id;
+
+            var readable = await Checker().FilterReadable(await ProducerOutputs(), outsider, _organizationId);
+
+            Assert.Empty(readable);
+        }
+        finally
+        {
+            await SetNamespaceRestriction(_fixture.Namespaces["000"].Id, null, null);
+        }
+    }
+
+    [Fact]
+    public async Task A_restriction_on_the_module_wins_over_the_one_it_inherits()
+    {
+        // The Namespace withholds everything; the Module itself withholds nothing.
+        await SetRestriction(null);
+        await SetNamespaceRestriction(_fixture.Namespaces["000"].Id, OutputSetDownstreamRestriction.All, null);
+
+        try
+        {
+            var outsider = _fixture.Modules["0010"].Id;
+
+            Assert.Empty(await Checker().FilterReadable(await ProducerOutputs(), outsider, _organizationId));
+
+            await SetRestriction(OutputSetDownstreamRestriction.SensitiveOnly);
+
+            // SensitiveOnly on the Module replaces All from the Namespace, so the literal passes.
+            var readable = await Checker().FilterReadable(await ProducerOutputs(), outsider, _organizationId);
+
+            Assert.Single(readable);
+            Assert.Equal("vpc_id", readable[0].Name);
+        }
+        finally
+        {
+            await SetNamespaceRestriction(_fixture.Namespaces["000"].Id, null, null);
+        }
+    }
+
+    private async Task SetExemption(OutputRestrictionExemption? exemption)
+    {
+        await using var db = _fixture.CreateDbContext();
+        await db.Modules
+            .Where(m => m.Id == _producerId)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.OutputRestrictionExemption, exemption));
+    }
+
+    private async Task SetNamespaceRestriction(
+        Guid namespaceId,
+        OutputSetDownstreamRestriction? restriction,
+        OutputRestrictionExemption? exemption)
+    {
+        await using var db = _fixture.CreateDbContext();
+        await db.Namespaces
+            .Where(n => n.Id == namespaceId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(n => n.DefaultOutputSetDownstreamRestriction, restriction)
+                .SetProperty(n => n.DefaultOutputRestrictionExemption, exemption));
+    }
+
+    private async Task Reparent(Guid namespaceId, Guid? parentId)
+    {
+        await using var db = _fixture.CreateDbContext();
+        await db.Namespaces
+            .Where(n => n.Id == namespaceId)
+            .ExecuteUpdateAsync(s => s.SetProperty(n => n.ParentNamespaceId, parentId));
+    }
+
     private async Task ClearSuppliesFromProducer()
     {
         await using var db = _fixture.CreateDbContext();

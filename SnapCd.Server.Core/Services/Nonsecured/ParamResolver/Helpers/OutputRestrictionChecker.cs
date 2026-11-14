@@ -5,7 +5,6 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
-
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
@@ -16,9 +15,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 namespace SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 
 /// <summary>
-/// Decides which of a producing Module's Outputs a consuming Module may read. A Module restricts its whole
-/// Output Set through <see cref="Module.OutputSetDownstreamRestriction"/>, or individual Outputs by name
-/// through <see cref="ModuleOutputDownstreamRestriction"/>.
+/// Decides which of a producing Module's Outputs a consuming Module may read. Both entry points ask
+/// <see cref="OutputReadability"/>, so a restriction, an exemption and a supply are weighed in one
+/// query and the two cannot disagree.
 /// </summary>
 public class OutputRestrictionChecker
 {
@@ -41,21 +40,16 @@ public class OutputRestrictionChecker
     {
         if (outputs.Count == 0) return outputs;
 
-        var producerByOutputSet = await ProducerByOutputSet(outputs, organizationId);
-        if (producerByOutputSet.Count == 0) return outputs;
+        var ids = outputs.Select(o => o.Id).ToList();
 
-        var producerIds = producerByOutputSet.Values.Select(p => p.Id).Distinct().ToList();
-        var namedRestrictions = await NamedRestrictions(producerIds, organizationId);
-        var suppliedBy = await ProducersSupplyingOutputSetTo(consumingModuleId, producerIds, organizationId);
-        var suppliedOutputs = await OutputsSuppliedTo(consumingModuleId, producerIds, organizationId);
+        var readable = (await OutputReadability
+            .Readable(_dbContext, consumingModuleId, organizationId)
+            .Where(o => ids.Contains(o.Id))
+            .Select(o => o.Id)
+            .ToListAsync())
+            .ToHashSet();
 
-        return outputs.Where(o =>
-        {
-            if (!producerByOutputSet.TryGetValue(o.OutputSetId, out var producer)) return true;
-            if (suppliedBy.Contains(producer.Id)) return true;
-            if (suppliedOutputs.Contains((producer.Id, o.Name))) return true;
-            return !IsWithheld(producer, o, namedRestrictions);
-        }).ToList();
+        return outputs.Where(o => readable.Contains(o.Id)).ToList();
     }
 
     /// <summary>
@@ -71,180 +65,81 @@ public class OutputRestrictionChecker
 
         var producerIds = requested.Select(r => r.ProducerModuleId).Distinct().ToList();
 
-        var producers = await _dbContext.Modules
-            .Where(m => producerIds.Contains(m.Id) && m.OrganizationId == organizationId)
-            .Select(m => new ProducerRestriction(m.Id, m.Name, m.Namespace.Name, m.OutputSetDownstreamRestriction))
+        // Readable, and every Output that exists at all: an Output nobody has produced is not
+        // withheld, it is simply absent, and the caller finds that out as a missing variable.
+        var rows = await _dbContext.Set<Output>()
+            .Where(o => o.OrganizationId == organizationId && producerIds.Contains(o.OutputSet.ModuleId))
+            .Select(o => new { ProducerId = o.OutputSet.ModuleId, o.Name })
             .ToListAsync();
 
-        var namedRestrictions = await NamedRestrictions(producerIds, organizationId);
+        var exists = rows.Select(o => (o.ProducerId, o.Name)).ToHashSet();
 
-        var sensitiveNames = await SensitiveOutputNames(producerIds, organizationId);
+        var readable = (await OutputReadability
+            .Readable(_dbContext, consumingModuleId, organizationId)
+            .Where(o => producerIds.Contains(o.OutputSet.ModuleId))
+            .Select(o => new { ProducerId = o.OutputSet.ModuleId, o.Name })
+            .ToListAsync())
+            .Select(o => (o.ProducerId, o.Name))
+            .ToHashSet();
 
-        var suppliedBy = await ProducersSupplyingOutputSetTo(consumingModuleId, producerIds, organizationId);
+        var refused = requested
+            .Where(r => exists.Contains((r.ProducerModuleId, r.OutputName))
+                        && !readable.Contains((r.ProducerModuleId, r.OutputName)))
+            .ToList();
 
-        var suppliedOutputs = await OutputsSuppliedTo(consumingModuleId, producerIds, organizationId);
+        if (refused.Count == 0) return;
 
-        var refusals = new List<string>();
+        var refusedIds = refused.Select(r => r.ProducerModuleId).Distinct().ToList();
 
-        foreach (var (producerModuleId, outputName) in requested)
-        {
-            var producer = producers.FirstOrDefault(p => p.Id == producerModuleId);
-            if (producer == null) continue;
-            if (suppliedBy.Contains(producerModuleId)) continue;
-            if (suppliedOutputs.Contains((producerModuleId, outputName))) continue;
+        // Carries the effective rule as well as the name, so the message can say why without
+        // asking again per refusal.
+        var producers = await _dbContext.Modules
+            .Where(m => refusedIds.Contains(m.Id) && m.OrganizationId == organizationId)
+            .Select(m => new
+            {
+                m.Id,
+                m.Name,
+                NamespaceName = m.Namespace.Name,
+                Restriction = m.OutputSetDownstreamRestriction
+                    ?? m.Namespace.ResolvedDefaults
+                        .Where(d => d.OrganizationId == m.OrganizationId)
+                        .Select(d => d.OutputSetDownstreamRestriction)
+                        .FirstOrDefault()
+            })
+            .ToListAsync();
 
-            var isSensitive = sensitiveNames.TryGetValue(producerModuleId, out var secrets) && secrets.Contains(outputName);
-            var reason = WithholdingReason(producer, outputName, isSensitive, namedRestrictions);
-
-            if (reason != null)
-                refusals.Add($"\"{outputName}\" from Module \"{producer.Name}\"{Located(producer)}, which {reason}.");
-        }
-
-        if (refusals.Count == 0) return;
+        var sensitive = (await _dbContext.Set<SecretOutput>()
+            .Where(o => o.OrganizationId == organizationId && refusedIds.Contains(o.OutputSet.ModuleId))
+            .Select(o => new { ProducerId = o.OutputSet.ModuleId, o.Name })
+            .ToListAsync())
+            .Select(o => (o.ProducerId, o.Name))
+            .ToHashSet();
 
         var consumerName = await _dbContext.Modules
             .Where(m => m.Id == consumingModuleId)
             .Select(m => m.Name)
             .FirstOrDefaultAsync() ?? consumingModuleId.ToString();
 
-        var list = string.Join("\n", refusals.Select(r => $"- {r}"));
+        var refusals = refused.Select(r =>
+        {
+            var producer = producers.FirstOrDefault(p => p.Id == r.ProducerModuleId);
+
+            if (producer == null) return $"- \"{r.OutputName}\" from Module {r.ProducerModuleId}.";
+
+            var reason = producer.Restriction switch
+            {
+                OutputSetDownstreamRestriction.All => "withholds all its Outputs",
+                OutputSetDownstreamRestriction.SensitiveOnly
+                    when sensitive.Contains((r.ProducerModuleId, r.OutputName)) => "withholds its sensitive Outputs",
+                _ => "withholds that Output"
+            };
+
+            return $"- \"{r.OutputName}\" from Module \"{producer.Name}\" in Namespace " +
+                   $"\"{producer.NamespaceName}\", which {reason}.";
+        });
 
         throw new OutputRestrictedException(
-            $"Module \"{consumerName}\" cannot read:\n{list}\n" +
+            $"Module \"{consumerName}\" cannot read:\n{string.Join("\n", refusals)}\n" +
             "Supply the mentioned Outputs (or full OutputSets) to this Module or its Namespace to allow it.");
     }
-
-    private async Task<Dictionary<Guid, ProducerRestriction>> ProducerByOutputSet(List<Output> outputs, Guid organizationId)
-    {
-        var outputSetIds = outputs.Select(o => o.OutputSetId).Distinct().ToList();
-
-        var rows = await _dbContext.OutputSets
-            .Where(os => outputSetIds.Contains(os.Id) && os.OrganizationId == organizationId)
-            .Select(os => new
-            {
-                os.Id,
-                Producer = new ProducerRestriction(os.Module.Id, os.Module.Name, os.Module.Namespace.Name, os.Module.OutputSetDownstreamRestriction)
-            })
-            .ToListAsync();
-
-        return rows.ToDictionary(r => r.Id, r => r.Producer);
-    }
-
-    /// <summary>
-    /// The producers that have supplied their whole Output Set to this Module, directly or through
-    /// its Namespace. A supply overrides every restriction the producer has set.
-    /// </summary>
-    private async Task<HashSet<Guid>> ProducersSupplyingOutputSetTo(
-        Guid consumingModuleId,
-        List<Guid> producerIds,
-        Guid organizationId)
-    {
-        var toModule = await _dbContext.OutputSetModuleSupplies
-            .Where(s => s.OrganizationId == organizationId
-                        && s.ConsumingModuleId == consumingModuleId
-                        && producerIds.Contains(s.ModuleId))
-            .Select(s => s.ModuleId)
-            .ToListAsync();
-
-        var consumingNamespaceId = await ConsumingNamespaceId(consumingModuleId, organizationId);
-
-        var toNamespace = consumingNamespaceId == Guid.Empty
-            ? []
-            : await _dbContext.OutputSetNamespaceSupplies
-                .Where(s => s.OrganizationId == organizationId
-                            && s.ConsumingNamespaceId == consumingNamespaceId
-                            && producerIds.Contains(s.ModuleId))
-                .Select(s => s.ModuleId)
-                .ToListAsync();
-
-        return toModule.Concat(toNamespace).ToHashSet();
-    }
-
-    /// <summary>
-    /// The individual Outputs supplied to this Module, directly or through its Namespace, as
-    /// (producer, output name) pairs. A supply overrides every restriction on that Output.
-    /// </summary>
-    private async Task<HashSet<(Guid, string)>> OutputsSuppliedTo(
-        Guid consumingModuleId,
-        List<Guid> producerIds,
-        Guid organizationId)
-    {
-        var toModule = await _dbContext.OutputModuleSupplies
-            .Where(s => s.OrganizationId == organizationId
-                        && s.ConsumingModuleId == consumingModuleId
-                        && producerIds.Contains(s.ModuleId))
-            .Select(s => new { s.ModuleId, s.OutputName })
-            .ToListAsync();
-
-        var consumingNamespaceId = await ConsumingNamespaceId(consumingModuleId, organizationId);
-
-        var toNamespace = consumingNamespaceId == Guid.Empty
-            ? []
-            : await _dbContext.OutputNamespaceSupplies
-                .Where(s => s.OrganizationId == organizationId
-                            && s.ConsumingNamespaceId == consumingNamespaceId
-                            && producerIds.Contains(s.ModuleId))
-                .Select(s => new { s.ModuleId, s.OutputName })
-                .ToListAsync();
-
-        return toModule.Concat(toNamespace).Select(x => (x.ModuleId, x.OutputName)).ToHashSet();
-    }
-
-    private async Task<Guid> ConsumingNamespaceId(Guid consumingModuleId, Guid organizationId)
-        => await _dbContext.Modules
-            .Where(m => m.Id == consumingModuleId && m.OrganizationId == organizationId)
-            .Select(m => m.NamespaceId)
-            .FirstOrDefaultAsync();
-
-    private async Task<Dictionary<Guid, HashSet<string>>> NamedRestrictions(IEnumerable<Guid> producerIds, Guid organizationId)
-    {
-        var ids = producerIds.Distinct().ToList();
-
-        var rows = await _dbContext.ModuleOutputDownstreamRestrictions
-            .Where(r => ids.Contains(r.ModuleId) && r.OrganizationId == organizationId)
-            .Select(r => new { r.ModuleId, r.OutputName })
-            .ToListAsync();
-
-        return rows
-            .GroupBy(r => r.ModuleId)
-            .ToDictionary(g => g.Key, g => g.Select(r => r.OutputName).ToHashSet());
-    }
-
-    private async Task<Dictionary<Guid, HashSet<string>>> SensitiveOutputNames(List<Guid> producerIds, Guid organizationId)
-    {
-        var rows = await _dbContext.Set<SecretOutput>()
-            .Where(o => o.OrganizationId == organizationId && producerIds.Contains(o.OutputSet.ModuleId))
-            .Select(o => new { o.OutputSet.ModuleId, o.Name })
-            .ToListAsync();
-
-        return rows
-            .GroupBy(r => r.ModuleId)
-            .ToDictionary(g => g.Key, g => g.Select(r => r.Name).ToHashSet());
-    }
-
-    private static bool IsWithheld(ProducerRestriction producer, Output output, Dictionary<Guid, HashSet<string>> namedRestrictions)
-        => WithholdingReason(producer, output.Name, output is SecretOutput, namedRestrictions) != null;
-
-    private static string? WithholdingReason(
-        ProducerRestriction producer,
-        string outputName,
-        bool isSensitive,
-        Dictionary<Guid, HashSet<string>> namedRestrictions)
-    {
-        if (producer.Restriction == OutputSetDownstreamRestriction.All)
-            return "withholds all its Outputs";
-
-        if (producer.Restriction == OutputSetDownstreamRestriction.SensitiveOnly && isSensitive)
-            return "withholds its sensitive Outputs";
-
-        if (namedRestrictions.TryGetValue(producer.Id, out var names) && names.Contains(outputName))
-            return "withholds that Output";
-
-        return null;
-    }
-
-    private static string Located(ProducerRestriction producer) =>
-        string.IsNullOrEmpty(producer.NamespaceName) ? "" : $" (in Namespace \"{producer.NamespaceName}\")";
-
-    private record ProducerRestriction(Guid Id, string Name, string? NamespaceName, OutputSetDownstreamRestriction? Restriction);
 }
