@@ -240,9 +240,9 @@ public class ResolvedConfigurationService : IDisposable
             InitAfterHook = ResolveHook(HookTask.Init, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
             IgnoreInheritedExtraFiles = module.IgnoreInheritedExtraFiles,
 
-            CleanInitEnabled = module.CleanInitEnabled ?? Inherited(chain, n => n.DefaultCleanInitEnabled, n => n.RestrictOverrideOnCleanInitEnabled) ?? false,
-            DriftCheckEnabled = module.DriftCheckEnabled ?? Inherited(chain, n => n.DefaultDriftCheckEnabled, n => n.RestrictOverrideOnDriftCheckEnabled) ?? false,
-            DriftCheckIntervalMinutes = module.DriftCheckIntervalMinutes ?? Inherited(chain, n => n.DefaultDriftCheckIntervalMinutes, n => n.RestrictOverrideOnDriftCheckIntervalMinutes),
+            CleanInitEnabled = module.CleanInitEnabled ?? Inherited(chain, n => n.DefaultCleanInitEnabled, n => n.OverrideOnCleanInitEnabled, v => v ? 1 : 0) ?? false,
+            DriftCheckEnabled = module.DriftCheckEnabled ?? Inherited(chain, n => n.DefaultDriftCheckEnabled, n => n.OverrideOnDriftCheckEnabled, v => v ? 1 : 0) ?? false,
+            DriftCheckIntervalMinutes = module.DriftCheckIntervalMinutes ?? Inherited(chain, n => n.DefaultDriftCheckIntervalMinutes, n => n.OverrideOnDriftCheckIntervalMinutes),
             PlanBeforeHook = ResolveHook(HookTask.Plan, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
             PlanAfterHook = ResolveHook(HookTask.Plan, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
             PlanDestroyBeforeHook = ResolveHook(HookTask.PlanDestroy, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
@@ -258,9 +258,9 @@ public class ResolvedConfigurationService : IDisposable
             SourceRevision = module.SourceRevision,
             SourceUrl = module.SourceUrl,
 
-            ApprovalTimeoutMinutes = module.ApprovalTimeoutMinutes ?? Inherited(chain, n => n.DefaultApprovalTimeoutMinutes, n => n.RestrictOverrideOnApprovalTimeoutMinutes),
+            ApprovalTimeoutMinutes = module.ApprovalTimeoutMinutes ?? Inherited(chain, n => n.DefaultApprovalTimeoutMinutes, n => n.OverrideOnApprovalTimeoutMinutes),
 
-            Engine = GetEngineString(module.Engine, Inherited(chain, n => n.DefaultEngine, n => n.RestrictOverrideOnEngine)),
+            Engine = GetEngineString(module.Engine, Inherited(chain, n => n.DefaultEngine, n => n.OverrideOnEngine)),
             PulumiFlags = module.IgnoreInheritedFlags
                 ? module.PulumiFlags.Select(f => new PulumiFlagEntry { Task = f.Task, Flag = f.Flag, Value = f.Value }).ToList()
                 : MergePulumiFlags(flagChain.SelectMany(ns => ns.PulumiFlags).ToList(), module.PulumiFlags),
@@ -341,16 +341,16 @@ public class ResolvedConfigurationService : IDisposable
     }
 
     /// <summary>
-    /// The value the chain supplies for one setting: the nearest Namespace that sets it, unless a
-    /// Namespace further up pins it, in which case the pinning one wins.
+    /// The value the chain supplies for one setting, where an override is either allowed or not.
+    /// The nearest Namespace that sets it wins, unless one further up forbids an override.
     /// </summary>
     /// <param name="chain">Namespaces nearest first.</param>
     /// <param name="value">The setting on a Namespace.</param>
-    /// <param name="pinned">Whether that Namespace refuses an override below it.</param>
+    /// <param name="policy">Whether that Namespace forbids an override below it.</param>
     private static T? Inherited<T>(
         List<Namespace> chain,
         Func<Namespace, T?> value,
-        Func<Namespace, bool?> pinned)
+        Func<Namespace, OverridePolicy?> policy)
         where T : struct
     {
         T? nearest = null;
@@ -359,8 +359,48 @@ public class ResolvedConfigurationService : IDisposable
         {
             nearest ??= value(ns);
 
-            // Furthest pin wins, so keep walking rather than stopping at the first one.
-            if (pinned(ns) == true && value(ns) is { } enforced) nearest = enforced;
+            // Furthest refusal wins, so keep walking rather than stopping at the first one.
+            if (policy(ns) == OverridePolicy.Forbidden && value(ns) is { } enforced) nearest = enforced;
+        }
+
+        return nearest;
+    }
+
+    /// <summary>
+    /// The same, for a setting whose values order from permissive to strict. An ancestor may forbid
+    /// an override outright, or allow only one that is at least as strict as its own value.
+    /// </summary>
+    /// <param name="chain">Namespaces nearest first.</param>
+    /// <param name="value">The setting on a Namespace.</param>
+    /// <param name="policy">What that Namespace allows an override below it to do.</param>
+    /// <param name="strictness">Higher is stricter. Values that compare equal are interchangeable.</param>
+    private static T? Inherited<T>(
+        List<Namespace> chain,
+        Func<Namespace, T?> value,
+        Func<Namespace, OrderedOverridePolicy?> policy,
+        Func<T, int> strictness)
+        where T : struct
+    {
+        T? nearest = null;
+
+        foreach (var ns in chain)
+        {
+            nearest ??= value(ns);
+
+            if (value(ns) is not { } own) continue;
+
+            switch (policy(ns))
+            {
+                case OrderedOverridePolicy.Forbidden:
+                    nearest = own;
+                    break;
+
+                // A nearer value stands only where it does not loosen what this Namespace set.
+                case OrderedOverridePolicy.OnlyStricter
+                    when nearest is { } below && strictness(below) < strictness(own):
+                    nearest = own;
+                    break;
+            }
         }
 
         return nearest;
@@ -611,7 +651,7 @@ public class ResolvedConfigurationService : IDisposable
 
     private List<ResolvedPolicy> ResolvePolicies(Module module, List<Namespace> chain)
     {
-        var engine = module.Engine ?? Inherited(chain, n => n.DefaultEngine, n => n.RestrictOverrideOnEngine) ?? StateManagementEngine.OpenTofu;
+        var engine = module.Engine ?? Inherited(chain, n => n.DefaultEngine, n => n.OverrideOnEngine) ?? StateManagementEngine.OpenTofu;
 
         // Policies accumulate rather than override, so a Namespace that ignores its ancestors
         // truncates what is collected.

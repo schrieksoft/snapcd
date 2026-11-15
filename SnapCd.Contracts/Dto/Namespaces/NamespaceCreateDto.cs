@@ -27,6 +27,9 @@ public class NamespaceCreateDto
     /// <summary>What Modules below this Namespace give to consumers outside it. Must be 'All' or 'SensitiveOnly'. Unset places no restriction.</summary>
     public OutputSetDownstreamRestriction? DefaultOutputSetDownstreamRestriction { get; set; }
 
+    /// <summary>Who the downstream restriction does not apply to. 'OwnNamespace' exempts consumers in this Namespace, 'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Unset takes the value from the Namespaces above it.</summary>
+    public OutputRestrictionExemption? DefaultOutputRestrictionExemption { get; set; }
+
     /// <summary>If this is set to true, any Extra Files inherited from the Namespaces above this one will not be used.</summary>
     public bool IgnoreInheritedExtraFiles { get; set; }
     /// <summary>If this is set to true, any Flags inherited from the Namespaces above this one will not be used.</summary>
@@ -42,26 +45,28 @@ public class NamespaceCreateDto
     /// <summary>If this is set to true, any Additional Trigger Paths inherited from the Namespaces above this one will not apply.</summary>
     public bool IgnoreInheritedTriggerPaths { get; set; }
 
-    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own clean-init setting; this Namespace's value is used throughout its subtree.</summary>
-    public bool? RestrictOverrideOnCleanInitEnabled { get; set; }
-    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own path-scoped triggering setting; this Namespace's value is used throughout its subtree.</summary>
-    public bool? RestrictOverrideOnTriggerPathFilterEnabled { get; set; }
-    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own 'Apply' approval threshold; this Namespace's value is used throughout its subtree.</summary>
-    public bool? RestrictOverrideOnApplyApprovalThreshold { get; set; }
-    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own 'Destroy' approval threshold; this Namespace's value is used throughout its subtree.</summary>
-    public bool? RestrictOverrideOnDestroyApprovalThreshold { get; set; }
-    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own state migration approval threshold; this Namespace's value is used throughout its subtree.</summary>
-    public bool? RestrictOverrideOnStateMigrationApprovalThreshold { get; set; }
-    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own approval timeout; this Namespace's value is used throughout its subtree.</summary>
-    public bool? RestrictOverrideOnApprovalTimeoutMinutes { get; set; }
-    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own engine; this Namespace's value is used throughout its subtree.</summary>
-    public bool? RestrictOverrideOnEngine { get; set; }
-    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own drift check setting; this Namespace's value is used throughout its subtree.</summary>
-    public bool? RestrictOverrideOnDriftCheckEnabled { get; set; }
-    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own drift check interval; this Namespace's value is used throughout its subtree.</summary>
-    public bool? RestrictOverrideOnDriftCheckIntervalMinutes { get; set; }
-    /// <summary>If this is set to true, a Namespace or Module below this one cannot set its own downstream output restriction; this Namespace's value is used throughout its subtree.</summary>
-    public bool? RestrictOverrideOnOutputSetDownstreamRestriction { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own clean-init setting. 'Forbidden' uses this Namespace's value throughout its subtree.</summary>
+    public OrderedOverridePolicy? OverrideOnCleanInitEnabled { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own path-scoped triggering setting. 'Forbidden' uses this Namespace's value throughout its subtree.</summary>
+    public OrderedOverridePolicy? OverrideOnTriggerPathFilterEnabled { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own 'Apply' approval threshold. 'Forbidden' uses this Namespace's value throughout its subtree.</summary>
+    public OrderedOverridePolicy? OverrideOnApplyApprovalThreshold { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own 'Destroy' approval threshold. 'Forbidden' uses this Namespace's value throughout its subtree.</summary>
+    public OrderedOverridePolicy? OverrideOnDestroyApprovalThreshold { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own state migration approval threshold. 'Forbidden' uses this Namespace's value throughout its subtree.</summary>
+    public OrderedOverridePolicy? OverrideOnStateMigrationApprovalThreshold { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own approval timeout. 'Forbidden' uses this Namespace's value throughout its subtree.</summary>
+    public OverridePolicy? OverrideOnApprovalTimeoutMinutes { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own engine. 'Forbidden' uses this Namespace's value throughout its subtree.</summary>
+    public OverridePolicy? OverrideOnEngine { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own drift check setting. 'Forbidden' uses this Namespace's value throughout its subtree.</summary>
+    public OrderedOverridePolicy? OverrideOnDriftCheckEnabled { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own drift check interval. 'Forbidden' uses this Namespace's value throughout its subtree.</summary>
+    public OverridePolicy? OverrideOnDriftCheckIntervalMinutes { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own downstream output restriction. 'Forbidden' uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that withholds more.</summary>
+    public OrderedOverridePolicy? OverrideOnOutputSetDownstreamRestriction { get; set; }
+    /// <summary>Whether a Namespace or Module below this one may set its own output restriction exemption. 'Forbidden' uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that exempts fewer consumers.</summary>
+    public OrderedOverridePolicy? OverrideOnOutputRestrictionExemption { get; set; }
 
     /// <summary>Setting will remove all .terraform* files and folders (state files, locks, downloaded providers, downloaded modules etc.) and perform a clean init every time the Module is executed. All modules in this Namespace will use this value, unless explicitly overriden on the Module itself.</summary>
     public bool? DefaultCleanInitEnabled { get; set; }

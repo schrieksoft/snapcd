@@ -28,6 +28,7 @@ public static class ModuleMapper
             SourceType = dto.SourceType,
             SourceRevisionType = dto.SourceRevisionType,
             OutputSetDownstreamRestriction = dto.OutputSetDownstreamRestriction,
+            OutputRestrictionExemption = dto.OutputRestrictionExemption,
             RunnerId = dto.RunnerId,
             RunnerInstanceName = dto.RunnerInstanceName,
             IgnoreInheritedExtraFiles = dto.IgnoreInheritedExtraFiles,
@@ -64,6 +65,7 @@ public static class ModuleMapper
             SourceType = entity.SourceType,
             SourceRevisionType = entity.SourceRevisionType,
             OutputSetDownstreamRestriction = entity.OutputSetDownstreamRestriction,
+            OutputRestrictionExemption = entity.OutputRestrictionExemption,
             RunnerId = entity.RunnerId,
             RunnerInstanceName = entity.RunnerInstanceName,
             IgnoreInheritedExtraFiles = entity.IgnoreInheritedExtraFiles,
@@ -108,6 +110,7 @@ public static class ModuleMapper
         entity.SourceType = dto.SourceType;
         entity.SourceRevisionType = dto.SourceRevisionType;
         entity.OutputSetDownstreamRestriction = dto.OutputSetDownstreamRestriction;
+        entity.OutputRestrictionExemption = dto.OutputRestrictionExemption;
         entity.RunnerId = dto.RunnerId;
         entity.RunnerInstanceName = dto.RunnerInstanceName;
         entity.IgnoreInheritedExtraFiles = dto.IgnoreInheritedExtraFiles;

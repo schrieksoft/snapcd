@@ -8,6 +8,7 @@
 
 using System.Security.Cryptography;
 using System.Text;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Services.Utils;
@@ -87,9 +88,15 @@ public static class TriggerPathClosure
         {
             nearest ??= ns.DefaultTriggerPathFilterEnabled;
 
-            // Furthest pin wins, matching how the other inherited defaults resolve.
-            if (ns.RestrictOverrideOnTriggerPathFilterEnabled == true && ns.DefaultTriggerPathFilterEnabled is { } pinned)
-                nearest = pinned;
+            if (ns.DefaultTriggerPathFilterEnabled is not { } declared) continue;
+
+            // Matches how the other inherited defaults resolve: a refusal further up wins outright,
+            // and OnlyStricter lets a nearer value stand only where it does not loosen this one.
+            // Filtering on is the stricter setting, since it fires on fewer changes.
+            if (ns.OverrideOnTriggerPathFilterEnabled == OrderedOverridePolicy.Forbidden
+                || (ns.OverrideOnTriggerPathFilterEnabled == OrderedOverridePolicy.OnlyStricter
+                    && nearest == false && declared))
+                nearest = declared;
         }
 
         return nearest ?? false;

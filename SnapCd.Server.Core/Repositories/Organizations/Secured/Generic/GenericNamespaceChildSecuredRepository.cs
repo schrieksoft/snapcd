@@ -490,15 +490,6 @@ public abstract class
             select ns;
 
 
-#if DEBUG
-        // Materialize queries for debugging inspection
-        var debugOrgPermission = namespacesFromOrgPermission.ToList();
-        var debugOrgPermissionViaGroup = namespacesFromOrgPermissionViaGroup.ToList();
-        var debugStackPermission = namespacesFromStackPermission.ToList();
-        var debugStackPermissionViaGroup = namespacesFromStackPermissionViaGroup.ToList();
-        var debugNamespacePermission = namespacesFromNamespacePermission.ToList();
-        var debugNamespacePermissionViaGroup = namespacesFromNamespacePermissionViaGroup.ToList();
-#endif
 
         return namespacesFromOrgPermission
             .Concat(namespacesFromOrgPermissionViaGroup)

@@ -3816,35 +3816,94 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("ParentNamespaceId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<bool?>("RestrictOverrideOnApplyApprovalThreshold")
-                        .HasColumnType("bit");
+                    b.Property<string>("OverrideOnApplyApprovalThreshold")
 
-                    b.Property<bool?>("RestrictOverrideOnApprovalTimeoutMinutes")
-                        .HasColumnType("bit");
 
-                    b.Property<bool?>("RestrictOverrideOnCleanInitEnabled")
-                        .HasColumnType("bit");
+                        .HasMaxLength(50)
 
-                    b.Property<bool?>("RestrictOverrideOnDestroyApprovalThreshold")
-                        .HasColumnType("bit");
 
-                    b.Property<bool?>("RestrictOverrideOnDriftCheckEnabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("nvarchar(50)");
 
-                    b.Property<bool?>("RestrictOverrideOnDriftCheckIntervalMinutes")
-                        .HasColumnType("bit");
+                    b.Property<string>("OverrideOnApprovalTimeoutMinutes")
 
-                    b.Property<bool?>("RestrictOverrideOnEngine")
-                        .HasColumnType("bit");
 
-                    b.Property<bool?>("RestrictOverrideOnOutputSetDownstreamRestriction")
-                        .HasColumnType("bit");
+                        .HasMaxLength(50)
 
-                    b.Property<bool?>("RestrictOverrideOnStateMigrationApprovalThreshold")
-                        .HasColumnType("bit");
 
-                    b.Property<bool?>("RestrictOverrideOnTriggerPathFilterEnabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OverrideOnCleanInitEnabled")
+
+
+                        .HasMaxLength(50)
+
+
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OverrideOnDestroyApprovalThreshold")
+
+
+                        .HasMaxLength(50)
+
+
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OverrideOnDriftCheckEnabled")
+
+
+                        .HasMaxLength(50)
+
+
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OverrideOnDriftCheckIntervalMinutes")
+
+
+                        .HasMaxLength(50)
+
+
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OverrideOnEngine")
+
+
+                        .HasMaxLength(50)
+
+
+                        .HasColumnType("nvarchar(50)");
+
+
+                    b.Property<string>("OverrideOnOutputRestrictionExemption")
+
+
+                        .HasMaxLength(50)
+
+
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OverrideOnOutputSetDownstreamRestriction")
+
+
+                        .HasMaxLength(50)
+
+
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OverrideOnStateMigrationApprovalThreshold")
+
+
+                        .HasMaxLength(50)
+
+
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OverrideOnTriggerPathFilterEnabled")
+
+
+                        .HasMaxLength(50)
+
+
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("StackId")
                         .HasColumnType("uniqueidentifier");

@@ -41455,12 +41455,22 @@ components:
           oneOf:
           - type: 'null'
           - description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
-              unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only
-              the secret ones.
+              unset to take the value from the Namespaces above it. 'All' withholds every Output; 'SensitiveOnly' withholds
+              only the secret ones.
             $ref: '#/components/schemas/OutputSetDownstreamRestriction'
           description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
-            unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only the
-            secret ones.
+            unset to take the value from the Namespaces above it. 'All' withholds every Output; 'SensitiveOnly' withholds
+            only the secret ones.
+        outputRestrictionExemption:
+          oneOf:
+          - type: 'null'
+          - description: Who the restriction does not apply to. 'OwnNamespace' exempts consumers in this Module's Namespace,
+              'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Leave unset to take the value
+              from the Namespaces above it.
+            $ref: '#/components/schemas/OutputRestrictionExemption'
+          description: Who the restriction does not apply to. 'OwnNamespace' exempts consumers in this Module's Namespace,
+            'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Leave unset to take the value
+            from the Namespaces above it.
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
             Valid values are 'Always', 'Never', or 'OnFirstApply'. 'Always' means the Module will always wait for Modules
@@ -43328,12 +43338,22 @@ components:
           oneOf:
           - type: 'null'
           - description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
-              unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only
-              the secret ones.
+              unset to take the value from the Namespaces above it. 'All' withholds every Output; 'SensitiveOnly' withholds
+              only the secret ones.
             $ref: '#/components/schemas/OutputSetDownstreamRestriction'
           description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
-            unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only the
-            secret ones.
+            unset to take the value from the Namespaces above it. 'All' withholds every Output; 'SensitiveOnly' withholds
+            only the secret ones.
+        outputRestrictionExemption:
+          oneOf:
+          - type: 'null'
+          - description: Who the restriction does not apply to. 'OwnNamespace' exempts consumers in this Module's Namespace,
+              'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Leave unset to take the value
+              from the Namespaces above it.
+            $ref: '#/components/schemas/OutputRestrictionExemption'
+          description: Who the restriction does not apply to. 'OwnNamespace' exempts consumers in this Module's Namespace,
+            'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Leave unset to take the value
+            from the Namespaces above it.
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
             Valid values are 'Always', 'Never', or 'OnFirstApply'. 'Always' means the Module will always wait for Modules
@@ -44159,12 +44179,22 @@ components:
           oneOf:
           - type: 'null'
           - description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
-              unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only
-              the secret ones.
+              unset to take the value from the Namespaces above it. 'All' withholds every Output; 'SensitiveOnly' withholds
+              only the secret ones.
             $ref: '#/components/schemas/OutputSetDownstreamRestriction'
           description: Withholds this Module's Outputs from downstream Modules unless they are explicitly supplied. Leave
-            unset to let any Module in the Stack read them. 'All' withholds every Output; 'SensitiveOnly' withholds only the
-            secret ones.
+            unset to take the value from the Namespaces above it. 'All' withholds every Output; 'SensitiveOnly' withholds
+            only the secret ones.
+        outputRestrictionExemption:
+          oneOf:
+          - type: 'null'
+          - description: Who the restriction does not apply to. 'OwnNamespace' exempts consumers in this Module's Namespace,
+              'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Leave unset to take the value
+              from the Namespaces above it.
+            $ref: '#/components/schemas/OutputRestrictionExemption'
+          description: Who the restriction does not apply to. 'OwnNamespace' exempts consumers in this Module's Namespace,
+            'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Leave unset to take the value
+            from the Namespaces above it.
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
             Valid values are 'Always', 'Never', or 'OnFirstApply'. 'Always' means the Module will always wait for Modules
@@ -44414,6 +44444,16 @@ components:
             $ref: '#/components/schemas/OutputSetDownstreamRestriction'
           description: What Modules below this Namespace give to consumers outside it. Must be 'All' or 'SensitiveOnly'. Unset
             places no restriction.
+        defaultOutputRestrictionExemption:
+          oneOf:
+          - type: 'null'
+          - description: Who the downstream restriction does not apply to. 'OwnNamespace' exempts consumers in this Namespace,
+              'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Unset takes the value from
+              the Namespaces above it.
+            $ref: '#/components/schemas/OutputRestrictionExemption'
+          description: Who the downstream restriction does not apply to. 'OwnNamespace' exempts consumers in this Namespace,
+            'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Unset takes the value from
+            the Namespaces above it.
         ignoreInheritedExtraFiles:
           type: boolean
           description: If this is set to true, any Extra Files inherited from the Namespaces above this one will not be used.
@@ -44437,66 +44477,94 @@ components:
           type: boolean
           description: If this is set to true, any Additional Trigger Paths inherited from the Namespaces above this one will
             not apply.
-        restrictOverrideOnCleanInitEnabled:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own clean-init setting;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnTriggerPathFilterEnabled:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own path-scoped triggering
-            setting; this Namespace's value is used throughout its subtree.
-        restrictOverrideOnApplyApprovalThreshold:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own 'Apply' approval threshold;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnDestroyApprovalThreshold:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own 'Destroy' approval
-            threshold; this Namespace's value is used throughout its subtree.
-        restrictOverrideOnStateMigrationApprovalThreshold:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own state migration approval
-            threshold; this Namespace's value is used throughout its subtree.
-        restrictOverrideOnApprovalTimeoutMinutes:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own approval timeout; this
-            Namespace's value is used throughout its subtree.
-        restrictOverrideOnEngine:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own engine; this Namespace's
-            value is used throughout its subtree.
-        restrictOverrideOnDriftCheckEnabled:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own drift check setting;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnDriftCheckIntervalMinutes:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own drift check interval;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnOutputSetDownstreamRestriction:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own downstream output restriction;
-            this Namespace's value is used throughout its subtree.
+        overrideOnCleanInitEnabled:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own clean-init setting. 'Forbidden' uses
+              this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own clean-init setting. 'Forbidden' uses this
+            Namespace's value throughout its subtree.
+        overrideOnTriggerPathFilterEnabled:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own path-scoped triggering setting. 'Forbidden'
+              uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own path-scoped triggering setting. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnApplyApprovalThreshold:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own 'Apply' approval threshold. 'Forbidden'
+              uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own 'Apply' approval threshold. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnDestroyApprovalThreshold:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own 'Destroy' approval threshold. 'Forbidden'
+              uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own 'Destroy' approval threshold. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnStateMigrationApprovalThreshold:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own state migration approval threshold.
+              'Forbidden' uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own state migration approval threshold. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnApprovalTimeoutMinutes:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own approval timeout. 'Forbidden' uses this
+              Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own approval timeout. 'Forbidden' uses this
+            Namespace's value throughout its subtree.
+        overrideOnEngine:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own engine. 'Forbidden' uses this Namespace's
+              value throughout its subtree.
+            $ref: '#/components/schemas/OverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own engine. 'Forbidden' uses this Namespace's
+            value throughout its subtree.
+        overrideOnDriftCheckEnabled:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own drift check setting. 'Forbidden' uses
+              this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own drift check setting. 'Forbidden' uses
+            this Namespace's value throughout its subtree.
+        overrideOnDriftCheckIntervalMinutes:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own drift check interval. 'Forbidden' uses
+              this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own drift check interval. 'Forbidden' uses
+            this Namespace's value throughout its subtree.
+        overrideOnOutputSetDownstreamRestriction:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own downstream output restriction. 'Forbidden'
+              uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that withholds more.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own downstream output restriction. 'Forbidden'
+            uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that withholds more.
+        overrideOnOutputRestrictionExemption:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own output restriction exemption. 'Forbidden'
+              uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that exempts fewer consumers.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own output restriction exemption. 'Forbidden'
+            uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that exempts fewer consumers.
         defaultCleanInitEnabled:
           type:
           - 'null'
@@ -45744,6 +45812,16 @@ components:
             $ref: '#/components/schemas/OutputSetDownstreamRestriction'
           description: What Modules below this Namespace give to consumers outside it. Must be 'All' or 'SensitiveOnly'. Unset
             places no restriction.
+        defaultOutputRestrictionExemption:
+          oneOf:
+          - type: 'null'
+          - description: Who the downstream restriction does not apply to. 'OwnNamespace' exempts consumers in this Namespace,
+              'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Unset takes the value from
+              the Namespaces above it.
+            $ref: '#/components/schemas/OutputRestrictionExemption'
+          description: Who the downstream restriction does not apply to. 'OwnNamespace' exempts consumers in this Namespace,
+            'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Unset takes the value from
+            the Namespaces above it.
         ignoreInheritedExtraFiles:
           type: boolean
           description: If this is set to true, any Extra Files inherited from the Namespaces above this one will not be used.
@@ -45767,66 +45845,94 @@ components:
           type: boolean
           description: If this is set to true, any Additional Trigger Paths inherited from the Namespaces above this one will
             not apply.
-        restrictOverrideOnCleanInitEnabled:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own clean-init setting;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnTriggerPathFilterEnabled:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own path-scoped triggering
-            setting; this Namespace's value is used throughout its subtree.
-        restrictOverrideOnApplyApprovalThreshold:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own 'Apply' approval threshold;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnDestroyApprovalThreshold:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own 'Destroy' approval
-            threshold; this Namespace's value is used throughout its subtree.
-        restrictOverrideOnStateMigrationApprovalThreshold:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own state migration approval
-            threshold; this Namespace's value is used throughout its subtree.
-        restrictOverrideOnApprovalTimeoutMinutes:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own approval timeout; this
-            Namespace's value is used throughout its subtree.
-        restrictOverrideOnEngine:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own engine; this Namespace's
-            value is used throughout its subtree.
-        restrictOverrideOnDriftCheckEnabled:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own drift check setting;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnDriftCheckIntervalMinutes:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own drift check interval;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnOutputSetDownstreamRestriction:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own downstream output restriction;
-            this Namespace's value is used throughout its subtree.
+        overrideOnCleanInitEnabled:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own clean-init setting. 'Forbidden' uses
+              this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own clean-init setting. 'Forbidden' uses this
+            Namespace's value throughout its subtree.
+        overrideOnTriggerPathFilterEnabled:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own path-scoped triggering setting. 'Forbidden'
+              uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own path-scoped triggering setting. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnApplyApprovalThreshold:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own 'Apply' approval threshold. 'Forbidden'
+              uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own 'Apply' approval threshold. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnDestroyApprovalThreshold:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own 'Destroy' approval threshold. 'Forbidden'
+              uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own 'Destroy' approval threshold. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnStateMigrationApprovalThreshold:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own state migration approval threshold.
+              'Forbidden' uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own state migration approval threshold. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnApprovalTimeoutMinutes:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own approval timeout. 'Forbidden' uses this
+              Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own approval timeout. 'Forbidden' uses this
+            Namespace's value throughout its subtree.
+        overrideOnEngine:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own engine. 'Forbidden' uses this Namespace's
+              value throughout its subtree.
+            $ref: '#/components/schemas/OverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own engine. 'Forbidden' uses this Namespace's
+            value throughout its subtree.
+        overrideOnDriftCheckEnabled:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own drift check setting. 'Forbidden' uses
+              this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own drift check setting. 'Forbidden' uses
+            this Namespace's value throughout its subtree.
+        overrideOnDriftCheckIntervalMinutes:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own drift check interval. 'Forbidden' uses
+              this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own drift check interval. 'Forbidden' uses
+            this Namespace's value throughout its subtree.
+        overrideOnOutputSetDownstreamRestriction:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own downstream output restriction. 'Forbidden'
+              uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that withholds more.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own downstream output restriction. 'Forbidden'
+            uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that withholds more.
+        overrideOnOutputRestrictionExemption:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own output restriction exemption. 'Forbidden'
+              uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that exempts fewer consumers.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own output restriction exemption. 'Forbidden'
+            uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that exempts fewer consumers.
         defaultCleanInitEnabled:
           type:
           - 'null'
@@ -46495,6 +46601,16 @@ components:
             $ref: '#/components/schemas/OutputSetDownstreamRestriction'
           description: What Modules below this Namespace give to consumers outside it. Must be 'All' or 'SensitiveOnly'. Unset
             places no restriction.
+        defaultOutputRestrictionExemption:
+          oneOf:
+          - type: 'null'
+          - description: Who the downstream restriction does not apply to. 'OwnNamespace' exempts consumers in this Namespace,
+              'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Unset takes the value from
+              the Namespaces above it.
+            $ref: '#/components/schemas/OutputRestrictionExemption'
+          description: Who the downstream restriction does not apply to. 'OwnNamespace' exempts consumers in this Namespace,
+            'OwnNamespaceAndDescendants' also exempts those below it, 'Nobody' exempts no one. Unset takes the value from
+            the Namespaces above it.
         ignoreInheritedExtraFiles:
           type: boolean
           description: If this is set to true, any Extra Files inherited from the Namespaces above this one will not be used.
@@ -46518,66 +46634,94 @@ components:
           type: boolean
           description: If this is set to true, any Additional Trigger Paths inherited from the Namespaces above this one will
             not apply.
-        restrictOverrideOnCleanInitEnabled:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own clean-init setting;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnTriggerPathFilterEnabled:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own path-scoped triggering
-            setting; this Namespace's value is used throughout its subtree.
-        restrictOverrideOnApplyApprovalThreshold:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own 'Apply' approval threshold;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnDestroyApprovalThreshold:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own 'Destroy' approval
-            threshold; this Namespace's value is used throughout its subtree.
-        restrictOverrideOnStateMigrationApprovalThreshold:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own state migration approval
-            threshold; this Namespace's value is used throughout its subtree.
-        restrictOverrideOnApprovalTimeoutMinutes:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own approval timeout; this
-            Namespace's value is used throughout its subtree.
-        restrictOverrideOnEngine:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own engine; this Namespace's
-            value is used throughout its subtree.
-        restrictOverrideOnDriftCheckEnabled:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own drift check setting;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnDriftCheckIntervalMinutes:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own drift check interval;
-            this Namespace's value is used throughout its subtree.
-        restrictOverrideOnOutputSetDownstreamRestriction:
-          type:
-          - 'null'
-          - boolean
-          description: If this is set to true, a Namespace or Module below this one cannot set its own downstream output restriction;
-            this Namespace's value is used throughout its subtree.
+        overrideOnCleanInitEnabled:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own clean-init setting. 'Forbidden' uses
+              this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own clean-init setting. 'Forbidden' uses this
+            Namespace's value throughout its subtree.
+        overrideOnTriggerPathFilterEnabled:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own path-scoped triggering setting. 'Forbidden'
+              uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own path-scoped triggering setting. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnApplyApprovalThreshold:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own 'Apply' approval threshold. 'Forbidden'
+              uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own 'Apply' approval threshold. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnDestroyApprovalThreshold:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own 'Destroy' approval threshold. 'Forbidden'
+              uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own 'Destroy' approval threshold. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnStateMigrationApprovalThreshold:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own state migration approval threshold.
+              'Forbidden' uses this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own state migration approval threshold. 'Forbidden'
+            uses this Namespace's value throughout its subtree.
+        overrideOnApprovalTimeoutMinutes:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own approval timeout. 'Forbidden' uses this
+              Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own approval timeout. 'Forbidden' uses this
+            Namespace's value throughout its subtree.
+        overrideOnEngine:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own engine. 'Forbidden' uses this Namespace's
+              value throughout its subtree.
+            $ref: '#/components/schemas/OverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own engine. 'Forbidden' uses this Namespace's
+            value throughout its subtree.
+        overrideOnDriftCheckEnabled:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own drift check setting. 'Forbidden' uses
+              this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own drift check setting. 'Forbidden' uses
+            this Namespace's value throughout its subtree.
+        overrideOnDriftCheckIntervalMinutes:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own drift check interval. 'Forbidden' uses
+              this Namespace's value throughout its subtree.
+            $ref: '#/components/schemas/OverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own drift check interval. 'Forbidden' uses
+            this Namespace's value throughout its subtree.
+        overrideOnOutputSetDownstreamRestriction:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own downstream output restriction. 'Forbidden'
+              uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that withholds more.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own downstream output restriction. 'Forbidden'
+            uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that withholds more.
+        overrideOnOutputRestrictionExemption:
+          oneOf:
+          - type: 'null'
+          - description: Whether a Namespace or Module below this one may set its own output restriction exemption. 'Forbidden'
+              uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that exempts fewer consumers.
+            $ref: '#/components/schemas/OrderedOverridePolicy'
+          description: Whether a Namespace or Module below this one may set its own output restriction exemption. 'Forbidden'
+            uses this Namespace's value throughout its subtree; 'OnlyStricter' allows one that exempts fewer consumers.
         defaultCleanInitEnabled:
           type:
           - 'null'
@@ -46677,6 +46821,12 @@ components:
             on the Module itself.
           format: int32
       description: DTO for updating an existing Namespace (PUT operations).
+    OrderedOverridePolicy:
+      enum:
+      - Forbidden
+      - OnlyStricter
+      - null
+      description: The same, for a setting whose values can be ordered from permissive to strict. Null allows an override.
     OrganizationIntegrationEventCreateDto:
       type: object
       properties:
@@ -47051,6 +47201,14 @@ components:
             with `module_id` and `output_name`.
           format: uuid
       description: DTO for updating an existing OutputNamespaceSupply (PUT operations).
+    OutputRestrictionExemption:
+      enum:
+      - OwnNamespaceAndDescendants
+      - OwnNamespace
+      - Nobody
+      - null
+      description: Who a downstream output restriction does not apply to. Null takes the value from above; Nobody states the
+        same outcome explicitly, so that it can be set on a Module or pinned on a Namespace.
     OutputSetDownstreamRestriction:
       enum:
       - All
@@ -47171,6 +47329,12 @@ components:
             with `module_id`.
           format: uuid
       description: DTO for updating an existing OutputSetNamespaceSupply (PUT operations).
+    OverridePolicy:
+      enum:
+      - Forbidden
+      - null
+      description: Whether a Namespace or Module below this one may set its own value for a setting. Null allows an override,
+        which is what a Namespace that says nothing allows.
     PolicyEvaluateOn:
       enum:
       - ApplyAndDestroy
@@ -48681,5 +48845,5 @@ x-snapcd-permission-coverage:
   documented: 649
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1610
+  documented: 1619
   missing: 0

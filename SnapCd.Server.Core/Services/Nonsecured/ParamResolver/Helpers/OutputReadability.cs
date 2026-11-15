@@ -39,69 +39,71 @@ public static class OutputReadability
             .Where(m => m.Id == consumingModuleId && m.OrganizationId == organizationId)
             .Select(m => m.NamespaceId);
 
+        // The producer's effective restriction and exemption, named once per row. Each mention of
+        // the resolved-defaults view is evaluated on its own, so repeating one costs linearly.
         return dbContext.Set<Output>()
             .Where(o => o.OrganizationId == organizationId)
-            .Where(o =>
+            .Select(o => new
+            {
+                Output = o,
+                Restriction = o.OutputSet.Module.OutputSetDownstreamRestriction
+                    ?? o.OutputSet.Module.Namespace.ResolvedDefaults
+                        .Where(d => d.OrganizationId == organizationId)
+                        .Select(d => d.OutputSetDownstreamRestriction)
+                        .FirstOrDefault(),
+                Exemption = o.OutputSet.Module.OutputRestrictionExemption
+                    ?? o.OutputSet.Module.Namespace.ResolvedDefaults
+                        .Where(d => d.OrganizationId == organizationId)
+                        .Select(d => d.OutputRestrictionExemption)
+                        .FirstOrDefault(),
+            })
+            .Where(x =>
                 // Supplied outright: the whole Output Set, to the Module or to its Namespace.
                 dbContext.OutputSetModuleSupplies.Any(s =>
                     s.OrganizationId == organizationId
                     && s.ConsumingModuleId == consumingModuleId
-                    && s.ModuleId == o.OutputSet.ModuleId)
+                    && s.ModuleId == x.Output.OutputSet.ModuleId)
                 || dbContext.OutputSetNamespaceSupplies.Any(s =>
                     s.OrganizationId == organizationId
                     && consumingNamespaceId.Contains(s.ConsumingNamespaceId)
-                    && s.ModuleId == o.OutputSet.ModuleId)
+                    && s.ModuleId == x.Output.OutputSet.ModuleId)
 
                 // Supplied outright: this one Output, to the Module or to its Namespace.
                 || dbContext.OutputModuleSupplies.Any(s =>
                     s.OrganizationId == organizationId
                     && s.ConsumingModuleId == consumingModuleId
-                    && s.ModuleId == o.OutputSet.ModuleId
-                    && s.OutputName == o.Name)
+                    && s.ModuleId == x.Output.OutputSet.ModuleId
+                    && s.OutputName == x.Output.Name)
                 || dbContext.OutputNamespaceSupplies.Any(s =>
                     s.OrganizationId == organizationId
                     && consumingNamespaceId.Contains(s.ConsumingNamespaceId)
-                    && s.ModuleId == o.OutputSet.ModuleId
-                    && s.OutputName == o.Name)
+                    && s.ModuleId == x.Output.OutputSet.ModuleId
+                    && s.OutputName == x.Output.Name)
 
                 // Not withheld at all.
-                || (!((o.OutputSet.Module.OutputSetDownstreamRestriction
-                           ?? o.OutputSet.Module.Namespace.ResolvedDefaults
-                               .Where(d => d.OrganizationId == organizationId)
-                               .Select(d => d.OutputSetDownstreamRestriction)
-                               .FirstOrDefault()) == OutputSetDownstreamRestriction.All)
-                    && !((o.OutputSet.Module.OutputSetDownstreamRestriction
-                              ?? o.OutputSet.Module.Namespace.ResolvedDefaults
-                                  .Where(d => d.OrganizationId == organizationId)
-                                  .Select(d => d.OutputSetDownstreamRestriction)
-                                  .FirstOrDefault()) == OutputSetDownstreamRestriction.SensitiveOnly
-                         && o is SecretOutput)
+                || (x.Restriction != OutputSetDownstreamRestriction.All
+                    && !(x.Restriction == OutputSetDownstreamRestriction.SensitiveOnly
+                         && x.Output is SecretOutput)
                     && !dbContext.ModuleOutputDownstreamRestrictions.Any(r =>
                         r.OrganizationId == organizationId
-                        && r.ModuleId == o.OutputSet.ModuleId
-                        && r.OutputName == o.Name))
+                        && r.ModuleId == x.Output.OutputSet.ModuleId
+                        && r.OutputName == x.Output.Name))
 
                 // Withheld, but the consumer sits where the exemption allows.
-                || ((o.OutputSet.Module.OutputRestrictionExemption
-                         ?? o.OutputSet.Module.Namespace.ResolvedDefaults
-                             .Where(d => d.OrganizationId == organizationId)
-                             .Select(d => d.OutputRestrictionExemption)
-                             .FirstOrDefault()) == OutputRestrictionExemption.OwnNamespace
-                    && consumingNamespaceId.Contains(o.OutputSet.Module.NamespaceId))
-                || ((o.OutputSet.Module.OutputRestrictionExemption
-                         ?? o.OutputSet.Module.Namespace.ResolvedDefaults
-                             .Where(d => d.OrganizationId == organizationId)
-                             .Select(d => d.OutputRestrictionExemption)
-                             .FirstOrDefault()) == OutputRestrictionExemption.OwnNamespaceAndDescendants
+                || (x.Exemption == OutputRestrictionExemption.OwnNamespace
+                    && consumingNamespaceId.Contains(x.Output.OutputSet.Module.NamespaceId))
+                || (x.Exemption == OutputRestrictionExemption.OwnNamespaceAndDescendants
                     && dbContext.NamespaceAncestors.Any(a =>
                         a.OrganizationId == organizationId
                         && consumingNamespaceId.Contains(a.NamespaceId)
-                        && a.AncestorNamespaceId == o.OutputSet.Module.NamespaceId)));
+                        && a.AncestorNamespaceId == x.Output.OutputSet.Module.NamespaceId)))
+            .Select(x => x.Output);
     }
 
     /// <summary>
-    /// The same rule asked of a row rather than of one consumer: may <paramref name="consumerId"/>
-    /// read the Output called <paramref name="outputName"/> from <paramref name="producerId"/>?
+    /// The same rule asked of a row rather than of one consumer: which of
+    /// <paramref name="candidateConsumerIds"/> may read the Output called
+    /// <paramref name="outputName"/> from <paramref name="producerId"/>?
     ///
     /// For queries whose consumer varies per row - which Modules a changed Output reaches - where
     /// the per-consumer overload cannot be used. Kept beside it so the two stay the same rule.

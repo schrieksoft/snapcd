@@ -119,16 +119,42 @@ public enum OutputSetDownstreamRestriction
 }
 
 /// <summary>
-/// Who a downstream output restriction does not apply to. Null withholds from every consumer that
-/// has not been supplied the Output, which is the restriction on its own.
+/// Whether a Namespace or Module below this one may set its own value for a setting. Null allows an
+/// override, which is what a Namespace that says nothing allows.
+/// </summary>
+public enum OverridePolicy
+{
+    /// <summary>This Namespace's value is used throughout its subtree.</summary>
+    Forbidden
+}
+
+/// <summary>
+/// The same, for a setting whose values can be ordered from permissive to strict. Null allows an
+/// override.
+/// </summary>
+public enum OrderedOverridePolicy
+{
+    /// <summary>This Namespace's value is used throughout its subtree.</summary>
+    Forbidden,
+
+    /// <summary>A Namespace or Module below this one may only tighten the value, never loosen it.</summary>
+    OnlyStricter
+}
+
+/// <summary>
+/// Who a downstream output restriction does not apply to. Null takes the value from above; Nobody
+/// states the same outcome explicitly, so that it can be set on a Module or pinned on a Namespace.
 /// </summary>
 public enum OutputRestrictionExemption
 {
+    /// <summary>Modules in the Namespace that carries the restriction, or in any Namespace below it.</summary>
+    OwnNamespaceAndDescendants,
+
     /// <summary>Modules in the Namespace that carries the restriction.</summary>
     OwnNamespace,
 
-    /// <summary>Modules in the Namespace that carries the restriction, or in any Namespace below it.</summary>
-    OwnNamespaceAndDescendants
+    /// <summary>No one. Every consumer that has not been supplied the Output is withheld from.</summary>
+    Nobody
 }
 
 public enum PrincipalDiscriminator

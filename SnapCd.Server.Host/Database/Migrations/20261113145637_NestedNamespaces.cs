@@ -40,64 +40,81 @@ namespace SnapCd.Server.Host.Database.Migrations
                 type: "uniqueidentifier",
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "RestrictOverrideOnApplyApprovalThreshold",
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnApplyApprovalThreshold",
                 table: "Namespaces",
-                type: "bit",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "RestrictOverrideOnApprovalTimeoutMinutes",
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnApprovalTimeoutMinutes",
                 table: "Namespaces",
-                type: "bit",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "RestrictOverrideOnCleanInitEnabled",
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnCleanInitEnabled",
                 table: "Namespaces",
-                type: "bit",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "RestrictOverrideOnDestroyApprovalThreshold",
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnDestroyApprovalThreshold",
                 table: "Namespaces",
-                type: "bit",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "RestrictOverrideOnDriftCheckEnabled",
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnDriftCheckEnabled",
                 table: "Namespaces",
-                type: "bit",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "RestrictOverrideOnDriftCheckIntervalMinutes",
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnDriftCheckIntervalMinutes",
                 table: "Namespaces",
-                type: "bit",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "RestrictOverrideOnEngine",
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnEngine",
                 table: "Namespaces",
-                type: "bit",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "RestrictOverrideOnOutputSetDownstreamRestriction",
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnOutputRestrictionExemption",
                 table: "Namespaces",
-                type: "bit",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "RestrictOverrideOnStateMigrationApprovalThreshold",
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnOutputSetDownstreamRestriction",
                 table: "Namespaces",
-                type: "bit",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "RestrictOverrideOnTriggerPathFilterEnabled",
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnStateMigrationApprovalThreshold",
                 table: "Namespaces",
-                type: "bit",
+                type: "nvarchar(50)",
+                maxLength: 50,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "OverrideOnTriggerPathFilterEnabled",
+                table: "Namespaces",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
             migrationBuilder.CreateTable(
@@ -170,43 +187,47 @@ namespace SnapCd.Server.Host.Database.Migrations
                 table: "Namespaces");
 
             migrationBuilder.DropColumn(
-                name: "RestrictOverrideOnApplyApprovalThreshold",
+                name: "OverrideOnApplyApprovalThreshold",
                 table: "Namespaces");
 
             migrationBuilder.DropColumn(
-                name: "RestrictOverrideOnApprovalTimeoutMinutes",
+                name: "OverrideOnApprovalTimeoutMinutes",
                 table: "Namespaces");
 
             migrationBuilder.DropColumn(
-                name: "RestrictOverrideOnCleanInitEnabled",
+                name: "OverrideOnCleanInitEnabled",
                 table: "Namespaces");
 
             migrationBuilder.DropColumn(
-                name: "RestrictOverrideOnDestroyApprovalThreshold",
+                name: "OverrideOnDestroyApprovalThreshold",
                 table: "Namespaces");
 
             migrationBuilder.DropColumn(
-                name: "RestrictOverrideOnDriftCheckEnabled",
+                name: "OverrideOnDriftCheckEnabled",
                 table: "Namespaces");
 
             migrationBuilder.DropColumn(
-                name: "RestrictOverrideOnDriftCheckIntervalMinutes",
+                name: "OverrideOnDriftCheckIntervalMinutes",
                 table: "Namespaces");
 
             migrationBuilder.DropColumn(
-                name: "RestrictOverrideOnEngine",
+                name: "OverrideOnEngine",
                 table: "Namespaces");
 
             migrationBuilder.DropColumn(
-                name: "RestrictOverrideOnOutputSetDownstreamRestriction",
+                name: "OverrideOnOutputRestrictionExemption",
                 table: "Namespaces");
 
             migrationBuilder.DropColumn(
-                name: "RestrictOverrideOnStateMigrationApprovalThreshold",
+                name: "OverrideOnOutputSetDownstreamRestriction",
                 table: "Namespaces");
 
             migrationBuilder.DropColumn(
-                name: "RestrictOverrideOnTriggerPathFilterEnabled",
+                name: "OverrideOnStateMigrationApprovalThreshold",
+                table: "Namespaces");
+
+            migrationBuilder.DropColumn(
+                name: "OverrideOnTriggerPathFilterEnabled",
                 table: "Namespaces");
         }
     }

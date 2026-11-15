@@ -44,6 +44,64 @@ public class NamespaceClassMap : IEntityTypeConfiguration<Namespace>
             .HasConversion<string>()
             .HasMaxLength(50);
 
+        // Every override policy persists as text, as the other enums do.
+
+        entity
+            .Property(d => d.OverrideOnCleanInitEnabled)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.OverrideOnTriggerPathFilterEnabled)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.OverrideOnApplyApprovalThreshold)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.OverrideOnDestroyApprovalThreshold)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.OverrideOnStateMigrationApprovalThreshold)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.OverrideOnApprovalTimeoutMinutes)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.OverrideOnEngine)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.OverrideOnDriftCheckEnabled)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.OverrideOnDriftCheckIntervalMinutes)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.OverrideOnOutputSetDownstreamRestriction)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.OverrideOnOutputRestrictionExemption)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+
         entity
             .Property(p => p.CreatedDateTime)
             .ValueGeneratedOnAdd();

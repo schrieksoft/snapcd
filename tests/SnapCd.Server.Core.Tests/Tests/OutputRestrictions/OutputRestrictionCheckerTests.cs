@@ -151,6 +151,37 @@ public class OutputRestrictionCheckerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Nobody_withholds_even_from_the_own_namespace()
+    {
+        await SetRestriction(OutputSetDownstreamRestriction.All);
+        await SetExemption(OutputRestrictionExemption.Nobody);
+
+        var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
+
+        Assert.Empty(readable);
+    }
+
+    [Fact]
+    public async Task Nobody_on_the_module_overrides_an_exemption_inherited_from_the_namespace()
+    {
+        await SetRestriction(null);
+        await SetNamespaceRestriction(_fixture.Namespaces["000"].Id,
+            OutputSetDownstreamRestriction.All, OutputRestrictionExemption.OwnNamespace);
+        await SetExemption(OutputRestrictionExemption.Nobody);
+
+        try
+        {
+            var readable = await Checker().FilterReadable(await ProducerOutputs(), _consumerId, _organizationId);
+
+            Assert.Empty(readable);
+        }
+        finally
+        {
+            await SetNamespaceRestriction(_fixture.Namespaces["000"].Id, null, null);
+        }
+    }
+
+    [Fact]
     public async Task An_exemption_refuses_a_named_read_from_outside_and_allows_one_from_inside()
     {
         await SetRestriction(OutputSetDownstreamRestriction.All);

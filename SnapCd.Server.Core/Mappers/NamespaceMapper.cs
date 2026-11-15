@@ -34,6 +34,7 @@ public static class NamespaceMapper
             DefaultDriftCheckIntervalMinutes = dto.DefaultDriftCheckIntervalMinutes,
             ParentNamespaceId = dto.ParentNamespaceId,
             DefaultOutputSetDownstreamRestriction = dto.DefaultOutputSetDownstreamRestriction,
+            DefaultOutputRestrictionExemption = dto.DefaultOutputRestrictionExemption,
             IgnoreInheritedExtraFiles = dto.IgnoreInheritedExtraFiles,
             IgnoreInheritedFlags = dto.IgnoreInheritedFlags,
             IgnoreInheritedHooks = dto.IgnoreInheritedHooks,
@@ -41,16 +42,17 @@ public static class NamespaceMapper
             IgnoreInheritedMissions = dto.IgnoreInheritedMissions,
             IgnoreInheritedIntegrationEvents = dto.IgnoreInheritedIntegrationEvents,
             IgnoreInheritedTriggerPaths = dto.IgnoreInheritedTriggerPaths,
-            RestrictOverrideOnCleanInitEnabled = dto.RestrictOverrideOnCleanInitEnabled,
-            RestrictOverrideOnTriggerPathFilterEnabled = dto.RestrictOverrideOnTriggerPathFilterEnabled,
-            RestrictOverrideOnApplyApprovalThreshold = dto.RestrictOverrideOnApplyApprovalThreshold,
-            RestrictOverrideOnDestroyApprovalThreshold = dto.RestrictOverrideOnDestroyApprovalThreshold,
-            RestrictOverrideOnStateMigrationApprovalThreshold = dto.RestrictOverrideOnStateMigrationApprovalThreshold,
-            RestrictOverrideOnApprovalTimeoutMinutes = dto.RestrictOverrideOnApprovalTimeoutMinutes,
-            RestrictOverrideOnEngine = dto.RestrictOverrideOnEngine,
-            RestrictOverrideOnDriftCheckEnabled = dto.RestrictOverrideOnDriftCheckEnabled,
-            RestrictOverrideOnDriftCheckIntervalMinutes = dto.RestrictOverrideOnDriftCheckIntervalMinutes,
-            RestrictOverrideOnOutputSetDownstreamRestriction = dto.RestrictOverrideOnOutputSetDownstreamRestriction,
+            OverrideOnCleanInitEnabled = dto.OverrideOnCleanInitEnabled,
+            OverrideOnTriggerPathFilterEnabled = dto.OverrideOnTriggerPathFilterEnabled,
+            OverrideOnApplyApprovalThreshold = dto.OverrideOnApplyApprovalThreshold,
+            OverrideOnDestroyApprovalThreshold = dto.OverrideOnDestroyApprovalThreshold,
+            OverrideOnStateMigrationApprovalThreshold = dto.OverrideOnStateMigrationApprovalThreshold,
+            OverrideOnApprovalTimeoutMinutes = dto.OverrideOnApprovalTimeoutMinutes,
+            OverrideOnEngine = dto.OverrideOnEngine,
+            OverrideOnDriftCheckEnabled = dto.OverrideOnDriftCheckEnabled,
+            OverrideOnDriftCheckIntervalMinutes = dto.OverrideOnDriftCheckIntervalMinutes,
+            OverrideOnOutputSetDownstreamRestriction = dto.OverrideOnOutputSetDownstreamRestriction,
+            OverrideOnOutputRestrictionExemption = dto.OverrideOnOutputRestrictionExemption,
         };
     }
 
@@ -74,6 +76,7 @@ public static class NamespaceMapper
             ParentNamespaceId = entity.ParentNamespaceId,
             Number = entity.Number,
             DefaultOutputSetDownstreamRestriction = entity.DefaultOutputSetDownstreamRestriction,
+            DefaultOutputRestrictionExemption = entity.DefaultOutputRestrictionExemption,
             IgnoreInheritedExtraFiles = entity.IgnoreInheritedExtraFiles,
             IgnoreInheritedFlags = entity.IgnoreInheritedFlags,
             IgnoreInheritedHooks = entity.IgnoreInheritedHooks,
@@ -81,16 +84,17 @@ public static class NamespaceMapper
             IgnoreInheritedMissions = entity.IgnoreInheritedMissions,
             IgnoreInheritedIntegrationEvents = entity.IgnoreInheritedIntegrationEvents,
             IgnoreInheritedTriggerPaths = entity.IgnoreInheritedTriggerPaths,
-            RestrictOverrideOnCleanInitEnabled = entity.RestrictOverrideOnCleanInitEnabled,
-            RestrictOverrideOnTriggerPathFilterEnabled = entity.RestrictOverrideOnTriggerPathFilterEnabled,
-            RestrictOverrideOnApplyApprovalThreshold = entity.RestrictOverrideOnApplyApprovalThreshold,
-            RestrictOverrideOnDestroyApprovalThreshold = entity.RestrictOverrideOnDestroyApprovalThreshold,
-            RestrictOverrideOnStateMigrationApprovalThreshold = entity.RestrictOverrideOnStateMigrationApprovalThreshold,
-            RestrictOverrideOnApprovalTimeoutMinutes = entity.RestrictOverrideOnApprovalTimeoutMinutes,
-            RestrictOverrideOnEngine = entity.RestrictOverrideOnEngine,
-            RestrictOverrideOnDriftCheckEnabled = entity.RestrictOverrideOnDriftCheckEnabled,
-            RestrictOverrideOnDriftCheckIntervalMinutes = entity.RestrictOverrideOnDriftCheckIntervalMinutes,
-            RestrictOverrideOnOutputSetDownstreamRestriction = entity.RestrictOverrideOnOutputSetDownstreamRestriction,
+            OverrideOnCleanInitEnabled = entity.OverrideOnCleanInitEnabled,
+            OverrideOnTriggerPathFilterEnabled = entity.OverrideOnTriggerPathFilterEnabled,
+            OverrideOnApplyApprovalThreshold = entity.OverrideOnApplyApprovalThreshold,
+            OverrideOnDestroyApprovalThreshold = entity.OverrideOnDestroyApprovalThreshold,
+            OverrideOnStateMigrationApprovalThreshold = entity.OverrideOnStateMigrationApprovalThreshold,
+            OverrideOnApprovalTimeoutMinutes = entity.OverrideOnApprovalTimeoutMinutes,
+            OverrideOnEngine = entity.OverrideOnEngine,
+            OverrideOnDriftCheckEnabled = entity.OverrideOnDriftCheckEnabled,
+            OverrideOnDriftCheckIntervalMinutes = entity.OverrideOnDriftCheckIntervalMinutes,
+            OverrideOnOutputSetDownstreamRestriction = entity.OverrideOnOutputSetDownstreamRestriction,
+            OverrideOnOutputRestrictionExemption = entity.OverrideOnOutputRestrictionExemption,
         };
     }
 
@@ -120,6 +124,7 @@ public static class NamespaceMapper
         entity.DefaultDriftCheckIntervalMinutes = dto.DefaultDriftCheckIntervalMinutes;
         entity.ParentNamespaceId = dto.ParentNamespaceId;
         entity.DefaultOutputSetDownstreamRestriction = dto.DefaultOutputSetDownstreamRestriction;
+        entity.DefaultOutputRestrictionExemption = dto.DefaultOutputRestrictionExemption;
         entity.IgnoreInheritedExtraFiles = dto.IgnoreInheritedExtraFiles;
         entity.IgnoreInheritedFlags = dto.IgnoreInheritedFlags;
         entity.IgnoreInheritedHooks = dto.IgnoreInheritedHooks;
@@ -127,15 +132,16 @@ public static class NamespaceMapper
         entity.IgnoreInheritedMissions = dto.IgnoreInheritedMissions;
         entity.IgnoreInheritedIntegrationEvents = dto.IgnoreInheritedIntegrationEvents;
         entity.IgnoreInheritedTriggerPaths = dto.IgnoreInheritedTriggerPaths;
-        entity.RestrictOverrideOnCleanInitEnabled = dto.RestrictOverrideOnCleanInitEnabled;
-        entity.RestrictOverrideOnTriggerPathFilterEnabled = dto.RestrictOverrideOnTriggerPathFilterEnabled;
-        entity.RestrictOverrideOnApplyApprovalThreshold = dto.RestrictOverrideOnApplyApprovalThreshold;
-        entity.RestrictOverrideOnDestroyApprovalThreshold = dto.RestrictOverrideOnDestroyApprovalThreshold;
-        entity.RestrictOverrideOnStateMigrationApprovalThreshold = dto.RestrictOverrideOnStateMigrationApprovalThreshold;
-        entity.RestrictOverrideOnApprovalTimeoutMinutes = dto.RestrictOverrideOnApprovalTimeoutMinutes;
-        entity.RestrictOverrideOnEngine = dto.RestrictOverrideOnEngine;
-        entity.RestrictOverrideOnDriftCheckEnabled = dto.RestrictOverrideOnDriftCheckEnabled;
-        entity.RestrictOverrideOnDriftCheckIntervalMinutes = dto.RestrictOverrideOnDriftCheckIntervalMinutes;
-        entity.RestrictOverrideOnOutputSetDownstreamRestriction = dto.RestrictOverrideOnOutputSetDownstreamRestriction;
+        entity.OverrideOnCleanInitEnabled = dto.OverrideOnCleanInitEnabled;
+        entity.OverrideOnTriggerPathFilterEnabled = dto.OverrideOnTriggerPathFilterEnabled;
+        entity.OverrideOnApplyApprovalThreshold = dto.OverrideOnApplyApprovalThreshold;
+        entity.OverrideOnDestroyApprovalThreshold = dto.OverrideOnDestroyApprovalThreshold;
+        entity.OverrideOnStateMigrationApprovalThreshold = dto.OverrideOnStateMigrationApprovalThreshold;
+        entity.OverrideOnApprovalTimeoutMinutes = dto.OverrideOnApprovalTimeoutMinutes;
+        entity.OverrideOnEngine = dto.OverrideOnEngine;
+        entity.OverrideOnDriftCheckEnabled = dto.OverrideOnDriftCheckEnabled;
+        entity.OverrideOnDriftCheckIntervalMinutes = dto.OverrideOnDriftCheckIntervalMinutes;
+        entity.OverrideOnOutputSetDownstreamRestriction = dto.OverrideOnOutputSetDownstreamRestriction;
+        entity.OverrideOnOutputRestrictionExemption = dto.OverrideOnOutputRestrictionExemption;
     }
 }

@@ -122,19 +122,25 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public bool IgnoreInheritedIntegrationEvents { get; set; }
     public bool IgnoreInheritedTriggerPaths { get; set; }
 
-    // Whether this Namespace's value for each default above is pinned for the whole subtree.
-    // True makes resolution ignore a value set below it; the value may still be saved.
+    // Whether a Namespace or Module below this one may set its own value for each default above.
+    // Null allows an override. A setting whose values order from permissive to strict takes
+    // OrderedOverridePolicy, which can also allow an override that only tightens.
 
-    public bool? RestrictOverrideOnCleanInitEnabled { get; set; }
-    public bool? RestrictOverrideOnTriggerPathFilterEnabled { get; set; }
-    public bool? RestrictOverrideOnApplyApprovalThreshold { get; set; }
-    public bool? RestrictOverrideOnDestroyApprovalThreshold { get; set; }
-    public bool? RestrictOverrideOnStateMigrationApprovalThreshold { get; set; }
-    public bool? RestrictOverrideOnApprovalTimeoutMinutes { get; set; }
-    public bool? RestrictOverrideOnEngine { get; set; }
-    public bool? RestrictOverrideOnDriftCheckEnabled { get; set; }
-    public bool? RestrictOverrideOnDriftCheckIntervalMinutes { get; set; }
-    public bool? RestrictOverrideOnOutputSetDownstreamRestriction { get; set; }
+    public OrderedOverridePolicy? OverrideOnCleanInitEnabled { get; set; }
+    public OrderedOverridePolicy? OverrideOnTriggerPathFilterEnabled { get; set; }
+    public OrderedOverridePolicy? OverrideOnApplyApprovalThreshold { get; set; }
+    public OrderedOverridePolicy? OverrideOnDestroyApprovalThreshold { get; set; }
+    public OrderedOverridePolicy? OverrideOnStateMigrationApprovalThreshold { get; set; }
+    public OrderedOverridePolicy? OverrideOnDriftCheckEnabled { get; set; }
+    public OrderedOverridePolicy? OverrideOnOutputSetDownstreamRestriction { get; set; }
+    public OrderedOverridePolicy? OverrideOnOutputRestrictionExemption { get; set; }
+
+    // No order runs from permissive to strict on these, so an override is allowed or it is not.
+    // An engine is a choice, not a degree; a timeout or an interval is stricter in neither direction.
+
+    public OverridePolicy? OverrideOnApprovalTimeoutMinutes { get; set; }
+    public OverridePolicy? OverrideOnEngine { get; set; }
+    public OverridePolicy? OverrideOnDriftCheckIntervalMinutes { get; set; }
 
     /// <summary>This Namespace's defaults with its ancestors applied. Read-only, one row.</summary>
     [JsonIgnore]
