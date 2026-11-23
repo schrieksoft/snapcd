@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Services.Utils;
 
@@ -120,19 +121,12 @@ public class TriggerPathClosureTests
     }
 
     [Theory]
-    [InlineData(null, null, false)]
-    [InlineData(null, true, true)]
-    [InlineData(null, false, false)]
-    [InlineData(true, null, true)]
-    [InlineData(true, false, true)]
-    [InlineData(false, true, false)]
-    public void FilterEnabled_Resolves_Module_Then_Namespace_Then_False(bool? moduleFlag, bool? namespaceDefault, bool expected)
+    [InlineData(null, false)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void FilterEnabled_Reads_The_Resolved_Setting_And_Is_Off_Where_Nothing_Sets_It(bool? resolved, bool expected)
     {
-        var module = new Module
-        {
-            TriggerPathFilterEnabled = moduleFlag,
-            Namespace = new Namespace { DefaultTriggerPathFilterEnabled = namespaceDefault }
-        };
+        var module = new Module { Resolved = new ModuleResolvedSetting { TriggerPathFilterEnabled = resolved } };
 
         Assert.Equal(expected, TriggerPathClosure.FilterEnabled(module));
     }

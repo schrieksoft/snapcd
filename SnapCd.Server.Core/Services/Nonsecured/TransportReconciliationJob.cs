@@ -192,17 +192,15 @@ public class TransportReconciliationJob
             .Select(s => new
             {
                 Saga = s,
-                s.Module.DriftCheckEnabled,
-                s.Module.DriftCheckIntervalMinutes,
-                NamespaceEnabled = s.Module.Namespace.ResolvedDefaults.Where(d => d.OrganizationId == s.Module.OrganizationId).Select(d => d.DriftCheckEnabled).FirstOrDefault(),
-                NamespaceInterval = s.Module.Namespace.ResolvedDefaults.Where(d => d.OrganizationId == s.Module.OrganizationId).Select(d => d.DriftCheckIntervalMinutes).FirstOrDefault()
+                s.Module.Resolved!.DriftCheckEnabled,
+                s.Module.Resolved!.DriftCheckIntervalMinutes
             })
             .ToListAsync();
 
         var rearmed = 0;
         foreach (var entry in armed)
         {
-            if (!(entry.DriftCheckEnabled ?? entry.NamespaceEnabled ?? false))
+            if (!(entry.DriftCheckEnabled ?? false))
             {
                 entry.Saga.DriftCheckScheduleTokenId = null;
                 continue;
@@ -210,7 +208,6 @@ public class TransportReconciliationJob
 
             var quotaLimits = await _quotaService.GetQuotaLimitsAsync(entry.Saga.OrganizationId);
             var interval = entry.DriftCheckIntervalMinutes
-                           ?? entry.NamespaceInterval
                            ?? quotaLimits?.DefaultDriftCheckIntervalMinutes
                            ?? 1440;
             var effectiveInterval = Math.Max(interval, quotaLimits?.MinDriftCheckIntervalMinutes ?? 720);

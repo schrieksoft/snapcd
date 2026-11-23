@@ -17,8 +17,8 @@ namespace SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 ///
 /// The rule in one place: a supply to the consuming Module or its Namespace allows an Output
 /// outright; otherwise the producer's restriction withholds it, unless the producer's exemption
-/// covers where the consumer sits. The producer's rule is its own where it sets one, and the
-/// Namespace chain's where it does not.
+/// covers where the consumer sits. The producer's rule is what ModuleResolvedSettings holds for it,
+/// and "own Namespace" means the Namespace the exemption was set on.
 ///
 /// Written as one expression so it reaches the database. Every caller gets the same rule, and the
 /// ripple and trigger lookups filter in SQL rather than afterwards. It cannot be split into helper
@@ -39,23 +39,14 @@ public static class OutputReadability
             .Where(m => m.Id == consumingModuleId && m.OrganizationId == organizationId)
             .Select(m => m.NamespaceId);
 
-        // The producer's effective restriction and exemption, named once per row. Each mention of
-        // the resolved-defaults view is evaluated on its own, so repeating one costs linearly.
         return dbContext.Set<Output>()
             .Where(o => o.OrganizationId == organizationId)
             .Select(o => new
             {
                 Output = o,
-                Restriction = o.OutputSet.Module.OutputSetDownstreamRestriction
-                    ?? o.OutputSet.Module.Namespace.ResolvedDefaults
-                        .Where(d => d.OrganizationId == organizationId)
-                        .Select(d => d.OutputSetDownstreamRestriction)
-                        .FirstOrDefault(),
-                Exemption = o.OutputSet.Module.OutputRestrictionExemption
-                    ?? o.OutputSet.Module.Namespace.ResolvedDefaults
-                        .Where(d => d.OrganizationId == organizationId)
-                        .Select(d => d.OutputRestrictionExemption)
-                        .FirstOrDefault(),
+                Restriction = o.OutputSet.Module.Resolved!.OutputSetDownstreamRestriction,
+                Exemption = o.OutputSet.Module.Resolved!.OutputRestrictionExemption,
+                ExemptFrom = o.OutputSet.Module.Resolved!.OutputRestrictionExemptionNamespaceId,
             })
             .Where(x =>
                 // Supplied outright: the whole Output Set, to the Module or to its Namespace.
@@ -91,12 +82,13 @@ public static class OutputReadability
 
                 // Withheld, but the consumer sits where the exemption allows.
                 || (x.Exemption == OutputRestrictionExemption.OwnNamespace
-                    && consumingNamespaceId.Contains(x.Output.OutputSet.Module.NamespaceId))
+                    && x.ExemptFrom != null
+                    && consumingNamespaceId.Contains(x.ExemptFrom.Value))
                 || (x.Exemption == OutputRestrictionExemption.OwnNamespaceAndDescendants
                     && dbContext.NamespaceAncestors.Any(a =>
                         a.OrganizationId == organizationId
                         && consumingNamespaceId.Contains(a.NamespaceId)
-                        && a.AncestorNamespaceId == x.Output.OutputSet.Module.NamespaceId)))
+                        && a.AncestorNamespaceId == x.ExemptFrom)))
             .Select(x => x.Output);
     }
 
@@ -148,32 +140,20 @@ public static class OutputReadability
                     // Nothing withheld: not the whole set, and not this Output by name. Sensitivity
                     // is not known without the Output row, so SensitiveOnly withholds nothing here
                     // and the resolver refuses the value when it is actually read.
-                    || (!((producer.OutputSetDownstreamRestriction
-                               ?? producer.Namespace.ResolvedDefaults
-                                   .Where(d => d.OrganizationId == organizationId)
-                                   .Select(d => d.OutputSetDownstreamRestriction)
-                                   .FirstOrDefault()) == OutputSetDownstreamRestriction.All)
+                    || (!(producer.Resolved!.OutputSetDownstreamRestriction == OutputSetDownstreamRestriction.All)
                         && !(outputName != null && dbContext.ModuleOutputDownstreamRestrictions.Any(r =>
                             r.OrganizationId == organizationId
                             && r.ModuleId == producerId
                             && r.OutputName == outputName)))
 
                     // Withheld, but the consumer sits where the exemption allows.
-                    || ((producer.OutputRestrictionExemption
-                             ?? producer.Namespace.ResolvedDefaults
-                                 .Where(d => d.OrganizationId == organizationId)
-                                 .Select(d => d.OutputRestrictionExemption)
-                                 .FirstOrDefault()) == OutputRestrictionExemption.OwnNamespace
-                        && m.NamespaceId == producer.NamespaceId)
-                    || ((producer.OutputRestrictionExemption
-                             ?? producer.Namespace.ResolvedDefaults
-                                 .Where(d => d.OrganizationId == organizationId)
-                                 .Select(d => d.OutputRestrictionExemption)
-                                 .FirstOrDefault()) == OutputRestrictionExemption.OwnNamespaceAndDescendants
+                    || (producer.Resolved!.OutputRestrictionExemption == OutputRestrictionExemption.OwnNamespace
+                        && m.NamespaceId == producer.Resolved!.OutputRestrictionExemptionNamespaceId)
+                    || (producer.Resolved!.OutputRestrictionExemption == OutputRestrictionExemption.OwnNamespaceAndDescendants
                         && dbContext.NamespaceAncestors.Any(a =>
                             a.OrganizationId == organizationId
                             && a.NamespaceId == m.NamespaceId
-                            && a.AncestorNamespaceId == producer.NamespaceId)))))
+                            && a.AncestorNamespaceId == producer.Resolved!.OutputRestrictionExemptionNamespaceId)))))
             .Select(m => m.Id);
     }
 }

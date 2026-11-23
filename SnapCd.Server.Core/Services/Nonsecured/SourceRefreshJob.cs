@@ -56,6 +56,7 @@ public class SourceRefreshJob
         var groups = _dbContext.Modules
             .Include(x => x.Runner)
             .Include(x => x.AdditionalTriggerPaths)
+            .Include(x => x.Resolved)
             .Include(x => x.Namespace).ThenInclude(n => n.AdditionalTriggerPaths)
             .ToList()
             .GroupBy(x => new { x.SourceType, x.SourceUrl, x.SourceRevision, x.SourceRevisionType, x.OrganizationId, x.RunnerId })

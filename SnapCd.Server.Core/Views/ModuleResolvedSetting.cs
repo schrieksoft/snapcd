@@ -5,17 +5,19 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
+
 using SnapCd.Contracts;
 
 namespace SnapCd.Server.Core.Views;
 
 /// <summary>
-/// A Namespace's defaults as its subtree sees them: the nearest Namespace that sets a value, unless
-/// one further up pins it. Read-only, backed by a view over NamespaceAncestors.
+/// The value each inheritable setting resolves to for one Module: its own value, or the nearest
+/// one set on a Namespace above it, as far as the pins on those Namespaces allow. Null where
+/// nothing sets it, so each reader keeps its own default. Maintained by triggers.
 /// </summary>
-public class NamespaceResolvedDefault
+public class ModuleResolvedSetting
 {
-    public Guid NamespaceId { get; set; }
+    public Guid ModuleId { get; set; }
 
     public Guid OrganizationId { get; set; }
 
@@ -30,4 +32,7 @@ public class NamespaceResolvedDefault
     public int? DriftCheckIntervalMinutes { get; set; }
     public OutputSetDownstreamRestriction? OutputSetDownstreamRestriction { get; set; }
     public OutputRestrictionExemption? OutputRestrictionExemption { get; set; }
+
+    /// <summary>The Namespace the exemption was set on, or the Module's own where the Module set it. "Own Namespace" means this one.</summary>
+    public Guid? OutputRestrictionExemptionNamespaceId { get; set; }
 }

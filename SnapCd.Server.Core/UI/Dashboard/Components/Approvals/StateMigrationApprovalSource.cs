@@ -74,12 +74,7 @@ public class StateMigrationApprovalSource : IApprovalSource
         // The default is one, not none: a state migration's push is irreversible, so silence is
         // not consent. StateMigrationApprovalThreshold holds the same rule for the gate.
         return await repo.Get(moduleId, organizationId, x => x
-            .Include(m => m.Namespace)
-            .Select(y => y.StateMigrationApprovalThreshold
-                         ?? y.Namespace.ResolvedDefaults
-                             .Where(d => d.OrganizationId == y.OrganizationId)
-                             .Select(d => d.StateMigrationApprovalThreshold).FirstOrDefault()
-                         ?? 1));
+            .Select(y => y.Resolved!.StateMigrationApprovalThreshold ?? 1));
     }
 
     public async Task Approve(Guid jobId, Guid moduleId, Guid organizationId)

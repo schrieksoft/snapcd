@@ -98,10 +98,10 @@ public class ProbeReadinessReader : IDisposable
         var engines = await _dbContext.Modules
             .AsNoTracking()
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
-            .Select(m => new { m.Engine, NamespaceDefault = m.Namespace.ResolvedDefaults.Where(d => d.OrganizationId == m.OrganizationId).Select(d => d.Engine).FirstOrDefault() })
+            .Select(m => new { m.Resolved!.Engine })
             .FirstOrDefaultAsync();
 
-        var engine = engines?.Engine ?? engines?.NamespaceDefault ?? StateManagementEngine.OpenTofu;
+        var engine = engines?.Engine ?? StateManagementEngine.OpenTofu;
 
         return engine.SupportsProbes();
     }

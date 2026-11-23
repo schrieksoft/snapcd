@@ -37,6 +37,7 @@ public class SourceRefreshCompletedCompetingConsumer : IConsumer<SourceRefreshCo
             .Include(x => x.Runner)
             .Include(x => x.ModuleSaga)
             .Include(x => x.AdditionalTriggerPaths)
+            .Include(x => x.Resolved)
             .Include(x => x.Namespace).ThenInclude(n => n.AdditionalTriggerPaths)
             .Where(x => x.OrganizationId == message.OrganizationId &&
                         x.SourceUrl == message.SourceUrl &&

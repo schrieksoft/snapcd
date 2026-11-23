@@ -100,11 +100,7 @@ public class OutputRestrictionChecker
                 m.Id,
                 m.Name,
                 NamespaceName = m.Namespace.Name,
-                Restriction = m.OutputSetDownstreamRestriction
-                    ?? m.Namespace.ResolvedDefaults
-                        .Where(d => d.OrganizationId == m.OrganizationId)
-                        .Select(d => d.OutputSetDownstreamRestriction)
-                        .FirstOrDefault()
+                Restriction = m.Resolved!.OutputSetDownstreamRestriction
             })
             .ToListAsync();
 

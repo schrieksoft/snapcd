@@ -127,6 +127,10 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
 
     public List<ModuleHook> Hooks { get; set; } = new();
 
+    /// <summary>What each inheritable setting resolves to for this Module. Read-only; null only before the row is first written.</summary>
+    [JsonIgnore]
+    public Views.ModuleResolvedSetting? Resolved { get; set; }
+
     public StateManagementEngine? Engine { get; set; }
 
     public List<ModulePulumiFlag> PulumiFlags { get; set; } = new();

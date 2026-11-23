@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Contracts;
+using SnapCd.Server.Core.Services.Nonsecured.Approvals;
 using SnapCd.Server.Core.Tests.Infrastructure;
 
 namespace SnapCd.Server.Core.Tests.Tests.NestedNamespaces;
@@ -60,6 +61,23 @@ public class OverridePinTests(Fixture fixture) : IAsyncLifetime
         var resolved = await resolver.GetDeclared(module.Id, _scenario.OrganizationId);
 
         Assert.True(resolved.CleanInitEnabled);
+    }
+
+    [Fact]
+    public async Task A_module_cannot_lower_an_approval_threshold_an_ancestor_forbids_overriding()
+    {
+        var parent = await _scenario.AddNamespace("00", configure: n =>
+        {
+            n.DefaultStateMigrationApprovalThreshold = 2;
+            n.OverrideOnStateMigrationApprovalThreshold = OrderedOverridePolicy.Forbidden;
+        });
+        var child = await _scenario.AddNamespace("00", parent.Id);
+        var module = await _scenario.AddModule(child.Id, m => m.StateMigrationApprovalThreshold = 0);
+
+        await using var db = fixture.CreateDbContext();
+        var threshold = await StateMigrationApprovalThreshold.Resolve(module.Id, _scenario.OrganizationId, db);
+
+        Assert.Equal(2, threshold);
     }
 
     [Fact]

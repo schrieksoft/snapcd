@@ -142,10 +142,6 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public OverridePolicy? OverrideOnEngine { get; set; }
     public OverridePolicy? OverrideOnDriftCheckIntervalMinutes { get; set; }
 
-    /// <summary>This Namespace's defaults with its ancestors applied. Read-only, one row.</summary>
-    [JsonIgnore]
-    public List<Views.NamespaceResolvedDefault> ResolvedDefaults { get; set; } = new();
-
     [JsonIgnore] // So that JSON Serialization does not create a loop
     public Namespace? ParentNamespace { get; set; }
 

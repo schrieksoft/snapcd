@@ -86,24 +86,17 @@ public class DeploymentJobApprovalSource : IApprovalSource
 
         using var repo = _moduleRepoFactory.Create(_principalProvider);
 
-        // The Namespace part comes from the resolved-defaults view, so a threshold set anywhere
-        // above the Module's own Namespace applies. Mirrors DeploymentApprovalThreshold.
+        // Mirrors DeploymentApprovalThreshold.
         var thresholds = await repo.Get(moduleId, organizationId, x => x
             .Select(y => new
             {
-                y.ApplyApprovalThreshold,
-                y.DestroyApprovalThreshold,
-                InheritedApply = y.Namespace.ResolvedDefaults
-                    .Where(d => d.OrganizationId == y.OrganizationId)
-                    .Select(d => d.ApplyApprovalThreshold).FirstOrDefault(),
-                InheritedDestroy = y.Namespace.ResolvedDefaults
-                    .Where(d => d.OrganizationId == y.OrganizationId)
-                    .Select(d => d.DestroyApprovalThreshold).FirstOrDefault()
+                Apply = y.Resolved!.ApplyApprovalThreshold,
+                Destroy = y.Resolved!.DestroyApprovalThreshold
             }));
 
         return _jobSagaType == nameof(ApplyJobSaga)
-            ? thresholds.ApplyApprovalThreshold ?? thresholds.InheritedApply ?? 0
-            : thresholds.DestroyApprovalThreshold ?? thresholds.InheritedDestroy ?? 0;
+            ? thresholds.Apply ?? 0
+            : thresholds.Destroy ?? 0;
     }
 
     public Task Approve(Guid jobId, Guid moduleId, Guid organizationId) =>

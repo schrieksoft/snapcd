@@ -42,10 +42,8 @@ public class ScheduleDriftCheckActivity<TMessage> :
                 .Where(m => m.Id == context.Saga.CorrelationId && m.OrganizationId == context.Saga.OrganizationId)
                 .Select(m => new
                 {
-                    m.DriftCheckEnabled,
-                    m.DriftCheckIntervalMinutes,
-                    NamespaceDefaultDriftCheckEnabled = m.Namespace.ResolvedDefaults.Where(d => d.OrganizationId == m.OrganizationId).Select(d => d.DriftCheckEnabled).FirstOrDefault(),
-                    NamespaceDefaultDriftCheckIntervalMinutes = m.Namespace.ResolvedDefaults.Where(d => d.OrganizationId == m.OrganizationId).Select(d => d.DriftCheckIntervalMinutes).FirstOrDefault()
+                    m.Resolved!.DriftCheckEnabled,
+                    m.Resolved!.DriftCheckIntervalMinutes
                 })
                 .FirstOrDefaultAsync();
 
@@ -56,7 +54,7 @@ public class ScheduleDriftCheckActivity<TMessage> :
                 return;
             }
 
-            var enabled = moduleData.DriftCheckEnabled ?? moduleData.NamespaceDefaultDriftCheckEnabled ?? false;
+            var enabled = moduleData.DriftCheckEnabled ?? false;
             if (!enabled)
             {
                 _logger.LogDebug("Drift check not enabled for module {ModuleId}, skipping", context.Saga.CorrelationId);
@@ -67,7 +65,6 @@ public class ScheduleDriftCheckActivity<TMessage> :
             var quotaLimits = await _quotaService.GetQuotaLimitsAsync(context.Saga.OrganizationId);
 
             var interval = moduleData.DriftCheckIntervalMinutes
-                           ?? moduleData.NamespaceDefaultDriftCheckIntervalMinutes
                            ?? quotaLimits?.DefaultDriftCheckIntervalMinutes
                            ?? 1440;
 

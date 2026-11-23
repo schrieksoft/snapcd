@@ -120,6 +120,10 @@ public class ResolvedConfigurationService : IDisposable
 
         var chain = await LoadInheritanceChain(module.NamespaceId, module.OrganizationId);
 
+        var resolved = await _dbContext.ModuleResolvedSettings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(r => r.ModuleId == module.Id && r.OrganizationId == module.OrganizationId);
+
         // Furthest first: the merge helpers let a later entry overwrite an earlier one, so a
         // nearer Namespace's flag wins.
         var flagChain = UpTo(chain, n => n.IgnoreInheritedFlags).AsEnumerable().Reverse().ToList();
@@ -209,7 +213,7 @@ public class ResolvedConfigurationService : IDisposable
             SourceType = module.SourceType,
             SourceRevisionType = module.SourceRevisionType,
             DependsOnModules = dependsOnModules,
-            Policies = ResolvePolicies(module, chain),
+            Policies = ResolvePolicies(module, chain, resolved?.Engine),
             // REMOVED: Output selections are now handled by client calls to OutputService
             // SelectedModuleParamsFromOutputs = paramSelectedOutputs,
             // SelectedModuleOutputEnvVars = envVarSelectedOutputs,
@@ -240,9 +244,9 @@ public class ResolvedConfigurationService : IDisposable
             InitAfterHook = ResolveHook(HookTask.Init, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
             IgnoreInheritedExtraFiles = module.IgnoreInheritedExtraFiles,
 
-            CleanInitEnabled = module.CleanInitEnabled ?? Inherited(chain, n => n.DefaultCleanInitEnabled, n => n.OverrideOnCleanInitEnabled, v => v ? 1 : 0) ?? false,
-            DriftCheckEnabled = module.DriftCheckEnabled ?? Inherited(chain, n => n.DefaultDriftCheckEnabled, n => n.OverrideOnDriftCheckEnabled, v => v ? 1 : 0) ?? false,
-            DriftCheckIntervalMinutes = module.DriftCheckIntervalMinutes ?? Inherited(chain, n => n.DefaultDriftCheckIntervalMinutes, n => n.OverrideOnDriftCheckIntervalMinutes),
+            CleanInitEnabled = resolved?.CleanInitEnabled ?? false,
+            DriftCheckEnabled = resolved?.DriftCheckEnabled ?? false,
+            DriftCheckIntervalMinutes = resolved?.DriftCheckIntervalMinutes,
             PlanBeforeHook = ResolveHook(HookTask.Plan, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
             PlanAfterHook = ResolveHook(HookTask.Plan, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
             PlanDestroyBeforeHook = ResolveHook(HookTask.PlanDestroy, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
@@ -258,9 +262,9 @@ public class ResolvedConfigurationService : IDisposable
             SourceRevision = module.SourceRevision,
             SourceUrl = module.SourceUrl,
 
-            ApprovalTimeoutMinutes = module.ApprovalTimeoutMinutes ?? Inherited(chain, n => n.DefaultApprovalTimeoutMinutes, n => n.OverrideOnApprovalTimeoutMinutes),
+            ApprovalTimeoutMinutes = resolved?.ApprovalTimeoutMinutes,
 
-            Engine = GetEngineString(module.Engine, Inherited(chain, n => n.DefaultEngine, n => n.OverrideOnEngine)),
+            Engine = GetEngineString(resolved?.Engine),
             PulumiFlags = module.IgnoreInheritedFlags
                 ? module.PulumiFlags.Select(f => new PulumiFlagEntry { Task = f.Task, Flag = f.Flag, Value = f.Value }).ToList()
                 : MergePulumiFlags(flagChain.SelectMany(ns => ns.PulumiFlags).ToList(), module.PulumiFlags),
@@ -338,72 +342,6 @@ public class ResolvedConfigurationService : IDisposable
         }
 
         return kept;
-    }
-
-    /// <summary>
-    /// The value the chain supplies for one setting, where an override is either allowed or not.
-    /// The nearest Namespace that sets it wins, unless one further up forbids an override.
-    /// </summary>
-    /// <param name="chain">Namespaces nearest first.</param>
-    /// <param name="value">The setting on a Namespace.</param>
-    /// <param name="policy">Whether that Namespace forbids an override below it.</param>
-    private static T? Inherited<T>(
-        List<Namespace> chain,
-        Func<Namespace, T?> value,
-        Func<Namespace, OverridePolicy?> policy)
-        where T : struct
-    {
-        T? nearest = null;
-
-        foreach (var ns in chain)
-        {
-            nearest ??= value(ns);
-
-            // Furthest refusal wins, so keep walking rather than stopping at the first one.
-            if (policy(ns) == OverridePolicy.Forbidden && value(ns) is { } enforced) nearest = enforced;
-        }
-
-        return nearest;
-    }
-
-    /// <summary>
-    /// The same, for a setting whose values order from permissive to strict. An ancestor may forbid
-    /// an override outright, or allow only one that is at least as strict as its own value.
-    /// </summary>
-    /// <param name="chain">Namespaces nearest first.</param>
-    /// <param name="value">The setting on a Namespace.</param>
-    /// <param name="policy">What that Namespace allows an override below it to do.</param>
-    /// <param name="strictness">Higher is stricter. Values that compare equal are interchangeable.</param>
-    private static T? Inherited<T>(
-        List<Namespace> chain,
-        Func<Namespace, T?> value,
-        Func<Namespace, OrderedOverridePolicy?> policy,
-        Func<T, int> strictness)
-        where T : struct
-    {
-        T? nearest = null;
-
-        foreach (var ns in chain)
-        {
-            nearest ??= value(ns);
-
-            if (value(ns) is not { } own) continue;
-
-            switch (policy(ns))
-            {
-                case OrderedOverridePolicy.Forbidden:
-                    nearest = own;
-                    break;
-
-                // A nearer value stands only where it does not loosen what this Namespace set.
-                case OrderedOverridePolicy.OnlyStricter
-                    when nearest is { } below && strictness(below) < strictness(own):
-                    nearest = own;
-                    break;
-            }
-        }
-
-        return nearest;
     }
 
     /// <summary>
@@ -649,9 +587,9 @@ public class ResolvedConfigurationService : IDisposable
     // - ListByModuleInputFromOutputs(Guid moduleId)
     // - ListByModuleInputFromOutputSets(Guid moduleId)
 
-    private List<ResolvedPolicy> ResolvePolicies(Module module, List<Namespace> chain)
+    private List<ResolvedPolicy> ResolvePolicies(Module module, List<Namespace> chain, StateManagementEngine? resolvedEngine)
     {
-        var engine = module.Engine ?? Inherited(chain, n => n.DefaultEngine, n => n.OverrideOnEngine) ?? StateManagementEngine.OpenTofu;
+        var engine = resolvedEngine ?? StateManagementEngine.OpenTofu;
 
         // Policies accumulate rather than override, so a Namespace that ignores its ancestors
         // truncates what is collected.
@@ -692,10 +630,9 @@ public class ResolvedConfigurationService : IDisposable
         return policies;
     }
 
-    private string GetEngineString(StateManagementEngine? engine, StateManagementEngine? defaultEngine)
+    private string GetEngineString(StateManagementEngine? engine)
     {
-        var globalDefaultEngine = StateManagementEngine.OpenTofu;
-        var resolvedEngine = engine ?? defaultEngine ?? globalDefaultEngine;
+        var resolvedEngine = engine ?? StateManagementEngine.OpenTofu;
 
         return resolvedEngine switch
         {

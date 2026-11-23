@@ -135,10 +135,10 @@ public class StateMigrationService : IDisposable
     {
         var engines = await _dbContext.Modules.AsNoTracking()
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
-            .Select(m => new { m.Engine, NamespaceDefault = m.Namespace.ResolvedDefaults.Where(d => d.OrganizationId == m.OrganizationId).Select(d => d.Engine).FirstOrDefault() })
+            .Select(m => new { m.Resolved!.Engine })
             .FirstOrDefaultAsync();
 
-        return engines?.Engine ?? engines?.NamespaceDefault ?? StateManagementEngine.OpenTofu;
+        return engines?.Engine ?? StateManagementEngine.OpenTofu;
     }
 
     /// <summary>

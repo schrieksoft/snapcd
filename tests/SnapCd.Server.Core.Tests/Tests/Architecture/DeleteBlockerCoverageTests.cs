@@ -61,6 +61,7 @@ public class DeleteBlockerCoverageTests
                 var table = foreignKey.DeclaringEntityType.GetTableName();
                 if (table == null || cleared.Contains(table)) continue;
                 if (Enforced[owner].Contains(table)) continue;
+                if (GoneByCascade[owner].Contains(table)) continue;
 
                 uncovered.Add(
                     $"{table}.{string.Join(",", foreignKey.Properties.Select(p => p.Name))} " +
@@ -119,6 +120,19 @@ public class DeleteBlockerCoverageTests
     {
         [typeof(Module)] = [],
         [typeof(Namespace)] = ["Namespaces"],
+        [typeof(Stack)] = [],
+        [typeof(ModuleJob)] = []
+    };
+
+    /// <summary>
+    /// References that never block, because the referencing row is deleted by cascade in the same
+    /// delete. A Module's resolved settings name a Namespace at or above the Module's own, and
+    /// deleting that Namespace deletes the Module. ModuleResolvedSettingsMaintenanceTests runs it.
+    /// </summary>
+    private static readonly Dictionary<Type, string[]> GoneByCascade = new()
+    {
+        [typeof(Module)] = [],
+        [typeof(Namespace)] = ["ModuleResolvedSettings"],
         [typeof(Stack)] = [],
         [typeof(ModuleJob)] = []
     };

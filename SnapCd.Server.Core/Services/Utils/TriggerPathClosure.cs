@@ -73,34 +73,8 @@ public static class TriggerPathClosure
         }
     }
 
-    /// <summary>
-    /// Whether path-scoped triggering is on for the Module: module flag, else namespace default, else false.
-    /// </summary>
-    public static bool FilterEnabled(Module module, IReadOnlyList<Namespace>? chain = null)
-    {
-        if (module.TriggerPathFilterEnabled is { } own) return own;
-
-        var inherited = chain ?? (module.Namespace == null ? [] : new List<Namespace> { module.Namespace });
-
-        bool? nearest = null;
-
-        foreach (var ns in inherited)
-        {
-            nearest ??= ns.DefaultTriggerPathFilterEnabled;
-
-            if (ns.DefaultTriggerPathFilterEnabled is not { } declared) continue;
-
-            // Matches how the other inherited defaults resolve: a refusal further up wins outright,
-            // and OnlyStricter lets a nearer value stand only where it does not loosen this one.
-            // Filtering on is the stricter setting, since it fires on fewer changes.
-            if (ns.OverrideOnTriggerPathFilterEnabled == OrderedOverridePolicy.Forbidden
-                || (ns.OverrideOnTriggerPathFilterEnabled == OrderedOverridePolicy.OnlyStricter
-                    && nearest == false && declared))
-                nearest = declared;
-        }
-
-        return nearest ?? false;
-    }
+    /// <summary>Whether path-scoped triggering is on for the Module. Requires Resolved to be loaded.</summary>
+    public static bool FilterEnabled(Module module) => module.Resolved?.TriggerPathFilterEnabled ?? false;
 
     /// <summary>
     /// The watched-path union a refresh request must carry for one refresh group: the declared paths of every
@@ -112,7 +86,7 @@ public static class TriggerPathClosure
         IReadOnlyDictionary<Guid, List<Namespace>>? chains = null)
     {
         return groupMembers
-            .Where(m => FilterEnabled(m, ChainFor(m, chains)))
+            .Where(m => FilterEnabled(m))
             .SelectMany(m => WatchedPaths(m, ChainFor(m, chains)))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(p => p, StringComparer.Ordinal)

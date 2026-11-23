@@ -3826,97 +3826,52 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Number"));
 
-                    b.Property<Guid?>("ParentNamespaceId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("OverrideOnApplyApprovalThreshold")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("OverrideOnApprovalTimeoutMinutes")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("OverrideOnCleanInitEnabled")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("OverrideOnDestroyApprovalThreshold")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("OverrideOnDriftCheckEnabled")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("OverrideOnDriftCheckIntervalMinutes")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("OverrideOnEngine")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
 
-
                     b.Property<string>("OverrideOnOutputRestrictionExemption")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("OverrideOnOutputSetDownstreamRestriction")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("OverrideOnStateMigrationApprovalThreshold")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("OverrideOnTriggerPathFilterEnabled")
-
-
                         .HasMaxLength(50)
-
-
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid?>("ParentNamespaceId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("StackId")
                         .HasColumnType("uniqueidentifier");
@@ -10212,6 +10167,62 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Views.ModuleResolvedSetting", b =>
+                {
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("ApplyApprovalThreshold")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ApprovalTimeoutMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("CleanInitEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("DestroyApprovalThreshold")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("DriftCheckEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("DriftCheckIntervalMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Engine")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OutputRestrictionExemption")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid?>("OutputRestrictionExemptionNamespaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OutputSetDownstreamRestriction")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("StateMigrationApprovalThreshold")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("TriggerPathFilterEnabled")
+                        .HasColumnType("bit");
+
+                    b.HasKey("ModuleId", "OrganizationId");
+
+                    b.HasIndex("OutputRestrictionExemptionNamespaceId", "OrganizationId");
+
+                    b.ToTable("ModuleResolvedSettings", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Views.ModuleStateRow", b =>
                 {
                     b.Property<Guid>("ModuleId")
@@ -10269,54 +10280,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.ToTable("NamespaceAncestors", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Views.NamespaceResolvedDefault", b =>
-                {
-                    b.Property<Guid>("NamespaceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("ApplyApprovalThreshold")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ApprovalTimeoutMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<bool?>("CleanInitEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("DestroyApprovalThreshold")
-                        .HasColumnType("int");
-
-                    b.Property<bool?>("DriftCheckEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("DriftCheckIntervalMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Engine")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OutputRestrictionExemption")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OutputSetDownstreamRestriction")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("StateMigrationApprovalThreshold")
-                        .HasColumnType("int");
-
-                    b.Property<bool?>("TriggerPathFilterEnabled")
-                        .HasColumnType("bit");
-
-                    b.HasKey("NamespaceId", "OrganizationId");
-
-                    b.ToTable((string)null);
-
-                    b.ToView("NamespaceResolvedDefaults", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Views.RecursiveDependencyEdge", b =>
@@ -13820,13 +13783,18 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Views.NamespaceResolvedDefault", b =>
+            modelBuilder.Entity("SnapCd.Server.Core.Views.ModuleResolvedSetting", b =>
                 {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", null)
-                        .WithMany("ResolvedDefaults")
-                        .HasForeignKey("NamespaceId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", null)
+                        .WithOne("Resolved")
+                        .HasForeignKey("SnapCd.Server.Core.Views.ModuleResolvedSetting", "ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", null)
+                        .WithMany()
+                        .HasForeignKey("OutputRestrictionExemptionNamespaceId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.NoAction);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleEnvVarFromDefinition", b =>
@@ -14541,6 +14509,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("ReceivedOutputSupplies");
 
+                    b.Navigation("Resolved");
+
                     b.Navigation("ResourceChangeSets");
 
                     b.Navigation("RunnerModuleSupplies");
@@ -14627,8 +14597,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("ReceivedOutputSetSupplies");
 
                     b.Navigation("ReceivedOutputSupplies");
-
-                    b.Navigation("ResolvedDefaults");
 
                     b.Navigation("RunnerNamespaceSupplies");
 
