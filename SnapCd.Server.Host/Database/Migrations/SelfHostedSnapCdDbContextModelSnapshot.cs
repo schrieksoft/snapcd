@@ -572,7 +572,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<string>("InputKind")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("CASE WHEN [Discriminator] LIKE N'%EnvVar%' THEN N'EnvVar' ELSE N'Param' END", true);
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -646,7 +648,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<string>("InputKind")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("CASE WHEN [Discriminator] LIKE N'%EnvVar%' THEN N'EnvVar' ELSE N'Param' END", true);
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -10546,6 +10550,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasDiscriminator().HasValue("ModuleEnvVarFromSecret");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleEnvVarUnset", b =>
+                {
+                    b.HasBaseType("SnapCd.Server.Core.Entities.Definition.Base.ModuleInput");
+
+                    b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasDiscriminator().HasValue("ModuleEnvVarUnset");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleInputFromNamespace", b =>
                 {
                     b.HasBaseType("SnapCd.Server.Core.Entities.Definition.Base.ModuleInput");
@@ -10658,6 +10671,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasDiscriminator().HasValue("ModuleParamFromSecret");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleParamUnset", b =>
+                {
+                    b.HasBaseType("SnapCd.Server.Core.Entities.Definition.Base.ModuleInput");
+
+                    b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasDiscriminator().HasValue("ModuleParamUnset");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceEnvVarFromDefinition", b =>
                 {
                     b.HasBaseType("SnapCd.Server.Core.Entities.Definition.Base.NamespaceInput");
@@ -10712,6 +10734,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasDiscriminator().HasValue("NamespaceEnvVarFromSecret");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceEnvVarUnset", b =>
+                {
+                    b.HasBaseType("SnapCd.Server.Core.Entities.Definition.Base.NamespaceInput");
+
+                    b.HasIndex("NamespaceId", "OrganizationId");
+
+                    b.HasDiscriminator().HasValue("NamespaceEnvVarUnset");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceParamFromDefinition", b =>
                 {
                     b.HasBaseType("SnapCd.Server.Core.Entities.Definition.Base.NamespaceInput");
@@ -10764,6 +10795,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("SecretId", "OrganizationId");
 
                     b.HasDiscriminator().HasValue("NamespaceParamFromSecret");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceParamUnset", b =>
+                {
+                    b.HasBaseType("SnapCd.Server.Core.Entities.Definition.Base.NamespaceInput");
+
+                    b.HasIndex("NamespaceId", "OrganizationId");
+
+                    b.HasDiscriminator().HasValue("NamespaceParamUnset");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.GroupMembers.GroupGroupMember", b =>
@@ -13872,6 +13912,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Secret");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleEnvVarUnset", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithMany("ModuleEnvVarUnsets")
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Module");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleInputFromNamespace", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Base.NamespaceInput", null)
@@ -13960,6 +14011,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Secret");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleParamUnset", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithMany("ModuleParamUnsets")
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Module");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceEnvVarFromDefinition", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "Namespace")
@@ -14001,6 +14063,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Secret");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceEnvVarUnset", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "Namespace")
+                        .WithMany("NamespaceEnvVarUnsets")
+                        .HasForeignKey("NamespaceId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Namespace");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceParamFromDefinition", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "Namespace")
@@ -14040,6 +14113,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Namespace");
 
                     b.Navigation("Secret");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceParamUnset", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "Namespace")
+                        .WithMany("NamespaceParamUnsets")
+                        .HasForeignKey("NamespaceId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Namespace");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.GroupMembers.GroupGroupMember", b =>
@@ -14482,6 +14566,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("ModuleEnvVarFromSecrets");
 
+                    b.Navigation("ModuleEnvVarUnsets");
+
                     b.Navigation("ModuleExtraFiles");
 
                     b.Navigation("ModuleJobs");
@@ -14501,6 +14587,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("ModuleParamFromOutputs");
 
                     b.Navigation("ModuleParamFromSecrets");
+
+                    b.Navigation("ModuleParamUnsets");
 
                     b.Navigation("ModuleProbeAttempts");
 
@@ -14587,6 +14675,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("NamespaceEnvVarFromSecrets");
 
+                    b.Navigation("NamespaceEnvVarUnsets");
+
                     b.Navigation("NamespaceExtraFiles");
 
                     b.Navigation("NamespaceMissions");
@@ -14596,6 +14686,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("NamespaceParamFromLiterals");
 
                     b.Navigation("NamespaceParamFromSecrets");
+
+                    b.Navigation("NamespaceParamUnsets");
 
                     b.Navigation("NamespaceRoleAssignments");
 

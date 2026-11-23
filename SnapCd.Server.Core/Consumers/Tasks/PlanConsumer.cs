@@ -86,7 +86,6 @@ public class PlanConsumer : IConsumer<ApplyPlanRequested>
                 taskContext,
                 msg.Declared.ModuleParamFromDefinitions ?? [],
                 msg.Declared.ModuleParamFromLiterals ?? [],
-                msg.Declared.ModuleParamFromNamespaces ?? [],
                 msg.Declared.NamespaceParamFromLiterals ?? [],
                 msg.Declared.NamespaceParamFromDefinitions ?? [],
                 msg.Declared.SelectedModuleParamsFromSecrets,

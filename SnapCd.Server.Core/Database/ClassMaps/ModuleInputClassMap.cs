@@ -31,12 +31,13 @@ public class ModuleInputClassMap : IEntityTypeConfiguration<ModuleInput>
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Configure InputKind to store as string
+        // Derived by the database from the row's type, so the two cannot disagree.
         entity
             .Property(e => e.InputKind)
-            .HasConversion<string>();
+            .HasConversion<string>()
+            .HasComputedColumnSql("CASE WHEN [Discriminator] LIKE N'%EnvVar%' THEN N'EnvVar' ELSE N'Param' END", stored: true);
 
-        // Unique index on ModuleId, InputKind, and Name combination
+        // One name per kind: a param and an env var may share a name, two params may not.
         entity
             .HasIndex(p => new { p.ModuleId, p.InputKind, p.Name, p.OrganizationId })
             .IsUnique();

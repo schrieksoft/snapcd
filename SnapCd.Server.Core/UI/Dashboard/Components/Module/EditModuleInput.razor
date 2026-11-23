@@ -82,19 +82,6 @@
             </MudItem>
         }
 
-        <!-- FromNamespace -->
-        @if (Context is IModuleInputFromNamespace fromNamespace)
-        {
-            <MudItem xs="12" Class="mb-4">
-                <MudTextField Disabled="@(!_canSave)" Label="Reference Name"
-                              @bind-Value="fromNamespace.NamespaceInputId"
-                              Immediate="true"
-                              Required
-                              RequiredError="Reference name is required"
-                              FullWidth="true"/>
-            </MudItem>
-        }
-
         <!-- FromOutput -->
         @if (Context is IModuleInputFromOutput fromOutput)
         {

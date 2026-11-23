@@ -33,12 +33,13 @@ public class NamespaceInputClassMap : IEntityTypeConfiguration<NamespaceInput>
             .Property(d => d.UsageMode)
             .HasConversion<string>();
 
-        // Configure InputKind to store as string
+        // Derived by the database from the row's type, so the two cannot disagree.
         entity
             .Property(e => e.InputKind)
-            .HasConversion<string>();
+            .HasConversion<string>()
+            .HasComputedColumnSql("CASE WHEN [Discriminator] LIKE N'%EnvVar%' THEN N'EnvVar' ELSE N'Param' END", stored: true);
 
-        // Unique index on NamespaceId, InputKind, and Name combination
+        // One name per kind: a param and an env var may share a name, two params may not.
         entity
             .HasIndex(p => new { p.NamespaceId, p.InputKind, p.Name, p.OrganizationId })
             .IsUnique();

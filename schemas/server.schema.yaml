@@ -1958,6 +1958,29 @@ properties:
               whose downstream consumers might be offline long enough to miss the default window.
         description: Per-ModuleInput repository tuning. Almost always left at defaults — operators override only when they
           need to opt out of bus events or change the event TTL for the ModuleInput entity specifically.
+      ModuleInputUnset:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a ModuleInputUnset is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a ModuleInputUnset is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a ModuleInputUnset is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Per-ModuleInputUnset repository tuning. Almost always left at defaults — operators override only when
+          they need to opt out of bus events or change the event TTL for the ModuleInputUnset entity specifically.
       ModuleIntegrationEvent:
         type: object
         properties:
@@ -2573,6 +2596,29 @@ properties:
               whose downstream consumers might be offline long enough to miss the default window.
         description: Per-NamespaceInput repository tuning. Almost always left at defaults — operators override only when they
           need to opt out of bus events or change the event TTL for the NamespaceInput entity specifically.
+      NamespaceInputUnset:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a NamespaceInputUnset is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a NamespaceInputUnset is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a NamespaceInputUnset is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Per-NamespaceInputUnset repository tuning. Almost always left at defaults — operators override only when
+          they need to opt out of bus events or change the event TTL for the NamespaceInputUnset entity specifically.
       NamespaceIntegrationEvent:
         type: object
         properties:

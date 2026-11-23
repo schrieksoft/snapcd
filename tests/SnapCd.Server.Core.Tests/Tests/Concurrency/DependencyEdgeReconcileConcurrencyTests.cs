@@ -92,10 +92,10 @@ public class DependencyEdgeReconcileConcurrencyTests
     private async Task InsertInputAsync(string name, SqlConnection? existing = null)
     {
         const string sql = """
-            INSERT INTO ModuleInputs (Id, OrganizationId, ModuleId, Name, InputKind, Discriminator,
+            INSERT INTO ModuleInputs (Id, OrganizationId, ModuleId, Name, Discriminator,
                 OutputModuleId, OutputName, CreatedBy, CreatedByPrincipalDiscriminator, CreatedDateTime,
                 ModifiedBy, ModifiedByPrincipalDiscriminator, ModifiedDateTime)
-            VALUES (NEWID(), @org, @consumer, @name, 'Param', 'ModuleParamFromOutput',
+            VALUES (NEWID(), @org, @consumer, @name, 'ModuleParamFromOutput',
                 @producer, 'out', @org, 'User', SYSUTCDATETIME(), @org, 'User', SYSUTCDATETIME());
             """;
 

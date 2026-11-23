@@ -14,11 +14,13 @@ public static class ControllerEndpoints
     public const string Runner = "api/{organizationId:guid}/Runner";
     public const string Namespace = "api/{organizationId:guid}/Namespace";
     public const string NamespaceInputFromLiteral = "api/{organizationId:guid}/NamespaceInputFromLiteral";
+    public const string NamespaceInputUnset = "api/{organizationId:guid}/NamespaceInputUnset";
     public const string NamespaceInputFromSecret = "api/{organizationId:guid}/NamespaceInputFromSecret";
     public const string NamespaceInputFromDefinition = "api/{organizationId:guid}/NamespaceInputFromDefinition";
     public const string ModuleInputFromDefinition = "api/{organizationId:guid}/ModuleInputFromDefinition";
     public const string ModuleInputFromNamespace = "api/{organizationId:guid}/ModuleInputFromNamespace";
     public const string ModuleInputFromLiteral = "api/{organizationId:guid}/ModuleInputFromLiteral";
+    public const string ModuleInputUnset = "api/{organizationId:guid}/ModuleInputUnset";
     public const string ModuleInputFromOutputSet = "api/{organizationId:guid}/ModuleInputFromOutputSet";
     public const string ModuleInputFromOutput = "api/{organizationId:guid}/ModuleInputFromOutput";
     public const string ModuleInputFromSecret = "api/{organizationId:guid}/ModuleInputFromSecret";

@@ -13,6 +13,6 @@ namespace SnapCd.Contracts.Dto.ModuleInputs;
 /// <summary>DTO for creating a new ModuleInputFromNamespace (POST operations).</summary>
 public class ModuleInputFromNamespaceCreateDto : ModuleInputCreateDto
 {
-    /// <summary>Id of the Namespace Input to pull take as input.</summary>
+    /// <summary>Id of a Namespace Input. No longer has any effect: a Module receives every input declared on its Namespace and on the Namespaces above it, under the input's own name, without selecting it. Accepted and stored so that existing clients keep working.</summary>
     public Guid NamespaceInputId { get; set; }
 }

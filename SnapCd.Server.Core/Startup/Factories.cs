@@ -141,9 +141,11 @@ public static class Factories
         
         services.AddScoped<NamespaceInputFromDefinitionServiceFactory>();
         services.AddScoped<NamespaceInputFromLiteralServiceFactory>();
+        services.AddScoped<NamespaceInputUnsetServiceFactory>();
         services.AddScoped<NamespaceInputFromSecretServiceFactory>();
         services.AddScoped<ModuleInputFromDefinitionServiceFactory>();
         services.AddScoped<ModuleInputFromLiteralServiceFactory>();
+        services.AddScoped<ModuleInputUnsetServiceFactory>();
         services.AddScoped<ModuleInputFromNamespaceServiceFactory>();
         services.AddScoped<ModuleInputFromOutputServiceFactory>();
         services.AddScoped<ModuleInputFromOutputSetServiceFactory>();
@@ -151,16 +153,20 @@ public static class Factories
         services.AddScoped<ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleEnvVarFromDefinition>>();
         services.AddScoped<ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleEnvVarFromNamespace>>();
         services.AddScoped<ModuleInputFromLiteralSecuredRepositoryFactory<ModuleEnvVarFromLiteral>>();
+        services.AddScoped<ModuleInputUnsetSecuredRepositoryFactory<ModuleEnvVarUnset>>();
         services.AddScoped<ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput>>();
         services.AddScoped<ModuleInputFromSecretSecuredRepositoryFactory<ModuleEnvVarFromSecret>>();
         services.AddScoped<ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleParamFromDefinition>>();
         services.AddScoped<ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleParamFromNamespace>>();
         services.AddScoped<ModuleInputFromLiteralSecuredRepositoryFactory<ModuleParamFromLiteral>>();
+        services.AddScoped<ModuleInputUnsetSecuredRepositoryFactory<ModuleParamUnset>>();
         services.AddScoped<ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput>>();
         services.AddScoped<ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet>>();
         services.AddScoped<ModuleInputFromSecretSecuredRepositoryFactory<ModuleParamFromSecret>>();
         services.AddScoped<NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceParamFromLiteral>>();
+        services.AddScoped<NamespaceInputUnsetSecuredRepositoryFactory<NamespaceParamUnset>>();
         services.AddScoped<NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceEnvVarFromLiteral>>();
+        services.AddScoped<NamespaceInputUnsetSecuredRepositoryFactory<NamespaceEnvVarUnset>>();
         services.AddScoped<NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceParamFromDefinition>>();
         services.AddScoped<NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceEnvVarFromDefinition>>();
         services.AddScoped<NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceParamFromSecret>>();

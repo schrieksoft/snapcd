@@ -62,6 +62,7 @@ public static class RepositorySettings
         services.Configure<NamespacePulumiLocalPolicyRepositorySettings>(configuration.GetSection("Repositories:NamespacePulumiLocalPolicy"));
         services.Configure<ModuleInputFromDefinitionRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromDefinition"));
         services.Configure<ModuleInputFromLiteralRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromLiteral"));
+        services.Configure<ModuleInputUnsetRepositorySettings>(configuration.GetSection("Repositories:ModuleInputUnset"));
         services.Configure<ModuleInputFromNamespaceRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromNamespace"));
         services.Configure<ModuleInputFromOutputRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromOutput"));
         services.Configure<ModuleInputFromOutputSetRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromOutputSet"));
@@ -80,6 +81,7 @@ public static class RepositorySettings
         services.Configure<NamespaceExtraFileRepositorySettings>(configuration.GetSection("Repositories:NamespaceExtraFile"));
         services.Configure<NamespaceInputFromDefinitionRepositorySettings>(configuration.GetSection("Repositories:NamespaceInputFromDefinition"));
         services.Configure<NamespaceInputFromLiteralRepositorySettings>(configuration.GetSection("Repositories:NamespaceInputFromLiteral"));
+        services.Configure<NamespaceInputUnsetRepositorySettings>(configuration.GetSection("Repositories:NamespaceInputUnset"));
         services.Configure<NamespaceInputFromSecretRepositorySettings>(configuration.GetSection("Repositories:NamespaceInputFromSecret"));
         services.Configure<NamespaceInputRepositorySettings>(configuration.GetSection("Repositories:NamespaceInput"));
         services.Configure<NamespaceRepositorySettings>(configuration.GetSection("Repositories:Namespace"));

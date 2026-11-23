@@ -45,7 +45,6 @@ public class ParamResolver<TModuleInputFromOutput>
         ServerTaskContext context,
         List<ModuleInputFromDefinitionReadDto> fromDefinitionParams,
         List<ModuleInputFromLiteralReadDto> fromLiteralParams,
-        List<ModuleInputFromNamespaceReadDto> fromNamespaceParams,
         List<NamespaceInputFromLiteralReadDto> fromLiteralNamespaceParams,
         List<NamespaceInputFromDefinitionReadDto> fromDefinitionNamespaceParams,
         OutputParamResolver<TModuleInputFromOutput> outputParamResolver,
@@ -101,7 +100,6 @@ public class ParamResolver<TModuleInputFromOutput>
 
         _nsParamResolver =
             new NamespaceParamResolver(
-                fromNamespaceParams,
                 fromLiteralNamespaceParams,
                 fromDefinitionNamespaceParams,
                 _secretParamResolver,

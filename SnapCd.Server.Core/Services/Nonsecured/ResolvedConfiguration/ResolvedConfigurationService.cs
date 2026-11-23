@@ -133,33 +133,28 @@ public class ResolvedConfigurationService : IDisposable
         // Client will call ListByModuleInputFromOutputs and ListByModuleInputFromOutputSets with module.Id
 
 
-        // Handle new namespace scoped secret entities
-        // Nearest first, so a nearer Namespace's secret input of the same name wins.
-        var paramSelectedNamespaceScopedSecrets = new List<SelectedNamespaceSecret>();
-        foreach (var ns in chain)
-            paramSelectedNamespaceScopedSecrets.AddRange(await GetSelectedNamespaceScopedSecrets(
-                ns.Id, ns.StackId, ns.Name, ns.NamespaceParamFromSecrets, module.OrganizationId));
+        var unsetParams = module.ModuleParamUnsets.Select(x => x.Name).ToHashSet();
+        var unsetEnvVars = module.ModuleEnvVarUnsets.Select(x => x.Name).ToHashSet();
 
-        paramSelectedNamespaceScopedSecrets = paramSelectedNamespaceScopedSecrets
-            .GroupBy(x => x.InputName).Select(g => g.First()).ToList();
+        var namespaceParams = InheritedInputs(
+            chain,
+            ns => [.. ns.NamespaceParamFromLiterals, .. ns.NamespaceParamFromDefinitions, .. ns.NamespaceParamFromSecrets, .. ns.NamespaceParamUnsets],
+            unsetParams);
+        var namespaceEnvVars = InheritedInputs(
+            chain,
+            ns => [.. ns.NamespaceEnvVarFromLiterals, .. ns.NamespaceEnvVarFromDefinitions, .. ns.NamespaceEnvVarFromSecrets, .. ns.NamespaceEnvVarUnsets],
+            unsetEnvVars);
 
-        var envVarSelectedNamespaceScopedSecrets = new List<SelectedNamespaceSecret>();
-        foreach (var ns in chain)
-            envVarSelectedNamespaceScopedSecrets.AddRange(await GetSelectedNamespaceScopedSecrets(
-                ns.Id, ns.StackId, ns.Name, ns.NamespaceEnvVarFromSecrets, module.OrganizationId));
+        var paramSelectedNamespaceScopedSecrets = await SecretsOf(namespaceParams, chain, module.OrganizationId);
+        var envVarSelectedNamespaceScopedSecrets = await SecretsOf(namespaceEnvVars, chain, module.OrganizationId);
 
-        envVarSelectedNamespaceScopedSecrets = envVarSelectedNamespaceScopedSecrets
-            .GroupBy(x => x.InputName).Select(g => g.First()).ToList();
+        var paramSelectedModuleScopedSecrets = await GetSelectedModuleScopedSecrets(
+            module.Id, module.NamespaceId, module.Namespace.StackId, module.Name,
+            module.ModuleParamFromSecrets, module.OrganizationId);
 
-
-        // Handle new scoped secret entities
-        var paramSelectedModuleScopedSecrets = new List<SelectedModuleSecret>();
-        paramSelectedModuleScopedSecrets.AddRange(await GetSelectedModuleScopedSecrets(module.Id, module.NamespaceId, module.Namespace.StackId, module.Name, module.ModuleParamFromSecrets,
-            module.OrganizationId));
-
-        var envVarSelectedModuleScopedSecrets = new List<SelectedModuleSecret>();
-        envVarSelectedModuleScopedSecrets.AddRange(await GetSelectedModuleScopedSecrets(module.Id, module.NamespaceId, module.Namespace.StackId, module.Name, module.ModuleEnvVarFromSecrets,
-            module.OrganizationId));
+        var envVarSelectedModuleScopedSecrets = await GetSelectedModuleScopedSecrets(
+            module.Id, module.NamespaceId, module.Namespace.StackId, module.Name,
+            module.ModuleEnvVarFromSecrets, module.OrganizationId);
 
         // Get dependencies from output references
         var outputDependencies = new List<DependsOnModuleResolved>();
@@ -228,17 +223,15 @@ public class ResolvedConfigurationService : IDisposable
 
             ModuleEnvVarFromDefinitions = module.ModuleEnvVarFromDefinitions?.Select(ModuleInputFromDefinitionMapper.ToDto).ToList(),
             ModuleEnvVarFromLiterals = module.ModuleEnvVarFromLiterals?.Select(ModuleInputFromLiteralMapper.ToDto).ToList(),
-            ModuleEnvVarFromNamespaces = module.ModuleEnvVarFromNamespaces?.Select(ModuleInputFromNamespaceMapper.ToDto).ToList(),
 
             ModuleParamFromDefinitions = module.ModuleParamFromDefinitions?.Select(ModuleInputFromDefinitionMapper.ToDto).ToList(),
             ModuleParamFromLiterals = module.ModuleParamFromLiterals?.Select(ModuleInputFromLiteralMapper.ToDto).ToList(),
-            ModuleParamFromNamespaces = module.ModuleParamFromNamespaces?.Select(ModuleInputFromNamespaceMapper.ToDto).ToList(),
 
-            NamespaceParamFromLiterals = chain.SelectMany(ns => ns.NamespaceParamFromLiterals).GroupBy(x => x.Name).Select(g => g.First()).Select(NamespaceInputFromLiteralMapper.ToDto).ToList(),
-            NamespaceEnvVarFromLiterals = chain.SelectMany(ns => ns.NamespaceEnvVarFromLiterals).GroupBy(x => x.Name).Select(g => g.First()).Select(NamespaceInputFromLiteralMapper.ToDto).ToList(),
+            NamespaceParamFromLiterals = namespaceParams.OfType<NamespaceParamFromLiteral>().Select(NamespaceInputFromLiteralMapper.ToDto).ToList(),
+            NamespaceEnvVarFromLiterals = namespaceEnvVars.OfType<NamespaceEnvVarFromLiteral>().Select(NamespaceInputFromLiteralMapper.ToDto).ToList(),
 
-            NamespaceParamFromDefinitions = chain.SelectMany(ns => ns.NamespaceParamFromDefinitions).GroupBy(x => x.Name).Select(g => g.First()).Select(NamespaceInputFromDefinitionMapper.ToDto).ToList(),
-            NamespaceEnvVarFromDefinitions = chain.SelectMany(ns => ns.NamespaceEnvVarFromDefinitions).GroupBy(x => x.Name).Select(g => g.First()).Select(NamespaceInputFromDefinitionMapper.ToDto).ToList(),
+            NamespaceParamFromDefinitions = namespaceParams.OfType<NamespaceParamFromDefinition>().Select(NamespaceInputFromDefinitionMapper.ToDto).ToList(),
+            NamespaceEnvVarFromDefinitions = namespaceEnvVars.OfType<NamespaceEnvVarFromDefinition>().Select(NamespaceInputFromDefinitionMapper.ToDto).ToList(),
 
             InitBeforeHook = ResolveHook(HookTask.Init, HookPhase.Before, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
             InitAfterHook = ResolveHook(HookTask.Init, HookPhase.After, module.Hooks, UpTo(chain, n => n.IgnoreInheritedHooks), module.IgnoreInheritedHooks),
@@ -345,6 +338,42 @@ public class ResolvedConfigurationService : IDisposable
     }
 
     /// <summary>
+    /// The Namespace inputs that reach a Module: every one declared on its Namespace or on one
+    /// above. The nearest input of a name wins whatever its type, and a name unset there, or on
+    /// the Module, reaches nothing.
+    /// </summary>
+    /// <param name="chain">Namespaces nearest first.</param>
+    private static List<Entities.Definition.Base.NamespaceInput> InheritedInputs(
+        List<Namespace> chain,
+        Func<Namespace, IEnumerable<Entities.Definition.Base.NamespaceInput>> inputs,
+        HashSet<string> unsetOnModule)
+    {
+        var nearest = new Dictionary<string, Entities.Definition.Base.NamespaceInput>();
+
+        foreach (var ns in chain)
+            foreach (var input in inputs(ns))
+                nearest.TryAdd(input.Name, input);
+
+        return nearest.Values
+            .Where(input => input is not NamespaceInputUnset && !unsetOnModule.Contains(input.Name))
+            .ToList();
+    }
+
+    /// <summary>The vault reads for the secret-backed inputs among these, each against the Namespace that declares it.</summary>
+    private async Task<List<SelectedNamespaceSecret>> SecretsOf(List<Entities.Definition.Base.NamespaceInput> inputs, List<Namespace> chain, Guid organizationId)
+    {
+        var selected = new List<SelectedNamespaceSecret>();
+
+        foreach (var declaredOn in inputs.OfType<NamespaceInputFromSecret>().GroupBy(x => x.NamespaceId))
+        {
+            var ns = chain.First(n => n.Id == declaredOn.Key);
+            selected.AddRange(await GetSelectedNamespaceScopedSecrets(ns.Id, ns.StackId, ns.Name, declaredOn, organizationId));
+        }
+
+        return selected;
+    }
+
+    /// <summary>
     /// The Namespaces a Module inherits from, nearest first: its own, then each one above it. The
     /// collections are loaded here rather than through the Module's own includes, which cannot
     /// reach a chain of unknown length.
@@ -373,6 +402,8 @@ public class ResolvedConfigurationService : IDisposable
             .Include(n => n.NamespaceParamFromLiterals)
             .Include(n => n.NamespaceParamFromSecrets)
             .ThenInclude(x => x.Secret)
+            .Include(n => n.NamespaceParamUnsets)
+            .Include(n => n.NamespaceEnvVarUnsets)
             .Include(n => n.TerraformInlinePolicies)
             .Include(n => n.TerraformRemotePolicies)
             .Include(n => n.TerraformLocalPolicies)
@@ -411,6 +442,8 @@ public class ResolvedConfigurationService : IDisposable
             .ThenInclude(x => x.Secret)
             .Include(x => x.ModuleEnvVarFromNamespaces)
             .Include(x => x.ModuleEnvVarFromOutputs)
+            .Include(x => x.ModuleParamUnsets)
+            .Include(x => x.ModuleEnvVarUnsets)
             .Include(x => x.ModuleExtraFiles)
             .Include(x => x.DependsOnModules)
             .Include(m => m.Runner)

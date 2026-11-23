@@ -63,6 +63,7 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public List<ModuleParamFromDefinition> ModuleParamFromDefinitions { get; set; } = new();
     public List<ModuleParamFromNamespace> ModuleParamFromNamespaces { get; set; } = new();
     public List<ModuleParamFromLiteral> ModuleParamFromLiterals { get; set; } = new();
+    public List<ModuleParamUnset> ModuleParamUnsets { get; set; } = new();
     public List<ModuleParamFromOutput> ModuleParamFromOutputs { get; set; } = new();
     public List<ModuleParamFromOutputSet> ModuleParamFromOutputSets { get; set; } = new();
     public List<ModuleParamFromSecret> ModuleParamFromSecrets { get; set; } = new();
@@ -70,6 +71,7 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public List<ModuleEnvVarFromDefinition> ModuleEnvVarFromDefinitions { get; set; } = new();
     public List<ModuleEnvVarFromNamespace> ModuleEnvVarFromNamespaces { get; set; } = new();
     public List<ModuleEnvVarFromLiteral> ModuleEnvVarFromLiterals { get; set; } = new();
+    public List<ModuleEnvVarUnset> ModuleEnvVarUnsets { get; set; } = new();
     public List<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputs { get; set; } = new();
     public List<ModuleEnvVarFromSecret> ModuleEnvVarFromSecrets { get; set; } = new();
 

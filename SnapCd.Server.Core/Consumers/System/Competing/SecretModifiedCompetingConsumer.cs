@@ -44,30 +44,21 @@ public class SecretModifiedCompetingConsumer : IConsumer<SecretModifiedEvent>
             where module.TriggerOnDefinitionChanged && me.SecretId == secretId
             select module.Id
         ).Union(
-            // Modules in namespaces with UseByDefault param references
+            // A Namespace input reaches every Module in that Namespace and below it.
             from module in _dbContext.Modules
-            join np in _dbContext.NamespaceParamFromSecrets on module.NamespaceId equals np.NamespaceId
-            where module.TriggerOnDefinitionChanged && np.SecretId == secretId && np.UsageMode == NamespaceInputUsageMode.UseByDefault
+            join above in _dbContext.NamespaceAncestors
+                on new { module.NamespaceId, module.OrganizationId } equals new { above.NamespaceId, above.OrganizationId }
+            join np in _dbContext.NamespaceParamFromSecrets
+                on new { NamespaceId = above.AncestorNamespaceId, above.OrganizationId } equals new { np.NamespaceId, np.OrganizationId }
+            where module.TriggerOnDefinitionChanged && np.SecretId == secretId
             select module.Id
         ).Union(
-            // Modules in namespaces with UseByDefault env var references
             from module in _dbContext.Modules
-            join ne in _dbContext.NamespaceEnvVarFromSecrets on module.NamespaceId equals ne.NamespaceId
-            where module.TriggerOnDefinitionChanged && ne.SecretId == secretId && ne.UsageMode == NamespaceInputUsageMode.UseByDefault
-            select module.Id
-        ).Union(
-            // Modules that select UseIfSelected namespace params
-            from module in _dbContext.Modules
-            join mpn in _dbContext.ModuleParamFromNamespaces on module.Id equals mpn.ModuleId
-            join nps in _dbContext.NamespaceParamFromSecrets on mpn.NamespaceInputId equals nps.Id
-            where module.TriggerOnDefinitionChanged && nps.SecretId == secretId && nps.UsageMode == NamespaceInputUsageMode.UseIfSelected
-            select module.Id
-        ).Union(
-            // Modules that select UseIfSelected namespace env vars
-            from module in _dbContext.Modules
-            join men in _dbContext.ModuleEnvVarFromNamespaces on module.Id equals men.ModuleId
-            join nes in _dbContext.NamespaceEnvVarFromSecrets on men.NamespaceInputId equals nes.Id
-            where module.TriggerOnDefinitionChanged && nes.SecretId == secretId && nes.UsageMode == NamespaceInputUsageMode.UseIfSelected
+            join above in _dbContext.NamespaceAncestors
+                on new { module.NamespaceId, module.OrganizationId } equals new { above.NamespaceId, above.OrganizationId }
+            join ne in _dbContext.NamespaceEnvVarFromSecrets
+                on new { NamespaceId = above.AncestorNamespaceId, above.OrganizationId } equals new { ne.NamespaceId, ne.OrganizationId }
+            where module.TriggerOnDefinitionChanged && ne.SecretId == secretId
             select module.Id
         ).Distinct().ToList();
 

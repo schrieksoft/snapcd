@@ -103,10 +103,12 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<NamespaceParamFromDefinition> NamespaceParamFromDefinitions { get; set; }
     public DbSet<NamespaceParamFromLiteral> NamespaceParamFromLiterals { get; set; }
+    public DbSet<NamespaceParamUnset> NamespaceParamUnsets { get; set; }
     public DbSet<NamespaceParamFromSecret> NamespaceParamFromSecrets { get; set; }
 
     public DbSet<NamespaceEnvVarFromDefinition> NamespaceEnvVarFromDefinitions { get; set; }
     public DbSet<NamespaceEnvVarFromLiteral> NamespaceEnvVarFromLiterals { get; set; }
+    public DbSet<NamespaceEnvVarUnset> NamespaceEnvVarUnsets { get; set; }
     public DbSet<NamespaceEnvVarFromSecret> NamespaceEnvVarFromSecrets { get; set; }
 
 
@@ -145,6 +147,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<ModuleEnvVarFromDefinition> ModuleEnvVarFromDefinitions { get; set; }
     public DbSet<ModuleEnvVarFromLiteral> ModuleEnvVarFromLiterals { get; set; }
+    public DbSet<ModuleEnvVarUnset> ModuleEnvVarUnsets { get; set; }
     public DbSet<ModuleEnvVarFromNamespace> ModuleEnvVarFromNamespaces { get; set; }
     public DbSet<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputs { get; set; }
     public DbSet<ModuleEnvVarFromSecret> ModuleEnvVarFromSecrets { get; set; }
@@ -152,6 +155,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<ModuleParamFromDefinition> ModuleParamFromDefinitions { get; set; }
     public DbSet<ModuleParamFromLiteral> ModuleParamFromLiterals { get; set; }
+    public DbSet<ModuleParamUnset> ModuleParamUnsets { get; set; }
     public DbSet<ModuleParamFromNamespace> ModuleParamFromNamespaces { get; set; }
     public DbSet<ModuleParamFromOutput> ModuleParamFromOutputs { get; set; }
     public DbSet<ModuleParamFromOutputSet> ModuleParamFromOutputSets { get; set; }
@@ -410,10 +414,12 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
         modelBuilder.ApplyConfiguration(new NamespaceInputClassMap());
         modelBuilder.ApplyConfiguration(new NamespaceParamFromLiteralClassMap());
+        modelBuilder.ApplyConfiguration(new NamespaceParamUnsetClassMap());
         modelBuilder.ApplyConfiguration(new NamespaceParamFromDefinitionClassMap());
         modelBuilder.ApplyConfiguration(new NamespaceParamFromSecretClassMap());
 
         modelBuilder.ApplyConfiguration(new NamespaceEnvVarFromLiteralClassMap());
+        modelBuilder.ApplyConfiguration(new NamespaceEnvVarUnsetClassMap());
         modelBuilder.ApplyConfiguration(new NamespaceEnvVarFromSecretClassMap());
         modelBuilder.ApplyConfiguration(new NamespaceEnvVarFromDefinitionClassMap());
 
@@ -421,12 +427,14 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new ModuleInputFromNamespaceClassMap());
 
         modelBuilder.ApplyConfiguration(new ModuleEnvVarFromLiteralClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleEnvVarUnsetClassMap());
         modelBuilder.ApplyConfiguration(new ModuleEnvVarFromDefinitionClassMap());
         modelBuilder.ApplyConfiguration(new ModuleEnvVarFromSecretClassMap());
         modelBuilder.ApplyConfiguration(new ModuleEnvVarFromNamespaceClassMap());
         modelBuilder.ApplyConfiguration(new ModuleEnvVarFromOutputClassMap());
 
         modelBuilder.ApplyConfiguration(new ModuleParamFromLiteralClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleParamUnsetClassMap());
         modelBuilder.ApplyConfiguration(new ModuleParamFromDefinitionClassMap());
         modelBuilder.ApplyConfiguration(new ModuleParamFromSecretClassMap());
         modelBuilder.ApplyConfiguration(new ModuleParamFromNamespaceClassMap());

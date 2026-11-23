@@ -11609,6 +11609,401 @@ paths:
         - Namespace.Reader
         - Module.Owner
         - Module.Reader
+  /api/{organizationId}/ModuleInputUnset/{moduleId}/{name}:
+    get:
+      tags:
+      - ModuleInputUnset
+      summary: Get a single ModuleInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleInputUnset/{id}:
+    get:
+      tags:
+      - ModuleInputUnset
+      summary: Get a single ModuleInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleInputUnset ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - ModuleInputUnset
+      summary: Update an existing ModuleInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleInputUnset ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ModuleInputUnset values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleInputUnsetUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleInputUnsetUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleInputUnsetUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - ModuleInputUnset
+      summary: Delete a ModuleInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleInputUnset ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/ModuleInputUnset:
+    post:
+      tags:
+      - ModuleInputUnset
+      summary: Create a new ModuleInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ModuleInputUnset to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleInputUnsetCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleInputUnsetCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleInputUnsetCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleInputUnsetReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/ModuleInputUnset/Metadata/{moduleId}/{name}:
+    get:
+      tags:
+      - ModuleInputUnset
+      summary: Get a single ModuleInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleInputMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleInputMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleInputMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
   /api/{organizationId}/ModuleIntegrationEvent:
     post:
       tags:
@@ -22564,6 +22959,401 @@ paths:
       tags:
       - NamespaceInputFromSecret
       summary: Get a single NamespaceInputFromSecret
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceReader`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: namespaceId
+        in: path
+        description: Namespace ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceReader
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespaceInputUnset/{namespaceId}/{name}:
+    get:
+      tags:
+      - NamespaceInputUnset
+      summary: Get a single NamespaceInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceReader`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: namespaceId
+        in: path
+        description: Namespace ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceReader
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespaceInputUnset/{id}:
+    get:
+      tags:
+      - NamespaceInputUnset
+      summary: Get a single NamespaceInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceReader`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceInputUnset ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceReader
+        - Namespace.Owner
+        - Namespace.Reader
+    put:
+      tags:
+      - NamespaceInputUnset
+      summary: Update an existing NamespaceInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceInputUnset ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new NamespaceInputUnset values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceInputUnsetUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceInputUnsetUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespaceInputUnsetUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.NestedNamespaceContributor
+        - Namespace.Owner
+    delete:
+      tags:
+      - NamespaceInputUnset
+      summary: Delete a NamespaceInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceInputUnset ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.NestedNamespaceContributor
+        - Namespace.Owner
+  /api/{organizationId}/NamespaceInputUnset:
+    post:
+      tags:
+      - NamespaceInputUnset
+      summary: Create a new NamespaceInputUnset
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The NamespaceInputUnset to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceInputUnsetCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceInputUnsetCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespaceInputUnsetCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceInputUnsetReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.NestedNamespaceContributor
+        - Namespace.Owner
+  /api/{organizationId}/NamespaceInputUnset/Metadata/{namespaceId}/{name}:
+    get:
+      tags:
+      - NamespaceInputUnset
+      summary: Get a single NamespaceInputUnset
       description: |-
         ##### Required permissions
 
@@ -42568,7 +43358,9 @@ components:
       properties:
         namespaceInputId:
           type: string
-          description: Id of the Namespace Input to pull take as input.
+          description: 'Id of a Namespace Input. No longer has any effect: a Module receives every input declared on its Namespace
+            and on the Namespaces above it, under the input''s own name, without selecting it. Accepted and stored so that
+            existing clients keep working.'
           format: uuid
         moduleId:
           type: string
@@ -42590,7 +43382,9 @@ components:
           format: uuid
         namespaceInputId:
           type: string
-          description: Id of the Namespace Input to pull take as input.
+          description: 'Id of a Namespace Input. No longer has any effect: a Module receives every input declared on its Namespace
+            and on the Namespaces above it, under the input''s own name, without selecting it. Accepted and stored so that
+            existing clients keep working.'
           format: uuid
         moduleId:
           type: string
@@ -42612,7 +43406,9 @@ components:
           format: uuid
         namespaceInputId:
           type: string
-          description: Id of the Namespace Input to pull take as input.
+          description: 'Id of a Namespace Input. No longer has any effect: a Module receives every input declared on its Namespace
+            and on the Namespaces above it, under the input''s own name, without selecting it. Accepted and stored so that
+            existing clients keep working.'
           format: uuid
         moduleId:
           type: string
@@ -42847,6 +43643,56 @@ components:
           description: ID of the Module this Module Input belongs to.
           format: uuid
       description: Name and ID of a Module Input, for a principal who may identify it without reading it.
+    ModuleInputUnsetCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the Module Input's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Module Input. Must be unique in combination with `moduleId`.
+        inputKind:
+          description: The kind of input.
+          $ref: '#/components/schemas/InputKind'
+      description: DTO for creating a new ModuleInputUnset (POST operations).
+    ModuleInputUnsetReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module Input (From Literal).
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module Input's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Module Input. Must be unique in combination with `moduleId`.
+        inputKind:
+          description: The kind of input.
+          $ref: '#/components/schemas/InputKind'
+      description: DTO for ModuleInputUnset responses (GET operations).
+    ModuleInputUnsetUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module Input (From Literal).
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module Input's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Module Input. Must be unique in combination with `moduleId`.
+        inputKind:
+          description: The kind of input.
+          $ref: '#/components/schemas/InputKind'
+      description: DTO for updating an existing ModuleInputUnset (PUT operations).
     ModuleIntegrationEventCreateDto:
       type: object
       properties:
@@ -45366,8 +46212,9 @@ components:
           type: string
           description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
         usageMode:
-          description: Whether the input should be used by default on all Modules, or only when explicitly selected on the
-            Module itself.
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
           $ref: '#/components/schemas/NamespaceInputUsageMode'
         inputKind:
           description: The kind of input.
@@ -45391,8 +46238,9 @@ components:
           type: string
           description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
         usageMode:
-          description: Whether the input should be used by default on all Modules, or only when explicitly selected on the
-            Module itself.
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
           $ref: '#/components/schemas/NamespaceInputUsageMode'
         inputKind:
           description: The kind of input.
@@ -45416,8 +46264,9 @@ components:
           type: string
           description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
         usageMode:
-          description: Whether the input should be used by default on all Modules, or only when explicitly selected on the
-            Module itself.
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
           $ref: '#/components/schemas/NamespaceInputUsageMode'
         inputKind:
           description: The kind of input.
@@ -45441,8 +46290,9 @@ components:
           type: string
           description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
         usageMode:
-          description: Whether the input should be used by default on all Modules, or only when explicitly selected on the
-            Module itself.
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
           $ref: '#/components/schemas/NamespaceInputUsageMode'
         inputKind:
           description: The kind of input.
@@ -45470,8 +46320,9 @@ components:
           type: string
           description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
         usageMode:
-          description: Whether the input should be used by default on all Modules, or only when explicitly selected on the
-            Module itself.
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
           $ref: '#/components/schemas/NamespaceInputUsageMode'
         inputKind:
           description: The kind of input.
@@ -45499,8 +46350,9 @@ components:
           type: string
           description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
         usageMode:
-          description: Whether the input should be used by default on all Modules, or only when explicitly selected on the
-            Module itself.
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
           $ref: '#/components/schemas/NamespaceInputUsageMode'
         inputKind:
           description: The kind of input.
@@ -45525,8 +46377,9 @@ components:
           type: string
           description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
         usageMode:
-          description: Whether the input should be used by default on all Modules, or only when explicitly selected on the
-            Module itself.
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
           $ref: '#/components/schemas/NamespaceInputUsageMode'
         inputKind:
           description: The kind of input.
@@ -45555,8 +46408,9 @@ components:
           type: string
           description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
         usageMode:
-          description: Whether the input should be used by default on all Modules, or only when explicitly selected on the
-            Module itself.
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
           $ref: '#/components/schemas/NamespaceInputUsageMode'
         inputKind:
           description: The kind of input.
@@ -45585,8 +46439,9 @@ components:
           type: string
           description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
         usageMode:
-          description: Whether the input should be used by default on all Modules, or only when explicitly selected on the
-            Module itself.
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
           $ref: '#/components/schemas/NamespaceInputUsageMode'
         inputKind:
           description: The kind of input.
@@ -45607,10 +46462,77 @@ components:
           description: ID of the Namespace this Namespace Input belongs to.
           format: uuid
       description: Name and ID of a Namespace Input, for a principal who may identify it without reading it.
+    NamespaceInputUnsetCreateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the Namespace Input's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
+        usageMode:
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
+          $ref: '#/components/schemas/NamespaceInputUsageMode'
+        inputKind:
+          description: The kind of input.
+          $ref: '#/components/schemas/InputKind'
+      description: DTO for creating a new NamespaceInputUnset (POST operations).
+    NamespaceInputUnsetReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Namespace Input (From Literal).
+          format: uuid
+        namespaceId:
+          type: string
+          description: ID of the Namespace Input's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
+        usageMode:
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
+          $ref: '#/components/schemas/NamespaceInputUsageMode'
+        inputKind:
+          description: The kind of input.
+          $ref: '#/components/schemas/InputKind'
+      description: DTO for NamespaceInputUnset responses (GET operations).
+    NamespaceInputUnsetUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Namespace Input (From Literal).
+          format: uuid
+        namespaceId:
+          type: string
+          description: ID of the Namespace Input's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Namespace Input. Must be unique in combination with `namespaceId`.
+        usageMode:
+          description: 'No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it,
+            whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module
+            or a Namespace, declare an Unset input of the same name there.'
+          $ref: '#/components/schemas/NamespaceInputUsageMode'
+        inputKind:
+          description: The kind of input.
+          $ref: '#/components/schemas/InputKind'
+      description: DTO for updating an existing NamespaceInputUnset (PUT operations).
     NamespaceInputUsageMode:
       enum:
       - UseIfSelected
       - UseByDefault
+      description: 'No longer acted on: a Namespace Input is used by every Module at or below its Namespace, whichever member
+        is stored.'
     NamespaceIntegrationEventCreateDto:
       type: object
       properties:
@@ -49349,6 +50271,7 @@ tags:
 - name: ModuleInputFromOutput
 - name: ModuleInputFromOutputSet
 - name: ModuleInputFromSecret
+- name: ModuleInputUnset
 - name: ModuleIntegrationEvent
 - name: ModuleMission
 - name: ModuleOutputDownstreamRestriction
@@ -49370,6 +50293,7 @@ tags:
 - name: NamespaceInputFromDefinition
 - name: NamespaceInputFromLiteral
 - name: NamespaceInputFromSecret
+- name: NamespaceInputUnset
 - name: NamespaceIntegrationEvent
 - name: NamespaceMission
 - name: NamespacePulumiArrayFlag
@@ -49412,8 +50336,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 649
+  documented: 661
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1632
+  documented: 1654
   missing: 0

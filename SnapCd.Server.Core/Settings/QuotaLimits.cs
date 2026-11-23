@@ -94,7 +94,9 @@ public class QuotaLimits
     public int? ModuleParamFromDefinitionQuota { get; set; }
     public int? ModuleEnvVarFromDefinitionQuota { get; set; }
     public int? ModuleParamFromLiteralQuota { get; set; }
+    public int? ModuleParamUnsetQuota { get; set; }
     public int? ModuleEnvVarFromLiteralQuota { get; set; }
+    public int? ModuleEnvVarUnsetQuota { get; set; }
     public int? ModuleParamFromSecretQuota { get; set; }
     public int? ModuleEnvVarFromSecretQuota { get; set; }
     public int? ModuleParamFromOutputQuota { get; set; }
@@ -107,7 +109,9 @@ public class QuotaLimits
     public int? NamespaceParamFromDefinitionQuota { get; set; }
     public int? NamespaceEnvVarFromDefinitionQuota { get; set; }
     public int? NamespaceParamFromLiteralQuota { get; set; }
+    public int? NamespaceParamUnsetQuota { get; set; }
     public int? NamespaceEnvVarFromLiteralQuota { get; set; }
+    public int? NamespaceEnvVarUnsetQuota { get; set; }
     public int? NamespaceParamFromSecretQuota { get; set; }
     public int? NamespaceEnvVarFromSecretQuota { get; set; }
 

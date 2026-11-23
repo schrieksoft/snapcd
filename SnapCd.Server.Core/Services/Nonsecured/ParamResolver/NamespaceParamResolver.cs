@@ -28,7 +28,6 @@ public class NamespaceParamResolver
 
     private readonly List<NamespaceInputFromLiteralReadDto> _fromLiteralNamespaceParams;
     private readonly List<NamespaceInputFromDefinitionReadDto> _fromDefinitionNamespaceParams;
-    private readonly List<ModuleInputFromNamespaceReadDto> _fromNamespaceParams; // use this for filtering
     private readonly List<SelectedNamespaceSecret> _selectedNamespaceSecrets;
 
     private readonly SecretParamResolver _secretParamResolver;
@@ -36,7 +35,6 @@ public class NamespaceParamResolver
 
 
     public NamespaceParamResolver(
-        List<ModuleInputFromNamespaceReadDto> fromNamespaceParams,
         List<NamespaceInputFromLiteralReadDto> fromLiteralNamespaceParams,
         List<NamespaceInputFromDefinitionReadDto> fromDefinitionNamespaceParams,
         SecretParamResolver secretParamResolver,
@@ -49,7 +47,6 @@ public class NamespaceParamResolver
     {
         _fromLiteralNamespaceParams = fromLiteralNamespaceParams;
         _fromDefinitionNamespaceParams = fromDefinitionNamespaceParams;
-        _fromNamespaceParams = fromNamespaceParams;
         _logger = logger;
         _context = context;
         _definitionParams = definitionParams;
@@ -246,57 +243,19 @@ public class NamespaceParamResolver
         return result;
     }
 
+    /// <summary>Every Namespace input reaches the Module under its own name. A Module's own input of that name takes precedence later.</summary>
     public Task<List<ModuleResolvedInput>> FilterInputs(List<NamespaceResolvedInput> nsResolvedParams)
     {
-        var results = new List<ModuleResolvedInput>();
-
-        var defaults = nsResolvedParams
-            .Where(p => p.UsageMode == NamespaceInputUsageMode.UseByDefault);
-
-        // Add all defaults. Here we have to create a ResolvedParam() (i.e. a module-level resolved param) based on default namespace params
-        foreach (var defaultParam in defaults)
-            results.Add(new ModuleResolvedInput
+        var results = nsResolvedParams
+            .Select(p => new ModuleResolvedInput
             {
-                Name = defaultParam.Name,
+                Name = p.Name,
                 OriginalValue = "<not set>",
-                ResolvedValue = defaultParam.ResolvedValue,
+                ResolvedValue = p.ResolvedValue,
                 IsFromNamespaceDefault = true,
                 Source = ModuleInputSource.NamespaceParam
-            });
-
-
-        // Filter the rest based on whether they were included in list of params
-        // Here we have to create a ResolvedParam based on the module level param. We need to use its name for example, but the
-        // value we get from the NamespaceResolvedParam. The source is implied and will always be ModuleParamSource.NamespaceParam.
-        var exceptions = new List<Exception>();
-
-        foreach (var p in _fromNamespaceParams)
-            try
-            {
-                var nsParam = nsResolvedParams
-                    .FirstOrDefault(nsp =>
-                        nsp.Id == p.NamespaceInputId); // The "Value" field of a ModuleParam of source type "ModuleParamSource.NamespaceParam" indicates the name of the NamespaceParam to fetch
-
-                if (nsParam == null)
-                    throw new InvalidOperationException(
-                        $"NamespaceParam with Id '{p.NamespaceInputId}' not found.");
-
-                results.Add(new ModuleResolvedInput
-                {
-                    Name = p.Name,
-                    OriginalValue = p.NamespaceInputId.ToString(),
-                    ResolvedValue = nsParam.ResolvedValue,
-                    IsFromNamespaceDefault = false,
-                    Source = ModuleInputSource.NamespaceParam
-                });
-            }
-            catch (Exception ex)
-            {
-                exceptions.Add(new Exception($"Error processing param '{p.Name}': {ex.Message}", ex));
-            }
-
-        // Throw all collected exceptions at the end
-        if (exceptions.Any()) throw new AggregateException("Errors occurred while resolving parameters.", exceptions);
+            })
+            .ToList();
 
         return Task.FromResult(results);
     }

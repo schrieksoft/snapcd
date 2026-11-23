@@ -130,17 +130,24 @@ public class SourceChangedService
             // The union covers every filter-enabled module in the refresh group — not just the
             // notification-subscribed ones — see TriggerPathClosure.GroupWatchedPaths.
             var key = group.Key;
-            var watchedPaths = TriggerPathClosure.GroupWatchedPaths(_dbContext.Modules
+            var members = _dbContext.Modules
                 .Include(x => x.AdditionalTriggerPaths)
                 .Include(x => x.Resolved)
-                .Include(x => x.Namespace).ThenInclude(n => n.AdditionalTriggerPaths)
                 .Where(x => x.SourceUrl == key.SourceUrl &&
                             x.SourceRevision == key.SourceRevision &&
                             x.SourceType == key.SourceType &&
                             x.SourceRevisionType == key.SourceRevisionType &&
                             x.OrganizationId == key.OrganizationId &&
                             x.RunnerId == key.RunnerId)
-                .ToList());
+                .ToList();
+
+            var chains = await InheritedNamespaces.ForNamespaces(
+                _dbContext,
+                members.Select(m => m.NamespaceId).Distinct().ToList(),
+                key.OrganizationId,
+                q => q.Include(n => n.AdditionalTriggerPaths));
+
+            var watchedPaths = TriggerPathClosure.GroupWatchedPaths(members, chains);
 
             await _dispatcher.DispatchRefresh(
                 key.OrganizationId,

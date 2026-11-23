@@ -258,6 +258,16 @@
                                                    @ref="_paramsLiteralRef"
                                                    OnTabClick="async () => await _paramsLiteralRef!.InitializeItems()"/>
 
+                            <EditNamespaceInputTab TEntity="NamespaceParamUnset"
+                                                   TSecuredRepositoryFactory="NamespaceInputUnsetSecuredRepositoryFactory<NamespaceParamUnset>"
+                                                   NamespaceId="Namespace.Id"
+                                                   StackId="Namespace.StackId"
+                                                   Title="Unset"
+                                                   SecuredRepositoryFactory="@NamespaceParamUnsetSecuredRepositoryFactory"
+                                                   PrincipalProvider="@PrincipalProvider"
+                                                   @ref="_paramsUnsetRef"
+                                                   OnTabClick="async () => await _paramsUnsetRef!.InitializeItems()"/>
+
                             <EditNamespaceInputTab TEntity="NamespaceParamFromSecret"
                                                    TSecuredRepositoryFactory="NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceParamFromSecret>"
                                                    NamespaceId="Namespace.Id"
@@ -295,6 +305,17 @@
                                                    PrincipalProvider="@PrincipalProvider"
                                                    @ref="_envVarsLiteralRef"
                                                    OnTabClick="async () => await _envVarsLiteralRef!.InitializeItems()"
+                            />
+
+                            <EditNamespaceInputTab TEntity="NamespaceEnvVarUnset"
+                                                   TSecuredRepositoryFactory="NamespaceInputUnsetSecuredRepositoryFactory<NamespaceEnvVarUnset>"
+                                                   NamespaceId="Namespace.Id"
+                                                   StackId="Namespace.StackId"
+                                                   Title="Unset"
+                                                   SecuredRepositoryFactory="@NamespaceEnvVarUnsetSecuredRepositoryFactory"
+                                                   PrincipalProvider="@PrincipalProvider"
+                                                   @ref="_envVarsUnsetRef"
+                                                   OnTabClick="async () => await _envVarsUnsetRef!.InitializeItems()"
                             />
 
                             <EditNamespaceInputTab TEntity="NamespaceEnvVarFromSecret"
@@ -346,9 +367,11 @@
     [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
     [Inject] private NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceParamFromDefinition> NamespaceParamFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceParamFromLiteral> NamespaceParamFromLiteralSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private NamespaceInputUnsetSecuredRepositoryFactory<NamespaceParamUnset> NamespaceParamUnsetSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceParamFromSecret> NamespaceParamFromSecretSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceEnvVarFromDefinition> NamespaceEnvVarFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceEnvVarFromLiteral> NamespaceEnvVarFromLiteralSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private NamespaceInputUnsetSecuredRepositoryFactory<NamespaceEnvVarUnset> NamespaceEnvVarUnsetSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceEnvVarFromSecret> NamespaceEnvVarFromSecretSecuredRepositoryFactory { get; set; } = null!;
 
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
@@ -356,10 +379,12 @@
 
     private EditNamespaceInputTab<NamespaceParamFromDefinition, NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceParamFromDefinition>>? _paramsDefRef;
     private EditNamespaceInputTab<NamespaceParamFromLiteral, NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceParamFromLiteral>>? _paramsLiteralRef;
+    private EditNamespaceInputTab<NamespaceParamUnset, NamespaceInputUnsetSecuredRepositoryFactory<NamespaceParamUnset>>? _paramsUnsetRef;
     private EditNamespaceInputTab<NamespaceParamFromSecret, NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceParamFromSecret>>? _paramsSecretRef;
 
     private EditNamespaceInputTab<NamespaceEnvVarFromDefinition, NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceEnvVarFromDefinition>>? _envVarsDefRef;
     private EditNamespaceInputTab<NamespaceEnvVarFromLiteral, NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceEnvVarFromLiteral>>? _envVarsLiteralRef;
+    private EditNamespaceInputTab<NamespaceEnvVarUnset, NamespaceInputUnsetSecuredRepositoryFactory<NamespaceEnvVarUnset>>? _envVarsUnsetRef;
     private EditNamespaceInputTab<NamespaceEnvVarFromSecret, NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceEnvVarFromSecret>>? _envVarsSecretRef;
 
     private EditNamespaceExtraFilesList? _extraFilesRef;

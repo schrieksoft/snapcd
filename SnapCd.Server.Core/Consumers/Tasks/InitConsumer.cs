@@ -92,7 +92,6 @@ public abstract class InitConsumer<TRequested, TFaulted> : IConsumer<TRequested>
                 taskContext,
                 msg.Declared.ModuleEnvVarFromDefinitions ?? [],
                 msg.Declared.ModuleEnvVarFromLiterals ?? [],
-                msg.Declared.ModuleEnvVarFromNamespaces ?? [],
                 msg.Declared.NamespaceEnvVarFromLiterals ?? [],
                 msg.Declared.NamespaceEnvVarFromDefinitions ?? [],
                 msg.Declared.SelectedModuleEnvVarsFromSecrets,

@@ -38,7 +38,6 @@ public class SourceRefreshCompletedCompetingConsumer : IConsumer<SourceRefreshCo
             .Include(x => x.ModuleSaga)
             .Include(x => x.AdditionalTriggerPaths)
             .Include(x => x.Resolved)
-            .Include(x => x.Namespace).ThenInclude(n => n.AdditionalTriggerPaths)
             .Where(x => x.OrganizationId == message.OrganizationId &&
                         x.SourceUrl == message.SourceUrl &&
                         x.SourceRevision == message.SourceRevision &&
@@ -53,6 +52,13 @@ public class SourceRefreshCompletedCompetingConsumer : IConsumer<SourceRefreshCo
             .Where(x => x.TriggerOnSourceChanged || TriggerPathClosure.FilterEnabled(x))
             .ToList();
 
+        // A Module watches the paths declared on every Namespace above it, not only on its own.
+        var chains = await InheritedNamespaces.ForNamespaces(
+            _dbContext,
+            modules.Select(m => m.NamespaceId).Distinct().ToList(),
+            message.OrganizationId,
+            q => q.Include(n => n.AdditionalTriggerPaths));
+
         var reportedTreeHashes = message.PathHashes?.ToDictionary(p => p.Path, p => p.TreeHash, StringComparer.Ordinal);
         var closuresByRoot = message.ModuleClosures?.ToDictionary(c => c.RootPath, c => c.ReferencedPaths, StringComparer.Ordinal);
 
@@ -64,10 +70,12 @@ public class SourceRefreshCompletedCompetingConsumer : IConsumer<SourceRefreshCo
             if (TriggerPathClosure.FilterEnabled(module))
             {
                 // The runner returns an entry for every path it was asked about, so an absent one means this report is not about the module.
-                if (reportedTreeHashes == null || !TriggerPathClosure.WatchedPaths(module).All(reportedTreeHashes.ContainsKey))
+                var declaredPaths = TriggerPathClosure.WatchedPaths(module, chains.GetValueOrDefault(module.NamespaceId));
+
+                if (reportedTreeHashes == null || !declaredPaths.All(reportedTreeHashes.ContainsKey))
                     continue;
 
-                var watchedPaths = TriggerPathClosure.ExpandWithClosures(TriggerPathClosure.WatchedPaths(module), closuresByRoot);
+                var watchedPaths = TriggerPathClosure.ExpandWithClosures(declaredPaths, closuresByRoot);
                 desiredClosureHash = TriggerPathClosure.Compose(watchedPaths, reportedTreeHashes);
                 shouldTrigger = module.ModuleSaga == null || module.ModuleSaga.DesiredClosureHash != desiredClosureHash;
 

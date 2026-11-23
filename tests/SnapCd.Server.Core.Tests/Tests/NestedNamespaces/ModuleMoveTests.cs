@@ -17,9 +17,9 @@ using SnapCd.Server.Core.Tests.Infrastructure;
 namespace SnapCd.Server.Core.Tests.Tests.NestedNamespaces;
 
 /// <summary>
-/// What stops a Module, or a Namespace, from being moved. A reference to another Module's Outputs
-/// does not, wherever the two end up. An input the Module selects does, when the move would put
-/// the Namespace that declares it out of the Module's chain.
+/// What stops a Module, or a Namespace, from being moved: only a target that does not exist. A
+/// reference to another Module's Outputs does not, wherever the two end up, and neither does a
+/// selection of a Namespace input, which no longer has any effect.
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
 public class ModuleMoveTests(Fixture fixture) : IAsyncLifetime
@@ -35,30 +35,25 @@ public class ModuleMoveTests(Fixture fixture) : IAsyncLifetime
     public async Task DisposeAsync() => await _scenario.DisposeAsync();
 
     [Fact]
-    public async Task A_module_that_selects_an_input_cannot_move_to_where_that_input_is_out_of_reach()
+    public async Task A_module_holding_a_selection_of_a_namespace_input_can_move_away_from_that_namespace()
     {
         var from = await _scenario.AddNamespace("00");
         var to = await _scenario.AddNamespace("00");
         var module = await _scenario.AddModule(from.Id);
         await Select(module, await AddInput(from.Id, "region"));
 
-        var refusal = await Assert.ThrowsAsync<InvalidNamespaceRefereceException>(() => Move(module.Id, to.Id));
+        await Move(module.Id, to.Id);
 
-        Assert.Contains("region", refusal.Message);
-        Assert.Contains(from.Name, refusal.Message);
+        Assert.Equal(to.Id, (await Stored(module.Id)).NamespaceId);
     }
 
     [Fact]
-    public async Task A_module_that_selects_an_input_can_move_to_a_namespace_below_the_one_that_declares_it()
+    public async Task A_module_cannot_move_to_a_namespace_that_does_not_exist()
     {
         var from = await _scenario.AddNamespace("00");
-        var below = await _scenario.AddNamespace("00", from.Id);
         var module = await _scenario.AddModule(from.Id);
-        await Select(module, await AddInput(from.Id, "region"));
 
-        await Move(module.Id, below.Id);
-
-        Assert.Equal(below.Id, (await Stored(module.Id)).NamespaceId);
+        await Assert.ThrowsAsync<InvalidNamespaceRefereceException>(() => Move(module.Id, Guid.NewGuid()));
     }
 
     [Fact]

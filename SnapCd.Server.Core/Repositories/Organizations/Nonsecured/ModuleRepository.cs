@@ -173,7 +173,7 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
         var existingModule = OriginalOf(await Get(entity.Id, entity.OrganizationId));
 
         if (existingModule.NamespaceId != entity.NamespaceId)
-            await EnsureSelectedInputsStayInReach(existingModule, entity.NamespaceId, entity.OrganizationId);
+            await EnsureNamespaceExists(entity.NamespaceId, entity.OrganizationId);
 
         // Proceed with the base update
         var updated = await base.ExecuteUpdate(entity);
@@ -261,42 +261,9 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
     }
 
 
-    /// <summary>
-    /// A Module selects inputs from its own Namespace and from those above it, so a move must not
-    /// leave a selection pointing at a Namespace that is no longer in its chain.
-    /// </summary>
-    private async Task EnsureSelectedInputsStayInReach(Module module, Guid newNamespaceId, Guid organizationId)
+    private async Task EnsureNamespaceExists(Guid namespaceId, Guid organizationId)
     {
-        var inReach = await DbContext.NamespaceAncestors
-            .Where(a => a.NamespaceId == newNamespaceId && a.OrganizationId == organizationId)
-            .Select(a => a.AncestorNamespaceId)
-            .ToListAsync();
-
-        if (inReach.Count == 0)
-            throw new InvalidNamespaceRefereceException($"Namespace with ID {newNamespaceId} not found.");
-
-        var stranded = await DbContext.ModuleInputs
-            .OfType<ModuleInputFromNamespace>()
-            .Where(i => i.ModuleId == module.Id && i.OrganizationId == organizationId)
-            .Join(DbContext.NamespaceInputs,
-                i => new { Id = i.NamespaceInputId, i.OrganizationId },
-                ni => new { ni.Id, ni.OrganizationId },
-                (i, ni) => new { Selection = i.Name, Input = ni.Name, ni.NamespaceId, ni.OrganizationId })
-            .Where(x => !inReach.Contains(x.NamespaceId))
-            .Join(DbContext.Namespaces,
-                x => new { Id = x.NamespaceId, x.OrganizationId },
-                ns => new { ns.Id, ns.OrganizationId },
-                (x, ns) => new { x.Selection, x.Input, Namespace = ns.Name })
-            .ToListAsync();
-
-        if (stranded.Count == 0) return;
-
-        var lines = stranded
-            .OrderBy(x => x.Selection)
-            .Select(x => $"- '{x.Selection}' selects input '{x.Input}' of Namespace '{x.Namespace}'");
-
-        throw new InvalidNamespaceRefereceException(
-            $"Cannot move Module '{module.Name}', because it selects inputs from Namespaces that are neither " +
-            $"the one it is moving to nor above it:\n{string.Join("\n", lines)}");
+        if (!await DbContext.Namespaces.AnyAsync(n => n.Id == namespaceId && n.OrganizationId == organizationId))
+            throw new InvalidNamespaceRefereceException($"Namespace with ID {namespaceId} not found.");
     }
 }

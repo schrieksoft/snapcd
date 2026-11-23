@@ -53,12 +53,26 @@ public class SourceRefreshJob
             return;
         }
 
-        var groups = _dbContext.Modules
+        var modules = _dbContext.Modules
             .Include(x => x.Runner)
             .Include(x => x.AdditionalTriggerPaths)
             .Include(x => x.Resolved)
-            .Include(x => x.Namespace).ThenInclude(n => n.AdditionalTriggerPaths)
-            .ToList()
+            .ToList();
+
+        // A Module watches the paths declared on every Namespace above it, not only on its own.
+        var chains = new Dictionary<Guid, List<Entities.Definition.Namespace>>();
+        foreach (var organization in modules.GroupBy(m => m.OrganizationId))
+        {
+            var loaded = await InheritedNamespaces.ForNamespaces(
+                _dbContext,
+                organization.Select(m => m.NamespaceId).Distinct().ToList(),
+                organization.Key,
+                q => q.Include(n => n.AdditionalTriggerPaths));
+
+            foreach (var (namespaceId, chain) in loaded) chains[namespaceId] = chain;
+        }
+
+        var groups = modules
             .GroupBy(x => new { x.SourceType, x.SourceUrl, x.SourceRevision, x.SourceRevisionType, x.OrganizationId, x.RunnerId })
             .Select(g => new
             {
@@ -69,7 +83,7 @@ public class SourceRefreshJob
                 g.Key.OrganizationId,
                 g.Key.RunnerId,
                 // Empty keeps head-only semantics for the whole group.
-                WatchedPaths = TriggerPathClosure.GroupWatchedPaths(g)
+                WatchedPaths = TriggerPathClosure.GroupWatchedPaths(g, chains)
             })
             .ToList();
 

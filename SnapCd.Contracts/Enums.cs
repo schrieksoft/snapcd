@@ -538,6 +538,7 @@ public enum NamespaceTriggerBehaviour
     TriggerAllImmediately
 }
 
+/// <summary>No longer acted on: a Namespace Input is used by every Module at or below its Namespace, whichever member is stored.</summary>
 public enum NamespaceInputUsageMode
 {
     UseIfSelected,

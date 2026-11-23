@@ -29,11 +29,9 @@ public class ResolvedModule
 
     public List<ModuleInputFromDefinitionReadDto>? ModuleParamFromDefinitions { get; set; } = new();
     public List<ModuleInputFromLiteralReadDto>? ModuleParamFromLiterals { get; set; } = new();
-    public List<ModuleInputFromNamespaceReadDto>? ModuleParamFromNamespaces { get; set; } = new();
 
     public List<ModuleInputFromDefinitionReadDto>? ModuleEnvVarFromDefinitions { get; set; } = new();
     public List<ModuleInputFromLiteralReadDto>? ModuleEnvVarFromLiterals { get; set; } = new();
-    public List<ModuleInputFromNamespaceReadDto>? ModuleEnvVarFromNamespaces { get; set; } = new();
 
     public List<ExtraFileDto>? ExtraFiles { get; set; } = new();
 

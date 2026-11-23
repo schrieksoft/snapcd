@@ -336,16 +336,17 @@
                                                 @ref="_paramsLiteralRef"
                                                 OnTabClick="async () => await _paramsLiteralRef!.InitializeItems()"/>
 
-                            <EditModuleInputTab TEntity="ModuleParamFromNamespace"
-                                                TSecuredRepositoryFactory="ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleParamFromNamespace>"
+                            <EditModuleInputTab TEntity="ModuleParamUnset"
+                                                TSecuredRepositoryFactory="ModuleInputUnsetSecuredRepositoryFactory<ModuleParamUnset>"
                                                 ModuleId="Module.Id"
                                                 NamespaceId="Module.NamespaceId"
                                                 StackId="StackId"
-                                                Title="From Namespace"
-                                                SecuredRepositoryFactory="@ModuleParamFromNamespaceSecuredRepositoryFactory"
+                                                Title="Unset"
+                                                SecuredRepositoryFactory="@ModuleParamUnsetSecuredRepositoryFactory"
                                                 PrincipalProvider="@PrincipalProvider"
-                                                @ref="_paramsNamespaceRef"
-                                                OnTabClick="async () => await _paramsNamespaceRef!.InitializeItems()"/>
+                                                @ref="_paramsUnsetRef"
+                                                OnTabClick="async () => await _paramsUnsetRef!.InitializeItems()"/>
+
 
                             <EditModuleInputTab TEntity="ModuleParamFromOutputSet"
                                                 TSecuredRepositoryFactory="ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet>"
@@ -408,16 +409,17 @@
                                                 @ref="_envVarsLiteralRef"
                                                 OnTabClick="async () => await _envVarsLiteralRef!.InitializeItems()"/>
 
-                            <EditModuleInputTab TEntity="ModuleEnvVarFromNamespace"
-                                                TSecuredRepositoryFactory="ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleEnvVarFromNamespace>"
+                            <EditModuleInputTab TEntity="ModuleEnvVarUnset"
+                                                TSecuredRepositoryFactory="ModuleInputUnsetSecuredRepositoryFactory<ModuleEnvVarUnset>"
                                                 ModuleId="Module.Id"
                                                 NamespaceId="Module.NamespaceId"
                                                 StackId="StackId"
-                                                Title="From Namespace"
-                                                SecuredRepositoryFactory="@ModuleEnvVarFromNamespaceSecuredRepositoryFactory"
+                                                Title="Unset"
+                                                SecuredRepositoryFactory="@ModuleEnvVarUnsetSecuredRepositoryFactory"
                                                 PrincipalProvider="@PrincipalProvider"
-                                                @ref="_envVarsNamespaceRef"
-                                                OnTabClick="async () => await _envVarsNamespaceRef!.InitializeItems()"/>
+                                                @ref="_envVarsUnsetRef"
+                                                OnTabClick="async () => await _envVarsUnsetRef!.InitializeItems()"/>
+
 
                             <EditModuleInputTab TEntity="ModuleEnvVarFromOutput"
                                                 TSecuredRepositoryFactory="ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput>"
@@ -618,13 +620,13 @@
     }
     [Inject] private ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleParamFromDefinition> ModuleParamFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleInputFromLiteralSecuredRepositoryFactory<ModuleParamFromLiteral> ModuleParamFromLiteralSecuredRepositoryFactory { get; set; } = null!;
-    [Inject] private ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleParamFromNamespace> ModuleParamFromNamespaceSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputUnsetSecuredRepositoryFactory<ModuleParamUnset> ModuleParamUnsetSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet> ModuleParamFromOutputSetSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleInputFromSecretSecuredRepositoryFactory<ModuleParamFromSecret> ModuleParamFromSecretSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleEnvVarFromDefinition> ModuleEnvVarFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleInputFromLiteralSecuredRepositoryFactory<ModuleEnvVarFromLiteral> ModuleEnvVarFromLiteralSecuredRepositoryFactory { get; set; } = null!;
-    [Inject] private ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleEnvVarFromNamespace> ModuleEnvVarFromNamespaceSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputUnsetSecuredRepositoryFactory<ModuleEnvVarUnset> ModuleEnvVarUnsetSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleInputFromSecretSecuredRepositoryFactory<ModuleEnvVarFromSecret> ModuleEnvVarFromSecretSecuredRepositoryFactory { get; set; } = null!;
 
@@ -636,16 +638,16 @@
 
     private EditModuleInputTab<ModuleParamFromDefinition, ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleParamFromDefinition>>? _paramsDefRef;
     private EditModuleInputTab<ModuleParamFromLiteral, ModuleInputFromLiteralSecuredRepositoryFactory<ModuleParamFromLiteral>>? _paramsLiteralRef;
+    private EditModuleInputTab<ModuleParamUnset, ModuleInputUnsetSecuredRepositoryFactory<ModuleParamUnset>>? _paramsUnsetRef;
     private EditModuleInputTab<ModuleParamFromSecret, ModuleInputFromSecretSecuredRepositoryFactory<ModuleParamFromSecret>>? _paramsSecretRef;
     private EditModuleInputTab<ModuleParamFromOutputSet, ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet>>? _paramsOutputSetRef;
     private EditModuleInputTab<ModuleParamFromOutput, ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput>>? _paramsOutputRef;
-    private EditModuleInputTab<ModuleParamFromNamespace, ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleParamFromNamespace>>? _paramsNamespaceRef;
 
     private EditModuleInputTab<ModuleEnvVarFromDefinition, ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleEnvVarFromDefinition>>? _envVarsDefRef;
     private EditModuleInputTab<ModuleEnvVarFromLiteral, ModuleInputFromLiteralSecuredRepositoryFactory<ModuleEnvVarFromLiteral>>? _envVarsLiteralRef;
+    private EditModuleInputTab<ModuleEnvVarUnset, ModuleInputUnsetSecuredRepositoryFactory<ModuleEnvVarUnset>>? _envVarsUnsetRef;
     private EditModuleInputTab<ModuleEnvVarFromSecret, ModuleInputFromSecretSecuredRepositoryFactory<ModuleEnvVarFromSecret>>? _envVarsSecretRef;
     private EditModuleInputTab<ModuleEnvVarFromOutput, ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput>>? _envVarsOutputRef;
-    private EditModuleInputTab<ModuleEnvVarFromNamespace, ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleEnvVarFromNamespace>>? _envVarsNamespaceRef;
 
     private EditModuleExtraFilesList _extraFilesRef = new();
 

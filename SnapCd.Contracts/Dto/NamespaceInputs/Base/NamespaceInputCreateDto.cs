@@ -15,7 +15,7 @@ public class NamespaceInputCreateDto
     /// <summary>Name of the Namespace Input. Must be unique in combination with `namespaceId`.</summary>
     public string Name { get; set; } = null!;
 
-    /// <summary>Whether the input should be used by default on all Modules, or only when explicitly selected on the Module itself.</summary>
+    /// <summary>No longer has any effect: every Namespace Input reaches every Module in the Namespace and below it, whatever this is set to. Accepted and stored so that existing clients keep working. To keep an input from a Module or a Namespace, declare an Unset input of the same name there.</summary>
     public NamespaceInputUsageMode UsageMode { get; set; }
 
     /// <summary>The kind of input.</summary>

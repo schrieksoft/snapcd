@@ -41,9 +41,11 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public List<NamespaceSecret> SecretsScopedToNamespace { get; set; } = new();
     public List<NamespaceParamFromDefinition> NamespaceParamFromDefinitions { get; set; } = new();
     public List<NamespaceParamFromLiteral> NamespaceParamFromLiterals { get; set; } = new();
+    public List<NamespaceParamUnset> NamespaceParamUnsets { get; set; } = new();
     public List<NamespaceParamFromSecret> NamespaceParamFromSecrets { get; set; } = new();
     public List<NamespaceEnvVarFromDefinition> NamespaceEnvVarFromDefinitions { get; set; } = new();
     public List<NamespaceEnvVarFromLiteral> NamespaceEnvVarFromLiterals { get; set; } = new();
+    public List<NamespaceEnvVarUnset> NamespaceEnvVarUnsets { get; set; } = new();
     public List<NamespaceEnvVarFromSecret> NamespaceEnvVarFromSecrets { get; set; } = new();
 
     public List<RunnerNamespaceSupply> RunnerNamespaceSupplies { get; set; } = new();
