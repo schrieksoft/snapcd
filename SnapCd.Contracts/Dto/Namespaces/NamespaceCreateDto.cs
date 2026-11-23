@@ -21,9 +21,6 @@ public class NamespaceCreateDto
     /// <summary>ID of the Namespace this one sits inside. Leave unset for a Namespace at the top level.</summary>
     public Guid? ParentNamespaceId { get; set; }
 
-    /// <summary>Assigned when the Namespace is created and never changed. Read only.</summary>
-    public int Number { get; set; }
-
     /// <summary>What Modules below this Namespace give to consumers outside it. Must be 'All' or 'SensitiveOnly'. Unset places no restriction.</summary>
     public OutputSetDownstreamRestriction? DefaultOutputSetDownstreamRestriction { get; set; }
 

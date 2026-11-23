@@ -15,4 +15,7 @@ public class NamespaceReadDto : NamespaceCreateDto, IDto
 {
     /// <summary>Unique ID of the Namespace</summary>
     public Guid Id { get; set; }
+
+    /// <summary>A short number for the Namespace, assigned when it is created and never changed.</summary>
+    public int Number { get; set; }
 }

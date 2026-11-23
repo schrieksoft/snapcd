@@ -117,6 +117,6 @@ public class UpdateOriginalValuesTests
         var entity = await repository.Get(module.Id, module.OrganizationId);
         entity.NamespaceId = Guid.NewGuid();
 
-        await Assert.ThrowsAsync<InvalidStackReferenceException>(() => repository.ExecuteUpdate(entity));
+        await Assert.ThrowsAsync<InvalidNamespaceRefereceException>(() => repository.ExecuteUpdate(entity));
     }
 }

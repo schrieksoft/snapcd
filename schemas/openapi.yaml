@@ -44973,13 +44973,6 @@ components:
           - string
           description: ID of the Namespace this one sits inside. Leave unset for a Namespace at the top level.
           format: uuid
-        number:
-          pattern: ^-?(?:0|[1-9]\d*)$
-          type:
-          - integer
-          - string
-          description: Assigned when the Namespace is created and never changed. Read only.
-          format: int32
         defaultOutputSetDownstreamRestriction:
           oneOf:
           - type: 'null'
@@ -46326,6 +46319,13 @@ components:
           type: string
           description: Unique ID of the Namespace
           format: uuid
+        number:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          description: A short number for the Namespace, assigned when it is created and never changed.
+          format: int32
         name:
           type: string
           description: Name of the Namespace. Must be unique in combination with `stack_id`.
@@ -46341,13 +46341,6 @@ components:
           - string
           description: ID of the Namespace this one sits inside. Leave unset for a Namespace at the top level.
           format: uuid
-        number:
-          pattern: ^-?(?:0|[1-9]\d*)$
-          type:
-          - integer
-          - string
-          description: Assigned when the Namespace is created and never changed. Read only.
-          format: int32
         defaultOutputSetDownstreamRestriction:
           oneOf:
           - type: 'null'
@@ -47134,13 +47127,6 @@ components:
           - string
           description: ID of the Namespace this one sits inside. Leave unset for a Namespace at the top level.
           format: uuid
-        number:
-          pattern: ^-?(?:0|[1-9]\d*)$
-          type:
-          - integer
-          - string
-          description: Assigned when the Namespace is created and never changed. Read only.
-          format: int32
         defaultOutputSetDownstreamRestriction:
           oneOf:
           - type: 'null'
@@ -49429,5 +49415,5 @@ x-snapcd-permission-coverage:
   documented: 649
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1634
+  documented: 1632
   missing: 0

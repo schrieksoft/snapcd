@@ -34,9 +34,15 @@ public class NamespaceModifiedCompetingConsumer : IConsumer<NamespaceModifiedEve
 
         if (triggerBehaviour == NamespaceTriggerBehaviour.TriggerAllImmediately)
         {
-            var moduleIds = _dbContext.Modules
-                .Where(x => x.NamespaceId == context.Message.Id && x.TriggerOnDefinitionChanged)
-                .Select(x => x.Id).ToList();
+            // What a Namespace declares reaches every Module below it, so those are triggered too.
+            var moduleIds = (
+                from below in _dbContext.NamespaceAncestors
+                join module in _dbContext.Modules
+                    on new { below.NamespaceId, below.OrganizationId } equals new { module.NamespaceId, module.OrganizationId }
+                where below.AncestorNamespaceId == context.Message.Id
+                      && below.OrganizationId == context.Message.OrganizationId
+                      && module.TriggerOnDefinitionChanged
+                select module.Id).ToList();
 
             foreach (var moduleId in moduleIds)
                 await _bus.Publish(new GatekeepingJobRequested

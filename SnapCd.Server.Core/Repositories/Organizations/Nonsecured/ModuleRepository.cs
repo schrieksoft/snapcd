@@ -172,8 +172,8 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
 
         var existingModule = OriginalOf(await Get(entity.Id, entity.OrganizationId));
 
-        // Check if the namespace is changing
-        if (existingModule.NamespaceId != entity.NamespaceId) await ValidateNamespaceChange(existingModule, entity.NamespaceId, entity.OrganizationId);
+        if (existingModule.NamespaceId != entity.NamespaceId)
+            await EnsureSelectedInputsStayInReach(existingModule, entity.NamespaceId, entity.OrganizationId);
 
         // Proceed with the base update
         var updated = await base.ExecuteUpdate(entity);
@@ -261,290 +261,42 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
     }
 
 
-    private async Task ValidateNamespaceChange(Module existingModule, Guid newNamespaceId, Guid organizationId)
+    /// <summary>
+    /// A Module selects inputs from its own Namespace and from those above it, so a move must not
+    /// leave a selection pointing at a Namespace that is no longer in its chain.
+    /// </summary>
+    private async Task EnsureSelectedInputsStayInReach(Module module, Guid newNamespaceId, Guid organizationId)
     {
-        // Get the stack of the new namespace
-        var newNamespaceStack = await DbContext.Namespaces
-            .Where(n => n.Id == newNamespaceId)
-            .Select(n => n.StackId)
-            .FirstOrDefaultAsync();
-
-        if (newNamespaceStack == Guid.Empty) throw new InvalidStackReferenceException($"Namespace with ID {newNamespaceId} not found");
-
-        // Check for cross-stack references in ModuleParamFromOutput entities
-        var paramFromOutputCrossStackReferences = await DbContext.ModuleParamFromOutputs
-            .Where(p => p.ModuleId == existingModule.Id)
-            .Join(DbContext.Modules,
-                p => p.OutputModuleId,
-                m => m.Id,
-                (p, m) => new { Input = p, OutputModule = m })
-            .Join(DbContext.Namespaces,
-                pm => pm.OutputModule.NamespaceId,
-                n => n.Id,
-                (pm, n) => new { pm.Input, OutputStackId = n.StackId })
-            .Where(x => x.OutputStackId != newNamespaceStack)
-            .Select(x => new OutgoingReference(
-                "ModuleParamFromOutput", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Input.OutputModuleId))
+        var inReach = await DbContext.NamespaceAncestors
+            .Where(a => a.NamespaceId == newNamespaceId && a.OrganizationId == organizationId)
+            .Select(a => a.AncestorNamespaceId)
             .ToListAsync();
 
-        // Check for cross-stack references in ModuleEnvVarFromOutput entities  
-        var envVarFromOutputCrossStackReferences = await DbContext.ModuleEnvVarFromOutputs
-            .Where(e => e.ModuleId == existingModule.Id)
-            .Join(DbContext.Modules,
-                e => e.OutputModuleId,
-                m => m.Id,
-                (e, m) => new { Input = e, OutputModule = m })
-            .Join(DbContext.Namespaces,
-                em => em.OutputModule.NamespaceId,
-                n => n.Id,
-                (em, n) => new { em.Input, OutputStackId = n.StackId })
-            .Where(x => x.OutputStackId != newNamespaceStack)
-            .Select(x => new OutgoingReference(
-                "ModuleEnvVarFromOutput", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Input.OutputModuleId))
-            .ToListAsync();
+        if (inReach.Count == 0)
+            throw new InvalidNamespaceRefereceException($"Namespace with ID {newNamespaceId} not found.");
 
-        // Check for cross-stack references in ModuleParamFromOutputSet entities
-        var paramFromOutputSetCrossStackReferences = await DbContext.ModuleParamFromOutputSets
-            .Where(p => p.ModuleId == existingModule.Id)
-            .Join(DbContext.Modules,
-                p => p.OutputModuleId,
-                m => m.Id,
-                (p, m) => new { Input = p, OutputModule = m })
-            .Join(DbContext.Namespaces,
-                pm => pm.OutputModule.NamespaceId,
-                n => n.Id,
-                (pm, n) => new { pm.Input, OutputStackId = n.StackId })
-            .Where(x => x.OutputStackId != newNamespaceStack)
-            .Select(x => new OutgoingReference(
-                "ModuleParamFromOutputSet", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Input.OutputModuleId))
-            .ToListAsync();
-
-        // Check for cross-namespace references in ModuleParamFromNamespace entities
-        var paramFromNamespaceCrossNamespaceReferences = await DbContext.ModuleParamFromNamespaces
-            .Where(p => p.ModuleId == existingModule.Id)
+        var stranded = await DbContext.ModuleInputs
+            .OfType<ModuleInputFromNamespace>()
+            .Where(i => i.ModuleId == module.Id && i.OrganizationId == organizationId)
             .Join(DbContext.NamespaceInputs,
-                p => p.NamespaceInputId,
-                ni => ni.Id,
-                (p, ni) => new { Input = p, NamespaceInput = ni })
-            .Where(x => x.NamespaceInput.NamespaceId != newNamespaceId)
-            .Select(x => new OutgoingReference(
-                "ModuleParamFromNamespace", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.NamespaceInput.NamespaceId))
+                i => new { Id = i.NamespaceInputId, i.OrganizationId },
+                ni => new { ni.Id, ni.OrganizationId },
+                (i, ni) => new { Selection = i.Name, Input = ni.Name, ni.NamespaceId, ni.OrganizationId })
+            .Where(x => !inReach.Contains(x.NamespaceId))
+            .Join(DbContext.Namespaces,
+                x => new { Id = x.NamespaceId, x.OrganizationId },
+                ns => new { ns.Id, ns.OrganizationId },
+                (x, ns) => new { x.Selection, x.Input, Namespace = ns.Name })
             .ToListAsync();
 
-        // Check for cross-namespace references in ModuleEnvVarFromNamespace entities
-        var envVarFromNamespaceCrossNamespaceReferences = await DbContext.ModuleEnvVarFromNamespaces
-            .Where(e => e.ModuleId == existingModule.Id)
-            .Join(DbContext.NamespaceInputs,
-                e => e.NamespaceInputId,
-                ni => ni.Id,
-                (e, ni) => new { Input = e, NamespaceInput = ni })
-            .Where(x => x.NamespaceInput.NamespaceId != newNamespaceId)
-            .Select(x => new OutgoingReference(
-                "ModuleEnvVarFromNamespace", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.NamespaceInput.NamespaceId))
-            .ToListAsync();
+        if (stranded.Count == 0) return;
 
-        // Combine all cross-stack references
-        var allCrossStackReferences = paramFromOutputCrossStackReferences
-            .Concat(envVarFromOutputCrossStackReferences)
-            .Concat(paramFromOutputSetCrossStackReferences)
-            .ToList();
+        var lines = stranded
+            .OrderBy(x => x.Selection)
+            .Select(x => $"- '{x.Selection}' selects input '{x.Input}' of Namespace '{x.Namespace}'");
 
-        // Combine all cross-namespace references
-        var allCrossNamespaceReferences = paramFromNamespaceCrossNamespaceReferences
-            .Concat(envVarFromNamespaceCrossNamespaceReferences)
-            .ToList();
-
-        // Check for incoming references - modules in different stacks that reference this module as OutputModuleId
-        var incomingParamFromOutputReferences = await DbContext.ModuleParamFromOutputs
-            .Where(p => p.OutputModuleId == existingModule.Id)
-            .Join(DbContext.Modules,
-                p => p.ModuleId,
-                m => m.Id,
-                (p, m) => new { Input = p, ConsumerModule = m })
-            .Join(DbContext.Namespaces,
-                pm => pm.ConsumerModule.NamespaceId,
-                n => n.Id,
-                (pm, n) => new { pm.Input, ConsumerStackId = n.StackId, pm.ConsumerModule.Name })
-            .Where(x => x.ConsumerStackId != newNamespaceStack)
-            .Select(x => new IncomingReference(
-                "ModuleParamFromOutput", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Name, x.Input.OutputModuleId))
-            .ToListAsync();
-
-        var incomingEnvVarFromOutputReferences = await DbContext.ModuleEnvVarFromOutputs
-            .Where(e => e.OutputModuleId == existingModule.Id)
-            .Join(DbContext.Modules,
-                e => e.ModuleId,
-                m => m.Id,
-                (e, m) => new { Input = e, ConsumerModule = m })
-            .Join(DbContext.Namespaces,
-                em => em.ConsumerModule.NamespaceId,
-                n => n.Id,
-                (em, n) => new { em.Input, ConsumerStackId = n.StackId, em.ConsumerModule.Name })
-            .Where(x => x.ConsumerStackId != newNamespaceStack)
-            .Select(x => new IncomingReference(
-                "ModuleEnvVarFromOutput", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Name, x.Input.OutputModuleId))
-            .ToListAsync();
-
-        var incomingParamFromOutputSetReferences = await DbContext.ModuleParamFromOutputSets
-            .Where(p => p.OutputModuleId == existingModule.Id)
-            .Join(DbContext.Modules,
-                p => p.ModuleId,
-                m => m.Id,
-                (p, m) => new { Input = p, ConsumerModule = m })
-            .Join(DbContext.Namespaces,
-                pm => pm.ConsumerModule.NamespaceId,
-                n => n.Id,
-                (pm, n) => new { pm.Input, ConsumerStackId = n.StackId, pm.ConsumerModule.Name })
-            .Where(x => x.ConsumerStackId != newNamespaceStack)
-            .Select(x => new IncomingReference(
-                "ModuleParamFromOutputSet", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Name, x.Input.OutputModuleId))
-            .ToListAsync();
-
-        // Combine all incoming cross-stack references
-        var allIncomingCrossStackReferences = incomingParamFromOutputReferences
-            .Concat(incomingEnvVarFromOutputReferences)
-            .Concat(incomingParamFromOutputSetReferences)
-            .ToList();
-
-        if (allCrossStackReferences.Any() || allCrossNamespaceReferences.Any() || allIncomingCrossStackReferences.Any())
-        {
-            var errorParts = new List<string>();
-
-            // Get stack and namespace information for the target
-            var newNamespace = await DbContext.Namespaces
-                .Include(n => n.Stack)
-                .FirstOrDefaultAsync(n => n.Id == newNamespaceId)
-                ?? throw new InvalidOperationException($"Target namespace with ID {newNamespaceId} not found.");
-
-            if (allCrossStackReferences.Any() || allCrossNamespaceReferences.Any())
-            {
-                // Build detailed outgoing reference information
-                var outgoingDetails = await BuildOutgoingReferenceDetails(allCrossStackReferences, allCrossNamespaceReferences);
-                errorParts.Add(
-                    $"This Module (ID {existingModule.Id}, Name: {existingModule.Name}) has references to Outputs or OutputSets from Modules that are outside the Stack (ID {newNamespace.StackId}, Name: {newNamespace.Stack.Name}) that the \"Update\" step is going to move the Module to:\n{outgoingDetails}");
-            }
-
-            if (allIncomingCrossStackReferences.Any())
-            {
-                // Build detailed incoming reference information
-                var incomingDetails = await BuildIncomingReferenceDetails(allIncomingCrossStackReferences, existingModule, newNamespace);
-                errorParts.Add(
-                    $"The Outputs or OutputSets of this Module (ID {existingModule.Id}, Name: {existingModule.Name}) are referenced by Modules that are outside the Stack (ID {newNamespace.StackId}, Name: {newNamespace.Stack.Name}) that the \"Update\" step is going to move the Module to:\n{incomingDetails}");
-            }
-
-            throw new InvalidStackReferenceException(
-                $"Cannot move module '{existingModule.Name}' to a different namespace because:\n\n{string.Join("\n\n", errorParts)}");
-        }
-    }
-
-    private async Task<string> BuildOutgoingReferenceDetails(
-        IEnumerable<OutgoingReference> crossStackReferences,
-        IEnumerable<OutgoingReference> crossNamespaceReferences)
-    {
-        var details = new List<string>();
-
-        // Get all referenced module IDs (only from cross-stack references)
-        var allReferencedModuleIds = crossStackReferences
-            .Select(r => r.TargetId)
-            .Distinct()
-            .ToList();
-
-        // Get module, namespace, and stack information for referenced modules
-        var referencedModuleInfo = await DbContext.Modules
-            .Where(m => allReferencedModuleIds.Contains(m.Id))
-            .Join(DbContext.Namespaces,
-                m => m.NamespaceId,
-                n => n.Id,
-                (m, n) => new { Module = m, Namespace = n })
-            .Join(DbContext.Stacks,
-                mn => mn.Namespace.StackId,
-                s => s.Id,
-                (mn, s) => new
-                {
-                    ModuleId = mn.Module.Id,
-                    ModuleName = mn.Module.Name,
-                    NamespaceName = mn.Namespace.Name,
-                    StackId = s.Id,
-                    StackName = s.Name
-                })
-            .ToDictionaryAsync(x => x.ModuleId);
-
-        // Process cross-stack references
-        foreach (var reference in crossStackReferences)
-        {
-            var line = referencedModuleInfo.TryGetValue(reference.TargetId, out var refInfo)
-                ? $"referencing OutputModuleId {reference.TargetId} (Name: {refInfo.ModuleName}, NamespaceName: {refInfo.NamespaceName}) in Stack (ID {refInfo.StackId}, Name: {refInfo.StackName})"
-                : $"referencing OutputModuleId {reference.TargetId}";
-
-            details.Add($"- {reference.ReferenceType} (ID {reference.Id}, Name: {reference.Name}), {line}");
-        }
-
-        // Process cross-namespace references
-        var namespaceIds = crossNamespaceReferences
-            .Select(r => r.TargetId)
-            .Distinct()
-            .ToList();
-
-        var namespaceInfo = await DbContext.Namespaces
-            .Include(n => n.Stack)
-            .Where(n => namespaceIds.Contains(n.Id))
-            .ToDictionaryAsync(n => n.Id);
-
-        foreach (var reference in crossNamespaceReferences)
-        {
-            var line = namespaceInfo.TryGetValue(reference.TargetId, out var namespaceDetails)
-                ? $"referencing NamespaceId {reference.TargetId} (Name: {namespaceDetails.Name}) in Stack (ID {namespaceDetails.StackId}, Name: {namespaceDetails.Stack.Name})"
-                : $"referencing NamespaceId {reference.TargetId}";
-
-            details.Add($"- {reference.ReferenceType} (ID {reference.Id}, Name: {reference.Name}), {line}");
-        }
-
-        return string.Join("\n", details);
-    }
-
-    private async Task<string> BuildIncomingReferenceDetails(
-        IEnumerable<IncomingReference> incomingReferences,
-        Module existingModule,
-        Namespace newNamespace)
-    {
-        var details = new List<string>();
-
-        // Get all consumer module IDs
-        var consumerModuleIds = incomingReferences
-            .Select(r => r.ConsumerModuleId)
-            .Distinct()
-            .ToList();
-
-        // Get consumer module information
-        var consumerModuleInfo = await DbContext.Modules
-            .Where(m => consumerModuleIds.Contains(m.Id))
-            .Join(DbContext.Namespaces,
-                m => m.NamespaceId,
-                n => n.Id,
-                (m, n) => new { Module = m, Namespace = n })
-            .Join(DbContext.Stacks,
-                mn => mn.Namespace.StackId,
-                s => s.Id,
-                (mn, s) => new
-                {
-                    ModuleId = mn.Module.Id,
-                    NamespaceName = mn.Namespace.Name,
-                    StackId = s.Id,
-                    StackName = s.Name
-                })
-            .ToDictionaryAsync(x => x.ModuleId);
-
-        // Build details for each reference
-        foreach (var reference in incomingReferences)
-        {
-            var consumer = consumerModuleInfo.TryGetValue(reference.ConsumerModuleId, out var consumerInfo)
-                ? $"Name: \"{reference.ConsumerModuleName}\", NamespaceName: \"{consumerInfo.NamespaceName}\") in Stack (ID \"{consumerInfo.StackId}\", Name: \"{consumerInfo.StackName}\")"
-                : $"Name: \"{reference.ConsumerModuleName}\")";
-
-            details.Add(
-                $"- \"{reference.ReferenceType}\" (ID \"{reference.Id}\", Name: \"{reference.Name}\") from Module (ID \"{reference.ConsumerModuleId}\", {consumer}");
-        }
-
-        return string.Join("\n", details);
+        throw new InvalidNamespaceRefereceException(
+            $"Cannot move Module '{module.Name}', because it selects inputs from Namespaces that are neither " +
+            $"the one it is moving to nor above it:\n{string.Join("\n", lines)}");
     }
 }
