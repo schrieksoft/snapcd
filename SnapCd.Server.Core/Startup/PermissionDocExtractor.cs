@@ -52,7 +52,7 @@ public static class PermissionDocExtractor
     [
         ("organization", m => m.OrganizationRoles.Cast<Enum>()),
         ("stack", m => m.StackRoles.Cast<Enum>()),
-        ("namespace", m => m.NamespaceRoles.Cast<Enum>()),
+        ("namespace", m => m.NamespaceRoles.Concat(m.NestedNamespaceRoles).Cast<Enum>()),
         ("module", m => m.ModuleRoles.Cast<Enum>()),
         ("agent", m => m.AgentRoles.Cast<Enum>()),
         ("runner", m => m.RunnerRoles.Cast<Enum>()),

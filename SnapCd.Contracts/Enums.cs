@@ -423,7 +423,19 @@ public enum NamespaceRole
     MetadataReader,
     ModuleCreator,
     IdentityAccessManager,
-    JobManager
+    JobManager,
+
+    /// <summary>Create a Namespace under the one the role is granted on, or under any below it.</summary>
+    NestedNamespaceCreator,
+
+    /// <summary>Create, update, move and delete the Namespaces below the one the role is granted on.</summary>
+    NestedNamespaceContributor,
+
+    /// <summary>Read the Namespaces below the one the role is granted on, without the Modules in them.</summary>
+    NestedNamespaceReader,
+
+    /// <summary>See the names of the Namespaces below the one the role is granted on.</summary>
+    NestedNamespaceMetadataReader
 }
 
 public enum ModuleRole

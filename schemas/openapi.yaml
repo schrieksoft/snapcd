@@ -19682,6 +19682,8 @@ paths:
         - `Stack.Owner`
         - `Stack.Reader`
         - `Namespace.Contributor`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceReader`
         - `Namespace.Owner`
         - `Namespace.Reader`
       parameters:
@@ -19719,6 +19721,8 @@ paths:
         - Stack.Owner
         - Stack.Reader
         - Namespace.Contributor
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceReader
         - Namespace.Owner
         - Namespace.Reader
   /api/{organizationId}/Namespace/Metadata/{stackId}/{name}:
@@ -19744,8 +19748,12 @@ paths:
         - `Stack.Reader`
         - `Namespace.Contributor`
         - `Namespace.MetadataReader`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceMetadataReader`
+        - `Namespace.NestedNamespaceReader`
         - `Namespace.Owner`
         - `Namespace.Reader`
+        - *any* role on a contained Namespace (`Namespace.*`)
         - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
@@ -19795,9 +19803,13 @@ paths:
         - Stack.Reader
         - Namespace.Contributor
         - Namespace.MetadataReader
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceMetadataReader
+        - Namespace.NestedNamespaceReader
         - Namespace.Owner
         - Namespace.Reader
         reverseInheritedAnyOf:
+        - Namespace.*
         - Module.*
   /api/{organizationId}/Namespace/Metadata:
     get:
@@ -19822,8 +19834,12 @@ paths:
         - `Stack.Reader`
         - `Namespace.Contributor`
         - `Namespace.MetadataReader`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceMetadataReader`
+        - `Namespace.NestedNamespaceReader`
         - `Namespace.Owner`
         - `Namespace.Reader`
+        - *any* role on a contained Namespace (`Namespace.*`)
         - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
@@ -19867,9 +19883,13 @@ paths:
         - Stack.Reader
         - Namespace.Contributor
         - Namespace.MetadataReader
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceMetadataReader
+        - Namespace.NestedNamespaceReader
         - Namespace.Owner
         - Namespace.Reader
         reverseInheritedAnyOf:
+        - Namespace.*
         - Module.*
   /api/{organizationId}/Namespace/Metadata/ByName/{stackName}/{name}:
     get:
@@ -19894,8 +19914,12 @@ paths:
         - `Stack.Reader`
         - `Namespace.Contributor`
         - `Namespace.MetadataReader`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceMetadataReader`
+        - `Namespace.NestedNamespaceReader`
         - `Namespace.Owner`
         - `Namespace.Reader`
+        - *any* role on a contained Namespace (`Namespace.*`)
         - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
@@ -19943,9 +19967,13 @@ paths:
         - Stack.Reader
         - Namespace.Contributor
         - Namespace.MetadataReader
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceMetadataReader
+        - Namespace.NestedNamespaceReader
         - Namespace.Owner
         - Namespace.Reader
         reverseInheritedAnyOf:
+        - Namespace.*
         - Module.*
   /api/{organizationId}/Namespace:
     post:
@@ -19964,6 +19992,10 @@ paths:
         - `Stack.Contributor`
         - `Stack.NamespaceCreator`
         - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceCreator`
+        - `Namespace.Owner`
       parameters:
       - name: organizationId
         in: path
@@ -20007,6 +20039,10 @@ paths:
         - Stack.Contributor
         - Stack.NamespaceCreator
         - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceCreator
+        - Namespace.Owner
     get:
       tags:
       - Namespace
@@ -20026,6 +20062,8 @@ paths:
         - `Stack.Owner`
         - `Stack.Reader`
         - `Namespace.Contributor`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceReader`
         - `Namespace.Owner`
         - `Namespace.Reader`
       parameters:
@@ -20067,6 +20105,8 @@ paths:
         - Stack.Owner
         - Stack.Reader
         - Namespace.Contributor
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceReader
         - Namespace.Owner
         - Namespace.Reader
   /api/{organizationId}/Namespace/{id}:
@@ -20089,6 +20129,8 @@ paths:
         - `Stack.Owner`
         - `Stack.Reader`
         - `Namespace.Contributor`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceReader`
         - `Namespace.Owner`
         - `Namespace.Reader`
       parameters:
@@ -20131,6 +20173,8 @@ paths:
         - Stack.Owner
         - Stack.Reader
         - Namespace.Contributor
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceReader
         - Namespace.Owner
         - Namespace.Reader
     put:
@@ -20148,6 +20192,7 @@ paths:
         - `Organization.StackContributor`
         - `Stack.Contributor`
         - `Stack.Owner`
+        - `Namespace.NestedNamespaceContributor`
         - `Namespace.Owner`
       parameters:
       - name: organizationId
@@ -20198,6 +20243,7 @@ paths:
         - Organization.StackContributor
         - Stack.Contributor
         - Stack.Owner
+        - Namespace.NestedNamespaceContributor
         - Namespace.Owner
     delete:
       tags:
@@ -20214,6 +20260,7 @@ paths:
         - `Organization.StackContributor`
         - `Stack.Contributor`
         - `Stack.Owner`
+        - `Namespace.NestedNamespaceContributor`
         - `Namespace.Owner`
       parameters:
       - name: organizationId
@@ -20241,6 +20288,7 @@ paths:
         - Organization.StackContributor
         - Stack.Contributor
         - Stack.Owner
+        - Namespace.NestedNamespaceContributor
         - Namespace.Owner
   /api/{organizationId}/Namespace/Metadata/{id}:
     get:
@@ -20265,8 +20313,12 @@ paths:
         - `Stack.Reader`
         - `Namespace.Contributor`
         - `Namespace.MetadataReader`
+        - `Namespace.NestedNamespaceContributor`
+        - `Namespace.NestedNamespaceMetadataReader`
+        - `Namespace.NestedNamespaceReader`
         - `Namespace.Owner`
         - `Namespace.Reader`
+        - *any* role on a contained Namespace (`Namespace.*`)
         - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
@@ -20311,9 +20363,13 @@ paths:
         - Stack.Reader
         - Namespace.Contributor
         - Namespace.MetadataReader
+        - Namespace.NestedNamespaceContributor
+        - Namespace.NestedNamespaceMetadataReader
+        - Namespace.NestedNamespaceReader
         - Namespace.Owner
         - Namespace.Reader
         reverseInheritedAnyOf:
+        - Namespace.*
         - Module.*
   /api/{organizationId}/NamespaceExtraFile/{namespaceId}/{name}:
     get:
@@ -46041,6 +46097,10 @@ components:
       - ModuleCreator
       - IdentityAccessManager
       - JobManager
+      - NestedNamespaceCreator
+      - NestedNamespaceContributor
+      - NestedNamespaceReader
+      - NestedNamespaceMetadataReader
     NamespaceRoleAssignmentReadDto:
       type: object
       properties:

@@ -12,6 +12,7 @@ using Moq;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Outputs;
+using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
@@ -149,6 +150,37 @@ public sealed class NestedScenario(Fixture fixture) : IAsyncDisposable
             principal);
     }
 
+    public async Task Grant(Guid userId, Guid namespaceId, NamespaceRole role)
+    {
+        await using var db = fixture.CreateDbContext();
+        db.UserNamespaceRoleAssignments.Add(new UserNamespaceRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = OrganizationId,
+            NamespaceId = namespaceId,
+            UserId = userId,
+            RoleName = role
+        });
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>The stored row, detached, for a test to change and hand to a repository.</summary>
+    public async Task<Namespace> Load(Guid namespaceId)
+    {
+        await using var db = fixture.CreateDbContext();
+        return await db.Namespaces.AsNoTracking().SingleAsync(n => n.Id == namespaceId);
+    }
+
+    public async Task<List<Guid>> AncestorsOf(Guid namespaceId)
+    {
+        await using var db = fixture.CreateDbContext();
+        return await db.NamespaceAncestors
+            .Where(a => a.NamespaceId == namespaceId && a.Depth >= 1)
+            .OrderBy(a => a.Depth)
+            .Select(a => a.AncestorNamespaceId)
+            .ToListAsync();
+    }
+
     /// <summary>The resolution service, with the vault read replaced by a fixed value.</summary>
     public ResolvedConfigurationService Resolver()
     {
@@ -188,7 +220,15 @@ public sealed class NestedScenario(Fixture fixture) : IAsyncDisposable
         await db.ClearRowsBlockingNamespaceDelete(n => _namespaces.Contains(n.Id), OrganizationId);
 
         // A parent is restricted from its children, so the deepest go first.
-        foreach (var id in _namespaces.AsEnumerable().Reverse())
+        var deepestFirst = await db.NamespaceAncestors
+            .Where(a => _namespaces.Contains(a.NamespaceId))
+            .GroupBy(a => a.NamespaceId)
+            .Select(g => new { Id = g.Key, Depth = g.Max(a => a.Depth) })
+            .OrderByDescending(x => x.Depth)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        foreach (var id in deepestFirst)
             await db.Namespaces.Where(n => n.Id == id).ExecuteDeleteAsync();
 
         await db.Runners.Where(r => _runners.Contains(r.Id)).ExecuteDeleteAsync();

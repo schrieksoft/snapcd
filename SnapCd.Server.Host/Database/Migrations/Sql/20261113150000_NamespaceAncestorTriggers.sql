@@ -29,8 +29,8 @@ BEGIN
     DELETE FROM dbo.NamespaceAncestors
     WHERE OrganizationId = @OrganizationId;
 
-    -- Depth is capped so a cycle written before the application check existed cannot
-    -- recurse without end. A cycle is refused on write; this only bounds the damage.
+    -- Depth is capped so a cycle cannot recurse without end. NamespaceRepository refuses to
+    -- write one; a cycle written past it is bounded here.
     ;WITH Ancestry AS
     (
         SELECT

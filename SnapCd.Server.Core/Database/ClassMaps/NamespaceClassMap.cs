@@ -142,7 +142,7 @@ public class NamespaceClassMap : IEntityTypeConfiguration<Namespace>
             .HasIndex(n => new { n.StackId, n.Id });
 
         // Restrict, not Cascade: Stack already cascades into Namespaces and SQL Server allows one
-        // cascade path into a table. NamespaceRepository clears the children itself.
+        // cascade path into a table. NamespaceRepository refuses to delete a Namespace that has children.
         entity
             .HasOne(e => e.ParentNamespace)
             .WithMany(e => e.ChildNamespaces)

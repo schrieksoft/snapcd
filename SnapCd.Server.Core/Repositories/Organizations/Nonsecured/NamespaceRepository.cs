@@ -43,6 +43,8 @@ public class NamespaceRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFac
 
 public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto, NamespaceMetadata, NamespaceCreatedEvent, NamespaceUpdatedEvent, NamespaceDeletedEvent, NamespaceRepositorySettings>
 {
+    /// <summary>How many Namespaces may sit above one. The ancestry closure holds no row beyond it.</summary>
+    public const int MaxDepth = 20;
 
     protected override Expression<Func<Namespace, NamespaceMetadata>> MetadataProjection =>
         e => new NamespaceMetadata
@@ -176,6 +178,9 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
     {
         NameValidator.EnsureValid(entity.Name, "Namespace");
 
+        if (entity.ParentNamespaceId is { } parentId)
+            await EnsureCanSitUnder(parentId, entity.OrganizationId, levelsBelow: 0);
+
         return await base.ExecuteCreate(entity);
     }
 
@@ -187,6 +192,9 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
 
         // Check if the stack is changing
         if (existingNamespace.StackId != entity.StackId) await ValidateStackChange(existingNamespace, entity.StackId);
+
+        if (existingNamespace.ParentNamespaceId != entity.ParentNamespaceId && entity.ParentNamespaceId is { } newParentId)
+            await EnsureCanMoveUnder(entity, newParentId);
 
         // Proceed with the base update
         var updated = await base.ExecuteUpdate(entity);
@@ -231,6 +239,38 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
         await base.ExecuteDelete(id, organizationId);
     }
 
+
+    private async Task EnsureCanMoveUnder(Namespace moved, Guid newParentId)
+    {
+        var below = await DbContext.NamespaceAncestors
+            .Where(a => a.AncestorNamespaceId == moved.Id && a.OrganizationId == moved.OrganizationId)
+            .Select(a => new { a.NamespaceId, a.Depth })
+            .ToListAsync();
+
+        if (newParentId == moved.Id || below.Any(a => a.NamespaceId == newParentId))
+            throw new InvalidNamespaceRefereceException(
+                $"Cannot move Namespace '{moved.Name}' under Namespace with ID {newParentId}, because that Namespace is '{moved.Name}' itself or is inside it.");
+
+        await EnsureCanSitUnder(newParentId, moved.OrganizationId, levelsBelow: below.Select(a => a.Depth).DefaultIfEmpty(0).Max());
+    }
+
+    /// <param name="levelsBelow">How many levels of Namespaces come along underneath the one being placed.</param>
+    private async Task EnsureCanSitUnder(Guid parentId, Guid organizationId, int levelsBelow)
+    {
+        var parentDepths = await DbContext.NamespaceAncestors
+            .Where(a => a.NamespaceId == parentId && a.OrganizationId == organizationId)
+            .Select(a => a.Depth)
+            .ToListAsync();
+
+        if (parentDepths.Count == 0)
+            throw new InvalidNamespaceRefereceException($"Parent Namespace with ID {parentId} not found.");
+
+        var deepest = parentDepths.Max() + 1 + levelsBelow;
+
+        if (deepest > MaxDepth)
+            throw new InvalidNamespaceRefereceException(
+                $"Namespaces can be nested at most {MaxDepth} levels deep, and this would place one {deepest} levels deep.");
+    }
 
     private async Task ValidateStackChange(Namespace existingNamespace, Guid newStackId)
     {

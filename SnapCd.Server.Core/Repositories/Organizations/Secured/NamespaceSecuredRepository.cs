@@ -52,23 +52,39 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     public override PermissionMap CreatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
-        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.NamespaceCreator]
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.NamespaceCreator],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceCreator, NamespaceRole.NestedNamespaceContributor]
+    };
+
+    /// <summary>
+    /// What allows placing a Namespace under a parent, read on the parent. A Module below it
+    /// inherits every input the parent declares, so a role on the Stack alone is not enough
+    /// unless that role already reads the parent.
+    /// </summary>
+    private PermissionMap NestPermissionMap => new()
+    {
+        OrganizationRoles = CreatePermissionMap.OrganizationRoles,
+        StackRoles = [StackRole.Owner, StackRole.Contributor],
+        NamespaceRoles = [.. CreatePermissionMap.NamespaceRoles, .. CreatePermissionMap.NestedNamespaceRoles]
     };
 
     public override PermissionMap ReadPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
         StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor, NamespaceRole.NestedNamespaceReader]
     };
 
     /// <summary>
-    /// Any role on a contained Module lets the principal discover this Namespace's name and id, so
-    /// they can navigate to the Module they do have access to. The Namespace's own defaults stay
-    /// behind read.
+    /// Any role on a Module in this Namespace or below it, or on a Namespace below it, lets the
+    /// principal discover this Namespace's name and id, so they can navigate to what they do have
+    /// access to. The Namespace's own defaults stay behind read.
     /// </summary>
     public override PermissionMap ReverseInheritedReadMetadataPermissionMap => new()
     {
+        NamespaceRoles = [.. Enum.GetValues<NamespaceRole>()],
         ModuleRoles = [.. Enum.GetValues<ModuleRole>()]
     };
 
@@ -76,22 +92,69 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader, OrganizationRole.StackMetadataReader],
         StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader, StackRole.MetadataReader],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader, NamespaceRole.MetadataReader]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader, NamespaceRole.MetadataReader],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor, NamespaceRole.NestedNamespaceReader, NamespaceRole.NestedNamespaceMetadataReader]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner]
+        NamespaceRoles = [NamespaceRole.Owner],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner]
+        NamespaceRoles = [NamespaceRole.Owner],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
+
+    public override async Task<Namespace> Create(Namespace entity, bool inTransaction = true)
+    {
+        if (entity.ParentNamespaceId is not { } parentId) return await base.Create(entity, inTransaction);
+
+        EnsureCanNestUnder(parentId, entity.OrganizationId);
+
+        return inTransaction ? await Repository.Create(entity) : await Repository.ExecuteCreate(entity);
+    }
+
+    public override async Task<Namespace> Update(Namespace entity, bool inTransaction = true)
+    {
+        var stored = Repository.DbContext.Namespaces
+            .Where(n => n.Id == entity.Id && n.OrganizationId == entity.OrganizationId)
+            .Select(n => new { n.ParentNamespaceId })
+            .FirstOrDefault();
+
+        if (stored != null && stored.ParentNamespaceId != entity.ParentNamespaceId)
+        {
+            if (entity.ParentNamespaceId is { } newParentId)
+                EnsureCanNestUnder(newParentId, entity.OrganizationId);
+            else if (!CanCreate(entity.StackId, entity.OrganizationId))
+                throw new PrincipalNotAuthorizedException(
+                    $"{PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(entity.OrganizationId)} does not have permission to make Namespace with ID {entity.Id} a root Namespace.");
+        }
+
+        return await base.Update(entity, inTransaction);
+    }
+
+    /// <summary>Whether the principal may place a Namespace under this one.</summary>
+    public bool CanNestUnder(Guid parentNamespaceId, Guid organizationId)
+    {
+        var nest = NestPermissionMap;
+
+        return RoleQueryDispatch(organizationId, nest.OrganizationRoles, nest.StackRoles, nest.NamespaceRoles, [])
+            .Any(n => n.Id == parentNamespaceId && n.OrganizationId == organizationId);
+    }
+
+    private void EnsureCanNestUnder(Guid parentNamespaceId, Guid organizationId)
+    {
+        if (!CanNestUnder(parentNamespaceId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Namespace with ID {parentNamespaceId} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to place a Namespace under it.");
+    }
 
     public override bool CanCreate(Guid parentId, Guid organizationId)
     {
@@ -129,7 +192,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             organizationId,
             CreatePermissionMap.OrganizationRoles,
             CreatePermissionMap.StackRoles,
-            CreatePermissionMap.NamespaceRoles
+            CreatePermissionMap.NamespaceRoles,
+            CreatePermissionMap.NestedNamespaceRoles
         );
     }
 
@@ -139,7 +203,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             organizationId,
             ReadPermissionMap.OrganizationRoles,
             ReadPermissionMap.StackRoles,
-            ReadPermissionMap.NamespaceRoles
+            ReadPermissionMap.NamespaceRoles,
+            ReadPermissionMap.NestedNamespaceRoles
         );
     }
 
@@ -173,7 +238,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             organizationId,
             ReadMetadataPermissionMap.OrganizationRoles,
             ReadMetadataPermissionMap.StackRoles,
-            ReadMetadataPermissionMap.NamespaceRoles
+            ReadMetadataPermissionMap.NamespaceRoles,
+            ReadMetadataPermissionMap.NestedNamespaceRoles
         );
 
         var reverseInheritanceQuery = ReverseInheritanceQuery(organizationId);
@@ -190,7 +256,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             organizationId,
             UpdatePermissionMap.OrganizationRoles,
             UpdatePermissionMap.StackRoles,
-            UpdatePermissionMap.NamespaceRoles
+            UpdatePermissionMap.NamespaceRoles,
+            UpdatePermissionMap.NestedNamespaceRoles
         );
     }
 
@@ -200,7 +267,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             organizationId,
             DeletePermissionMap.OrganizationRoles,
             DeletePermissionMap.StackRoles,
-            DeletePermissionMap.NamespaceRoles
+            DeletePermissionMap.NamespaceRoles,
+            DeletePermissionMap.NestedNamespaceRoles
         );
     }
 
@@ -217,7 +285,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         Guid organizationId,
         List<OrganizationRole> organizationRoles,
         List<StackRole> stackRoles,
-        List<NamespaceRole> namespaceRoles)
+        List<NamespaceRole> namespaceRoles,
+        List<NamespaceRole> nestedNamespaceRoles)
     {
         var principalId = PrincipalProvider.GetSubject(organizationId);
 
@@ -228,13 +297,13 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                 UserStackRoleAssignment,
                 UserNamespaceRoleAssignment,
                 UserGroupMember>(
-                organizationId, principalId, organizationRoles, stackRoles, namespaceRoles),
+                organizationId, principalId, organizationRoles, stackRoles, namespaceRoles, nestedNamespaceRoles),
             PrincipalDiscriminator.ServicePrincipal => RoleQuery<
                 ServicePrincipalOrganizationRoleAssignment,
                 ServicePrincipalStackRoleAssignment,
                 ServicePrincipalNamespaceRoleAssignment,
                 ServicePrincipalGroupMember>(
-                organizationId, principalId, organizationRoles, stackRoles, namespaceRoles),
+                organizationId, principalId, organizationRoles, stackRoles, namespaceRoles, nestedNamespaceRoles),
             _ => throw new InvalidOperationException($"Unsupported principal discriminator: {PrincipalDiscriminator}")
         };
     }
@@ -244,7 +313,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         Guid principalId,
         List<OrganizationRole> organizationRoles,
         List<StackRole> stackRoles,
-        List<NamespaceRole> namespaceRoles)
+        List<NamespaceRole> namespaceRoles,
+        List<NamespaceRole> nestedNamespaceRoles)
         where TOrganizationRoleAssignment : class, IOrganizationRoleAssignment
         where TStackRoleAssignment : class, IStackRoleAssignment
         where TNamespaceRoleAssignment : class, INamespaceRoleAssignment
@@ -252,7 +322,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         // Direct role assignments
         // The closure holds each Namespace at depth 0, so one join covers a role on the Namespace
-        // itself and a role on anything above it.
+        // itself and a role on anything above it. A nested role is matched from depth 1 only.
         var namespacesFromNamespaceRoles =
             from ns in Repository.DbContext.Namespaces
             join ancestor in Repository.DbContext.NamespaceAncestors
@@ -261,7 +331,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                 on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where ns.OrganizationId == organizationId
                   && assignment.PrincipalId == principalId
-                  && namespaceRoles.Contains(assignment.RoleName)
+                  && (namespaceRoles.Contains(assignment.RoleName)
+                      || (ancestor.Depth >= 1 && nestedNamespaceRoles.Contains(assignment.RoleName)))
             select ns;
 
         var namespacesFromStackRoles =
@@ -286,7 +357,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
 
         // Group-based role assignments
         var namespacesFromGroupNamespaceRoles = NamespaceRolesFromGroupQuery<TGroupMember, TNamespaceRoleAssignment>(
-            organizationId, principalId, namespaceRoles);
+            organizationId, principalId, namespaceRoles, nestedNamespaceRoles);
 
         var namespacesFromGroupStackRoles = StackRolesFromGroupQuery<TGroupMember, TStackRoleAssignment>(
             organizationId, principalId, stackRoles);
@@ -305,7 +376,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     private IQueryable<Namespace> NamespaceRolesFromGroupQuery<TGroupMember, TNamespaceRoleAssignment>(
         Guid organizationId,
         Guid principalId,
-        List<NamespaceRole> namespaceRoles)
+        List<NamespaceRole> namespaceRoles,
+        List<NamespaceRole> nestedNamespaceRoles)
         where TGroupMember : class, IGroupMember
         where TNamespaceRoleAssignment : class, INamespaceRoleAssignment
     {
@@ -322,7 +394,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                 on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where ns.OrganizationId == organizationId
-                  && namespaceRoles.Contains(assignment.RoleName)
+                  && (namespaceRoles.Contains(assignment.RoleName)
+                      || (ancestor.Depth >= 1 && nestedNamespaceRoles.Contains(assignment.RoleName)))
             select ns;
     }
 
@@ -372,7 +445,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             select ns;
     }
 
-    // Any role on a contained Module suffices, so these queries do not filter on
+    // Any role on a contained Module or Namespace suffices, so these queries do not filter on
     // role names (see ReverseInheritedReadMetadataPermissionMap).
     private IQueryable<Namespace>? ReverseInheritanceQuery(Guid organizationId)
     {
@@ -381,11 +454,59 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         return PrincipalDiscriminator switch
         {
             PrincipalDiscriminator.User => ReverseInheritanceDirectQuery<UserModuleRoleAssignment>(organizationId, principalId)
-                .Concat(ReverseInheritanceGroupQuery<UserGroupMember>(organizationId, principalId)),
+                .Concat(ReverseInheritanceGroupQuery<UserGroupMember>(organizationId, principalId))
+                .Concat(AncestorsOfDirectRolesQuery<UserNamespaceRoleAssignment>(organizationId, principalId))
+                .Concat(AncestorsOfGroupRolesQuery<UserGroupMember>(organizationId, principalId)),
             PrincipalDiscriminator.ServicePrincipal => ReverseInheritanceDirectQuery<ServicePrincipalModuleRoleAssignment>(organizationId, principalId)
-                .Concat(ReverseInheritanceGroupQuery<ServicePrincipalGroupMember>(organizationId, principalId)),
+                .Concat(ReverseInheritanceGroupQuery<ServicePrincipalGroupMember>(organizationId, principalId))
+                .Concat(AncestorsOfDirectRolesQuery<ServicePrincipalNamespaceRoleAssignment>(organizationId, principalId))
+                .Concat(AncestorsOfGroupRolesQuery<ServicePrincipalGroupMember>(organizationId, principalId)),
             _ => null
         };
+    }
+
+    /// <summary>The Namespaces above one the principal holds a role on.</summary>
+    private IQueryable<Namespace> AncestorsOfDirectRolesQuery<TNamespaceRoleAssignment>(
+        Guid organizationId,
+        Guid principalId)
+        where TNamespaceRoleAssignment : class, INamespaceRoleAssignment
+    {
+        var roles = ReverseInheritedReadMetadataPermissionMap.NamespaceRoles;
+
+        return from assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
+            where assignment.PrincipalId == principalId
+                  && assignment.OrganizationId == organizationId
+                  && roles.Contains(assignment.RoleName)
+            join above in Repository.DbContext.NamespaceAncestors
+                on new { assignment.NamespaceId, assignment.OrganizationId } equals new { above.NamespaceId, above.OrganizationId }
+            where above.Depth >= 1
+            join ns in Repository.DbContext.Namespaces
+                on new { NamespaceId = above.AncestorNamespaceId, above.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
+            select ns;
+    }
+
+    private IQueryable<Namespace> AncestorsOfGroupRolesQuery<TGroupMember>(
+        Guid organizationId,
+        Guid principalId)
+        where TGroupMember : class, IGroupMember
+    {
+        var roles = ReverseInheritedReadMetadataPermissionMap.NamespaceRoles;
+
+        return from assignment in Repository.DbContext.GroupNamespaceRoleAssignments
+            where assignment.OrganizationId == organizationId
+                  && roles.Contains(assignment.RoleName)
+            join rgm in Repository.DbContext.RecursiveGroupMembers
+                on new { assignment.OrganizationId, GroupId = assignment.PrincipalId } equals new { rgm.OrganizationId, rgm.GroupId }
+            join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
+                on new { rgm.RootGroupId, rgm.RootOrganizationId }
+                equals new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
+            join above in Repository.DbContext.NamespaceAncestors
+                on new { assignment.NamespaceId, assignment.OrganizationId } equals new { above.NamespaceId, above.OrganizationId }
+            where above.Depth >= 1
+            join ns in Repository.DbContext.Namespaces
+                on new { NamespaceId = above.AncestorNamespaceId, above.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
+            select ns;
     }
 
     private IQueryable<Namespace> ReverseInheritanceDirectQuery<TModuleRoleAssignment>(
@@ -401,8 +522,10 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                   && roles.Contains(assignment.RoleName)
             join module in Repository.DbContext.Modules
                 on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
+            join above in Repository.DbContext.NamespaceAncestors
+                on new { module.NamespaceId, module.OrganizationId } equals new { above.NamespaceId, above.OrganizationId }
             join ns in Repository.DbContext.Namespaces
-                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
+                on new { NamespaceId = above.AncestorNamespaceId, above.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
             select ns;
     }
 
@@ -424,8 +547,10 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             where moduleRoles.Contains(assignment.RoleName)
             join module in Repository.DbContext.Modules
                 on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
+            join above in Repository.DbContext.NamespaceAncestors
+                on new { module.NamespaceId, module.OrganizationId } equals new { above.NamespaceId, above.OrganizationId }
             join ns in Repository.DbContext.Namespaces
-                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
+                on new { NamespaceId = above.AncestorNamespaceId, above.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
             select ns;
     }
 
