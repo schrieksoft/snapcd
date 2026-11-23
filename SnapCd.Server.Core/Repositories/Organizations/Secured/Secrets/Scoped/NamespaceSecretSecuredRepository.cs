@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Misc.Helpers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -54,6 +55,18 @@ public class NamespaceSecretSecuredRepository : GenericNamespaceChildSecuredRepo
         IPrincipalProvider principalProvider)
         : base(repository, principalProvider)
     {
+    }
+
+    // Read on a secret releases its value, so the nested roles are left out of every map.
+    public override PermissionMap ReadPermissionMap => WithoutNestedRoles(base.ReadPermissionMap);
+    public override PermissionMap CreatePermissionMap => WithoutNestedRoles(base.CreatePermissionMap);
+    public override PermissionMap UpdatePermissionMap => WithoutNestedRoles(base.UpdatePermissionMap);
+    public override PermissionMap DeletePermissionMap => WithoutNestedRoles(base.DeletePermissionMap);
+
+    private static PermissionMap WithoutNestedRoles(PermissionMap map)
+    {
+        map.NestedNamespaceRoles = [];
+        return map;
     }
 
     public async Task<NamespaceSecret> GetByName(string name, Guid organizationId,

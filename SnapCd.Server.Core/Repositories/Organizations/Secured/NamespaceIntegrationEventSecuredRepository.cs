@@ -65,6 +65,7 @@ public class NamespaceIntegrationEventSecuredRepository : GenericNamespaceChildS
         ],
         StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
         NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor, NamespaceRole.NestedNamespaceReader],
         IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.Reader]
     };
 
@@ -72,21 +73,24 @@ public class NamespaceIntegrationEventSecuredRepository : GenericNamespaceChildS
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor, OrganizationRole.IntegrationContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor, OrganizationRole.IntegrationContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor, OrganizationRole.IntegrationContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
 
     public override IQueryable<NamespaceIntegrationEvent> ReadQuery(Guid organizationId)

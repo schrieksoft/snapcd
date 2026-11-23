@@ -65,6 +65,7 @@ public class NamespaceMissionSecuredRepository : GenericNamespaceChildSecuredRep
         ],
         StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
         NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor, NamespaceRole.NestedNamespaceReader],
         AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader]
     };
 
@@ -72,21 +73,24 @@ public class NamespaceMissionSecuredRepository : GenericNamespaceChildSecuredRep
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor, OrganizationRole.AgentContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor, OrganizationRole.AgentContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor, OrganizationRole.AgentContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
 
     public override IQueryable<NamespaceMission> ReadQuery(Guid organizationId)

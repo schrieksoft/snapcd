@@ -66,28 +66,32 @@ public abstract class
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
         StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor, NamespaceRole.NestedNamespaceReader]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
-        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        NestedNamespaceRoles = [NamespaceRole.NestedNamespaceContributor]
     };
 
     public override bool CanCreate(Guid parentId, Guid organizationId)
@@ -122,58 +126,41 @@ public abstract class
 
     public override IQueryable<TEntity> CreateQuery(Guid organizationId)
     {
-        return RoleQueryDispatch(
-            organizationId,
-            CreatePermissionMap.OrganizationRoles,
-            CreatePermissionMap.StackRoles,
-            CreatePermissionMap.NamespaceRoles,
-            []);
+        return ScopeQuery(organizationId, CreatePermissionMap);
     }
 
     public override IQueryable<TEntity> ReadQuery(Guid organizationId)
     {
-        return RoleQueryDispatch(
-            organizationId,
-            ReadPermissionMap.OrganizationRoles,
-            ReadPermissionMap.StackRoles,
-            ReadPermissionMap.NamespaceRoles,
-            []);
+        return ScopeQuery(organizationId, ReadPermissionMap);
     }
 
     /// <summary>The rows readable at metadata level, shaped by the repository.</summary>
     public override IQueryable<TEntity> ReadMetadataQuery(Guid organizationId)
     {
-        return RoleQueryDispatch(
-            organizationId,
-            ReadMetadataPermissionMap.OrganizationRoles,
-            ReadMetadataPermissionMap.StackRoles,
-            ReadMetadataPermissionMap.NamespaceRoles,
-            []);
+        return ScopeQuery(organizationId, ReadMetadataPermissionMap);
     }
 
     public override IQueryable<TEntity> UpdateQuery(Guid organizationId)
     {
-        return RoleQueryDispatch(
-            organizationId,
-            UpdatePermissionMap.OrganizationRoles,
-            UpdatePermissionMap.StackRoles,
-            UpdatePermissionMap.NamespaceRoles,
-            []);
+        return ScopeQuery(organizationId, UpdatePermissionMap);
     }
 
     public override IQueryable<TEntity> DeleteQuery(Guid organizationId)
     {
-        return RoleQueryDispatch(
-            organizationId,
-            DeletePermissionMap.OrganizationRoles,
-            DeletePermissionMap.StackRoles,
-            DeletePermissionMap.NamespaceRoles,
-            []);
+        return ScopeQuery(organizationId, DeletePermissionMap);
     }
 
     public override string GetParentEntityName()
     {
         return "Namespace";
+    }
+
+    /// <summary>The rows a map's organization, stack and namespace roles reach.</summary>
+    private IQueryable<TEntity> ScopeQuery(Guid organizationId, PermissionMap map)
+    {
+        return map.NestedNamespaceRoles.Count == 0
+            ? RoleQueryDispatch(organizationId, map.OrganizationRoles, map.StackRoles, map.NamespaceRoles, [])
+            : Dispatch(organizationId, map.OrganizationRoles, map.StackRoles, map.NamespaceRoles, [], map.NestedNamespaceRoles);
     }
 
     protected virtual IQueryable<TEntity> RoleQueryDispatch(
@@ -182,6 +169,17 @@ public abstract class
         List<StackRole> stackRoles,
         List<NamespaceRole> namespaceRoles,
         List<ModuleRole> moduleRoles)
+    {
+        return Dispatch(organizationId, organizationRoles, stackRoles, namespaceRoles, moduleRoles, []);
+    }
+
+    private IQueryable<TEntity> Dispatch(
+        Guid organizationId,
+        List<OrganizationRole> organizationRoles,
+        List<StackRole> stackRoles,
+        List<NamespaceRole> namespaceRoles,
+        List<ModuleRole> moduleRoles,
+        List<NamespaceRole> nestedNamespaceRoles)
     {
         var principalId = PrincipalProvider.GetSubject(organizationId);
 
@@ -193,14 +191,14 @@ public abstract class
                 UserNamespaceRoleAssignment,
                 UserModuleRoleAssignment,
                 UserGroupMember>(
-                organizationId, principalId, organizationRoles, stackRoles, namespaceRoles, moduleRoles),
+                organizationId, principalId, organizationRoles, stackRoles, namespaceRoles, moduleRoles, nestedNamespaceRoles),
             PrincipalDiscriminator.ServicePrincipal => RoleQuery<
                 ServicePrincipalOrganizationRoleAssignment,
                 ServicePrincipalStackRoleAssignment,
                 ServicePrincipalNamespaceRoleAssignment,
                 ServicePrincipalModuleRoleAssignment,
                 ServicePrincipalGroupMember>(
-                organizationId, principalId, organizationRoles, stackRoles, namespaceRoles, moduleRoles),
+                organizationId, principalId, organizationRoles, stackRoles, namespaceRoles, moduleRoles, nestedNamespaceRoles),
             _ => throw new InvalidOperationException($"Unsupported principal discriminator: {PrincipalDiscriminator}")
         };
     }
@@ -212,7 +210,8 @@ public abstract class
         List<OrganizationRole> organizationRoles,
         List<StackRole> stackRoles,
         List<NamespaceRole> namespaceRoles,
-        List<ModuleRole> moduleRoles)
+        List<ModuleRole> moduleRoles,
+        List<NamespaceRole>? nestedNamespaceRoles = null)
         where TOrganizationRoleAssignment : class, IOrganizationRoleAssignment
         where TStackRoleAssignment : class, IStackRoleAssignment
         where TNamespaceRoleAssignment : class, INamespaceRoleAssignment
@@ -220,9 +219,11 @@ public abstract class
         where TGroupMember : class, IGroupMember
 
     {
+        var nestedRoles = nestedNamespaceRoles ?? [];
+
         // Direct role assignments
         // A role on any Namespace above the Module's own reaches it, so the assignment is matched
-        // against the ancestor chain rather than the one Namespace.
+        // against the ancestor chain rather than the one Namespace. A nested role is matched from depth 1 only.
         var modulesFromNamespaceRoles =
             from module in Repository.DbContext.Set<TEntity>()
             join ns in Repository.DbContext.Namespaces
@@ -233,7 +234,8 @@ public abstract class
                 on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where module.OrganizationId == organizationId
                   && assignment.PrincipalId == principalId
-                  && namespaceRoles.Contains(assignment.RoleName)
+                  && (namespaceRoles.Contains(assignment.RoleName)
+                      || (ancestor.Depth >= 1 && nestedRoles.Contains(assignment.RoleName)))
             select module;
 
         var modulesFromStackRoles =
@@ -273,7 +275,7 @@ public abstract class
 
         // Group-based role assignments
         var modulesFromGroupNamespaceRoles = NamespaceRolesFromGroupQuery<TGroupMember, TNamespaceRoleAssignment>(
-            organizationId, principalId, namespaceRoles);
+            organizationId, principalId, namespaceRoles, nestedRoles);
 
         var modulesFromGroupStackRoles = StackRolesFromGroupQuery<TGroupMember, TStackRoleAssignment>(
             organizationId, principalId, stackRoles);
@@ -298,7 +300,8 @@ public abstract class
     private IQueryable<TEntity> NamespaceRolesFromGroupQuery<TGroupMember, TNamespaceRoleAssignment>(
         Guid organizationId,
         Guid principalId,
-        List<NamespaceRole> namespaceRoles)
+        List<NamespaceRole> namespaceRoles,
+        List<NamespaceRole> nestedRoles)
         where TGroupMember : class, IGroupMember
         where TNamespaceRoleAssignment : class, INamespaceRoleAssignment
     {
@@ -317,7 +320,8 @@ public abstract class
                 on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where module.OrganizationId == organizationId
-                  && namespaceRoles.Contains(assignment.RoleName)
+                  && (namespaceRoles.Contains(assignment.RoleName)
+                      || (ancestor.Depth >= 1 && nestedRoles.Contains(assignment.RoleName)))
             select module;
     }
 
@@ -407,6 +411,8 @@ public abstract class
         where TNamespaceRoleAssignment : class, INamespaceRoleAssignment
         where TGroupMember : class, IGroupMember
     {
+        var nestedRoles = CreatePermissionMap.NestedNamespaceRoles;
+
         // Direct organization role assignment
         var namespacesFromOrgPermission =
             from ns in Repository.DbContext.Namespaces
@@ -468,7 +474,8 @@ public abstract class
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
                 on new { NamespaceId = ancestor.AncestorNamespaceId, ancestor.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
-                  && (assignment.RoleName == NamespaceRole.Owner || assignment.RoleName == NamespaceRole.Contributor)
+                  && (assignment.RoleName == NamespaceRole.Owner || assignment.RoleName == NamespaceRole.Contributor
+                      || (ancestor.Depth >= 1 && nestedRoles.Contains(assignment.RoleName)))
             select ns;
 
         // Group-based namespace role assignment
@@ -487,6 +494,7 @@ public abstract class
                 on new { NamespaceId = ancestor.AncestorNamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where assignment.RoleName == NamespaceRole.Owner || assignment.RoleName == NamespaceRole.Contributor
+                  || (ancestor.Depth >= 1 && nestedRoles.Contains(assignment.RoleName))
             select ns;
 
 

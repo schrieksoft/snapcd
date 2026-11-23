@@ -65,6 +65,7 @@ public class NamespaceInputFromSecretSecuredRepository<TEntity> : GenericNamespa
         OrganizationRoles = base.ReadPermissionMap.OrganizationRoles,
         StackRoles = base.ReadPermissionMap.StackRoles,
         NamespaceRoles = base.ReadPermissionMap.NamespaceRoles,
+        NestedNamespaceRoles = base.ReadPermissionMap.NestedNamespaceRoles,
         ModuleRoles = base.ReadPermissionMap.ModuleRoles
     };
 
