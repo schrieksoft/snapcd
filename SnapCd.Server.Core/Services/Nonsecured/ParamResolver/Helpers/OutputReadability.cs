@@ -15,8 +15,8 @@ namespace SnapCd.Server.Core.Services.Nonsecured.ParamResolver.Helpers;
 /// <summary>
 /// Whether one Module may read another's Output, as a single query.
 ///
-/// The rule in one place: a supply to the consuming Module or its Namespace allows an Output
-/// outright; otherwise the producer's restriction withholds it, unless the producer's exemption
+/// The rule in one place: a supply to the consuming Module, to its Namespace, or to a Namespace
+/// above it that passes its supplies down, allows an Output outright; otherwise the producer's restriction withholds it, unless the producer's exemption
 /// covers where the consumer sits. The producer's rule is what ModuleResolvedSettings holds for it,
 /// and "own Namespace" means the Namespace the exemption was set on.
 ///
@@ -56,7 +56,11 @@ public static class OutputReadability
                     && s.ModuleId == x.Output.OutputSet.ModuleId)
                 || dbContext.OutputSetNamespaceSupplies.Any(s =>
                     s.OrganizationId == organizationId
-                    && consumingNamespaceId.Contains(s.ConsumingNamespaceId)
+                    && dbContext.NamespaceAncestors.Any(c =>
+                        c.OrganizationId == organizationId
+                        && consumingNamespaceId.Contains(c.NamespaceId)
+                        && c.AncestorNamespaceId == s.ConsumingNamespaceId
+                        && (c.Depth == 0 || s.InheritedByDescendants))
                     && s.ModuleId == x.Output.OutputSet.ModuleId)
 
                 // Supplied outright: this one Output, to the Module or to its Namespace.
@@ -67,7 +71,11 @@ public static class OutputReadability
                     && s.OutputName == x.Output.Name)
                 || dbContext.OutputNamespaceSupplies.Any(s =>
                     s.OrganizationId == organizationId
-                    && consumingNamespaceId.Contains(s.ConsumingNamespaceId)
+                    && dbContext.NamespaceAncestors.Any(c =>
+                        c.OrganizationId == organizationId
+                        && consumingNamespaceId.Contains(c.NamespaceId)
+                        && c.AncestorNamespaceId == s.ConsumingNamespaceId
+                        && (c.Depth == 0 || s.InheritedByDescendants))
                     && s.ModuleId == x.Output.OutputSet.ModuleId
                     && s.OutputName == x.Output.Name)
 
@@ -124,7 +132,11 @@ public static class OutputReadability
                         && s.ModuleId == producerId)
                     || dbContext.OutputSetNamespaceSupplies.Any(s =>
                         s.OrganizationId == organizationId
-                        && s.ConsumingNamespaceId == m.NamespaceId
+                        && dbContext.NamespaceAncestors.Any(c =>
+                            c.OrganizationId == organizationId
+                            && c.NamespaceId == m.NamespaceId
+                            && c.AncestorNamespaceId == s.ConsumingNamespaceId
+                            && (c.Depth == 0 || s.InheritedByDescendants))
                         && s.ModuleId == producerId)
                     || (outputName != null && dbContext.OutputModuleSupplies.Any(s =>
                         s.OrganizationId == organizationId
@@ -133,7 +145,11 @@ public static class OutputReadability
                         && s.OutputName == outputName))
                     || (outputName != null && dbContext.OutputNamespaceSupplies.Any(s =>
                         s.OrganizationId == organizationId
-                        && s.ConsumingNamespaceId == m.NamespaceId
+                        && dbContext.NamespaceAncestors.Any(c =>
+                            c.OrganizationId == organizationId
+                            && c.NamespaceId == m.NamespaceId
+                            && c.AncestorNamespaceId == s.ConsumingNamespaceId
+                            && (c.Depth == 0 || s.InheritedByDescendants))
                         && s.ModuleId == producerId
                         && s.OutputName == outputName))
 

@@ -22,6 +22,9 @@ public class AgentNamespaceSupply : AuditBase, IEntity, IOrganizationChild, IAge
 
     public Guid NamespaceId { get; set; }
 
+    /// <summary>Whether the supply also reaches the Modules in every Namespace below this one.</summary>
+    public bool InheritedByDescendants { get; set; }
+
     [JsonIgnore] public Agent Agent { get; set; } = null!;
 
     [JsonIgnore] public Namespace Namespace { get; set; } = null!;

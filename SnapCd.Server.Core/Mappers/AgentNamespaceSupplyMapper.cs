@@ -21,6 +21,7 @@ public static class AgentNamespaceSupplyMapper
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
             NamespaceId = dto.NamespaceId,
+            InheritedByDescendants = dto.InheritedByDescendants,
             AgentId = dto.AgentId
         };
     }
@@ -31,6 +32,7 @@ public static class AgentNamespaceSupplyMapper
         {
             Id = entity.Id,
             NamespaceId = entity.NamespaceId,
+            InheritedByDescendants = entity.InheritedByDescendants,
             AgentId = entity.AgentId
         };
     }
@@ -38,6 +40,7 @@ public static class AgentNamespaceSupplyMapper
     public static void UpdateEntity(AgentNamespaceSupply entity, AgentNamespaceSupplyUpdateDto dto)
     {
         entity.NamespaceId = dto.NamespaceId;
+        entity.InheritedByDescendants = dto.InheritedByDescendants;
         entity.AgentId = dto.AgentId;
     }
 

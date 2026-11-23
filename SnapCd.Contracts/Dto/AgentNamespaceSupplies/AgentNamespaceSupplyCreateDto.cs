@@ -14,6 +14,9 @@ public class AgentNamespaceSupplyCreateDto
     /// <summary>ID of the Namespace to which the Agent is assigned.</summary>
     public Guid NamespaceId { get; set; }
 
+    /// <summary>Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`, which reaches only the Modules directly in the Namespace.</summary>
+    public bool InheritedByDescendants { get; set; }
+
     /// <summary>ID of the Agent that is assigned to the Namespace.</summary>
     public Guid AgentId { get; set; }
 }

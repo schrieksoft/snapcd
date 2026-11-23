@@ -47,7 +47,11 @@ public class AgentSupplyResolver : IDisposable
             .AnyAsync(a =>
                 a.IsSuppliedToAllModules ||
                 a.AgentModuleSupplies.Any(x => x.ModuleId == moduleId) ||
-                a.AgentNamespaceSupplies.Any(x => x.NamespaceId == moduleInfo.NamespaceId) ||
+                a.AgentNamespaceSupplies.Any(x => _dbContext.NamespaceAncestors.Any(c =>
+                        c.OrganizationId == organizationId
+                        && c.NamespaceId == moduleInfo.NamespaceId
+                        && c.AncestorNamespaceId == x.NamespaceId
+                        && (c.Depth == 0 || x.InheritedByDescendants))) ||
                 a.AgentStackSupplies.Any(x => x.StackId == moduleInfo.StackId));
     }
 
@@ -64,7 +68,11 @@ public class AgentSupplyResolver : IDisposable
             .Where(a => a.Id == agentId && a.OrganizationId == organizationId)
             .AnyAsync(a =>
                 a.IsSuppliedToAllModules ||
-                a.AgentNamespaceSupplies.Any(x => x.NamespaceId == namespaceId) ||
+                a.AgentNamespaceSupplies.Any(x => _dbContext.NamespaceAncestors.Any(c =>
+                        c.OrganizationId == organizationId
+                        && c.NamespaceId == namespaceId
+                        && c.AncestorNamespaceId == x.NamespaceId
+                        && (c.Depth == 0 || x.InheritedByDescendants))) ||
                 a.AgentStackSupplies.Any(x => x.StackId == nsInfo.StackId));
     }
 

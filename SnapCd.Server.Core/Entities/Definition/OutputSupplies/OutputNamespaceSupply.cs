@@ -25,6 +25,9 @@ public class OutputNamespaceSupply : AuditBase, IEntity, IOrganizationChild, IMo
     /// <summary>The Namespace the Output is supplied to, reaching every Module in it.</summary>
     public Guid ConsumingNamespaceId { get; set; }
 
+    /// <summary>Whether the supply also reaches the Modules in every Namespace below this one.</summary>
+    public bool InheritedByDescendants { get; set; }
+
     [MaxLength(255)] public string OutputName { get; set; } = null!;
 
     [JsonIgnore] public Module Module { get; set; } = null!;

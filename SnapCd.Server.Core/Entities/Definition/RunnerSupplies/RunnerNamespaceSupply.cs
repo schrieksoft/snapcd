@@ -22,6 +22,9 @@ public class RunnerNamespaceSupply : AuditBase, IEntity, IOrganizationChild, IRu
 
     public Guid NamespaceId { get; set; }
 
+    /// <summary>Whether the supply also reaches the Modules in every Namespace below this one.</summary>
+    public bool InheritedByDescendants { get; set; }
+
     [JsonIgnore] public Runner Runner { get; set; } = null!;
 
     [JsonIgnore] public Namespace Namespace { get; set; } = null!;

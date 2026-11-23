@@ -194,7 +194,11 @@ public class ServicePrincipalRepository : GenericOrganizationChildRepository<Ser
                 // Direct module assignment
                 r.RunnerModuleSupplies.Any(a => a.ModuleId == moduleId) ||
                 // Namespace-level assignment
-                r.RunnerNamespaceSupplies.Any(a => a.NamespaceId == moduleInfo.NamespaceId) ||
+                r.RunnerNamespaceSupplies.Any(a => DbContext.NamespaceAncestors.Any(c =>
+                        c.OrganizationId == organizationId
+                        && c.NamespaceId == moduleInfo.NamespaceId
+                        && c.AncestorNamespaceId == a.NamespaceId
+                        && (c.Depth == 0 || a.InheritedByDescendants))) ||
                 // Stack-level assignment
                 r.RunnerStackSupplies.Any(a => a.StackId == moduleInfo.StackId) ||
                 // Assigned to all modules

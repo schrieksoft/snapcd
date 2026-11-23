@@ -21,6 +21,7 @@ public static class IntegrationNamespaceSupplyMapper
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
             NamespaceId = dto.NamespaceId,
+            InheritedByDescendants = dto.InheritedByDescendants,
             IntegrationId = dto.IntegrationId
         };
     }
@@ -31,6 +32,7 @@ public static class IntegrationNamespaceSupplyMapper
         {
             Id = entity.Id,
             NamespaceId = entity.NamespaceId,
+            InheritedByDescendants = entity.InheritedByDescendants,
             IntegrationId = entity.IntegrationId
         };
     }
@@ -38,6 +40,7 @@ public static class IntegrationNamespaceSupplyMapper
     public static void UpdateEntity(IntegrationNamespaceSupply entity, IntegrationNamespaceSupplyUpdateDto dto)
     {
         entity.NamespaceId = dto.NamespaceId;
+        entity.InheritedByDescendants = dto.InheritedByDescendants;
         entity.IntegrationId = dto.IntegrationId;
     }
 

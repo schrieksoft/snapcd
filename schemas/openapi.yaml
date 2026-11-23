@@ -41013,6 +41013,10 @@ components:
           type: string
           description: ID of the Namespace to which the Agent is assigned.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
         agentId:
           type: string
           description: ID of the Agent that is assigned to the Namespace.
@@ -41045,6 +41049,10 @@ components:
           type: string
           description: ID of the Namespace to which the Agent is assigned.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
         agentId:
           type: string
           description: ID of the Agent that is assigned to the Namespace.
@@ -41061,6 +41069,10 @@ components:
           type: string
           description: ID of the Namespace to which the Agent is assigned.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
         agentId:
           type: string
           description: ID of the Agent that is assigned to the Namespace.
@@ -41570,6 +41582,10 @@ components:
           type: string
           description: ID of the Namespace the integration is supplied to.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
         integrationId:
           type: string
           description: ID of the Integration that is supplied to the Namespace.
@@ -41602,6 +41618,10 @@ components:
           type: string
           description: ID of the Namespace the integration is supplied to.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
         integrationId:
           type: string
           description: ID of the Integration that is supplied to the Namespace.
@@ -41618,6 +41638,10 @@ components:
           type: string
           description: ID of the Namespace the integration is supplied to.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
         integrationId:
           type: string
           description: ID of the Integration that is supplied to the Namespace.
@@ -47672,6 +47696,10 @@ components:
           description: ID of the Namespace the Output is supplied to, reaching every Module in it. Must be unique in combination
             with `module_id` and `output_name`.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
       description: DTO for creating a new OutputNamespaceSupply (POST operations).
     OutputNamespaceSupplyMetadataReadDto:
       type: object
@@ -47704,6 +47732,10 @@ components:
           description: ID of the Namespace the Output is supplied to, reaching every Module in it. Must be unique in combination
             with `module_id` and `output_name`.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
       description: DTO for OutputNamespaceSupply responses (GET operations).
     OutputNamespaceSupplyUpdateDto:
       type: object
@@ -47724,6 +47756,10 @@ components:
           description: ID of the Namespace the Output is supplied to, reaching every Module in it. Must be unique in combination
             with `module_id` and `output_name`.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
       description: DTO for updating an existing OutputNamespaceSupply (PUT operations).
     OutputRestrictionExemption:
       enum:
@@ -47806,6 +47842,10 @@ components:
           description: ID of the Namespace the Output Set is supplied to, reaching every Module in it. Must be unique in combination
             with `module_id`.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
       description: DTO for creating a new OutputSetNamespaceSupply (POST operations).
     OutputSetNamespaceSupplyMetadataReadDto:
       type: object
@@ -47835,6 +47875,10 @@ components:
           description: ID of the Namespace the Output Set is supplied to, reaching every Module in it. Must be unique in combination
             with `module_id`.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
       description: DTO for OutputSetNamespaceSupply responses (GET operations).
     OutputSetNamespaceSupplyUpdateDto:
       type: object
@@ -47852,6 +47896,10 @@ components:
           description: ID of the Namespace the Output Set is supplied to, reaching every Module in it. Must be unique in combination
             with `module_id`.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
       description: DTO for updating an existing OutputSetNamespaceSupply (PUT operations).
     OverridePolicy:
       enum:
@@ -48048,6 +48096,10 @@ components:
           type: string
           description: ID of the Namespace to which the Runner is assigned.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
         runnerId:
           type: string
           description: ID of the Runner that is assigned to the Namespace.
@@ -48080,6 +48132,10 @@ components:
           type: string
           description: ID of the Namespace to which the Runner is assigned.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
         runnerId:
           type: string
           description: ID of the Runner that is assigned to the Namespace.
@@ -48096,6 +48152,10 @@ components:
           type: string
           description: ID of the Namespace to which the Runner is assigned.
           format: uuid
+        inheritedByDescendants:
+          type: boolean
+          description: Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`,
+            which reaches only the Modules directly in the Namespace.
         runnerId:
           type: string
           description: ID of the Runner that is assigned to the Namespace.
@@ -49369,5 +49429,5 @@ x-snapcd-permission-coverage:
   documented: 649
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1619
+  documented: 1634
   missing: 0

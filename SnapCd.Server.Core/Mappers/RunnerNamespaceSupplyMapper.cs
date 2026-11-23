@@ -21,6 +21,7 @@ public static class RunnerNamespaceSupplyMapper
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
             NamespaceId = dto.NamespaceId,
+            InheritedByDescendants = dto.InheritedByDescendants,
             RunnerId = dto.RunnerId
         };
     }
@@ -31,6 +32,7 @@ public static class RunnerNamespaceSupplyMapper
         {
             Id = entity.Id,
             NamespaceId = entity.NamespaceId,
+            InheritedByDescendants = entity.InheritedByDescendants,
             RunnerId = entity.RunnerId
         };
     }
@@ -38,6 +40,7 @@ public static class RunnerNamespaceSupplyMapper
     public static void UpdateEntity(RunnerNamespaceSupply entity, RunnerNamespaceSupplyUpdateDto dto)
     {
         entity.NamespaceId = dto.NamespaceId;
+        entity.InheritedByDescendants = dto.InheritedByDescendants;
         entity.RunnerId = dto.RunnerId;
     }
 

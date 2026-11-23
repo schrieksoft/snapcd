@@ -21,7 +21,8 @@ public static class OutputSetNamespaceSupplyMapper
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
             ModuleId = dto.ModuleId,
-            ConsumingNamespaceId = dto.ConsumingNamespaceId
+            ConsumingNamespaceId = dto.ConsumingNamespaceId,
+            InheritedByDescendants = dto.InheritedByDescendants
         };
     }
 
@@ -31,7 +32,8 @@ public static class OutputSetNamespaceSupplyMapper
         {
             Id = entity.Id,
             ModuleId = entity.ModuleId,
-            ConsumingNamespaceId = entity.ConsumingNamespaceId
+            ConsumingNamespaceId = entity.ConsumingNamespaceId,
+            InheritedByDescendants = entity.InheritedByDescendants
         };
     }
 
@@ -39,6 +41,7 @@ public static class OutputSetNamespaceSupplyMapper
     {
         entity.ModuleId = dto.ModuleId;
         entity.ConsumingNamespaceId = dto.ConsumingNamespaceId;
+        entity.InheritedByDescendants = dto.InheritedByDescendants;
     }
 
     public static OutputSetNamespaceSupplyMetadataReadDto ToMetadataDto(OutputSetNamespaceSupplyMetadata view)

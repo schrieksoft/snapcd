@@ -21,4 +21,7 @@ public class OutputNamespaceSupplyCreateDto
 
     /// <summary>ID of the Namespace the Output is supplied to, reaching every Module in it. Must be unique in combination with `module_id` and `output_name`.</summary>
     public Guid ConsumingNamespaceId { get; set; }
+
+    /// <summary>Whether the supply also reaches the Modules in every Namespace below this one. Defaults to `false`, which reaches only the Modules directly in the Namespace.</summary>
+    public bool InheritedByDescendants { get; set; }
 }

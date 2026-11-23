@@ -33,7 +33,11 @@ public class IntegrationSupplyResolver(SnapCdDbContext dbContext)
             .AnyAsync(i =>
                 i.IsSuppliedToAllModules ||
                 i.ModuleAssignments.Any(x => x.ModuleId == moduleId) ||
-                i.NamespaceAssignments.Any(x => x.NamespaceId == moduleInfo.NamespaceId) ||
+                i.NamespaceAssignments.Any(x => dbContext.NamespaceAncestors.Any(c =>
+                        c.OrganizationId == organizationId
+                        && c.NamespaceId == moduleInfo.NamespaceId
+                        && c.AncestorNamespaceId == x.NamespaceId
+                        && (c.Depth == 0 || x.InheritedByDescendants))) ||
                 i.StackAssignments.Any(x => x.StackId == moduleInfo.StackId));
     }
 
@@ -51,7 +55,11 @@ public class IntegrationSupplyResolver(SnapCdDbContext dbContext)
             .Where(i => i.Id == integrationId && i.OrganizationId == organizationId)
             .AnyAsync(i =>
                 i.IsSuppliedToAllModules ||
-                i.NamespaceAssignments.Any(x => x.NamespaceId == namespaceId) ||
+                i.NamespaceAssignments.Any(x => dbContext.NamespaceAncestors.Any(c =>
+                        c.OrganizationId == organizationId
+                        && c.NamespaceId == namespaceId
+                        && c.AncestorNamespaceId == x.NamespaceId
+                        && (c.Depth == 0 || x.InheritedByDescendants))) ||
                 i.StackAssignments.Any(x => x.StackId == nsInfo.StackId));
     }
 

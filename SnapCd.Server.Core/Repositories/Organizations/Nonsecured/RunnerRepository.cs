@@ -125,7 +125,11 @@ public class RunnerRepository : GenericOrganizationChildRepository<Runner, Runne
         query = query.Where(rp =>
             rp.OrganizationId == organizationId &&
             (rp.RunnerModuleSupplies.Any(a => a.ModuleId == moduleId) ||
-             rp.RunnerNamespaceSupplies.Any(a => a.NamespaceId == module.NamespaceId) ||
+             rp.RunnerNamespaceSupplies.Any(a => DbContext.NamespaceAncestors.Any(c =>
+                        c.OrganizationId == organizationId
+                        && c.NamespaceId == module.NamespaceId
+                        && c.AncestorNamespaceId == a.NamespaceId
+                        && (c.Depth == 0 || a.InheritedByDescendants))) ||
              rp.RunnerStackSupplies.Any(a => a.StackId == module.StackId) ||
              rp.IsSuppliedToAllModules));
 
@@ -150,7 +154,11 @@ public class RunnerRepository : GenericOrganizationChildRepository<Runner, Runne
 
         query = query.Where(rp =>
             rp.OrganizationId == organizationId &&
-            (rp.RunnerNamespaceSupplies.Any(a => a.NamespaceId == ns.Id) ||
+            (rp.RunnerNamespaceSupplies.Any(a => DbContext.NamespaceAncestors.Any(c =>
+                        c.OrganizationId == organizationId
+                        && c.NamespaceId == ns.Id
+                        && c.AncestorNamespaceId == a.NamespaceId
+                        && (c.Depth == 0 || a.InheritedByDescendants))) ||
              rp.RunnerStackSupplies.Any(a => a.StackId == ns.StackId) ||
              rp.IsSuppliedToAllModules));
 

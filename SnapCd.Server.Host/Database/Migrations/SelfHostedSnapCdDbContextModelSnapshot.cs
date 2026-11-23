@@ -393,6 +393,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<DateTime>("CreatedDateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("InheritedByDescendants")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -1402,6 +1405,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<DateTime>("CreatedDateTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("InheritedByDescendants")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("IntegrationId")
                         .HasColumnType("uniqueidentifier");
@@ -5228,6 +5234,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<DateTime>("CreatedDateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("InheritedByDescendants")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -5358,6 +5367,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<DateTime>("CreatedDateTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("InheritedByDescendants")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -6685,6 +6697,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<DateTime>("CreatedDateTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("InheritedByDescendants")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
