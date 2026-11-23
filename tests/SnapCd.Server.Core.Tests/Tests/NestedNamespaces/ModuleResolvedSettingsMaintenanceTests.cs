@@ -276,17 +276,7 @@ public class ModuleResolvedSettingsMaintenanceTests(Fixture fixture) : IAsyncLif
         Assert.Equal(closureBefore + 4, await RowsWritten("NamespaceAncestors"));
     }
 
-    /// <summary>Rows inserted, updated or deleted in a table since the server started, from its clustered index.</summary>
-    private async Task<long> RowsWritten(string table)
-    {
-        await using var db = fixture.CreateDbContext();
-
-        return await db.Database
-            .SqlQueryRaw<long>(
-                "SELECT CAST(ISNULL(SUM(leaf_insert_count + leaf_update_count + leaf_delete_count + leaf_ghost_count), 0) AS bigint) AS Value " +
-                $"FROM sys.dm_db_index_operational_stats(DB_ID(), OBJECT_ID('dbo.{table}'), 1, NULL)")
-            .SingleAsync();
-    }
+    private Task<long> RowsWritten(string table) => _scenario.RowsWritten(table);
 
     private async Task<ModuleResolvedSetting> Row(Guid moduleId)
     {

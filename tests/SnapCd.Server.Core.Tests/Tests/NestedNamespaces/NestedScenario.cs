@@ -181,6 +181,30 @@ public sealed class NestedScenario(Fixture fixture) : IAsyncDisposable
             .ToListAsync();
     }
 
+    /// <summary>Rows inserted, updated or deleted in a table since the server started, from its clustered index.</summary>
+    public async Task<long> RowsWritten(string table)
+    {
+        await using var db = fixture.CreateDbContext();
+
+        return await db.Database
+            .SqlQueryRaw<long>(
+                "SELECT CAST(ISNULL(SUM(leaf_insert_count + leaf_update_count + leaf_delete_count + leaf_ghost_count), 0) AS bigint) AS Value " +
+                $"FROM sys.dm_db_index_operational_stats(DB_ID(), OBJECT_ID('dbo.{table}'), 1, NULL)")
+            .SingleAsync();
+    }
+
+    /// <summary>How many ancestry rows the repair procedure had to write. Zero means the triggers had kept the table right.</summary>
+    public async Task<long> RowsTheRepairWrites()
+    {
+        var before = await RowsWritten("NamespaceAncestors");
+
+        await using (var db = fixture.CreateDbContext())
+            await db.Database.ExecuteSqlRawAsync(
+                "EXEC dbo.usp_RebuildNamespaceAncestors @OrganizationId = {0}", OrganizationId);
+
+        return await RowsWritten("NamespaceAncestors") - before;
+    }
+
     /// <summary>The resolution service, with the vault read replaced by a fixed value.</summary>
     public ResolvedConfigurationService Resolver()
     {
