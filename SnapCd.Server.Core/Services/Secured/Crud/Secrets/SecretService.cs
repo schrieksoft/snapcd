@@ -142,7 +142,7 @@ public class SecretService : GenericCrudService<Secret, SecretMetadata, SecretCr
         var inputKeyVaultUrl = await GetInputKeyVault(organizationId);
 
         using var vault = _vaultFactory.Create(inputKeyVaultUrl ?? _secretStoreSettings.AzureKeyVault.DefaultInputKeyVaultUrl);
-        var value = await vault.GetSecretAsync(MakeRemoteSecretName(secret, organizationId));
+        var value = await SecretValueReader.Read(vault, secret, organizationId);
         return value;
     }
 
@@ -152,7 +152,7 @@ public class SecretService : GenericCrudService<Secret, SecretMetadata, SecretCr
         var inputKeyVaultUrl = await GetInputKeyVault(organizationId);
 
         using var vault = _vaultFactory.Create(inputKeyVaultUrl ?? _secretStoreSettings.AzureKeyVault.DefaultInputKeyVaultUrl);
-        var value = await vault.GetSecretAsync(MakeRemoteSecretName(secret, organizationId));
+        var value = await SecretValueReader.Read(vault, secret, organizationId);
         return value;
     }
 
@@ -240,7 +240,7 @@ public class SecretService : GenericCrudService<Secret, SecretMetadata, SecretCr
             await SecuredRepository.Delete(id, organizationId, false);
 
             using var vault = _vaultFactory.Create(inputKeyVaultUrl ?? _secretStoreSettings.AzureKeyVault.DefaultInputKeyVaultUrl);
-            await vault.DeleteSecretAsync(MakeRemoteSecretName(secret, organizationId));
+            await SecretValueReader.Delete(vault, secret, organizationId);
 
             await transaction.CommitAsync();
         }

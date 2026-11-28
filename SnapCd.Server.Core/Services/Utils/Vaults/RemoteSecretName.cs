@@ -79,6 +79,16 @@ public static class RemoteSecretName
         $"{Prefix(secret)}--{organizationId}--{secret.Id}";
 
     /// <summary>
+    /// The name this Secret's value has if it was written while the Secret belonged to a Stack. A
+    /// Stack's Secrets become Secrets of the Namespace that carries the Stack's id, and their
+    /// values stay under this name until they are next read.
+    /// </summary>
+    public static string AsStackSecret(Secret secret, Guid organizationId) =>
+        secret.NameContainsScope
+            ? $"stack--{organizationId}--{secret.ParentId()}--{secret.Id}"
+            : $"stack--{organizationId}--{secret.Id}";
+
+    /// <summary>
     /// Every name belonging to one owner, which is what a delete sweeps on. Scoped to the
     /// organization as well, since one vault can serve several.
     /// </summary>

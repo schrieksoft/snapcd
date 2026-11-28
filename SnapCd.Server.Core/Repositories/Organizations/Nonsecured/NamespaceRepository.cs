@@ -144,7 +144,7 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
     public async Task<Namespace> Get(Guid stackId, string name, Guid organizationId)
     {
         var @namespace = await DbContext.Namespaces
-            .SingleOrDefaultAsync(i => i.Name == name && i.StackId == stackId && i.OrganizationId == organizationId);
+            .SingleOrDefaultAsync(i => i.Name == name && i.StackId == stackId && i.Id != i.StackId && i.OrganizationId == organizationId);
 
         if (@namespace == null) throw new EntityNotFoundException($"Namespace with name {name} not found.");
 
@@ -155,7 +155,7 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
     {
         var @namespace = await DbContext.Namespaces
             .Include(x => x.Stack)
-            .SingleOrDefaultAsync(i => i.Name == name && i.Stack.Name == stackName && i.OrganizationId == organizationId);
+            .SingleOrDefaultAsync(i => i.Name == name && i.Stack.Name == stackName && i.Id != i.StackId && i.OrganizationId == organizationId);
 
         if (@namespace == null) throw new EntityNotFoundException($"Namespace with name {name} in stack with name {stackName} not found.");
 

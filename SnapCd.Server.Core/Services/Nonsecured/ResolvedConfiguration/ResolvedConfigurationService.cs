@@ -495,6 +495,11 @@ public class ResolvedConfigurationService : IDisposable
     {
         var inputs = inputsEnumerable.ToList();
         var result = new ConcurrentBag<SelectedNamespaceSecret>();
+        var ownAndAbove = await _dbContext.NamespaceAncestors
+            .Where(a => a.NamespaceId == namespaceId && a.OrganizationId == organizationId)
+            .Select(a => a.AncestorNamespaceId)
+            .ToListAsync();
+
 
         var tasks = inputs.Select(async input =>
         {
@@ -518,9 +523,9 @@ public class ResolvedConfigurationService : IDisposable
                     $"The referenced NamespaceInputFromSecret within Id {secret.Id} is scoped to a Module. A NamespaceInputFromSecret must be referenced from a Secret scoped either to the Namespace or to its Stack.");
 
             if (secret is NamespaceSecret namespaceSecret)
-                if (namespaceSecret.NamespaceId != namespaceId)
+                if (!ownAndAbove.Contains(namespaceSecret.NamespaceId))
                     throw new InvalidSecretScopeException(
-                        $"The referenced secret within Id {secret.Id} is scoped to a different namespace (ID {namespaceSecret.NamespaceId}) than the one being processed (ID {namespaceId}).");
+                        $"The referenced secret within Id {secret.Id} is scoped to a namespace (ID {namespaceSecret.NamespaceId}) that is neither the one being processed (ID {namespaceId}) nor above it.");
 
             if (secret is StackSecret stackSecret)
                 if (stackSecret.StackId != stackId)
@@ -559,6 +564,11 @@ public class ResolvedConfigurationService : IDisposable
     {
         var inputs = inputsEnumerable.ToList();
         var result = new ConcurrentBag<SelectedModuleSecret>();
+        var ownAndAbove = await _dbContext.NamespaceAncestors
+            .Where(a => a.NamespaceId == namespaceId && a.OrganizationId == organizationId)
+            .Select(a => a.AncestorNamespaceId)
+            .ToListAsync();
+
 
         var tasks = inputs.Select(async input =>
         {
@@ -586,9 +596,9 @@ public class ResolvedConfigurationService : IDisposable
                         $"The referenced secret within Id {secret.Id} is scoped to a different module (ID {moduleSecret.ModuleId}) than the one being processed (ID {moduleId}).");
 
             if (secret is NamespaceSecret namespaceSecret)
-                if (namespaceSecret.NamespaceId != namespaceId)
+                if (!ownAndAbove.Contains(namespaceSecret.NamespaceId))
                     throw new InvalidSecretScopeException(
-                        $"The referenced secret within Id {secret.Id} is scoped to a different namespace (ID {namespaceSecret.NamespaceId}) than the one being processed (ID {namespaceId}).");
+                        $"The referenced secret within Id {secret.Id} is scoped to a namespace (ID {namespaceSecret.NamespaceId}) that is neither the one being processed (ID {namespaceId}) nor above it.");
 
             if (secret is StackSecret stackSecret)
                 if (stackSecret.StackId != stackId)

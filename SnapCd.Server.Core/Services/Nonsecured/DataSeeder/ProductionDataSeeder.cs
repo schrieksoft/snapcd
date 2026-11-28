@@ -586,23 +586,28 @@ public class ProductionDataSeeder : IDataSeeder
         AsyncServiceScope asyncServiceScope,
         Guid secretId, string name, string value, Guid stackId, Guid organizationId)
     {
-        // 1. Entity row in DB
-        var existing = await _dbContext.Secrets.OfType<StackSecret>().FirstOrDefaultAsync(s => s.Id == secretId);
-        if (existing != null)
+        // 1. Entity row in DB. A Stack's Secret may since have become a Secret of the Namespace carrying the Stack's id.
+        var existing = await _dbContext.Secrets.FirstOrDefaultAsync(s => s.Id == secretId);
+        switch (existing)
         {
-            existing.Name = name;
-            existing.StackId = stackId;
-            existing.OrganizationId = organizationId;
-        }
-        else
-        {
-            _dbContext.Secrets.Add(new StackSecret
-            {
-                Id = secretId,
-                OrganizationId = organizationId,
-                StackId = stackId,
-                Name = name
-            });
+            case StackSecret stackSecret:
+                stackSecret.Name = name;
+                stackSecret.StackId = stackId;
+                stackSecret.OrganizationId = organizationId;
+                break;
+            case NamespaceSecret namespaceSecret:
+                namespaceSecret.Name = name;
+                break;
+            default:
+                existing = new StackSecret
+                {
+                    Id = secretId,
+                    OrganizationId = organizationId,
+                    StackId = stackId,
+                    Name = name
+                };
+                _dbContext.Secrets.Add(existing);
+                break;
         }
         await _dbContext.SaveChangesAsync();
 
@@ -612,9 +617,7 @@ public class ProductionDataSeeder : IDataSeeder
             .GetRequiredService<IOptions<SecretStoreSettings>>().Value;
         var inputVaultUrl = secretStoreSettings.AzureKeyVault.DefaultInputKeyVaultUrl;
         using var vault = vaultFactory.Create(inputVaultUrl);
-        await vault.SetIfChanged(
-            RemoteSecretName.OwnerPrefix(SecretScope.Stack, organizationId, stackId) + secretId,
-            value);
+        await vault.SetIfChanged(RemoteSecretName.For(existing, organizationId), value);
     }
 
     protected async Task CreatePreseededOrganization(string name, Guid organizationId)

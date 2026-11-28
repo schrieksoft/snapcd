@@ -9,6 +9,7 @@
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Base;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Utils.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Tests.Infrastructure;
 
@@ -49,6 +50,27 @@ public class InputInheritanceTests(Fixture fixture) : IAsyncLifetime
         var resolved = await Resolve(module);
 
         Assert.Equal("eu-west-1", ParamValue(resolved, "region"));
+    }
+
+    [Fact]
+    public async Task A_module_can_use_a_secret_of_a_namespace_above_its_own()
+    {
+        var module = await _scenario.AddModule(_leaf.Id);
+        var secretId = await ModuleSecretInput(module, _root, "db_password");
+
+        var resolved = await Resolve(module);
+
+        Assert.Contains(resolved.SelectedModuleParamsFromSecrets, s => s.InputName == "db_password" && s.SecretId == secretId);
+    }
+
+    [Fact]
+    public async Task A_module_cannot_use_a_secret_of_a_namespace_outside_its_chain()
+    {
+        var elsewhere = await _scenario.AddNamespace("00", _root.Id);
+        var module = await _scenario.AddModule(_leaf.Id);
+        await ModuleSecretInput(module, elsewhere, "db_password");
+
+        await Assert.ThrowsAsync<InvalidSecretScopeException>(() => Resolve(module));
     }
 
     [Fact]
@@ -180,6 +202,19 @@ public class InputInheritanceTests(Fixture fixture) : IAsyncLifetime
             Id = Guid.NewGuid(), Name = name, NamespaceId = ns.Id, OrganizationId = _scenario.OrganizationId
         });
         await db.SaveChangesAsync();
+    }
+
+    private async Task<Guid> ModuleSecretInput(Module module, Namespace secretOwner, string name)
+    {
+        await using var db = fixture.CreateDbContext();
+        var secret = fixture.CreateTestNamespaceSecret($"nested_{Guid.NewGuid():N}", secretOwner.Id, _scenario.OrganizationId, db);
+
+        db.ModuleInputs.Add(new ModuleParamFromSecret
+        {
+            Id = Guid.NewGuid(), Name = name, ModuleId = module.Id, SecretId = secret.Id, OrganizationId = _scenario.OrganizationId
+        });
+        await db.SaveChangesAsync();
+        return secret.Id;
     }
 
     private async Task Secret(Namespace ns, string name)

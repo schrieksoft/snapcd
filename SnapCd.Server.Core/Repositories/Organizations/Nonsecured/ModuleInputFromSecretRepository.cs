@@ -124,10 +124,12 @@ public class ModuleInputFromSecretRepository<TEntity> : GenericModuleChildDefini
         // Check if the secret is a NamespaceSecret
         else if (secret is NamespaceSecret namespaceSecret)
         {
-            // Ensure the namespace ID matches
-            if (namespaceSecret.NamespaceId != moduleInfo.NamespaceId)
+            var ownOrAbove = await DbContext.NamespaceAncestors.AnyAsync(a =>
+                a.NamespaceId == moduleInfo.NamespaceId && a.AncestorNamespaceId == namespaceSecret.NamespaceId);
+
+            if (!ownOrAbove)
                 throw new InvalidSecretScopeException(
-                    $"Cannot reference a NamespaceSecret that belongs to a different namespace. " +
+                    $"Cannot reference a NamespaceSecret that belongs to a namespace outside the module's own chain. " +
                     $"Secret is scoped to namespace {namespaceSecret.NamespaceId}, but input is for module in namespace {moduleInfo.NamespaceId}.");
         }
         // Check if the secret is a StackSecret

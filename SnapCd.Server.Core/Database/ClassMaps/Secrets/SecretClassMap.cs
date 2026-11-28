@@ -32,9 +32,13 @@ public class SecretClassMap : IEntityTypeConfiguration<Secret>
         // Configure auto-include for SecretStore navigation property
         // entity.Navigation(s => s.Organization).AutoInclude();
 
-        // Configure ScopeKind to store as string
+        // Derived by the database from the row's type, so the two cannot disagree.
         entity
             .Property(e => e.ScopeKind)
-            .HasConversion<string>();
+            .HasConversion<string>()
+            .HasMaxLength(50)
+            .HasComputedColumnSql(
+                "CASE [Discriminator] WHEN N'NamespaceSecret' THEN N'Namespace' WHEN N'ModuleSecret' THEN N'Module' ELSE N'Stack' END",
+                stored: true);
     }
 }

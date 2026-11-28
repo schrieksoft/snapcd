@@ -44,7 +44,7 @@ public class SecretParamResolver
         var tasks = secrets.Select(async secret =>
         {
             using var vault = _vaultFactory.Create(secret.Organization.InputKeyVaultUrl ?? _secretStoreSettings.AzureKeyVault.DefaultInputKeyVaultUrl);
-            var fetched = await vault.GetSecretWithVersionAsync(MakeRemoteSecretName(secret, organizationId));
+            var fetched = await SecretValueReader.ReadWithVersion(vault, secret, organizationId);
             return new MappedSecretDto
             {
                 Id = secret.Id,

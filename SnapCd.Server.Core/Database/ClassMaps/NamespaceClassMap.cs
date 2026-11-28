@@ -128,10 +128,11 @@ public class NamespaceClassMap : IEntityTypeConfiguration<Namespace>
             .HasForeignKey(e => new { e.StackId, e.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Updated unique index to include OrganizationId
         entity
-            .HasIndex(i => new { i.OrganizationId, i.StackId, i.Name })
-            .IsUnique();
+            .HasIndex(i => new { i.OrganizationId, i.StackId, i.ParentNamespaceId, i.Name })
+            .IsUnique()
+            // Unfiltered: two Namespaces without a parent count as siblings.
+            .HasFilter(null);
 
         entity
             .HasIndex(n => n.StackId);

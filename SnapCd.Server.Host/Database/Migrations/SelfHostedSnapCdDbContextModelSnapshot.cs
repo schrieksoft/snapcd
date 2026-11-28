@@ -3908,7 +3908,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("StackId", "OrganizationId");
 
-                    b.HasIndex("OrganizationId", "StackId", "Name")
+                    b.HasIndex("OrganizationId", "StackId", "ParentNamespaceId", "Name")
                         .IsUnique();
 
                     b.ToTable("Namespaces", (string)null);
@@ -6988,7 +6988,10 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<string>("ScopeKind")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasComputedColumnSql("CASE [Discriminator] WHEN N'NamespaceSecret' THEN N'Namespace' WHEN N'ModuleSecret' THEN N'Module' ELSE N'Stack' END", true);
 
                     b.HasKey("Id", "OrganizationId");
 

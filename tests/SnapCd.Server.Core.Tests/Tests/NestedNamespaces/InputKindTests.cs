@@ -104,4 +104,18 @@ public class InputKindTests(Fixture fixture) : IAsyncLifetime
             .SqlQueryRaw<string>($"SELECT Name + '=' + InputKind AS Value FROM {table} WHERE {ownerColumn} = {{0}} ORDER BY Name", ownerId)
             .ToListAsync();
     }
+
+    [Fact]
+    public async Task A_secret_is_stored_with_the_scope_of_its_type()
+    {
+        await using var db = fixture.CreateDbContext();
+
+        var stored = await db.Database
+            .SqlQueryRaw<string>("SELECT DISTINCT Discriminator + '|' + ScopeKind AS Value FROM dbo.Secrets")
+            .ToListAsync();
+
+        Assert.Equal(
+            ["ModuleSecret|Module", "NamespaceSecret|Namespace", "StackSecret|Stack"],
+            stored.Order().ToList());
+    }
 }

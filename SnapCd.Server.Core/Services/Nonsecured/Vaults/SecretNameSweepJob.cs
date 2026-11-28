@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.Secrets;
+using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Factories.Vaults;
 using SnapCd.Server.Core.Services.Interfaces.Vaults;
 using SnapCd.Server.Core.Services.Utils.CallerContext;
@@ -84,6 +85,14 @@ public class SecretNameSweepJob(
         var scoped = RemoteSecretName.Scoped(secret, secret.OrganizationId);
 
         var value = await Read(vault, scopeless);
+
+        // A Namespace Secret that began as a Stack's has its value under the Stack's name.
+        if (value == null && secret is NamespaceSecret)
+        {
+            scopeless = RemoteSecretName.AsStackSecret(secret, secret.OrganizationId);
+            value = await Read(vault, scopeless);
+        }
+
         if (value != null)
         {
             await vault.SetSecretAsync(scoped, value);

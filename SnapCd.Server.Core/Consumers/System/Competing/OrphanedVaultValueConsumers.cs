@@ -48,6 +48,13 @@ public class NamespaceDeletedVaultConsumer(OrphanedVaultValueSweeper sweeper)
             organizationId,
             VaultKind.Input,
             context.CancellationToken);
+
+        // A Namespace that carries a Stack's id may still hold values written under the Stack's name.
+        await sweeper.SweepPrefix(
+            RemoteSecretName.OwnerPrefix(SecretScope.Stack, organizationId, context.Message.Data.Id),
+            organizationId,
+            VaultKind.Input,
+            context.CancellationToken);
     }
 }
 
