@@ -125,6 +125,20 @@ public class StacksBecomeRootNamespacesTests(Fixture fixture)
             Assert.Equal(held, await Count(db, $"dbo.{namespaceTable} WHERE " + OnARoot("NamespaceId")));
         }
 
+        foreach (var (stackTable, namespaceTable) in new[]
+                 {
+                     ("RunnerStackSupplies", "RunnerNamespaceSupplies"),
+                     ("AgentStackSupplies", "AgentNamespaceSupplies"),
+                     ("IntegrationStackSupplies", "IntegrationNamespaceSupplies"),
+                     ("StackMissions", "NamespaceMissions"),
+                     ("StackIntegrationEvents", "NamespaceIntegrationEvents"),
+                     ("StackRoleAssignments", "NamespaceRoleAssignments")
+                 })
+        {
+            Assert.Equal(0, await Count(db,
+                $"dbo.{stackTable} x WHERE NOT EXISTS (SELECT 1 FROM dbo.{namespaceTable} c WHERE c.Id = x.Id AND c.NamespaceId = x.StackId)"));
+        }
+
         Assert.Equal(0, await Count(db, "dbo.Secrets WHERE Discriminator = 'StackSecret' OR StackId IS NOT NULL"));
         Assert.Equal(stackSecrets, await Count(db,
             "dbo.Secrets WHERE Discriminator = 'NamespaceSecret' AND ScopeKind = 'Namespace' AND " + OnARoot("NamespaceId")));

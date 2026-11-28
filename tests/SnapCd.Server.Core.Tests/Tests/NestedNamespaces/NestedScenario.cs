@@ -255,6 +255,9 @@ public sealed class NestedScenario(Fixture fixture) : IAsyncDisposable
         foreach (var id in deepestFirst)
             await db.Namespaces.Where(n => n.Id == id).ExecuteDeleteAsync();
 
+        // A root made by the code under test brought a Stack row of its own id.
+        await db.Stacks.Where(s => _namespaces.Contains(s.Id)).ExecuteDeleteAsync();
+
         await db.Runners.Where(r => _runners.Contains(r.Id)).ExecuteDeleteAsync();
         await db.ServicePrincipals.Where(s => _servicePrincipals.Contains(s.Id)).ExecuteDeleteAsync();
 

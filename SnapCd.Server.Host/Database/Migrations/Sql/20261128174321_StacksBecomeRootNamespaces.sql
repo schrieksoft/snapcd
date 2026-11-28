@@ -31,25 +31,26 @@ FROM dbo.Namespaces n
 WHERE n.ParentNamespaceId IS NULL AND n.Id <> n.StackId;
 GO
 
--- Contributor on a Stack could change the Namespaces in it, which on a Namespace is the nested role.
+-- Each copy keeps the id of the row it was made from, so an id held outside the server still resolves.
+-- Contributor on a Stack could change the Namespaces in it, which on a Namespace is a second, nested role.
 INSERT INTO dbo.NamespaceRoleAssignments
     (Id, OrganizationId, NamespaceId, PrincipalDiscriminator, UserId, GroupId, ServicePrincipalId, RoleName,
      CreatedBy, CreatedByAgentId, CreatedByPrincipalDiscriminator, CreatedDateTime,
      ModifiedBy, ModifiedByAgentId, ModifiedByPrincipalDiscriminator, ModifiedDateTime)
-SELECT NEWID(), ra.OrganizationId, ra.StackId, ra.PrincipalDiscriminator, ra.UserId, ra.GroupId, ra.ServicePrincipalId, m.NamespaceRole,
+SELECT CASE WHEN m.KeepsId = 1 THEN ra.Id ELSE NEWID() END, ra.OrganizationId, ra.StackId, ra.PrincipalDiscriminator, ra.UserId, ra.GroupId, ra.ServicePrincipalId, m.NamespaceRole,
        ra.CreatedBy, ra.CreatedByAgentId, ra.CreatedByPrincipalDiscriminator, ra.CreatedDateTime,
        ra.ModifiedBy, ra.ModifiedByAgentId, ra.ModifiedByPrincipalDiscriminator, ra.ModifiedDateTime
 FROM dbo.StackRoleAssignments ra
 JOIN (VALUES
-        (N'Owner', N'Owner'),
-        (N'Contributor', N'Contributor'),
-        (N'Contributor', N'NestedNamespaceContributor'),
-        (N'Reader', N'Reader'),
-        (N'MetadataReader', N'MetadataReader'),
-        (N'NamespaceCreator', N'NestedNamespaceCreator'),
-        (N'IdentityAccessManager', N'IdentityAccessManager'),
-        (N'JobManager', N'JobManager')
-     ) m (StackRole, NamespaceRole) ON m.StackRole = ra.RoleName;
+        (N'Owner', N'Owner', 1),
+        (N'Contributor', N'Contributor', 1),
+        (N'Contributor', N'NestedNamespaceContributor', 0),
+        (N'Reader', N'Reader', 1),
+        (N'MetadataReader', N'MetadataReader', 1),
+        (N'NamespaceCreator', N'NestedNamespaceCreator', 1),
+        (N'IdentityAccessManager', N'IdentityAccessManager', 1),
+        (N'JobManager', N'JobManager', 1)
+     ) m (StackRole, NamespaceRole, KeepsId) ON m.StackRole = ra.RoleName;
 GO
 
 -- A supply to a Stack reaches every Namespace in it, so the copy is inherited.
@@ -57,7 +58,7 @@ INSERT INTO dbo.RunnerNamespaceSupplies
     (Id, OrganizationId, RunnerId, NamespaceId, InheritedByDescendants,
      CreatedBy, CreatedByAgentId, CreatedByPrincipalDiscriminator, CreatedDateTime,
      ModifiedBy, ModifiedByAgentId, ModifiedByPrincipalDiscriminator, ModifiedDateTime)
-SELECT NEWID(), x.OrganizationId, x.RunnerId, x.StackId, 1,
+SELECT x.Id, x.OrganizationId, x.RunnerId, x.StackId, 1,
        x.CreatedBy, x.CreatedByAgentId, x.CreatedByPrincipalDiscriminator, x.CreatedDateTime,
        x.ModifiedBy, x.ModifiedByAgentId, x.ModifiedByPrincipalDiscriminator, x.ModifiedDateTime
 FROM dbo.RunnerStackSupplies x;
@@ -67,7 +68,7 @@ INSERT INTO dbo.AgentNamespaceSupplies
     (Id, OrganizationId, AgentId, NamespaceId, InheritedByDescendants,
      CreatedBy, CreatedByAgentId, CreatedByPrincipalDiscriminator, CreatedDateTime,
      ModifiedBy, ModifiedByAgentId, ModifiedByPrincipalDiscriminator, ModifiedDateTime)
-SELECT NEWID(), x.OrganizationId, x.AgentId, x.StackId, 1,
+SELECT x.Id, x.OrganizationId, x.AgentId, x.StackId, 1,
        x.CreatedBy, x.CreatedByAgentId, x.CreatedByPrincipalDiscriminator, x.CreatedDateTime,
        x.ModifiedBy, x.ModifiedByAgentId, x.ModifiedByPrincipalDiscriminator, x.ModifiedDateTime
 FROM dbo.AgentStackSupplies x;
@@ -77,7 +78,7 @@ INSERT INTO dbo.IntegrationNamespaceSupplies
     (Id, OrganizationId, IntegrationId, NamespaceId, InheritedByDescendants,
      CreatedBy, CreatedByAgentId, CreatedByPrincipalDiscriminator, CreatedDateTime,
      ModifiedBy, ModifiedByAgentId, ModifiedByPrincipalDiscriminator, ModifiedDateTime)
-SELECT NEWID(), x.OrganizationId, x.IntegrationId, x.StackId, 1,
+SELECT x.Id, x.OrganizationId, x.IntegrationId, x.StackId, 1,
        x.CreatedBy, x.CreatedByAgentId, x.CreatedByPrincipalDiscriminator, x.CreatedDateTime,
        x.ModifiedBy, x.ModifiedByAgentId, x.ModifiedByPrincipalDiscriminator, x.ModifiedDateTime
 FROM dbo.IntegrationStackSupplies x;
@@ -87,7 +88,7 @@ INSERT INTO dbo.NamespaceMissions
     (Id, OrganizationId, AgentId, NamespaceId, MissionType, SidecarName, IsDisabled,
      CreatedBy, CreatedByAgentId, CreatedByPrincipalDiscriminator, CreatedDateTime,
      ModifiedBy, ModifiedByAgentId, ModifiedByPrincipalDiscriminator, ModifiedDateTime)
-SELECT NEWID(), x.OrganizationId, x.AgentId, x.StackId, x.MissionType, x.SidecarName, x.IsDisabled,
+SELECT x.Id, x.OrganizationId, x.AgentId, x.StackId, x.MissionType, x.SidecarName, x.IsDisabled,
        x.CreatedBy, x.CreatedByAgentId, x.CreatedByPrincipalDiscriminator, x.CreatedDateTime,
        x.ModifiedBy, x.ModifiedByAgentId, x.ModifiedByPrincipalDiscriminator, x.ModifiedDateTime
 FROM dbo.StackMissions x;
@@ -97,7 +98,7 @@ INSERT INTO dbo.NamespaceIntegrationEvents
     (Id, OrganizationId, IntegrationId, NamespaceId, [Trigger], Template, Filter, IsDisabled,
      CreatedBy, CreatedByAgentId, CreatedByPrincipalDiscriminator, CreatedDateTime,
      ModifiedBy, ModifiedByAgentId, ModifiedByPrincipalDiscriminator, ModifiedDateTime)
-SELECT NEWID(), x.OrganizationId, x.IntegrationId, x.StackId, x.[Trigger], x.Template, x.Filter, x.IsDisabled,
+SELECT x.Id, x.OrganizationId, x.IntegrationId, x.StackId, x.[Trigger], x.Template, x.Filter, x.IsDisabled,
        x.CreatedBy, x.CreatedByAgentId, x.CreatedByPrincipalDiscriminator, x.CreatedDateTime,
        x.ModifiedBy, x.ModifiedByAgentId, x.ModifiedByPrincipalDiscriminator, x.ModifiedDateTime
 FROM dbo.StackIntegrationEvents x;

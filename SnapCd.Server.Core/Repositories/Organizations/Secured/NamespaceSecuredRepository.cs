@@ -114,7 +114,16 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
 
     public override async Task<Namespace> Create(Namespace entity, bool inTransaction = true)
     {
-        if (entity.ParentNamespaceId is not { } parentId) return await base.Create(entity, inTransaction);
+        if (entity.ParentNamespaceId is not { } parentId)
+        {
+            if (entity.StackId != Guid.Empty) return await base.Create(entity, inTransaction);
+
+            if (!CanCreateRoot(entity.OrganizationId))
+                throw new PrincipalNotAuthorizedException(
+                    $"{PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(entity.OrganizationId)} does not have permission to create a root Namespace.");
+
+            return inTransaction ? await Repository.Create(entity) : await Repository.ExecuteCreate(entity);
+        }
 
         EnsureCanNestUnder(parentId, entity.OrganizationId);
 
@@ -132,12 +141,53 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         {
             if (entity.ParentNamespaceId is { } newParentId)
                 EnsureCanNestUnder(newParentId, entity.OrganizationId);
-            else if (!CanCreate(entity.StackId, entity.OrganizationId))
+            else if (!CanCreateRoot(entity.OrganizationId))
                 throw new PrincipalNotAuthorizedException(
                     $"{PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(entity.OrganizationId)} does not have permission to make Namespace with ID {entity.Id} a root Namespace.");
         }
 
         return await base.Update(entity, inTransaction);
+    }
+
+    /// <summary>What allows creating a Namespace with nothing above it. Decided on the organization, as there is no parent to hold a role on.</summary>
+    public static readonly List<OrganizationRole> CreateRootRoles =
+        [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor, OrganizationRole.StackCreator];
+
+    public bool CanCreateRoot(Guid organizationId)
+    {
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+        var db = Repository.DbContext;
+
+        return PrincipalDiscriminator switch
+        {
+            PrincipalDiscriminator.User =>
+                db.UserOrganizationRoleAssignments.Any(ra =>
+                    ra.OrganizationId == organizationId && ra.PrincipalId == principalId && CreateRootRoles.Contains(ra.RoleName))
+                || (from gum in db.UserGroupMembers
+                    where gum.UserId == principalId && gum.OrganizationId == organizationId
+                    join rgm in db.RecursiveGroupMembers
+                        on new { RootGroupId = gum.GroupId, RootOrganizationId = gum.OrganizationId }
+                        equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+                    join assignment in db.GroupOrganizationRoleAssignments
+                        on new { rgm.OrganizationId, rgm.GroupId }
+                        equals new { assignment.OrganizationId, GroupId = assignment.PrincipalId }
+                    where CreateRootRoles.Contains(assignment.RoleName)
+                    select assignment).Any(),
+            PrincipalDiscriminator.ServicePrincipal =>
+                db.ServicePrincipalOrganizationRoleAssignments.Any(ra =>
+                    ra.OrganizationId == organizationId && ra.PrincipalId == principalId && CreateRootRoles.Contains(ra.RoleName))
+                || (from gspm in db.ServicePrincipalGroupMembers
+                    where gspm.ServicePrincipalId == principalId && gspm.OrganizationId == organizationId
+                    join rgm in db.RecursiveGroupMembers
+                        on new { RootGroupId = gspm.GroupId, RootOrganizationId = gspm.OrganizationId }
+                        equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+                    join assignment in db.GroupOrganizationRoleAssignments
+                        on new { rgm.OrganizationId, rgm.GroupId }
+                        equals new { assignment.OrganizationId, GroupId = assignment.PrincipalId }
+                    where CreateRootRoles.Contains(assignment.RoleName)
+                    select assignment).Any(),
+            _ => false
+        };
     }
 
     /// <summary>Whether the principal may place a Namespace under this one.</summary>

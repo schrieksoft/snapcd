@@ -178,10 +178,108 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
     {
         NameValidator.EnsureValid(entity.Name, "Namespace");
 
+        await PlaceInTree(entity);
+
         if (entity.ParentNamespaceId is { } parentId)
             await EnsureCanSitUnder(parentId, entity.OrganizationId, levelsBelow: 0);
 
         return await base.ExecuteCreate(entity);
+    }
+
+    /// <summary>
+    /// Settles where a new Namespace sits. Under a parent it belongs to that parent's root. Named
+    /// by a Stack alone, it goes under the root that carries the Stack's id. With neither it is a
+    /// root, and gets the Stack row its own StackId refers to.
+    /// </summary>
+    private async Task PlaceInTree(Namespace entity)
+    {
+        if (entity.ParentNamespaceId is { } parentId)
+        {
+            var root = await RootOf(parentId, entity.OrganizationId);
+            if (root != null) entity.StackId = root.Value;
+            return;
+        }
+
+        if (entity.StackId != Guid.Empty)
+        {
+            var hasRoot = await DbContext.Namespaces
+                .AnyAsync(n => n.Id == entity.StackId && n.OrganizationId == entity.OrganizationId);
+            if (hasRoot) entity.ParentNamespaceId = entity.StackId;
+            return;
+        }
+
+        AddStackRowFor(entity);
+    }
+
+    private void AddStackRowFor(Namespace root)
+    {
+        root.StackId = root.Id;
+        DbContext.Stacks.Add(new Stack
+        {
+            Id = root.Id,
+            OrganizationId = root.OrganizationId,
+            Name = root.Name,
+            TriggerBehaviourOnModified = (StackTriggerBehaviour?)root.TriggerBehaviourOnModified
+        });
+    }
+
+    private async Task<Guid?> RootOf(Guid namespaceId, Guid organizationId) =>
+        await DbContext.Namespaces
+            .Where(n => n.Id == namespaceId && n.OrganizationId == organizationId)
+            .Select(n => (Guid?)n.StackId)
+            .FirstOrDefaultAsync();
+
+    /// <summary>
+    /// Brings the Stack rows and the StackId of everything below into line after a rename or a
+    /// move. A Namespace that became a root gets a Stack row, and one that stopped being a root
+    /// loses it.
+    /// </summary>
+    private async Task KeepStackRowsInStep(Namespace before, Namespace after)
+    {
+        var wasRoot = before.ParentNamespaceId == null && before.StackId == before.Id;
+        var isRoot = after.ParentNamespaceId == null;
+
+        if (before.ParentNamespaceId != after.ParentNamespaceId)
+        {
+            var rootId = isRoot ? after.Id : await RootOf(after.ParentNamespaceId!.Value, after.OrganizationId) ?? after.StackId;
+
+            if (isRoot && !wasRoot)
+            {
+                DbContext.Stacks.Add(new Stack
+                {
+                    Id = after.Id,
+                    OrganizationId = after.OrganizationId,
+                    Name = after.Name,
+                    TriggerBehaviourOnModified = (StackTriggerBehaviour?)after.TriggerBehaviourOnModified
+                });
+                await DbContext.SaveChangesAsync();
+            }
+
+            var moved = DbContext.NamespaceAncestors
+                .Where(a => a.AncestorNamespaceId == after.Id && a.OrganizationId == after.OrganizationId)
+                .Select(a => a.NamespaceId);
+
+            await DbContext.Namespaces
+                .Where(n => moved.Contains(n.Id) && n.OrganizationId == after.OrganizationId)
+                .ExecuteUpdateAsync(s => s.SetProperty(n => n.StackId, rootId));
+
+            if (wasRoot && !isRoot)
+                await DbContext.Stacks
+                    .Where(s => s.Id == before.Id && s.OrganizationId == before.OrganizationId)
+                    .ExecuteDeleteAsync();
+        }
+
+        if (isRoot && wasRoot &&
+            (before.Name != after.Name || before.TriggerBehaviourOnModified != after.TriggerBehaviourOnModified))
+        {
+            var behaviour = (StackTriggerBehaviour?)after.TriggerBehaviourOnModified;
+
+            await DbContext.Stacks
+                .Where(s => s.Id == after.Id && s.OrganizationId == after.OrganizationId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.Name, after.Name)
+                    .SetProperty(x => x.TriggerBehaviourOnModified, behaviour));
+        }
     }
 
     public override async Task<Namespace> ExecuteUpdate(Namespace entity)
@@ -193,8 +291,9 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
         if (existingNamespace.ParentNamespaceId != entity.ParentNamespaceId && entity.ParentNamespaceId is { } newParentId)
             await EnsureCanMoveUnder(entity, newParentId);
 
-        // Proceed with the base update
         var updated = await base.ExecuteUpdate(entity);
+
+        await KeepStackRowsInStep(existingNamespace, updated);
 
         // Publish approval threshold event if changed. Modules that don't override the
         // threshold inherit this default, so lowering it can make an already-waiting job
@@ -234,6 +333,11 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
         await DbContext.ClearRowsBlockingNamespaceDelete(n => n.Id == id, organizationId);
 
         await base.ExecuteDelete(id, organizationId);
+
+        // A root takes the Stack row of its own id with it. Nothing else can refer to that row by then.
+        await DbContext.Stacks
+            .Where(s => s.Id == id && s.OrganizationId == organizationId && !DbContext.Namespaces.Any(n => n.StackId == s.Id))
+            .ExecuteDeleteAsync();
     }
 
 
